@@ -8,16 +8,6 @@ export interface CartItem {
   notes?: string;
 }
 
-interface CartState {
-  restaurantId: string | null;
-  items: CartItem[];
-  add: (restaurantId: string, item: CartItem) => void;
-  updateQty: (productId: string, qty: number) => void;
-  remove: (productId: string) => void;
-  clear: () => void;
-  total: () => number;
-}
-
 let state: { restaurantId: string | null; items: CartItem[] } = {
   restaurantId: null,
   items: [],
