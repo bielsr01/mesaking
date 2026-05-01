@@ -12,25 +12,28 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { brl, formatPhone, unmaskPhone } from "@/lib/format";
 import { toast } from "sonner";
 import { DeliveryZone, GeoPoint, findDeliveryFee, geocodeAddress, haversineKm } from "@/lib/delivery";
-import { Loader2, MapPin, Bike, Store } from "lucide-react";
+import { Loader2, MapPin, Bike, Store, ArrowLeft, ArrowRight, Check } from "lucide-react";
 
-const baseSchema = z.object({
-  customer_name: z.string().trim().min(2, "Informe seu nome").max(80),
-  customer_phone: z.string().trim().refine((v) => unmaskPhone(v).length >= 10, "Telefone inválido").transform((v) => formatPhone(v)),
-  payment_method: z.enum(["cash", "pix", "card_on_delivery"]),
-  change_for: z.string().optional(),
-});
-
-const deliverySchema = baseSchema.extend({
-  address_cep: z.string().trim().regex(/^\d{5}-?\d{3}$/, "CEP inválido"),
-  address_street: z.string().trim().min(2).max(120),
-  address_number: z.string().trim().min(1).max(10),
-  address_complement: z.string().trim().max(80).optional(),
-  address_neighborhood: z.string().trim().min(2).max(80),
-  address_city: z.string().trim().min(2).max(80),
-  address_state: z.string().trim().length(2),
-  address_notes: z.string().trim().max(200).optional(),
-});
+// ---------- Helpers de CPF ----------
+const onlyDigits = (v: string) => v.replace(/\D/g, "");
+const formatCPF = (v: string) => {
+  const d = onlyDigits(v).slice(0, 11);
+  return d
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+};
+const isValidCPF = (raw: string) => {
+  const cpf = onlyDigits(raw);
+  if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+  const calc = (slice: number) => {
+    let sum = 0;
+    for (let i = 0; i < slice; i++) sum += parseInt(cpf[i]) * (slice + 1 - i);
+    const r = (sum * 10) % 11;
+    return r === 10 ? 0 : r;
+  };
+  return calc(9) === parseInt(cpf[9]) && calc(10) === parseInt(cpf[10]);
+};
 
 type RestaurantInfo = {
   id: string;
@@ -46,14 +49,26 @@ type RestaurantInfo = {
   address_state?: string | null;
 };
 
+type Step = 1 | 2 | 3;
+
 export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; onOpenChange: (o: boolean) => void; restaurant: RestaurantInfo }) {
   const cart = useCart();
   const [busy, setBusy] = useState(false);
+  const [step, setStep] = useState<Step>(1);
   const [orderType, setOrderType] = useState<"delivery" | "pickup">("delivery");
-  const [cep, setCep] = useState("");
+
+  // Etapa 1 — cliente
+  const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [addr, setAddr] = useState({ street: "", number: "", neighborhood: "", city: "", state: "" });
+  const [cpf, setCpf] = useState("");
+
+  // Etapa 2 — endereço
+  const [cep, setCep] = useState("");
+  const [addr, setAddr] = useState({ street: "", number: "", complement: "", neighborhood: "", city: "", state: "", notes: "" });
+
+  // Etapa 3 — pagamento
   const [payment, setPayment] = useState<"cash" | "pix" | "card_on_delivery">("cash");
+  const [changeFor, setChangeFor] = useState("");
 
   const [delivery, setDelivery] = useState<{ fee: number; km: number; pt: GeoPoint } | null>(null);
   const [deliveryError, setDeliveryError] = useState<string | null>(null);
@@ -63,6 +78,17 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
   const hasZones = zones.length > 0;
   const restaurantHasCoords = !!(restaurant.latitude && restaurant.longitude);
   const isPickup = orderType === "pickup";
+
+  // Reset ao reabrir
+  useEffect(() => {
+    if (open) setStep(1);
+  }, [open]);
+
+  // Se for pickup, não mostra etapa de endereço
+  const totalSteps = isPickup ? 2 : 3;
+  const stepLabel = isPickup
+    ? (step === 1 ? "Seus dados" : "Pagamento")
+    : (step === 1 ? "Seus dados" : step === 2 ? "Endereço" : "Pagamento");
 
   // Recalcula a taxa quando endereço estiver completo (apenas delivery)
   useEffect(() => {
@@ -121,41 +147,56 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
     restaurant.address_cep,
   ].filter(Boolean).join(" • ");
 
-  const submit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const raw = Object.fromEntries(fd);
-
-    let parsedData: any;
-    if (isPickup) {
-      const parsed = baseSchema.safeParse(raw);
-      if (!parsed.success) return toast.error(parsed.error.issues[0].message);
-      parsedData = parsed.data;
-    } else {
-      const parsed = deliverySchema.safeParse(raw);
-      if (!parsed.success) return toast.error(parsed.error.issues[0].message);
-      parsedData = parsed.data;
+  // ---------- Validação por etapa ----------
+  const validateStep1 = () => {
+    if (name.trim().length < 2) { toast.error("Informe seu nome"); return false; }
+    if (unmaskPhone(phone).length < 10) { toast.error("Telefone inválido"); return false; }
+    if (!isValidCPF(cpf)) { toast.error("CPF inválido"); return false; }
+    return true;
+  };
+  const validateStep2 = () => {
+    if (isPickup) return true;
+    if (!/^\d{5}-?\d{3}$/.test(cep)) { toast.error("CEP inválido"); return false; }
+    if (!addr.street || !addr.number || !addr.neighborhood || !addr.city || addr.state.length !== 2) {
+      toast.error("Preencha o endereço completo"); return false;
     }
+    if (hasZones && !delivery) { toast.error(deliveryError || "Aguarde o cálculo da taxa de entrega."); return false; }
+    return true;
+  };
 
+  const goNext = () => {
+    if (step === 1 && !validateStep1()) return;
+    if (step === 2 && !isPickup && !validateStep2()) return;
+    if (isPickup && step === 1) { setStep(3); return; } // pula endereço
+    setStep((s) => Math.min(3, (s + 1) as Step));
+  };
+  const goBack = () => {
+    if (isPickup && step === 3) { setStep(1); return; }
+    if (step === 1) { onOpenChange(false); return; } // volta para o carrinho
+    setStep((s) => Math.max(1, (s - 1) as Step));
+  };
+
+  const submit = async () => {
     if (cart.items.length === 0) return toast.error("Carrinho vazio");
-    if (!isPickup && hasZones && !delivery) return toast.error(deliveryError || "Aguarde o cálculo da taxa de entrega.");
+    if (!validateStep1()) { setStep(1); return; }
+    if (!isPickup && !validateStep2()) { setStep(2); return; }
 
     setBusy(true);
 
     const payload: any = {
       restaurant_id: restaurant.id,
       order_type: orderType,
-      customer_name: parsedData.customer_name,
-      customer_phone: parsedData.customer_phone,
-      payment_method: parsedData.payment_method,
-      change_for: parsedData.payment_method === "cash" && parsedData.change_for ? Number(parsedData.change_for) : null,
+      customer_name: name.trim(),
+      customer_phone: formatPhone(phone),
+      customer_cpf: onlyDigits(cpf),
+      payment_method: payment,
+      change_for: payment === "cash" && changeFor ? Number(changeFor) : null,
       subtotal,
       delivery_fee: fee,
       total,
     };
 
     if (isPickup) {
-      // Pedido de retirada — copia o endereço da loja para referência
       payload.address_cep = restaurant.address_cep ?? "";
       payload.address_street = restaurant.address_street ?? "Retirada na loja";
       payload.address_number = restaurant.address_number ?? "—";
@@ -165,20 +206,26 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
       payload.address_state = restaurant.address_state ?? "—";
       payload.address_notes = "Retirada no local";
     } else {
-      payload.address_cep = parsedData.address_cep;
-      payload.address_street = parsedData.address_street;
-      payload.address_number = parsedData.address_number;
-      payload.address_complement = parsedData.address_complement || null;
-      payload.address_neighborhood = parsedData.address_neighborhood;
-      payload.address_city = parsedData.address_city;
-      payload.address_state = parsedData.address_state;
-      payload.address_notes = parsedData.address_notes || null;
+      payload.address_cep = cep;
+      payload.address_street = addr.street;
+      payload.address_number = addr.number;
+      payload.address_complement = addr.complement || null;
+      payload.address_neighborhood = addr.neighborhood;
+      payload.address_city = addr.city;
+      payload.address_state = addr.state;
+      payload.address_notes = addr.notes || null;
       payload.delivery_distance_km = delivery?.km ?? null;
       payload.delivery_latitude = delivery?.pt.lat ?? null;
       payload.delivery_longitude = delivery?.pt.lng ?? null;
     }
 
-    const { data: order, error } = await supabase.from("orders").insert(payload).select("id, public_token").single();
+    // Remove customer_cpf se a coluna não existir (failsafe)
+    let { data: order, error } = await supabase.from("orders").insert(payload).select("id, public_token").single();
+    if (error && /customer_cpf/i.test(error.message)) {
+      delete payload.customer_cpf;
+      const retry = await supabase.from("orders").insert(payload).select("id, public_token").single();
+      order = retry.data; error = retry.error;
+    }
 
     if (error || !order) { setBusy(false); return toast.error(error?.message || "Erro"); }
 
@@ -205,73 +252,80 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
     toast.success("Pedido enviado! Acompanhe o status no topo da tela.");
   };
 
+  // Indicador de progresso
+  const stepIndex = isPickup ? (step === 1 ? 1 : 2) : step;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Finalizar pedido</DialogTitle></DialogHeader>
-        <form onSubmit={submit} className="space-y-4">
-          {/* Tipo do pedido */}
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold">Como você quer receber?</Label>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setOrderType("delivery")}
-                className={`flex items-center gap-2 p-3 rounded-lg border-2 transition-colors ${orderType === "delivery" ? "border-primary bg-primary/5" : "border-border hover:bg-muted"}`}
-              >
-                <Bike className="w-5 h-5" />
-                <div className="text-left">
-                  <div className="font-medium text-sm">Delivery</div>
-                  <div className="text-xs text-muted-foreground">Entregar no meu endereço</div>
-                </div>
-              </button>
-              <button
-                type="button"
-                onClick={() => setOrderType("pickup")}
-                className={`flex items-center gap-2 p-3 rounded-lg border-2 transition-colors ${orderType === "pickup" ? "border-primary bg-primary/5" : "border-border hover:bg-muted"}`}
-              >
-                <Store className="w-5 h-5" />
-                <div className="text-left">
-                  <div className="font-medium text-sm">Retirada</div>
-                  <div className="text-xs text-muted-foreground">Vou buscar na loja</div>
-                </div>
-              </button>
-            </div>
+        <DialogHeader>
+          <DialogTitle>Finalizar pedido</DialogTitle>
+          <div className="flex items-center gap-1.5 mt-2">
+            {Array.from({ length: totalSteps }).map((_, i) => (
+              <div key={i} className={`h-1.5 flex-1 rounded-full transition-colors ${i + 1 <= stepIndex ? "bg-primary" : "bg-muted"}`} />
+            ))}
           </div>
+          <p className="text-xs text-muted-foreground mt-1">Etapa {stepIndex} de {totalSteps} — {stepLabel}</p>
+        </DialogHeader>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2 col-span-2"><Label>Nome</Label><Input name="customer_name" required /></div>
-            <div className="space-y-2 col-span-2"><Label>Telefone</Label><Input name="customer_phone" value={phone} onChange={(e) => setPhone(formatPhone(e.target.value))} placeholder="(11) 99999-0000" inputMode="tel" required /></div>
-          </div>
-
-          {isPickup ? (
-            <div className="border-t pt-3 space-y-2">
-              <h3 className="font-semibold text-sm flex items-center gap-2"><Store className="w-4 h-4" />Endereço para retirada</h3>
-              {storeAddressLine ? (
-                <div className="text-sm bg-muted rounded-lg p-3">
-                  <p>{storeAddressLine}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Apresente seu nome ou telefone ao retirar.</p>
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">Endereço da loja não cadastrado. Entre em contato com o estabelecimento.</p>
-              )}
+        <div className="space-y-4">
+          {/* Tipo do pedido — visível só na etapa 1 */}
+          {step === 1 && (
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold">Como você quer receber?</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setOrderType("delivery")}
+                  className={`flex items-center gap-2 p-3 rounded-lg border-2 transition-colors ${orderType === "delivery" ? "border-primary bg-primary/5" : "border-border hover:bg-muted"}`}
+                >
+                  <Bike className="w-5 h-5" />
+                  <div className="text-left">
+                    <div className="font-medium text-sm">Delivery</div>
+                    <div className="text-xs text-muted-foreground">Entregar no meu endereço</div>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOrderType("pickup")}
+                  className={`flex items-center gap-2 p-3 rounded-lg border-2 transition-colors ${orderType === "pickup" ? "border-primary bg-primary/5" : "border-border hover:bg-muted"}`}
+                >
+                  <Store className="w-5 h-5" />
+                  <div className="text-left">
+                    <div className="font-medium text-sm">Retirada</div>
+                    <div className="text-xs text-muted-foreground">Vou buscar na loja</div>
+                  </div>
+                </button>
+              </div>
             </div>
-          ) : (
-            <div className="border-t pt-3 space-y-3">
+          )}
+
+          {/* ETAPA 1 — Dados do cliente */}
+          {step === 1 && (
+            <div className="space-y-3">
+              <div className="space-y-2"><Label>Nome completo</Label><Input value={name} onChange={(e) => setName(e.target.value)} required /></div>
+              <div className="space-y-2"><Label>Telefone</Label><Input value={phone} onChange={(e) => setPhone(formatPhone(e.target.value))} placeholder="(11) 99999-0000" inputMode="tel" required /></div>
+              <div className="space-y-2"><Label>CPF</Label><Input value={cpf} onChange={(e) => setCpf(formatCPF(e.target.value))} placeholder="000.000.000-00" inputMode="numeric" required /></div>
+            </div>
+          )}
+
+          {/* ETAPA 2 — Endereço (só delivery) */}
+          {step === 2 && !isPickup && (
+            <div className="space-y-3">
               <h3 className="font-semibold text-sm">Endereço de entrega</h3>
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-2 col-span-1">
                   <Label>CEP</Label>
-                  <Input name="address_cep" value={cep} onChange={(e) => setCep(e.target.value)} onBlur={(e) => lookupCep(e.target.value)} placeholder="00000-000" required />
+                  <Input value={cep} onChange={(e) => setCep(e.target.value)} onBlur={(e) => lookupCep(e.target.value)} placeholder="00000-000" required />
                 </div>
-                <div className="space-y-2 col-span-2"><Label>Rua</Label><Input name="address_street" value={addr.street} onChange={(e) => setAddr({ ...addr, street: e.target.value })} required /></div>
-                <div className="space-y-2"><Label>Número</Label><Input name="address_number" value={addr.number} onChange={(e) => setAddr({ ...addr, number: e.target.value })} required /></div>
-                <div className="space-y-2 col-span-2"><Label>Complemento</Label><Input name="address_complement" placeholder="Apto, bloco..." /></div>
-                <div className="space-y-2 col-span-2"><Label>Bairro</Label><Input name="address_neighborhood" value={addr.neighborhood} onChange={(e) => setAddr({ ...addr, neighborhood: e.target.value })} required /></div>
-                <div className="space-y-2 col-span-2"><Label>Cidade</Label><Input name="address_city" value={addr.city} onChange={(e) => setAddr({ ...addr, city: e.target.value })} required /></div>
-                <div className="space-y-2"><Label>UF</Label><Input name="address_state" maxLength={2} value={addr.state} onChange={(e) => setAddr({ ...addr, state: e.target.value.toUpperCase() })} required /></div>
+                <div className="space-y-2 col-span-2"><Label>Rua</Label><Input value={addr.street} onChange={(e) => setAddr({ ...addr, street: e.target.value })} required /></div>
+                <div className="space-y-2"><Label>Número</Label><Input value={addr.number} onChange={(e) => setAddr({ ...addr, number: e.target.value })} required /></div>
+                <div className="space-y-2 col-span-2"><Label>Complemento</Label><Input value={addr.complement} onChange={(e) => setAddr({ ...addr, complement: e.target.value })} placeholder="Apto, bloco..." /></div>
+                <div className="space-y-2 col-span-2"><Label>Bairro</Label><Input value={addr.neighborhood} onChange={(e) => setAddr({ ...addr, neighborhood: e.target.value })} required /></div>
+                <div className="space-y-2 col-span-2"><Label>Cidade</Label><Input value={addr.city} onChange={(e) => setAddr({ ...addr, city: e.target.value })} required /></div>
+                <div className="space-y-2"><Label>UF</Label><Input maxLength={2} value={addr.state} onChange={(e) => setAddr({ ...addr, state: e.target.value.toUpperCase() })} required /></div>
               </div>
-              <div className="space-y-2"><Label>Observação do endereço</Label><Textarea name="address_notes" rows={2} placeholder="Ponto de referência, instruções..." /></div>
+              <div className="space-y-2"><Label>Observação do endereço</Label><Textarea value={addr.notes} onChange={(e) => setAddr({ ...addr, notes: e.target.value })} rows={2} placeholder="Ponto de referência, instruções..." /></div>
 
               {hasZones && restaurantHasCoords && (
                 <div className={`text-sm rounded-lg p-3 flex items-start gap-2 ${deliveryError ? "bg-destructive/10 text-destructive" : delivery ? "bg-success/10 text-success-foreground border border-success/30" : "bg-muted"}`}>
@@ -290,39 +344,81 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
             </div>
           )}
 
-          <div className="border-t pt-3 space-y-3">
-            <h3 className="font-semibold text-sm">Pagamento</h3>
-            <RadioGroup name="payment_method" value={payment} onValueChange={(v) => setPayment(v as any)} className="space-y-2">
-              {[
-                { v: "cash", l: "Dinheiro" },
-                { v: "pix", l: "Pix" },
-                { v: "card_on_delivery", l: isPickup ? "Cartão na retirada" : "Cartão na entrega" },
-              ].map((o) => (
-                <label key={o.v} className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted">
-                  <RadioGroupItem value={o.v} />
-                  <span>{o.l}</span>
-                </label>
-              ))}
-            </RadioGroup>
-            {payment === "cash" && (
-              <div className="space-y-2"><Label>Troco para (opcional)</Label><Input name="change_for" type="number" step="0.01" placeholder="Ex: 50.00" /></div>
-            )}
-          </div>
+          {/* ETAPA 3 — Pagamento + Resumo */}
+          {step === 3 && (
+            <div className="space-y-4">
+              {isPickup && storeAddressLine && (
+                <div className="border rounded-lg p-3 space-y-1">
+                  <h3 className="font-semibold text-sm flex items-center gap-2"><Store className="w-4 h-4" />Endereço para retirada</h3>
+                  <p className="text-sm">{storeAddressLine}</p>
+                  <p className="text-xs text-muted-foreground">Apresente seu nome ou telefone ao retirar.</p>
+                </div>
+              )}
 
-          <div className="border-t pt-3 space-y-1 text-sm">
-            <div className="flex justify-between"><span>Subtotal</span><span>{brl(subtotal)}</span></div>
-            {!isPickup && (
-              <div className="flex justify-between"><span>Entrega</span><span>{fee > 0 ? brl(fee) : (hasZones ? "—" : "Grátis")}</span></div>
+              <div className="space-y-3">
+                <h3 className="font-semibold text-sm">Pagamento</h3>
+                <RadioGroup value={payment} onValueChange={(v) => setPayment(v as any)} className="space-y-2">
+                  {[
+                    { v: "cash", l: "Dinheiro" },
+                    { v: "pix", l: "Pix" },
+                    { v: "card_on_delivery", l: isPickup ? "Cartão na retirada" : "Cartão na entrega" },
+                  ].map((o) => (
+                    <label key={o.v} className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted">
+                      <RadioGroupItem value={o.v} />
+                      <span>{o.l}</span>
+                    </label>
+                  ))}
+                </RadioGroup>
+                {payment === "cash" && (
+                  <div className="space-y-2"><Label>Troco para (opcional)</Label><Input value={changeFor} onChange={(e) => setChangeFor(e.target.value)} type="number" step="0.01" placeholder="Ex: 50.00" /></div>
+                )}
+              </div>
+
+              {/* Resumo do pedido */}
+              <div className="border rounded-lg p-3 space-y-2">
+                <h3 className="font-semibold text-sm">Resumo do pedido</h3>
+                <div className="space-y-1 text-sm max-h-44 overflow-y-auto pr-1">
+                  {cart.items.map((i, idx) => {
+                    const unit = i.price + (i.options?.reduce((s, o) => s + (Number(o.extraPrice) || 0), 0) ?? 0);
+                    return (
+                      <div key={idx} className="flex justify-between gap-2">
+                        <span><span className="font-medium">{i.quantity}×</span> {i.name}</span>
+                        <span className="tabular-nums">{brl(unit * i.quantity)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="border-t pt-2 space-y-1 text-sm">
+                  <div className="flex justify-between"><span>Subtotal</span><span>{brl(subtotal)}</span></div>
+                  {!isPickup && (
+                    <div className="flex justify-between"><span>Entrega</span><span>{fee > 0 ? brl(fee) : (hasZones ? "—" : "Grátis")}</span></div>
+                  )}
+                  {isPickup && (
+                    <div className="flex justify-between text-muted-foreground"><span>Retirada na loja</span><span>Sem taxa</span></div>
+                  )}
+                  <div className="flex justify-between font-bold text-base pt-1 border-t"><span>Total</span><span>{brl(total)}</span></div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Navegação */}
+          <div className="flex gap-2 pt-2 border-t">
+            <Button type="button" variant="outline" onClick={goBack} disabled={busy}>
+              <ArrowLeft className="w-4 h-4 mr-1" />
+              {step === 1 ? "Carrinho" : "Voltar"}
+            </Button>
+            {step < 3 ? (
+              <Button type="button" className="flex-1" onClick={goNext}>
+                Avançar <ArrowRight className="w-4 h-4 ml-1" />
+              </Button>
+            ) : (
+              <Button type="button" className="flex-1" size="lg" onClick={submit} disabled={busy || (!isPickup && (calculating || (hasZones && !delivery)))}>
+                {busy ? "Enviando..." : (<><Check className="w-4 h-4 mr-1" />Enviar pedido</>)}
+              </Button>
             )}
-            {isPickup && (
-              <div className="flex justify-between text-muted-foreground"><span>Retirada na loja</span><span>Sem taxa</span></div>
-            )}
-            <div className="flex justify-between font-bold text-lg pt-1 border-t"><span>Total</span><span>{brl(total)}</span></div>
           </div>
-          <Button type="submit" className="w-full" size="lg" disabled={busy || (!isPickup && (calculating || (hasZones && !delivery)))}>
-            {busy ? "Enviando..." : "Confirmar pedido"}
-          </Button>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   );
