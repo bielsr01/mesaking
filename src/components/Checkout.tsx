@@ -78,6 +78,8 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
   const [calculating, setCalculating] = useState(false);
 
   const zones = (restaurant.delivery_zones ?? []) as DeliveryZone[];
+  const feeMode = (restaurant.delivery_fee_mode ?? "radius") as "fixed" | "radius";
+  const fixedFee = Number(restaurant.delivery_fixed_fee ?? 0);
   const hasZones = zones.length > 0;
   const restaurantHasCoords = !!(restaurant.latitude && restaurant.longitude);
   const deliveryEnabled = restaurant.service_delivery !== false;
