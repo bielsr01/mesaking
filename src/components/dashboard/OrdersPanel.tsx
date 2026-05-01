@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { brl, orderStatusLabel, nextStatus, paymentLabel } from "@/lib/format";
+import { brl, orderStatusLabel, nextStatus, paymentLabel, formatPhone } from "@/lib/format";
 import { toast } from "sonner";
 import { Clock, MapPin, Phone, User, X } from "lucide-react";
 
