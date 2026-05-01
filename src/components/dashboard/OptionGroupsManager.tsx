@@ -124,6 +124,7 @@ export function OptionGroupsManager({ restaurantId }: { restaurantId: string }) 
                   </div>
                 </div>
                 <Switch checked={g.is_active} onCheckedChange={() => toggleGroup(g)} />
+                <Button size="icon" variant="ghost" title="Vincular produtos" onClick={() => setLinkingGroup(g)}><Link2 className="w-4 h-4" /></Button>
                 <Button size="icon" variant="ghost" onClick={() => openEdit(g)}><Pencil className="w-4 h-4" /></Button>
                 <Button size="icon" variant="ghost" onClick={() => removeGroup(g)}><Trash2 className="w-4 h-4" /></Button>
               </div>
