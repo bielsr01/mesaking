@@ -74,9 +74,11 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
     toast.success("Coordenadas atualizadas");
   };
 
-  const addZone = () => setZones((z) => [...z, { radius_km: 5, fee: 5 }]);
-  const updateZone = (i: number, patch: Partial<DeliveryZone>) =>
-    setZones((z) => z.map((x, idx) => (idx === i ? { ...x, ...patch } : x)));
+  const addZone = () => setZones((z) => [...z, { radius_km: 0, fee: 0 }]);
+  const updateZoneRadius = (i: number, v: string) =>
+    setZones((z) => z.map((x, idx) => (idx === i ? { ...x, radius_km: v === "" ? 0 : Number(v) } : x)));
+  const updateZoneFee = (i: number, v: string) =>
+    setZones((z) => z.map((x, idx) => (idx === i ? { ...x, fee: v === "" ? 0 : Number(v) } : x)));
   const removeZone = (i: number) => setZones((z) => z.filter((_, idx) => idx !== i));
 
   const save = async (e: React.FormEvent<HTMLFormElement>) => {
