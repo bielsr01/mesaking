@@ -547,3 +547,164 @@ export default function RestaurantPublic() {
     </div>
   );
 }
+
+/* ===========================
+   Sheet "Informação" da loja
+   =========================== */
+function InfoSheetContent({
+  restaurant,
+  addressLine,
+  timeLabel,
+}: {
+  restaurant: Restaurant;
+  addressLine: string;
+  timeLabel: string | null;
+}) {
+  const zones = Array.isArray(restaurant.delivery_zones) ? (restaurant.delivery_zones as { radius_km: number; fee: number }[]) : [];
+  const validZones = zones.filter((z) => z && z.radius_km > 0).sort((a, b) => Number(a.fee) - Number(b.fee));
+  const minFee = validZones.length ? Number(validZones[0].fee) : null;
+  const feeMessage = minFee == null
+    ? null
+    : validZones.length === 1
+      ? `Taxa de entrega por apenas ${brl(minFee)}`
+      : `Taxa de entrega a partir de ${brl(minFee)}`;
+
+  const normalizeWhats = (v?: string | null) => {
+    if (!v) return null;
+    const t = v.trim();
+    if (!t) return null;
+    if (t.startsWith("http")) return t;
+    const digits = t.replace(/\D/g, "");
+    return digits ? `https://wa.me/${digits}` : null;
+  };
+  const wa = normalizeWhats(restaurant.whatsapp_url);
+  const ig = restaurant.instagram_url?.trim() || null;
+  const fb = restaurant.facebook_url?.trim() || null;
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: restaurant.name, url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast.success("Link copiado!");
+      }
+    } catch {
+      /* user cancel */
+    }
+  };
+
+  return (
+    <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+      <SheetHeader>
+        <SheetTitle>Informações</SheetTitle>
+      </SheetHeader>
+
+      <div className="space-y-5 mt-4">
+        <div>
+          <div className="text-lg font-bold">{restaurant.name}</div>
+          {restaurant.description && (
+            <p className="text-sm text-muted-foreground mt-1">{restaurant.description}</p>
+          )}
+        </div>
+
+        {/* Botões sociais */}
+        <div className="flex flex-wrap gap-2">
+          {wa && (
+            <a href={wa} target="_blank" rel="noreferrer">
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <MessageCircle className="w-4 h-4" /> WhatsApp
+              </Button>
+            </a>
+          )}
+          {ig && (
+            <a href={ig} target="_blank" rel="noreferrer">
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <Instagram className="w-4 h-4" /> Instagram
+              </Button>
+            </a>
+          )}
+          {fb && (
+            <a href={fb} target="_blank" rel="noreferrer">
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <Facebook className="w-4 h-4" /> Facebook
+              </Button>
+            </a>
+          )}
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={handleShare}>
+            <Share2 className="w-4 h-4" /> Compartilhar
+          </Button>
+        </div>
+
+        {/* Endereço */}
+        {addressLine && (
+          <section className="space-y-1">
+            <div className="text-sm font-semibold flex items-center gap-1.5">
+              <MapPin className="w-4 h-4" /> Endereço
+            </div>
+            <p className="text-sm text-muted-foreground">{addressLine}</p>
+            {restaurant.address_complement && (
+              <p className="text-xs text-muted-foreground">Complemento: {restaurant.address_complement}</p>
+            )}
+            {restaurant.address_cep && (
+              <p className="text-xs text-muted-foreground">CEP: {restaurant.address_cep}</p>
+            )}
+          </section>
+        )}
+
+        {/* Tipos de serviço */}
+        <section className="space-y-2">
+          <div className="text-sm font-semibold">Tipos de serviço</div>
+          <div className="space-y-2">
+            {(restaurant.service_delivery ?? true) && (
+              <div className="p-3 rounded-lg border space-y-1">
+                <div className="flex items-center gap-2 font-medium text-sm">
+                  <Bike className="w-4 h-4" /> Delivery
+                </div>
+                {timeLabel && (
+                  <div className="text-xs text-muted-foreground">Tempo estimado: <strong className="text-foreground">{timeLabel}</strong></div>
+                )}
+                {feeMessage && (
+                  <div className="text-xs text-muted-foreground">{feeMessage}</div>
+                )}
+              </div>
+            )}
+            {restaurant.service_pickup && (
+              <div className="p-3 rounded-lg border space-y-1">
+                <div className="flex items-center gap-2 font-medium text-sm">
+                  <Store className="w-4 h-4" /> Retirada na loja
+                </div>
+                <div className="text-xs text-muted-foreground">Retire o pedido diretamente no balcão.</div>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Horário de funcionamento detalhado */}
+        <section className="space-y-2">
+          <div className="text-sm font-semibold flex items-center gap-1.5">
+            <Clock className="w-4 h-4" /> Horário de funcionamento
+          </div>
+          <div className="rounded-lg border divide-y">
+            {DAY_LABELS.map((label, i) => {
+              const cfg = restaurant.opening_hours?.[String(i)];
+              const today = new Date().getDay() === i;
+              return (
+                <div
+                  key={i}
+                  className={`flex items-center justify-between px-3 py-2 text-sm ${today ? "bg-muted/50 font-semibold" : ""}`}
+                >
+                  <span>{label}{today ? " (hoje)" : ""}</span>
+                  <span className="text-muted-foreground">
+                    {cfg?.enabled ? `${cfg.open} – ${cfg.close}` : "Fechado"}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      </div>
+    </SheetContent>
+  );
+}
