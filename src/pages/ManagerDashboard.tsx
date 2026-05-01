@@ -91,12 +91,7 @@ export default function ManagerDashboard() {
     return () => { supabase.removeChannel(ch); };
   }, [restaurant?.id, qc]);
 
-  const toggleOpen = async () => {
-    if (!restaurant) return;
-    const { error } = await supabase.from("restaurants").update({ is_open: !restaurant.is_open }).eq("id", restaurant.id);
-    if (error) return toast.error(error.message);
-    qc.setQueryData(["managerRestaurant", user?.id], { ...restaurant, is_open: !restaurant.is_open });
-  };
+  const refetchRestaurant = () => qc.invalidateQueries({ queryKey: ["managerRestaurant", user?.id] });
 
   if (loadingRest) {
     return (
