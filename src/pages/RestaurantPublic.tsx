@@ -10,16 +10,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ShoppingCart, Plus, Minus, Image as ImageIcon, Trash2 } from "lucide-react";
-import { useCart } from "@/hooks/useCart";
+import { useCart, CartItemOption } from "@/hooks/useCart";
 import { brl } from "@/lib/format";
 import { Checkout } from "@/components/Checkout";
 import { ActiveOrderBanner } from "@/components/ActiveOrderBanner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isOpenNow, ManualOverride } from "@/lib/hours";
+import { toast } from "sonner";
 
 interface Restaurant { id: string; name: string; slug: string; description: string | null; logo_url: string | null; is_open: boolean; phone: string | null; opening_hours: any; latitude: number | null; longitude: number | null; delivery_zones: any; manual_override: ManualOverride; }
 interface Category { id: string; name: string; sort_order: number; }
 interface Product { id: string; name: string; description: string | null; price: number; image_url: string | null; category_id: string | null; }
+interface OptionGroup { id: string; name: string; min_select: number; max_select: number; sort_order: number; items: { id: string; name: string; extra_price: number }[]; }
 
 export default function RestaurantPublic() {
   const { slug } = useParams<{ slug: string }>();
@@ -29,6 +31,9 @@ export default function RestaurantPublic() {
   const [selected, setSelected] = useState<Product | null>(null);
   const [qty, setQty] = useState(1);
   const [notes, setNotes] = useState("");
+  const [productGroups, setProductGroups] = useState<OptionGroup[]>([]);
+  const [loadingGroups, setLoadingGroups] = useState(false);
+  const [selectedOpts, setSelectedOpts] = useState<Record<string, string[]>>({}); // groupId -> itemIds
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const cart = useCart();
@@ -43,7 +48,6 @@ export default function RestaurantPublic() {
       if (cancelled) return;
       if (!r) { setLoading(false); return; }
       setRestaurant(r as unknown as Restaurant);
-      // Parallel fetch categories + products for ~2x faster menu load
       const [catsRes, prodsRes] = await Promise.all([
         supabase.from("categories").select("*").eq("restaurant_id", r.id).eq("is_active", true).order("sort_order"),
         supabase.from("products").select("*").eq("restaurant_id", r.id).eq("is_active", true).order("created_at"),
@@ -56,7 +60,6 @@ export default function RestaurantPublic() {
     return () => { cancelled = true; };
   }, [slug]);
 
-  // Realtime: react to open/close, menu and product changes instantly
   useEffect(() => {
     if (!restaurant?.id) return;
     const rid = restaurant.id;
@@ -78,6 +81,46 @@ export default function RestaurantPublic() {
     return () => { supabase.removeChannel(ch); };
   }, [restaurant?.id]);
 
+  // Load groups + items when product opens
+  useEffect(() => {
+    if (!selected) { setProductGroups([]); setSelectedOpts({}); return; }
+    let cancelled = false;
+    setLoadingGroups(true);
+    (async () => {
+      const { data: links } = await supabase
+        .from("product_option_groups")
+        .select("group_id, sort_order, option_groups!inner(id, name, min_select, max_select, sort_order, is_active)")
+        .eq("product_id", selected.id);
+      const activeGroups = (links ?? [])
+        .map((l: any) => l.option_groups)
+        .filter((g: any) => g && g.is_active)
+        .sort((a: any, b: any) => a.sort_order - b.sort_order);
+      if (activeGroups.length === 0) {
+        if (!cancelled) { setProductGroups([]); setLoadingGroups(false); }
+        return;
+      }
+      const ids = activeGroups.map((g: any) => g.id);
+      const { data: itemsData } = await supabase
+        .from("option_items")
+        .select("id, group_id, name, extra_price, sort_order, is_active")
+        .in("group_id", ids)
+        .eq("is_active", true)
+        .order("sort_order");
+      if (cancelled) return;
+      const groups: OptionGroup[] = activeGroups.map((g: any) => ({
+        id: g.id, name: g.name, min_select: g.min_select, max_select: g.max_select, sort_order: g.sort_order,
+        items: (itemsData ?? []).filter((it: any) => it.group_id === g.id).map((it: any) => ({ id: it.id, name: it.name, extra_price: Number(it.extra_price) })),
+      }));
+      setProductGroups(groups);
+      // pre-select first item if min=1 and max=1 (radio with required)
+      const initial: Record<string, string[]> = {};
+      groups.forEach((g) => { initial[g.id] = []; });
+      setSelectedOpts(initial);
+      setLoadingGroups(false);
+    })();
+    return () => { cancelled = true; };
+  }, [selected]);
+
   const grouped = useMemo(() => {
     const m: { cat: Category | null; products: Product[] }[] = [];
     categories.forEach((c) => m.push({ cat: c, products: products.filter((p) => p.category_id === c.id) }));
@@ -87,6 +130,58 @@ export default function RestaurantPublic() {
   }, [categories, products]);
 
   const itemCount = cart.items.reduce((s, i) => s + i.quantity, 0);
+
+  const extrasTotal = useMemo(() => {
+    let sum = 0;
+    productGroups.forEach((g) => {
+      (selectedOpts[g.id] ?? []).forEach((itemId) => {
+        const it = g.items.find((x) => x.id === itemId);
+        if (it) sum += it.extra_price;
+      });
+    });
+    return sum;
+  }, [productGroups, selectedOpts]);
+
+  const toggleOpt = (g: OptionGroup, itemId: string) => {
+    setSelectedOpts((prev) => {
+      const cur = prev[g.id] ?? [];
+      if (g.max_select === 1) {
+        return { ...prev, [g.id]: cur[0] === itemId ? [] : [itemId] };
+      }
+      if (cur.includes(itemId)) return { ...prev, [g.id]: cur.filter((x) => x !== itemId) };
+      if (cur.length >= g.max_select) {
+        toast.error(`Máximo ${g.max_select} em "${g.name}"`);
+        return prev;
+      }
+      return { ...prev, [g.id]: [...cur, itemId] };
+    });
+  };
+
+  const validateAndAdd = () => {
+    if (!selected || !restaurant) return;
+    for (const g of productGroups) {
+      const cnt = (selectedOpts[g.id] ?? []).length;
+      if (cnt < g.min_select) {
+        return toast.error(`Escolha ao menos ${g.min_select} em "${g.name}"`);
+      }
+    }
+    const opts: CartItemOption[] = [];
+    productGroups.forEach((g) => {
+      (selectedOpts[g.id] ?? []).forEach((itemId) => {
+        const it = g.items.find((x) => x.id === itemId);
+        if (it) opts.push({ groupName: g.name, itemName: it.name, extraPrice: it.extra_price });
+      });
+    });
+    cart.add(restaurant.id, {
+      productId: selected.id,
+      name: selected.name,
+      price: Number(selected.price),
+      quantity: qty,
+      notes: notes.trim() || undefined,
+      options: opts.length ? opts : undefined,
+    });
+    setSelected(null); setQty(1); setNotes(""); setSelectedOpts({});
+  };
 
   if (loading && !restaurant) {
     return (
@@ -112,11 +207,7 @@ export default function RestaurantPublic() {
   }
   if (!restaurant) return <div className="min-h-screen grid place-items-center text-muted-foreground">Restaurante não encontrado.</div>;
 
-  const addToCart = () => {
-    if (!selected) return;
-    cart.add(restaurant.id, { productId: selected.id, name: selected.name, price: Number(selected.price), quantity: qty, notes: notes.trim() || undefined });
-    setSelected(null); setQty(1); setNotes("");
-  };
+  const productUnitPrice = selected ? Number(selected.price) + extrasTotal : 0;
 
   return (
     <div className="min-h-screen pb-24">
@@ -184,18 +275,25 @@ export default function RestaurantPublic() {
           <div className="flex-1 overflow-auto py-4 space-y-3">
             {cart.items.length === 0 && <p className="text-center text-muted-foreground py-8">Carrinho vazio</p>}
             {cart.items.map((i) => (
-              <div key={i.productId + (i.notes ?? "")} className="flex gap-3 items-start">
+              <div key={i.productId + (i.optionsKey ?? "") + (i.notes ?? "")} className="flex gap-3 items-start">
                 <div className="flex-1">
                   <div className="font-medium">{i.name}</div>
+                  {i.options && i.options.length > 0 && (
+                    <div className="text-xs text-muted-foreground">
+                      {i.options.map((o, idx) => (
+                        <div key={idx}>+ {o.itemName}{o.extraPrice > 0 ? ` (${brl(o.extraPrice)})` : ""}</div>
+                      ))}
+                    </div>
+                  )}
                   {i.notes && <div className="text-xs text-muted-foreground italic">"{i.notes}"</div>}
-                  <div className="text-sm text-muted-foreground">{brl(i.price)}</div>
+                  <div className="text-sm text-muted-foreground">{brl(cart.unitPrice(i))}</div>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => cart.updateQty(i.productId, i.quantity - 1)}><Minus className="w-3 h-3" /></Button>
+                  <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => cart.updateQty(i.productId, i.quantity - 1, i.optionsKey)}><Minus className="w-3 h-3" /></Button>
                   <span className="w-6 text-center font-medium">{i.quantity}</span>
-                  <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => cart.updateQty(i.productId, i.quantity + 1)}><Plus className="w-3 h-3" /></Button>
+                  <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => cart.updateQty(i.productId, i.quantity + 1, i.optionsKey)}><Plus className="w-3 h-3" /></Button>
                 </div>
-                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => cart.remove(i.productId)}><Trash2 className="w-3 h-3" /></Button>
+                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => cart.remove(i.productId, i.optionsKey)}><Trash2 className="w-3 h-3" /></Button>
               </div>
             ))}
           </div>
@@ -211,13 +309,51 @@ export default function RestaurantPublic() {
 
       {/* Product modal */}
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           {selected && (
             <>
               <DialogHeader><DialogTitle>{selected.name}</DialogTitle></DialogHeader>
               {selected.image_url && <img src={selected.image_url} alt={selected.name} className="w-full h-48 object-cover rounded-lg" />}
               {selected.description && <p className="text-sm text-muted-foreground">{selected.description}</p>}
-              <div className="space-y-2">
+
+              {loadingGroups && <p className="text-xs text-muted-foreground">Carregando opções...</p>}
+
+              {productGroups.map((g) => {
+                const cur = selectedOpts[g.id] ?? [];
+                return (
+                  <div key={g.id} className="space-y-2 border-t pt-3">
+                    <div className="flex items-center justify-between">
+                      <Label className="font-semibold">{g.name}</Label>
+                      <span className="text-xs text-muted-foreground">
+                        {g.min_select > 0 ? `Obrigatório · ` : "Opcional · "}
+                        {g.max_select === 1 ? "escolha 1" : `até ${g.max_select}`}
+                      </span>
+                    </div>
+                    <div className="space-y-1.5">
+                      {g.items.length === 0 && <p className="text-xs text-muted-foreground">Sem itens disponíveis.</p>}
+                      {g.items.map((it) => {
+                        const checked = cur.includes(it.id);
+                        return (
+                          <label key={it.id} className={`flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer hover:bg-muted ${checked ? "border-primary bg-accent/30" : ""}`}>
+                            <input
+                              type={g.max_select === 1 ? "radio" : "checkbox"}
+                              name={`grp-${g.id}`}
+                              checked={checked}
+                              onChange={() => toggleOpt(g, it.id)}
+                            />
+                            <span className="flex-1 text-sm">{it.name}</span>
+                            {it.extra_price > 0 && (
+                              <span className="text-sm font-semibold text-primary">+ {brl(it.extra_price)}</span>
+                            )}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+
+              <div className="space-y-2 border-t pt-3">
                 <Label>Observação (opcional)</Label>
                 <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Ex: sem cebola" rows={2} />
               </div>
@@ -227,8 +363,8 @@ export default function RestaurantPublic() {
                   <span className="w-8 text-center font-bold">{qty}</span>
                   <Button size="icon" variant="outline" onClick={() => setQty(qty + 1)}><Plus className="w-4 h-4" /></Button>
                 </div>
-                <Button onClick={addToCart} className="flex-1 ml-4">
-                  Adicionar • {brl(selected.price * qty)}
+                <Button onClick={validateAndAdd} className="flex-1 ml-4">
+                  Adicionar • {brl(productUnitPrice * qty)}
                 </Button>
               </div>
             </>
