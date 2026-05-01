@@ -31,6 +31,8 @@ type Restaurant = {
   facebook_url?: string | null;
   service_delivery?: boolean | null;
   service_pickup?: boolean | null;
+  delivery_fee_mode?: "fixed" | "radius" | null;
+  delivery_fixed_fee?: number | null;
 };
 
 export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restaurant; onUpdated: () => void }) {
