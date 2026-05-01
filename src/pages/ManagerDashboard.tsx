@@ -115,6 +115,11 @@ export default function ManagerDashboard() {
     overview: "Visão geral",
     orders: "Pedidos",
     menu: "Cardápio",
+    customers: "Clientes",
+    "marketing:coupons": "Cupons de desconto",
+    "marketing:loyalty": "Programa de fidelidade",
+    "marketing:bulk": "Envio em massa",
+    "settings:order-config": "Configurações de Pedidos",
     "settings:business": "Informações do negócio",
     "settings:printers": "Impressões",
     "settings:integrations": "Integrações",
@@ -173,6 +178,11 @@ export default function ManagerDashboard() {
               />
             )}
 
+            {view === "customers" && <EmptyState title="Clientes" />}
+            {view === "marketing:coupons" && <EmptyState title="Cupons de desconto" />}
+            {view === "marketing:loyalty" && <EmptyState title="Programa de fidelidade" />}
+            {view === "marketing:bulk" && <EmptyState title="Envio em massa" />}
+            {view === "settings:order-config" && <EmptyState title="Configurações de Pedidos" />}
             {view === "settings:printers" && <EmptyState title="Impressões" />}
             {view === "settings:integrations" && <EmptyState title="Integrações" />}
           </main>
