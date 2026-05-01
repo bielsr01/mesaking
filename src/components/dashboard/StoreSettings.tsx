@@ -34,6 +34,23 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
   const [zones, setZones] = useState<DeliveryZone[]>([]);
   const [geocoding, setGeocoding] = useState(false);
 
+  // Cropper de capa
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [cropperSrc, setCropperSrc] = useState<string | null>(null);
+  const [coverBlob, setCoverBlob] = useState<Blob | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const coverInputRef = useRef<HTMLInputElement | null>(null);
+
+  const onCoverFileChosen = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    setCropperSrc(url);
+    setCropperOpen(true);
+    // Permite reescolher o mesmo arquivo depois
+    e.target.value = "";
+  };
+
   useEffect(() => {
     (async () => {
       const { data } = await supabase.from("restaurants").select("*").eq("id", restaurant.id).maybeSingle();
