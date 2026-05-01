@@ -260,7 +260,7 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
         <CardContent className="space-y-3">
           <div className="grid grid-cols-2 gap-3 p-3 rounded-lg border bg-muted/30">
             <div className="space-y-1">
-              <Label className="text-xs">Tempo mínimo de entrega (min)</Label>
+              <Label className="text-xs">Tempo mínimo de entrega (min) *</Label>
               <Input
                 type="number"
                 min={0}
@@ -268,10 +268,11 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
                 value={full.delivery_time_min ?? ""}
                 onChange={(e) => setFull({ ...full, delivery_time_min: e.target.value === "" ? null : Number(e.target.value) })}
                 placeholder="30"
+                required
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Tempo máximo de entrega (min)</Label>
+              <Label className="text-xs">Tempo máximo de entrega (min) *</Label>
               <Input
                 type="number"
                 min={0}
@@ -279,6 +280,7 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
                 value={full.delivery_time_max ?? ""}
                 onChange={(e) => setFull({ ...full, delivery_time_max: e.target.value === "" ? null : Number(e.target.value) })}
                 placeholder="50"
+                required
               />
             </div>
             <p className="text-xs text-muted-foreground col-span-2">Exibido para o cliente como "30-50 min" abaixo do cabeçalho.</p>
