@@ -191,6 +191,11 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
       delivery_zones: cleanZones,
       delivery_time_min: full.delivery_time_min,
       delivery_time_max: full.delivery_time_max,
+      whatsapp_url: full.whatsapp_url || null,
+      instagram_url: full.instagram_url || null,
+      facebook_url: full.facebook_url || null,
+      service_delivery: full.service_delivery ?? true,
+      service_pickup: full.service_pickup ?? false,
     };
     if (logo_url !== undefined) update.logo_url = logo_url;
     if (cover_url !== undefined) update.cover_url = cover_url;
