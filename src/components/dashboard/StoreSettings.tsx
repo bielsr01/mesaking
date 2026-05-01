@@ -385,5 +385,28 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
         <Button type="submit" disabled={busy} size="lg">{busy ? "Salvando..." : "Salvar tudo"}</Button>
       </div>
     </form>
+    <CoverImageCropper
+      open={cropperOpen}
+      imageSrc={cropperSrc}
+      aspect={16 / 6}
+      onCancel={() => {
+        setCropperOpen(false);
+        if (cropperSrc && cropperSrc.startsWith("blob:") && cropperSrc !== coverPreview && cropperSrc !== full.cover_url) {
+          URL.revokeObjectURL(cropperSrc);
+        }
+        setCropperSrc(null);
+      }}
+      onConfirm={(blob, url) => {
+        if (coverPreview) URL.revokeObjectURL(coverPreview);
+        setCoverBlob(blob);
+        setCoverPreview(url);
+        setCropperOpen(false);
+        if (cropperSrc && cropperSrc.startsWith("blob:") && cropperSrc !== url) {
+          URL.revokeObjectURL(cropperSrc);
+        }
+        setCropperSrc(null);
+        toast.success("Enquadramento aplicado — clique em Salvar tudo.");
+      }}
+    />
   );
 }
