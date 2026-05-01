@@ -124,7 +124,6 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
     const required: [string, any][] = [
       ["Nome", full.name],
       ["Telefone", full.phone],
-      ["Descrição", full.description],
       ["CEP", full.address_cep],
       ["Rua", full.address_street],
       ["Número", full.address_number],
@@ -256,7 +255,7 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
             <div className="space-y-2"><Label>Nome *</Label><Input value={full.name || ""} onChange={(e) => setFull({ ...full, name: e.target.value })} required /></div>
             <div className="space-y-2"><Label>Telefone *</Label><Input value={formatPhone(full.phone || "")} onChange={(e) => setFull({ ...full, phone: formatPhone(e.target.value) })} placeholder="(11) 99999-0000" inputMode="tel" required /></div>
           </div>
-          <div className="space-y-2"><Label>Descrição *</Label><Textarea value={full.description || ""} onChange={(e) => setFull({ ...full, description: e.target.value })} rows={2} required /></div>
+          
           <div className="space-y-2">
             <Label>Logo *</Label>
             {full.logo_url && <img src={full.logo_url} alt="Logo atual" className="w-20 h-20 rounded-lg object-cover border" />}
