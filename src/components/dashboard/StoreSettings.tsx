@@ -215,9 +215,40 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
           </div>
           <div className="space-y-2">
             <Label>Foto de capa *</Label>
-            {full.cover_url && <img src={full.cover_url} alt="Capa atual" className="w-full max-h-40 rounded-lg object-cover border" />}
-            <Input name="cover" type="file" accept="image/*" {...(!full.cover_url ? { required: true } : {})} />
-            <p className="text-xs text-muted-foreground">Aparece como fundo do cabeçalho do site do cliente. {full.cover_url ? "Envie um arquivo para substituir." : "Obrigatório."}</p>
+            {(coverPreview || full.cover_url) && (
+              <div className="relative w-full aspect-[16/6] rounded-lg overflow-hidden border bg-muted">
+                <img src={coverPreview || full.cover_url!} alt="Capa atual" className="w-full h-full object-cover" />
+                {coverPreview && (
+                  <span className="absolute top-2 left-2 text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">Pré-visualização (salve para aplicar)</span>
+                )}
+              </div>
+            )}
+            <input
+              ref={coverInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={onCoverFileChosen}
+            />
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={() => coverInputRef.current?.click()}>
+                {full.cover_url || coverPreview ? "Trocar foto de capa" : "Enviar foto de capa"}
+              </Button>
+              {(coverPreview || full.cover_url) && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    const src = coverPreview || full.cover_url!;
+                    setCropperSrc(src);
+                    setCropperOpen(true);
+                  }}
+                >
+                  <Crop className="w-4 h-4 mr-1" /> Ajustar enquadramento
+                </Button>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">Aparece como fundo do cabeçalho do site do cliente. Ao escolher uma imagem, abre o editor para arrastar, dar zoom e cortar exatamente como deve aparecer.</p>
           </div>
           <div className="space-y-2"><Label>URL pública</Label><Input value={`/r/${restaurant.slug}`} readOnly /></div>
         </CardContent>
