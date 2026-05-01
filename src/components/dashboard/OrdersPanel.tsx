@@ -80,12 +80,25 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   useEffect(() => {
     const ch = supabase
       .channel(`orders-${restaurantId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` }, (payload) => {
-        if (payload.eventType === "INSERT") {
-          toast.success("Novo pedido recebido!");
-          try { new Audio("data:audio/wav;base64,UklGRl9vAAA=").play().catch(() => {}); } catch {}
-        }
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` }, () => {
+        toast.success("Novo pedido recebido!");
+        try { new Audio("data:audio/wav;base64,UklGRl9vAAA=").play().catch(() => {}); } catch {}
         qc.invalidateQueries({ queryKey: ordersKey(restaurantId) });
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` }, (payload) => {
+        // Apply update straight from the payload — instant, no refetch needed
+        const row = payload.new as Order;
+        qc.setQueryData<{ orders: Order[]; items: Record<string, Item[]> }>(ordersKey(restaurantId), (prev) => {
+          if (!prev) return prev;
+          return { ...prev, orders: prev.orders.map((o) => (o.id === row.id ? { ...o, ...row } : o)) };
+        });
+      })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` }, (payload) => {
+        const id = (payload.old as any)?.id;
+        qc.setQueryData<{ orders: Order[]; items: Record<string, Item[]> }>(ordersKey(restaurantId), (prev) => {
+          if (!prev) return prev;
+          return { ...prev, orders: prev.orders.filter((o) => o.id !== id) };
+        });
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "order_items" }, () => {
         qc.invalidateQueries({ queryKey: ordersKey(restaurantId) });
@@ -94,16 +107,37 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     return () => { supabase.removeChannel(ch); };
   }, [restaurantId, qc]);
 
+  const patchOrder = (id: string, patch: Partial<Order>) => {
+    qc.setQueryData<{ orders: Order[]; items: Record<string, Item[]> }>(ordersKey(restaurantId), (prev) => {
+      if (!prev) return prev;
+      return { ...prev, orders: prev.orders.map((o) => (o.id === id ? { ...o, ...patch } : o)) };
+    });
+  };
+
   const advance = async (o: Order) => {
     const next = nextStatus[o.status];
     if (!next) return;
+    const prevStatus = o.status;
+    patchOrder(o.id, { status: next }); // optimistic
     const { error } = await supabase.from("orders").update({ status: next as any }).eq("id", o.id);
-    if (error) toast.error(error.message); else toast.success(`Pedido movido para "${orderStatusLabel[next]}"`);
+    if (error) {
+      patchOrder(o.id, { status: prevStatus });
+      toast.error(error.message);
+    } else {
+      toast.success(`Pedido movido para "${orderStatusLabel[next]}"`);
+    }
   };
 
   const cancel = async (o: Order) => {
+    const prevStatus = o.status;
+    patchOrder(o.id, { status: "cancelled" }); // optimistic
     const { error } = await supabase.from("orders").update({ status: "cancelled" as any }).eq("id", o.id);
-    if (error) toast.error(error.message); else toast.success("Pedido cancelado");
+    if (error) {
+      patchOrder(o.id, { status: prevStatus });
+      toast.error(error.message);
+    } else {
+      toast.success("Pedido cancelado");
+    }
   };
 
   const filtered = orders.filter((o) => {
