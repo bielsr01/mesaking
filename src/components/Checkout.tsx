@@ -302,7 +302,7 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
             <div className="space-y-3">
               <div className="space-y-2"><Label>Nome completo</Label><Input value={name} onChange={(e) => setName(e.target.value)} required /></div>
               <div className="space-y-2"><Label>Telefone</Label><Input value={phone} onChange={(e) => setPhone(formatPhone(e.target.value))} placeholder="(11) 99999-0000" inputMode="tel" required /></div>
-              <div className="space-y-2"><Label>CPF</Label><Input value={cpf} onChange={(e) => setCpf(formatCPF(e.target.value))} placeholder="000.000.000-00" inputMode="numeric" required /></div>
+              
             </div>
           )}
 
