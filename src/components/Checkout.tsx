@@ -28,7 +28,6 @@ const schema = z.object({
 });
 
 export function Checkout({ open, onOpenChange, restaurantId }: { open: boolean; onOpenChange: (o: boolean) => void; restaurantId: string }) {
-  const navigate = useNavigate();
   const cart = useCart();
   const [busy, setBusy] = useState(false);
   const [cep, setCep] = useState("");
