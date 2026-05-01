@@ -53,9 +53,13 @@ const settingsItems: { id: DashboardView; title: string; icon: any }[] = [
 export function AppSidebar({
   active,
   onChange,
+  ordersBadge = 0,
+  ordersBlinking = false,
 }: {
   active: DashboardView;
   onChange: (v: DashboardView) => void;
+  ordersBadge?: number;
+  ordersBlinking?: boolean;
 }) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
@@ -79,18 +83,28 @@ export function AppSidebar({
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {mainItems.map((item) => (
-                <SidebarMenuItem key={item.id}>
-                  <SidebarMenuButton
-                    isActive={active === item.id}
-                    onClick={() => onChange(item.id)}
-                    tooltip={item.title}
-                  >
-                    <item.icon className="h-4 w-4" />
-                    <span>{item.title}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {mainItems.map((item) => {
+                const isOrders = item.id === "orders";
+                const showBlink = isOrders && ordersBlinking;
+                return (
+                  <SidebarMenuItem key={item.id}>
+                    <SidebarMenuButton
+                      isActive={active === item.id}
+                      onClick={() => onChange(item.id)}
+                      tooltip={item.title}
+                      className={showBlink ? "text-destructive animate-pulse" : ""}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                      {isOrders && ordersBadge > 0 && (
+                        <span className="ml-auto min-w-[20px] h-5 px-1.5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold grid place-items-center">
+                          {ordersBadge > 9 ? "9+" : ordersBadge}
+                        </span>
+                      )}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
 
               {/* Marketing */}
               <Collapsible open={marketingOpen || collapsed} onOpenChange={setMarketingOpen} asChild>

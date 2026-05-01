@@ -14,6 +14,9 @@ import { MenuManager, fetchCategories, fetchProducts, menuKeys } from "@/compone
 import { StoreSettings } from "@/components/dashboard/StoreSettings";
 import { StoreOpenToggle } from "@/components/dashboard/StoreOpenToggle";
 import { AppSidebar, DashboardView } from "@/components/dashboard/AppSidebar";
+import { NotificationsBell } from "@/components/dashboard/NotificationsBell";
+import { LazyView } from "@/components/dashboard/LazyView";
+import { useNewOrderNotifications } from "@/hooks/useNewOrderNotifications";
 import { ManualOverride, OpeningHours } from "@/lib/hours";
 
 interface Restaurant {
@@ -87,6 +90,11 @@ export default function ManagerDashboard() {
     return () => { supabase.removeChannel(ch); };
   }, [restaurant?.id, qc]);
 
+  const { notifications, unreadCount, pulse, markAllRead, clear } = useNewOrderNotifications(
+    restaurant?.id,
+    view === "orders"
+  );
+
   const refetchRestaurant = () => qc.invalidateQueries({ queryKey: ["managerRestaurant", user?.id] });
 
   if (loadingRest) {
@@ -128,7 +136,12 @@ export default function ManagerDashboard() {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-muted/30">
-        <AppSidebar active={view} onChange={setView} />
+        <AppSidebar
+          active={view}
+          onChange={setView}
+          ordersBadge={view === "orders" ? 0 : unreadCount}
+          ordersBlinking={view !== "orders" && unreadCount > 0}
+        />
 
         <div className="flex-1 flex flex-col min-w-0">
           <header className="bg-background border-b sticky top-0 z-30">
@@ -141,6 +154,14 @@ export default function ManagerDashboard() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                <NotificationsBell
+                  notifications={notifications}
+                  unreadCount={unreadCount}
+                  pulse={pulse}
+                  onOpenOrders={() => setView("orders")}
+                  onMarkAllRead={markAllRead}
+                  onClear={clear}
+                />
                 <StoreOpenToggle
                   restaurantId={restaurant.id}
                   openingHours={restaurant.opening_hours}
@@ -159,29 +180,39 @@ export default function ManagerDashboard() {
           </header>
 
           <main className="flex-1 p-4 sm:p-6">
-            <div key={view} className="animate-fade-in">
-              {view === "overview" && (
+            {view === "overview" && (
+              <LazyView viewKey={view} variant="stats">
                 <div className="grid gap-4 md:grid-cols-3">
                   <StatCard icon={ShoppingBag} label="Pedidos hoje" value={(stats?.orders ?? 0).toString()} />
                   <StatCard icon={DollarSign} label="Faturamento hoje" value={brl(stats?.revenue ?? 0)} />
                   <StatCard icon={TrendingUp} label="Ticket médio" value={brl(stats?.avg ?? 0)} />
                 </div>
-              )}
+              </LazyView>
+            )}
 
-              {view === "orders" && <OrdersPanel restaurantId={restaurant.id} />}
-              {view === "menu" && <MenuManager restaurantId={restaurant.id} />}
-              {view === "settings:business" && (
+            {view === "orders" && (
+              <LazyView viewKey={view} variant="list">
+                <OrdersPanel restaurantId={restaurant.id} />
+              </LazyView>
+            )}
+            {view === "menu" && (
+              <LazyView viewKey={view} variant="list">
+                <MenuManager restaurantId={restaurant.id} />
+              </LazyView>
+            )}
+            {view === "settings:business" && (
+              <LazyView viewKey={view} variant="form">
                 <StoreSettings restaurant={restaurant} onUpdated={refetchRestaurant} />
-              )}
+              </LazyView>
+            )}
 
-              {view === "customers" && <EmptyState title="Clientes" />}
-              {view === "marketing:coupons" && <EmptyState title="Cupons de desconto" />}
-              {view === "marketing:loyalty" && <EmptyState title="Programa de fidelidade" />}
-              {view === "marketing:bulk" && <EmptyState title="Envio em massa" />}
-              {view === "settings:order-config" && <EmptyState title="Configurações de Pedidos" />}
-              {view === "settings:printers" && <EmptyState title="Impressões" />}
-              {view === "settings:integrations" && <EmptyState title="Integrações" />}
-            </div>
+            {view === "customers" && <LazyView viewKey={view} variant="list"><EmptyState title="Clientes" /></LazyView>}
+            {view === "marketing:coupons" && <LazyView viewKey={view} variant="list"><EmptyState title="Cupons de desconto" /></LazyView>}
+            {view === "marketing:loyalty" && <LazyView viewKey={view} variant="list"><EmptyState title="Programa de fidelidade" /></LazyView>}
+            {view === "marketing:bulk" && <LazyView viewKey={view} variant="list"><EmptyState title="Envio em massa" /></LazyView>}
+            {view === "settings:order-config" && <LazyView viewKey={view} variant="form"><EmptyState title="Configurações de Pedidos" /></LazyView>}
+            {view === "settings:printers" && <LazyView viewKey={view} variant="form"><EmptyState title="Impressões" /></LazyView>}
+            {view === "settings:integrations" && <LazyView viewKey={view} variant="form"><EmptyState title="Integrações" /></LazyView>}
           </main>
         </div>
       </div>
