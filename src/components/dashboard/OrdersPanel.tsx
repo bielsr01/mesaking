@@ -234,7 +234,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                   <div className="flex gap-2 pt-1">
                     {nextStatus[o.status] && (
                       <Button size="sm" className="flex-1" onClick={() => advance(o)}>
-                        → {orderStatusLabel[nextStatus[o.status]!]}
+                        {o.status === "pending" ? "✓ Aceitar pedido" : `→ ${orderStatusLabel[nextStatus[o.status]!]}`}
                       </Button>
                     )}
                     <Button size="sm" variant="outline" onClick={() => cancel(o)}><X className="w-4 h-4" /></Button>
