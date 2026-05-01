@@ -47,6 +47,8 @@ type RestaurantInfo = {
   address_neighborhood?: string | null;
   address_city?: string | null;
   address_state?: string | null;
+  service_delivery?: boolean | null;
+  service_pickup?: boolean | null;
 };
 
 type Step = 1 | 2 | 3;
@@ -76,12 +78,25 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
   const zones = (restaurant.delivery_zones ?? []) as DeliveryZone[];
   const hasZones = zones.length > 0;
   const restaurantHasCoords = !!(restaurant.latitude && restaurant.longitude);
+  const deliveryEnabled = restaurant.service_delivery !== false;
+  const pickupEnabled = restaurant.service_pickup === true;
   const isPickup = orderType === "pickup";
+
+  // Garante um tipo válido conforme as opções disponíveis
+  useEffect(() => {
+    if (orderType === "delivery" && !deliveryEnabled && pickupEnabled) setOrderType("pickup");
+    if (orderType === "pickup" && !pickupEnabled && deliveryEnabled) setOrderType("delivery");
+  }, [deliveryEnabled, pickupEnabled, orderType]);
 
   // Reset ao reabrir
   useEffect(() => {
-    if (open) setStep(1);
-  }, [open]);
+    if (open) {
+      setStep(1);
+      // ao abrir, escolhe a opção disponível por padrão
+      if (!deliveryEnabled && pickupEnabled) setOrderType("pickup");
+      else if (deliveryEnabled) setOrderType("delivery");
+    }
+  }, [open, deliveryEnabled, pickupEnabled]);
 
   // Se for pickup, não mostra etapa de endereço
   const totalSteps = isPickup ? 2 : 3;
@@ -266,8 +281,8 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Tipo do pedido — visível só na etapa 1 */}
-          {step === 1 && (
+          {/* Tipo do pedido — visível só na etapa 1, e só se houver mais de uma opção */}
+          {step === 1 && (deliveryEnabled && pickupEnabled) && (
             <div className="space-y-2">
               <Label className="text-sm font-semibold">Como você quer receber?</Label>
               <div className="grid grid-cols-2 gap-2">

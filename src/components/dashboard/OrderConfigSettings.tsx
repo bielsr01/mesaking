@@ -3,10 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Inbox, Zap } from "lucide-react";
+import { Inbox, Zap, Bike, Store } from "lucide-react";
 
 type ReceiveMode = "system" | "system_whatsapp";
 type AcceptanceMode = "auto" | "manual";
@@ -20,13 +21,15 @@ export function OrderConfigSettings({ restaurantId }: Props) {
   const [saving, setSaving] = useState(false);
   const [receiveMode, setReceiveMode] = useState<ReceiveMode>("system");
   const [acceptanceMode, setAcceptanceMode] = useState<AcceptanceMode>("manual");
+  const [serviceDelivery, setServiceDelivery] = useState(true);
+  const [servicePickup, setServicePickup] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const { data, error } = await supabase
         .from("restaurants")
-        .select("order_receive_mode, order_acceptance_mode")
+        .select("order_receive_mode, order_acceptance_mode, service_delivery, service_pickup")
         .eq("id", restaurantId)
         .maybeSingle();
       if (cancelled) return;
@@ -35,13 +38,15 @@ export function OrderConfigSettings({ restaurantId }: Props) {
       } else if (data) {
         setReceiveMode(((data as any).order_receive_mode ?? "system") as ReceiveMode);
         setAcceptanceMode(((data as any).order_acceptance_mode ?? "manual") as AcceptanceMode);
+        setServiceDelivery(Boolean((data as any).service_delivery ?? true));
+        setServicePickup(Boolean((data as any).service_pickup ?? false));
       }
       setLoaded(true);
     })();
     return () => { cancelled = true; };
   }, [restaurantId]);
 
-  async function update(patch: { order_receive_mode?: ReceiveMode; order_acceptance_mode?: AcceptanceMode }) {
+  async function update(patch: Partial<{ order_receive_mode: ReceiveMode; order_acceptance_mode: AcceptanceMode; service_delivery: boolean; service_pickup: boolean }>) {
     setSaving(true);
     const { error } = await supabase.from("restaurants").update(patch as any).eq("id", restaurantId);
     setSaving(false);
@@ -72,6 +77,28 @@ export function OrderConfigSettings({ restaurantId }: Props) {
     setAcceptanceMode(v);
     const ok = await update({ order_acceptance_mode: v });
     if (!ok) setAcceptanceMode(prev);
+  }
+
+  async function handleDeliveryToggle(next: boolean) {
+    if (!next && !servicePickup) {
+      toast.error("Pelo menos uma forma de pedido deve estar ativa (Delivery ou Retirada).");
+      return;
+    }
+    const prev = serviceDelivery;
+    setServiceDelivery(next);
+    const ok = await update({ service_delivery: next });
+    if (!ok) setServiceDelivery(prev);
+  }
+
+  async function handlePickupToggle(next: boolean) {
+    if (!next && !serviceDelivery) {
+      toast.error("Pelo menos uma forma de pedido deve estar ativa (Delivery ou Retirada).");
+      return;
+    }
+    const prev = servicePickup;
+    setServicePickup(next);
+    const ok = await update({ service_pickup: next });
+    if (!ok) setServicePickup(prev);
   }
 
   if (!loaded) {
@@ -170,6 +197,54 @@ export function OrderConfigSettings({ restaurantId }: Props) {
               </Label>
             </RadioGroup>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-lg bg-accent text-accent-foreground grid place-items-center">
+                <Bike className="w-5 h-5" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">Delivery</CardTitle>
+                <CardDescription>Quando ativo, os clientes podem solicitar entrega no endereço.</CardDescription>
+              </div>
+            </div>
+            <Switch checked={serviceDelivery} onCheckedChange={handleDeliveryToggle} disabled={saving} aria-label="Ativar delivery" />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            {serviceDelivery
+              ? "Delivery está ativado e disponível no cardápio do cliente."
+              : "Delivery está desativado. A opção não aparecerá no cardápio do cliente."}
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-lg bg-accent text-accent-foreground grid place-items-center">
+                <Store className="w-5 h-5" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">Retirada</CardTitle>
+                <CardDescription>Quando ativo, os clientes podem optar por retirar na loja.</CardDescription>
+              </div>
+            </div>
+            <Switch checked={servicePickup} onCheckedChange={handlePickupToggle} disabled={saving} aria-label="Ativar retirada" />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            {servicePickup
+              ? "Retirada está ativada e disponível no cardápio do cliente."
+              : "Retirada está desativada. A opção não aparecerá no cardápio do cliente."}
+          </p>
         </CardContent>
       </Card>
     </div>
