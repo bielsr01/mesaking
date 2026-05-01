@@ -1,4 +1,4 @@
-import { create } from "zustand";
+import { useSyncExternalStore } from "react";
 
 export interface CartItem {
   productId: string;
@@ -17,9 +17,6 @@ interface CartState {
   clear: () => void;
   total: () => number;
 }
-
-// Lightweight reactive store without external lib
-import { useSyncExternalStore } from "react";
 
 let state: { restaurantId: string | null; items: CartItem[] } = {
   restaurantId: null,
