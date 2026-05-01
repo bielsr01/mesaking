@@ -83,6 +83,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` }, () => {
         toast.success("Novo pedido recebido!");
         try { new Audio("data:audio/wav;base64,UklGRl9vAAA=").play().catch(() => {}); } catch {}
+        setFilter("pending"); // auto-switch to new orders tab
         qc.invalidateQueries({ queryKey: ordersKey(restaurantId) });
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` }, (payload) => {
