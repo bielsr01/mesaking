@@ -39,10 +39,23 @@ export function useNewOrderNotifications(restaurantId: string | undefined, isOnO
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` },
-        (payload) => {
+        async (payload) => {
           const row = payload.new as any;
           // Refresh the orders cache so OrdersPanel picks it up immediately when opened
           qc.invalidateQueries({ queryKey: ordersKey(restaurantId) });
+
+          // Auto-accept new orders if configured
+          try {
+            const { data: rest } = await supabase
+              .from("restaurants")
+              .select("order_acceptance_mode")
+              .eq("id", restaurantId)
+              .maybeSingle();
+            if ((rest as any)?.order_acceptance_mode === "auto" && row.status === "pending") {
+              await supabase.from("orders").update({ status: "accepted" }).eq("id", row.id);
+              qc.invalidateQueries({ queryKey: ordersKey(restaurantId) });
+            }
+          } catch {}
 
           try {
             new Audio("data:audio/wav;base64,UklGRl9vAAA=").play().catch(() => {});

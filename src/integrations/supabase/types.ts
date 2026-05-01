@@ -431,6 +431,8 @@ export type Database = {
           manual_override: Json | null
           name: string
           opening_hours: Json
+          order_acceptance_mode: string
+          order_receive_mode: string
           owner_id: string | null
           phone: string | null
           service_delivery: boolean
@@ -463,6 +465,8 @@ export type Database = {
           manual_override?: Json | null
           name: string
           opening_hours?: Json
+          order_acceptance_mode?: string
+          order_receive_mode?: string
           owner_id?: string | null
           phone?: string | null
           service_delivery?: boolean
@@ -495,6 +499,8 @@ export type Database = {
           manual_override?: Json | null
           name?: string
           opening_hours?: Json
+          order_acceptance_mode?: string
+          order_receive_mode?: string
           owner_id?: string | null
           phone?: string | null
           service_delivery?: boolean

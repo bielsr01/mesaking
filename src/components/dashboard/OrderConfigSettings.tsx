@@ -1,0 +1,181 @@
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import { Inbox, Zap } from "lucide-react";
+
+type ReceiveMode = "system" | "system_whatsapp";
+type AcceptanceMode = "auto" | "manual";
+
+interface Props {
+  restaurantId: string;
+}
+
+export function OrderConfigSettings({ restaurantId }: Props) {
+  const [loaded, setLoaded] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [receiveMode, setReceiveMode] = useState<ReceiveMode>("system");
+  const [acceptanceMode, setAcceptanceMode] = useState<AcceptanceMode>("manual");
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("restaurants")
+        .select("order_receive_mode, order_acceptance_mode")
+        .eq("id", restaurantId)
+        .maybeSingle();
+      if (cancelled) return;
+      if (error) {
+        toast.error("Erro ao carregar configurações");
+      } else if (data) {
+        setReceiveMode(((data as any).order_receive_mode ?? "system") as ReceiveMode);
+        setAcceptanceMode(((data as any).order_acceptance_mode ?? "manual") as AcceptanceMode);
+      }
+      setLoaded(true);
+    })();
+    return () => { cancelled = true; };
+  }, [restaurantId]);
+
+  async function update(patch: { order_receive_mode?: ReceiveMode; order_acceptance_mode?: AcceptanceMode }) {
+    setSaving(true);
+    const { error } = await supabase.from("restaurants").update(patch as any).eq("id", restaurantId);
+    setSaving(false);
+    if (error) {
+      toast.error("Não foi possível salvar");
+      return false;
+    }
+    toast.success("Configuração salva");
+    return true;
+  }
+
+  async function handleReceiveChange(value: string) {
+    if (value === "system_whatsapp") {
+      // Temporariamente desativado
+      toast.info("Integração com WhatsApp em breve");
+      return;
+    }
+    const v = value as ReceiveMode;
+    const prev = receiveMode;
+    setReceiveMode(v);
+    const ok = await update({ order_receive_mode: v });
+    if (!ok) setReceiveMode(prev);
+  }
+
+  async function handleAcceptanceChange(value: string) {
+    const v = value as AcceptanceMode;
+    const prev = acceptanceMode;
+    setAcceptanceMode(v);
+    const ok = await update({ order_acceptance_mode: v });
+    if (!ok) setAcceptanceMode(prev);
+  }
+
+  if (!loaded) {
+    return (
+      <div className="space-y-4 max-w-3xl animate-fade-in">
+        {[0, 1].map((i) => (
+          <Card key={i}>
+            <CardHeader><Skeleton className="h-6 w-56" /></CardHeader>
+            <CardContent className="space-y-3">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4 max-w-3xl animate-fade-in">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <div className="w-9 h-9 rounded-lg bg-accent text-accent-foreground grid place-items-center">
+              <Inbox className="w-5 h-5" />
+            </div>
+            <div>
+              <CardTitle className="text-lg">Aceitar pedidos</CardTitle>
+              <CardDescription>Escolha por onde os pedidos serão recebidos</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <RadioGroup value={receiveMode} onValueChange={handleReceiveChange} className="gap-3" disabled={saving}>
+            <Label
+              htmlFor="receive-system"
+              className="flex items-start gap-3 rounded-lg border p-4 cursor-pointer hover:bg-accent/40 transition-colors data-[state=checked]:border-primary"
+              data-state={receiveMode === "system" ? "checked" : "unchecked"}
+            >
+              <RadioGroupItem value="system" id="receive-system" className="mt-0.5" />
+              <div className="flex-1">
+                <div className="font-medium">Sistema</div>
+                <div className="text-sm text-muted-foreground">Receba os pedidos diretamente pelo painel.</div>
+              </div>
+            </Label>
+
+            <Label
+              htmlFor="receive-system-wpp"
+              className="flex items-start gap-3 rounded-lg border p-4 cursor-not-allowed opacity-60"
+              aria-disabled
+            >
+              <RadioGroupItem value="system_whatsapp" id="receive-system-wpp" className="mt-0.5" disabled />
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Sistema + WhatsApp</span>
+                  <Badge variant="secondary">Em breve</Badge>
+                </div>
+                <div className="text-sm text-muted-foreground">Receba pelo painel e também envie/receba notificações via WhatsApp.</div>
+              </div>
+            </Label>
+          </RadioGroup>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <div className="w-9 h-9 rounded-lg bg-accent text-accent-foreground grid place-items-center">
+              <Zap className="w-5 h-5" />
+            </div>
+            <div>
+              <CardTitle className="text-lg">Status de entrada de pedidos</CardTitle>
+              <CardDescription>Defina como novos pedidos entram na sua fila</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <RadioGroup value={acceptanceMode} onValueChange={handleAcceptanceChange} className="gap-3" disabled={saving}>
+            <Label
+              htmlFor="acc-manual"
+              className="flex items-start gap-3 rounded-lg border p-4 cursor-pointer hover:bg-accent/40 transition-colors data-[state=checked]:border-primary"
+              data-state={acceptanceMode === "manual" ? "checked" : "unchecked"}
+            >
+              <RadioGroupItem value="manual" id="acc-manual" className="mt-0.5" />
+              <div className="flex-1">
+                <div className="font-medium">Aceitar manualmente</div>
+                <div className="text-sm text-muted-foreground">Cada pedido fica em "pendente" até você aceitar.</div>
+              </div>
+            </Label>
+
+            <Label
+              htmlFor="acc-auto"
+              className="flex items-start gap-3 rounded-lg border p-4 cursor-pointer hover:bg-accent/40 transition-colors data-[state=checked]:border-primary"
+              data-state={acceptanceMode === "auto" ? "checked" : "unchecked"}
+            >
+              <RadioGroupItem value="auto" id="acc-auto" className="mt-0.5" />
+              <div className="flex-1">
+                <div className="font-medium">Aceitar automaticamente</div>
+                <div className="text-sm text-muted-foreground">Os pedidos entram já confirmados e seguem para o preparo.</div>
+              </div>
+            </Label>
+          </RadioGroup>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
