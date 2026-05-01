@@ -159,32 +159,29 @@ export default function ManagerDashboard() {
           </header>
 
           <main className="flex-1 p-4 sm:p-6">
-            {view === "overview" && (
-              <div className="grid gap-4 md:grid-cols-3">
-                <StatCard icon={ShoppingBag} label="Pedidos hoje" value={(stats?.orders ?? 0).toString()} />
-                <StatCard icon={DollarSign} label="Faturamento hoje" value={brl(stats?.revenue ?? 0)} />
-                <StatCard icon={TrendingUp} label="Ticket médio" value={brl(stats?.avg ?? 0)} />
-              </div>
-            )}
+            <div key={view} className="animate-fade-in">
+              {view === "overview" && (
+                <div className="grid gap-4 md:grid-cols-3">
+                  <StatCard icon={ShoppingBag} label="Pedidos hoje" value={(stats?.orders ?? 0).toString()} />
+                  <StatCard icon={DollarSign} label="Faturamento hoje" value={brl(stats?.revenue ?? 0)} />
+                  <StatCard icon={TrendingUp} label="Ticket médio" value={brl(stats?.avg ?? 0)} />
+                </div>
+              )}
 
-            {view === "orders" && <OrdersPanel restaurantId={restaurant.id} />}
+              {view === "orders" && <OrdersPanel restaurantId={restaurant.id} />}
+              {view === "menu" && <MenuManager restaurantId={restaurant.id} />}
+              {view === "settings:business" && (
+                <StoreSettings restaurant={restaurant} onUpdated={refetchRestaurant} />
+              )}
 
-            {view === "menu" && <MenuManager restaurantId={restaurant.id} />}
-
-            {view === "settings:business" && (
-              <StoreSettings
-                restaurant={restaurant}
-                onUpdated={refetchRestaurant}
-              />
-            )}
-
-            {view === "customers" && <EmptyState title="Clientes" />}
-            {view === "marketing:coupons" && <EmptyState title="Cupons de desconto" />}
-            {view === "marketing:loyalty" && <EmptyState title="Programa de fidelidade" />}
-            {view === "marketing:bulk" && <EmptyState title="Envio em massa" />}
-            {view === "settings:order-config" && <EmptyState title="Configurações de Pedidos" />}
-            {view === "settings:printers" && <EmptyState title="Impressões" />}
-            {view === "settings:integrations" && <EmptyState title="Integrações" />}
+              {view === "customers" && <EmptyState title="Clientes" />}
+              {view === "marketing:coupons" && <EmptyState title="Cupons de desconto" />}
+              {view === "marketing:loyalty" && <EmptyState title="Programa de fidelidade" />}
+              {view === "marketing:bulk" && <EmptyState title="Envio em massa" />}
+              {view === "settings:order-config" && <EmptyState title="Configurações de Pedidos" />}
+              {view === "settings:printers" && <EmptyState title="Impressões" />}
+              {view === "settings:integrations" && <EmptyState title="Integrações" />}
+            </div>
           </main>
         </div>
       </div>
