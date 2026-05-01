@@ -18,7 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { isOpenNow, ManualOverride } from "@/lib/hours";
 import { toast } from "sonner";
 
-interface Restaurant { id: string; name: string; slug: string; description: string | null; logo_url: string | null; is_open: boolean; phone: string | null; opening_hours: any; latitude: number | null; longitude: number | null; delivery_zones: any; manual_override: ManualOverride; address_cep: string | null; address_street: string | null; address_number: string | null; address_complement: string | null; address_neighborhood: string | null; address_city: string | null; address_state: string | null; }
+interface Restaurant { id: string; name: string; slug: string; description: string | null; logo_url: string | null; is_open: boolean; phone: string | null; opening_hours: any; latitude: number | null; longitude: number | null; delivery_zones: any; manual_override: ManualOverride; address_cep: string | null; address_street: string | null; address_number: string | null; address_complement: string | null; address_neighborhood: string | null; address_city: string | null; address_state: string | null; delivery_time_min: number | null; delivery_time_max: number | null; }
 interface Category { id: string; name: string; sort_order: number; }
 interface Product { id: string; name: string; description: string | null; price: number; image_url: string | null; category_id: string | null; }
 interface OptionGroup { id: string; name: string; min_select: number; max_select: number; sort_order: number; items: { id: string; name: string; extra_price: number }[]; }
@@ -301,6 +301,33 @@ export default function RestaurantPublic() {
 
       {/* Espaçador para compensar o header fixo */}
       <div className={`transition-all duration-300 ${scrolled ? "h-[56px]" : "h-[148px]"}`} />
+
+      {/* Endereço + tempo de entrega — abaixo do cabeçalho, rola normalmente */}
+      {(() => {
+        const addressLine = [
+          restaurant.address_street,
+          restaurant.address_number,
+          restaurant.address_neighborhood,
+          restaurant.address_city && restaurant.address_state
+            ? `${restaurant.address_city}/${restaurant.address_state}`
+            : restaurant.address_city || restaurant.address_state,
+        ].filter(Boolean).join(", ");
+        const tmin = restaurant.delivery_time_min;
+        const tmax = restaurant.delivery_time_max;
+        const hasTime = tmin != null || tmax != null;
+        const timeLabel = hasTime
+          ? (tmin != null && tmax != null ? `${tmin}–${tmax} min` : `${tmin ?? tmax} min`)
+          : null;
+        if (!addressLine && !timeLabel) return null;
+        return (
+          <div className="container py-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground border-b">
+            {addressLine && <span className="truncate">📍 {addressLine}</span>}
+            {timeLabel && (
+              <span>🕒 Entrega em <strong className="font-bold text-foreground">{timeLabel}</strong></span>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Banner de pedido ativo — abaixo do header, acima das categorias (rola normalmente) */}
       <ActiveOrderBanner restaurantId={restaurant.id} />
