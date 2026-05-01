@@ -79,6 +79,28 @@ export function OrderConfigSettings({ restaurantId }: Props) {
     if (!ok) setAcceptanceMode(prev);
   }
 
+  async function handleDeliveryToggle(next: boolean) {
+    if (!next && !servicePickup) {
+      toast.error("Pelo menos uma forma de pedido deve estar ativa (Delivery ou Retirada).");
+      return;
+    }
+    const prev = serviceDelivery;
+    setServiceDelivery(next);
+    const ok = await update({ service_delivery: next });
+    if (!ok) setServiceDelivery(prev);
+  }
+
+  async function handlePickupToggle(next: boolean) {
+    if (!next && !serviceDelivery) {
+      toast.error("Pelo menos uma forma de pedido deve estar ativa (Delivery ou Retirada).");
+      return;
+    }
+    const prev = servicePickup;
+    setServicePickup(next);
+    const ok = await update({ service_pickup: next });
+    if (!ok) setServicePickup(prev);
+  }
+
   if (!loaded) {
     return (
       <div className="space-y-4 max-w-3xl animate-fade-in">
