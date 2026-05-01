@@ -196,6 +196,31 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
           <CardTitle>Taxas de entrega por raio</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
+          <div className="grid grid-cols-2 gap-3 p-3 rounded-lg border bg-muted/30">
+            <div className="space-y-1">
+              <Label className="text-xs">Tempo mínimo de entrega (min)</Label>
+              <Input
+                type="number"
+                min={0}
+                step={1}
+                value={full.delivery_time_min ?? ""}
+                onChange={(e) => setFull({ ...full, delivery_time_min: e.target.value === "" ? null : Number(e.target.value) })}
+                placeholder="30"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Tempo máximo de entrega (min)</Label>
+              <Input
+                type="number"
+                min={0}
+                step={1}
+                value={full.delivery_time_max ?? ""}
+                onChange={(e) => setFull({ ...full, delivery_time_max: e.target.value === "" ? null : Number(e.target.value) })}
+                placeholder="50"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground col-span-2">Exibido para o cliente como "30-50 min" abaixo do cabeçalho.</p>
+          </div>
           <p className="text-sm text-muted-foreground">
             Cadastre faixas de raio (em km) e o valor da entrega. O sistema usa a menor faixa cujo raio comporta a distância do cliente.
             Ex: <strong>5 km → R$ 7</strong> e <strong>10 km → R$ 12</strong> significa que pedidos até 5 km pagam R$ 7 e entre 5 e 10 km pagam R$ 12.
