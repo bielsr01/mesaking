@@ -86,41 +86,91 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
 
   const save = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setBusy(true);
-    const fd = new FormData(e.currentTarget);
-    const file = fd.get("logo") as File | null;
-    let logo_url: string | null | undefined;
-    if (file && file.size > 0) {
-      const path = `${restaurant.id}/logo-${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
-      const { error: upErr } = await supabase.storage.from("menu-images").upload(path, file, { upsert: true });
-      if (upErr) { setBusy(false); return toast.error(upErr.message); }
-      logo_url = supabase.storage.from("menu-images").getPublicUrl(path).data.publicUrl;
-    }
 
-    // Validar zonas
+    // Validações de obrigatoriedade
+    const required: [string, any][] = [
+      ["Nome", full.name],
+      ["Telefone", full.phone],
+      ["Descrição", full.description],
+      ["CEP", full.address_cep],
+      ["Rua", full.address_street],
+      ["Número", full.address_number],
+      ["Bairro", full.address_neighborhood],
+      ["Cidade", full.address_city],
+      ["UF", full.address_state],
+      ["Tempo mínimo de entrega", full.delivery_time_min],
+      ["Tempo máximo de entrega", full.delivery_time_max],
+    ];
+    for (const [label, val] of required) {
+      if (val === null || val === undefined || String(val).trim() === "") {
+        return toast.error(`Preencha o campo: ${label}`);
+      }
+    }
+    if (!full.latitude || !full.longitude) {
+      return toast.error("Calcule as coordenadas do endereço (botão Localizar no mapa)");
+    }
     const cleanZones = zones
       .filter((z) => Number(z.radius_km) > 0 && Number(z.fee) >= 0 && Number(z.radius_km) <= 50)
       .map((z) => ({ radius_km: Number(z.radius_km), fee: Number(z.fee) }));
+    if (cleanZones.length === 0) {
+      return toast.error("Cadastre ao menos uma faixa de entrega");
+    }
+    if (!Object.values(hours).some((h: any) => h?.enabled)) {
+      return toast.error("Habilite ao menos um dia no horário de funcionamento");
+    }
+    if (!full.logo_url) {
+      // Logo será exigido se ainda não estiver salvo e não houver upload
+    }
+
+    setBusy(true);
+    const fd = new FormData(e.currentTarget);
+    const logoFile = fd.get("logo") as File | null;
+    const coverFile = fd.get("cover") as File | null;
+
+    let logo_url: string | null | undefined;
+    if (logoFile && logoFile.size > 0) {
+      const path = `${restaurant.id}/logo-${Date.now()}-${logoFile.name.replace(/\s+/g, "_")}`;
+      const { error: upErr } = await supabase.storage.from("menu-images").upload(path, logoFile, { upsert: true });
+      if (upErr) { setBusy(false); return toast.error(upErr.message); }
+      logo_url = supabase.storage.from("menu-images").getPublicUrl(path).data.publicUrl;
+    }
+    if (!logo_url && !full.logo_url) {
+      setBusy(false);
+      return toast.error("Envie a logo da loja");
+    }
+
+    let cover_url: string | null | undefined;
+    if (coverFile && coverFile.size > 0) {
+      const path = `${restaurant.id}/cover-${Date.now()}-${coverFile.name.replace(/\s+/g, "_")}`;
+      const { error: upErr } = await supabase.storage.from("menu-images").upload(path, coverFile, { upsert: true });
+      if (upErr) { setBusy(false); return toast.error(upErr.message); }
+      cover_url = supabase.storage.from("menu-images").getPublicUrl(path).data.publicUrl;
+    }
+    if (!cover_url && !full.cover_url) {
+      setBusy(false);
+      return toast.error("Envie a foto de capa da loja");
+    }
 
     const update: any = {
       name: full.name,
-      description: full.description || null,
-      phone: full.phone || null,
-      address_cep: full.address_cep || null,
-      address_street: full.address_street || null,
-      address_number: full.address_number || null,
+      description: full.description,
+      phone: full.phone,
+      address_cep: full.address_cep,
+      address_street: full.address_street,
+      address_number: full.address_number,
       address_complement: full.address_complement || null,
-      address_neighborhood: full.address_neighborhood || null,
-      address_city: full.address_city || null,
-      address_state: full.address_state || null,
-      latitude: full.latitude ?? null,
-      longitude: full.longitude ?? null,
+      address_neighborhood: full.address_neighborhood,
+      address_city: full.address_city,
+      address_state: full.address_state,
+      latitude: full.latitude,
+      longitude: full.longitude,
       opening_hours: hours,
       delivery_zones: cleanZones,
-      delivery_time_min: full.delivery_time_min ?? null,
-      delivery_time_max: full.delivery_time_max ?? null,
+      delivery_time_min: full.delivery_time_min,
+      delivery_time_max: full.delivery_time_max,
     };
     if (logo_url !== undefined) update.logo_url = logo_url;
+    if (cover_url !== undefined) update.cover_url = cover_url;
 
     const { error } = await supabase.from("restaurants").update(update).eq("id", restaurant.id);
     setBusy(false);
