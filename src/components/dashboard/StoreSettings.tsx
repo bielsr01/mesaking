@@ -124,7 +124,6 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
     const required: [string, any][] = [
       ["Nome", full.name],
       ["Telefone", full.phone],
-      ["Descrição", full.description],
       ["CEP", full.address_cep],
       ["Rua", full.address_street],
       ["Número", full.address_number],
