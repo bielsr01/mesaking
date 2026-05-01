@@ -18,7 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { isOpenNow, ManualOverride } from "@/lib/hours";
 import { toast } from "sonner";
 
-interface Restaurant { id: string; name: string; slug: string; description: string | null; logo_url: string | null; is_open: boolean; phone: string | null; opening_hours: any; latitude: number | null; longitude: number | null; delivery_zones: any; manual_override: ManualOverride; address_cep: string | null; address_street: string | null; address_number: string | null; address_complement: string | null; address_neighborhood: string | null; address_city: string | null; address_state: string | null; delivery_time_min: number | null; delivery_time_max: number | null; }
+interface Restaurant { id: string; name: string; slug: string; description: string | null; logo_url: string | null; cover_url: string | null; is_open: boolean; phone: string | null; opening_hours: any; latitude: number | null; longitude: number | null; delivery_zones: any; manual_override: ManualOverride; address_cep: string | null; address_street: string | null; address_number: string | null; address_complement: string | null; address_neighborhood: string | null; address_city: string | null; address_state: string | null; delivery_time_min: number | null; delivery_time_max: number | null; }
 interface Category { id: string; name: string; sort_order: number; }
 interface Product { id: string; name: string; description: string | null; price: number; image_url: string | null; category_id: string | null; }
 interface OptionGroup { id: string; name: string; min_select: number; max_select: number; sort_order: number; items: { id: string; name: string; extra_price: number }[]; }
@@ -271,9 +271,18 @@ export default function RestaurantPublic() {
 
   return (
     <div className="min-h-screen pb-24">
-      {/* Header fixo (compacta ao rolar) */}
+      {/* Header fixo (compacta ao rolar) — usa foto de capa como fundo se houver */}
       <header
-        className={`fixed top-0 left-0 right-0 z-40 bg-gradient-warm text-primary-foreground shadow-md transition-all duration-300 ${scrolled ? "py-2" : "py-6"}`}
+        className={`fixed top-0 left-0 right-0 z-40 text-primary-foreground shadow-md transition-all duration-300 ${scrolled ? "py-2" : "py-6"} ${restaurant.cover_url ? "" : "bg-gradient-warm"}`}
+        style={
+          restaurant.cover_url
+            ? {
+                backgroundImage: `linear-gradient(to bottom, hsl(var(--primary) / 0.55), hsl(var(--primary) / 0.75)), url(${restaurant.cover_url})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }
+            : undefined
+        }
       >
         <div className="container flex items-center gap-3">
           {restaurant.logo_url ? (

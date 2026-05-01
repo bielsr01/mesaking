@@ -15,6 +15,7 @@ import { brl, formatPhone } from "@/lib/format";
 type Restaurant = {
   id: string; name: string; slug: string;
   description?: string | null; phone?: string | null; logo_url?: string | null;
+  cover_url?: string | null;
   opening_hours?: OpeningHours | null;
   address_cep?: string | null; address_street?: string | null; address_number?: string | null;
   address_complement?: string | null; address_neighborhood?: string | null;
@@ -85,41 +86,91 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
 
   const save = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setBusy(true);
-    const fd = new FormData(e.currentTarget);
-    const file = fd.get("logo") as File | null;
-    let logo_url: string | null | undefined;
-    if (file && file.size > 0) {
-      const path = `${restaurant.id}/logo-${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
-      const { error: upErr } = await supabase.storage.from("menu-images").upload(path, file, { upsert: true });
-      if (upErr) { setBusy(false); return toast.error(upErr.message); }
-      logo_url = supabase.storage.from("menu-images").getPublicUrl(path).data.publicUrl;
-    }
 
-    // Validar zonas
+    // Validações de obrigatoriedade
+    const required: [string, any][] = [
+      ["Nome", full.name],
+      ["Telefone", full.phone],
+      ["Descrição", full.description],
+      ["CEP", full.address_cep],
+      ["Rua", full.address_street],
+      ["Número", full.address_number],
+      ["Bairro", full.address_neighborhood],
+      ["Cidade", full.address_city],
+      ["UF", full.address_state],
+      ["Tempo mínimo de entrega", full.delivery_time_min],
+      ["Tempo máximo de entrega", full.delivery_time_max],
+    ];
+    for (const [label, val] of required) {
+      if (val === null || val === undefined || String(val).trim() === "") {
+        return toast.error(`Preencha o campo: ${label}`);
+      }
+    }
+    if (!full.latitude || !full.longitude) {
+      return toast.error("Calcule as coordenadas do endereço (botão Localizar no mapa)");
+    }
     const cleanZones = zones
       .filter((z) => Number(z.radius_km) > 0 && Number(z.fee) >= 0 && Number(z.radius_km) <= 50)
       .map((z) => ({ radius_km: Number(z.radius_km), fee: Number(z.fee) }));
+    if (cleanZones.length === 0) {
+      return toast.error("Cadastre ao menos uma faixa de entrega");
+    }
+    if (!Object.values(hours).some((h: any) => h?.enabled)) {
+      return toast.error("Habilite ao menos um dia no horário de funcionamento");
+    }
+    if (!full.logo_url) {
+      // Logo será exigido se ainda não estiver salvo e não houver upload
+    }
+
+    setBusy(true);
+    const fd = new FormData(e.currentTarget);
+    const logoFile = fd.get("logo") as File | null;
+    const coverFile = fd.get("cover") as File | null;
+
+    let logo_url: string | null | undefined;
+    if (logoFile && logoFile.size > 0) {
+      const path = `${restaurant.id}/logo-${Date.now()}-${logoFile.name.replace(/\s+/g, "_")}`;
+      const { error: upErr } = await supabase.storage.from("menu-images").upload(path, logoFile, { upsert: true });
+      if (upErr) { setBusy(false); return toast.error(upErr.message); }
+      logo_url = supabase.storage.from("menu-images").getPublicUrl(path).data.publicUrl;
+    }
+    if (!logo_url && !full.logo_url) {
+      setBusy(false);
+      return toast.error("Envie a logo da loja");
+    }
+
+    let cover_url: string | null | undefined;
+    if (coverFile && coverFile.size > 0) {
+      const path = `${restaurant.id}/cover-${Date.now()}-${coverFile.name.replace(/\s+/g, "_")}`;
+      const { error: upErr } = await supabase.storage.from("menu-images").upload(path, coverFile, { upsert: true });
+      if (upErr) { setBusy(false); return toast.error(upErr.message); }
+      cover_url = supabase.storage.from("menu-images").getPublicUrl(path).data.publicUrl;
+    }
+    if (!cover_url && !full.cover_url) {
+      setBusy(false);
+      return toast.error("Envie a foto de capa da loja");
+    }
 
     const update: any = {
       name: full.name,
-      description: full.description || null,
-      phone: full.phone || null,
-      address_cep: full.address_cep || null,
-      address_street: full.address_street || null,
-      address_number: full.address_number || null,
+      description: full.description,
+      phone: full.phone,
+      address_cep: full.address_cep,
+      address_street: full.address_street,
+      address_number: full.address_number,
       address_complement: full.address_complement || null,
-      address_neighborhood: full.address_neighborhood || null,
-      address_city: full.address_city || null,
-      address_state: full.address_state || null,
-      latitude: full.latitude ?? null,
-      longitude: full.longitude ?? null,
+      address_neighborhood: full.address_neighborhood,
+      address_city: full.address_city,
+      address_state: full.address_state,
+      latitude: full.latitude,
+      longitude: full.longitude,
       opening_hours: hours,
       delivery_zones: cleanZones,
-      delivery_time_min: full.delivery_time_min ?? null,
-      delivery_time_max: full.delivery_time_max ?? null,
+      delivery_time_min: full.delivery_time_min,
+      delivery_time_max: full.delivery_time_max,
     };
     if (logo_url !== undefined) update.logo_url = logo_url;
+    if (cover_url !== undefined) update.cover_url = cover_url;
 
     const { error } = await supabase.from("restaurants").update(update).eq("id", restaurant.id);
     setBusy(false);
@@ -134,11 +185,22 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
         <CardHeader><CardTitle>Informações da loja</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <div className="grid sm:grid-cols-2 gap-3">
-            <div className="space-y-2"><Label>Nome</Label><Input value={full.name || ""} onChange={(e) => setFull({ ...full, name: e.target.value })} required /></div>
-            <div className="space-y-2"><Label>Telefone</Label><Input value={formatPhone(full.phone || "")} onChange={(e) => setFull({ ...full, phone: formatPhone(e.target.value) })} placeholder="(11) 99999-0000" inputMode="tel" /></div>
+            <div className="space-y-2"><Label>Nome *</Label><Input value={full.name || ""} onChange={(e) => setFull({ ...full, name: e.target.value })} required /></div>
+            <div className="space-y-2"><Label>Telefone *</Label><Input value={formatPhone(full.phone || "")} onChange={(e) => setFull({ ...full, phone: formatPhone(e.target.value) })} placeholder="(11) 99999-0000" inputMode="tel" required /></div>
           </div>
-          <div className="space-y-2"><Label>Descrição</Label><Textarea value={full.description || ""} onChange={(e) => setFull({ ...full, description: e.target.value })} rows={2} /></div>
-          <div className="space-y-2"><Label>Logo</Label><Input name="logo" type="file" accept="image/*" /></div>
+          <div className="space-y-2"><Label>Descrição *</Label><Textarea value={full.description || ""} onChange={(e) => setFull({ ...full, description: e.target.value })} rows={2} required /></div>
+          <div className="space-y-2">
+            <Label>Logo *</Label>
+            {full.logo_url && <img src={full.logo_url} alt="Logo atual" className="w-20 h-20 rounded-lg object-cover border" />}
+            <Input name="logo" type="file" accept="image/*" {...(!full.logo_url ? { required: true } : {})} />
+            <p className="text-xs text-muted-foreground">{full.logo_url ? "Envie um arquivo para substituir." : "Obrigatório."}</p>
+          </div>
+          <div className="space-y-2">
+            <Label>Foto de capa *</Label>
+            {full.cover_url && <img src={full.cover_url} alt="Capa atual" className="w-full max-h-40 rounded-lg object-cover border" />}
+            <Input name="cover" type="file" accept="image/*" {...(!full.cover_url ? { required: true } : {})} />
+            <p className="text-xs text-muted-foreground">Aparece como fundo do cabeçalho do site do cliente. {full.cover_url ? "Envie um arquivo para substituir." : "Obrigatório."}</p>
+          </div>
           <div className="space-y-2"><Label>URL pública</Label><Input value={`/r/${restaurant.slug}`} readOnly /></div>
         </CardContent>
       </Card>
@@ -147,13 +209,13 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
         <CardHeader><CardTitle>Endereço do restaurante</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           <div className="grid grid-cols-3 gap-3">
-            <div className="space-y-2"><Label>CEP</Label><Input value={full.address_cep || ""} onChange={(e) => setFull({ ...full, address_cep: e.target.value })} onBlur={(e) => lookupCep(e.target.value)} placeholder="00000-000" /></div>
-            <div className="space-y-2 col-span-2"><Label>Rua</Label><Input value={full.address_street || ""} onChange={(e) => setFull({ ...full, address_street: e.target.value })} /></div>
-            <div className="space-y-2"><Label>Número</Label><Input value={full.address_number || ""} onChange={(e) => setFull({ ...full, address_number: e.target.value })} /></div>
+            <div className="space-y-2"><Label>CEP *</Label><Input value={full.address_cep || ""} onChange={(e) => setFull({ ...full, address_cep: e.target.value })} onBlur={(e) => lookupCep(e.target.value)} placeholder="00000-000" required /></div>
+            <div className="space-y-2 col-span-2"><Label>Rua *</Label><Input value={full.address_street || ""} onChange={(e) => setFull({ ...full, address_street: e.target.value })} required /></div>
+            <div className="space-y-2"><Label>Número *</Label><Input value={full.address_number || ""} onChange={(e) => setFull({ ...full, address_number: e.target.value })} required /></div>
             <div className="space-y-2 col-span-2"><Label>Complemento</Label><Input value={full.address_complement || ""} onChange={(e) => setFull({ ...full, address_complement: e.target.value })} /></div>
-            <div className="space-y-2 col-span-2"><Label>Bairro</Label><Input value={full.address_neighborhood || ""} onChange={(e) => setFull({ ...full, address_neighborhood: e.target.value })} /></div>
-            <div className="space-y-2"><Label>Cidade</Label><Input value={full.address_city || ""} onChange={(e) => setFull({ ...full, address_city: e.target.value })} /></div>
-            <div className="space-y-2"><Label>UF</Label><Input maxLength={2} value={full.address_state || ""} onChange={(e) => setFull({ ...full, address_state: e.target.value.toUpperCase() })} /></div>
+            <div className="space-y-2 col-span-2"><Label>Bairro *</Label><Input value={full.address_neighborhood || ""} onChange={(e) => setFull({ ...full, address_neighborhood: e.target.value })} required /></div>
+            <div className="space-y-2"><Label>Cidade *</Label><Input value={full.address_city || ""} onChange={(e) => setFull({ ...full, address_city: e.target.value })} required /></div>
+            <div className="space-y-2"><Label>UF *</Label><Input maxLength={2} value={full.address_state || ""} onChange={(e) => setFull({ ...full, address_state: e.target.value.toUpperCase() })} required /></div>
           </div>
           <div className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/50">
             <div className="text-sm">
@@ -198,7 +260,7 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
         <CardContent className="space-y-3">
           <div className="grid grid-cols-2 gap-3 p-3 rounded-lg border bg-muted/30">
             <div className="space-y-1">
-              <Label className="text-xs">Tempo mínimo de entrega (min)</Label>
+              <Label className="text-xs">Tempo mínimo de entrega (min) *</Label>
               <Input
                 type="number"
                 min={0}
@@ -206,10 +268,11 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
                 value={full.delivery_time_min ?? ""}
                 onChange={(e) => setFull({ ...full, delivery_time_min: e.target.value === "" ? null : Number(e.target.value) })}
                 placeholder="30"
+                required
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Tempo máximo de entrega (min)</Label>
+              <Label className="text-xs">Tempo máximo de entrega (min) *</Label>
               <Input
                 type="number"
                 min={0}
@@ -217,6 +280,7 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
                 value={full.delivery_time_max ?? ""}
                 onChange={(e) => setFull({ ...full, delivery_time_max: e.target.value === "" ? null : Number(e.target.value) })}
                 placeholder="50"
+                required
               />
             </div>
             <p className="text-xs text-muted-foreground col-span-2">Exibido para o cliente como "30-50 min" abaixo do cabeçalho.</p>
