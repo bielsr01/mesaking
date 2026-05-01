@@ -165,7 +165,7 @@ export default function RestaurantPublic() {
         const top = el.getBoundingClientRect().top;
         if (top - offset <= 0) current = key;
       }
-      if (current && current !== activeCat) setActiveCat(current);
+      if (current) setActiveCat((prev) => (prev === current ? prev : current));
     };
     const onScroll = () => {
       if (ticking) return;
@@ -175,7 +175,7 @@ export default function RestaurantPublic() {
     window.addEventListener("scroll", onScroll, { passive: true });
     update();
     return () => window.removeEventListener("scroll", onScroll);
-  }, [grouped, activeCat]);
+  }, [grouped]);
 
   // Auto-scroll a categoria ativa para dentro da área visível do nav horizontal
   useEffect(() => {
@@ -185,7 +185,7 @@ export default function RestaurantPublic() {
     const btnRect = btn.getBoundingClientRect();
     const navRect = nav.getBoundingClientRect();
     if (btnRect.left < navRect.left || btnRect.right > navRect.right) {
-      nav.scrollTo({ left: btn.offsetLeft - 16, behavior: "smooth" });
+      nav.scrollTo({ left: btn.offsetLeft - 16, behavior: "auto" });
     }
   }, [activeCat]);
 
