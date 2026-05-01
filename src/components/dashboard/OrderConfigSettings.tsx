@@ -99,81 +99,77 @@ export function OrderConfigSettings({ restaurantId }: Props) {
               <Inbox className="w-5 h-5" />
             </div>
             <div>
-              <CardTitle className="text-lg">Aceitar pedidos</CardTitle>
-              <CardDescription>Escolha por onde os pedidos serão recebidos</CardDescription>
+              <CardTitle className="text-lg">Recebimento de pedidos</CardTitle>
+              <CardDescription>Configure por onde recebe e como novos pedidos entram na fila</CardDescription>
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <RadioGroup value={receiveMode} onValueChange={handleReceiveChange} className="gap-3" disabled={saving}>
-            <Label
-              htmlFor="receive-system"
-              className="flex items-start gap-3 rounded-lg border p-4 cursor-pointer hover:bg-accent/40 transition-colors data-[state=checked]:border-primary"
-              data-state={receiveMode === "system" ? "checked" : "unchecked"}
-            >
-              <RadioGroupItem value="system" id="receive-system" className="mt-0.5" />
-              <div className="flex-1">
-                <div className="font-medium">Sistema</div>
-                <div className="text-sm text-muted-foreground">Receba os pedidos diretamente pelo painel.</div>
-              </div>
-            </Label>
-
-            <Label
-              htmlFor="receive-system-wpp"
-              className="flex items-start gap-3 rounded-lg border p-4 cursor-not-allowed opacity-60"
-              aria-disabled
-            >
-              <RadioGroupItem value="system_whatsapp" id="receive-system-wpp" className="mt-0.5" disabled />
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">Sistema + WhatsApp</span>
-                  <Badge variant="secondary">Em breve</Badge>
+        <CardContent className="space-y-6">
+          <div className="space-y-3">
+            <div className="text-sm font-semibold">Aceitar pedidos</div>
+            <RadioGroup value={receiveMode} onValueChange={handleReceiveChange} className="gap-3" disabled={saving}>
+              <Label
+                htmlFor="receive-system"
+                className="flex items-start gap-3 rounded-lg border p-4 cursor-pointer hover:bg-accent/40 transition-colors data-[state=checked]:border-primary"
+                data-state={receiveMode === "system" ? "checked" : "unchecked"}
+              >
+                <RadioGroupItem value="system" id="receive-system" className="mt-0.5" />
+                <div className="flex-1">
+                  <div className="font-medium">Sistema</div>
+                  <div className="text-sm text-muted-foreground">Receba os pedidos diretamente pelo painel.</div>
                 </div>
-                <div className="text-sm text-muted-foreground">Receba pelo painel e também envie/receba notificações via WhatsApp.</div>
-              </div>
-            </Label>
-          </RadioGroup>
-        </CardContent>
-      </Card>
+              </Label>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-lg bg-accent text-accent-foreground grid place-items-center">
-              <Zap className="w-5 h-5" />
-            </div>
-            <div>
-              <CardTitle className="text-lg">Status de entrada de pedidos</CardTitle>
-              <CardDescription>Defina como novos pedidos entram na sua fila</CardDescription>
-            </div>
+              <Label
+                htmlFor="receive-system-wpp"
+                className="flex items-start gap-3 rounded-lg border p-4 cursor-not-allowed opacity-60"
+                aria-disabled
+              >
+                <RadioGroupItem value="system_whatsapp" id="receive-system-wpp" className="mt-0.5" disabled />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">Sistema + WhatsApp</span>
+                    <Badge variant="secondary">Em breve</Badge>
+                  </div>
+                  <div className="text-sm text-muted-foreground">Receba pelo painel e também envie/receba notificações via WhatsApp.</div>
+                </div>
+              </Label>
+            </RadioGroup>
           </div>
-        </CardHeader>
-        <CardContent>
-          <RadioGroup value={acceptanceMode} onValueChange={handleAcceptanceChange} className="gap-3" disabled={saving}>
-            <Label
-              htmlFor="acc-manual"
-              className="flex items-start gap-3 rounded-lg border p-4 cursor-pointer hover:bg-accent/40 transition-colors data-[state=checked]:border-primary"
-              data-state={acceptanceMode === "manual" ? "checked" : "unchecked"}
-            >
-              <RadioGroupItem value="manual" id="acc-manual" className="mt-0.5" />
-              <div className="flex-1">
-                <div className="font-medium">Aceitar manualmente</div>
-                <div className="text-sm text-muted-foreground">Cada pedido fica em "pendente" até você aceitar.</div>
-              </div>
-            </Label>
 
-            <Label
-              htmlFor="acc-auto"
-              className="flex items-start gap-3 rounded-lg border p-4 cursor-pointer hover:bg-accent/40 transition-colors data-[state=checked]:border-primary"
-              data-state={acceptanceMode === "auto" ? "checked" : "unchecked"}
-            >
-              <RadioGroupItem value="auto" id="acc-auto" className="mt-0.5" />
-              <div className="flex-1">
-                <div className="font-medium">Aceitar automaticamente</div>
-                <div className="text-sm text-muted-foreground">Os pedidos entram já confirmados e seguem para o preparo.</div>
-              </div>
-            </Label>
-          </RadioGroup>
+          <div className="border-t" />
+
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Zap className="w-4 h-4 text-muted-foreground" />
+              <div className="text-sm font-semibold">Status de entrada de pedidos</div>
+            </div>
+            <RadioGroup value={acceptanceMode} onValueChange={handleAcceptanceChange} className="gap-3" disabled={saving}>
+              <Label
+                htmlFor="acc-manual"
+                className="flex items-start gap-3 rounded-lg border p-4 cursor-pointer hover:bg-accent/40 transition-colors data-[state=checked]:border-primary"
+                data-state={acceptanceMode === "manual" ? "checked" : "unchecked"}
+              >
+                <RadioGroupItem value="manual" id="acc-manual" className="mt-0.5" />
+                <div className="flex-1">
+                  <div className="font-medium">Aceitar manualmente</div>
+                  <div className="text-sm text-muted-foreground">Cada pedido fica em "pendente" até você aceitar.</div>
+                </div>
+              </Label>
+
+              <Label
+                htmlFor="acc-auto"
+                className="flex items-start gap-3 rounded-lg border p-4 cursor-pointer hover:bg-accent/40 transition-colors data-[state=checked]:border-primary"
+                data-state={acceptanceMode === "auto" ? "checked" : "unchecked"}
+              >
+                <RadioGroupItem value="auto" id="acc-auto" className="mt-0.5" />
+                <div className="flex-1">
+                  <div className="font-medium">Aceitar automaticamente</div>
+                  <div className="text-sm text-muted-foreground">Os pedidos entram já confirmados e seguem para o preparo.</div>
+                </div>
+              </Label>
+            </RadioGroup>
+          </div>
         </CardContent>
       </Card>
     </div>
