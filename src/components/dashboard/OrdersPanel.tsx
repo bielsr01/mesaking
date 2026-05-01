@@ -154,11 +154,30 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     return "bg-primary text-primary-foreground";
   };
 
+  const counts: Record<string, number> = {
+    pending: orders.filter((o) => o.status === "pending").length,
+    preparing: orders.filter((o) => o.status === "preparing").length,
+    out_for_delivery: orders.filter((o) => o.status === "out_for_delivery").length,
+    delivered: orders.filter((o) => o.status === "delivered").length,
+    active: orders.filter((o) => !["delivered", "cancelled"].includes(o.status)).length,
+    all: orders.length,
+  };
+
   return (
     <div className="space-y-4">
       <Tabs value={filter} onValueChange={setFilter}>
         <TabsList className="flex-wrap h-auto">
-          {FILTERS.map((f) => <TabsTrigger key={f.value} value={f.value}>{f.label}</TabsTrigger>)}
+          {FILTERS.map((f) => (
+            <TabsTrigger key={f.value} value={f.value} className="gap-2">
+              {f.label}
+              <Badge
+                variant={f.value === "pending" && counts[f.value] > 0 ? "destructive" : "secondary"}
+                className="h-5 min-w-5 px-1.5 text-xs"
+              >
+                {counts[f.value] ?? 0}
+              </Badge>
+            </TabsTrigger>
+          ))}
         </TabsList>
       </Tabs>
 
