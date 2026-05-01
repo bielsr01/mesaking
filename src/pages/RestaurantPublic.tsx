@@ -139,6 +139,7 @@ export default function RestaurantPublic() {
   const navRef = useRef<HTMLDivElement | null>(null);
   const navItemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const [activeCat, setActiveCat] = useState<string>("");
+  const [scrolled, setScrolled] = useState(false);
   const isScrollingRef = useRef(false);
 
   useEffect(() => {
@@ -149,8 +150,9 @@ export default function RestaurantPublic() {
 
   useEffect(() => {
     const onScroll = () => {
+      setScrolled(window.scrollY > 80);
       if (isScrollingRef.current) return;
-      const offset = 140; // header + sticky nav
+      const offset = 160; // header reduzido + nav
       let current = "";
       for (const g of grouped) {
         const key = g.cat?.id ?? "_orphans";
@@ -162,6 +164,7 @@ export default function RestaurantPublic() {
       if (current && current !== activeCat) setActiveCat(current);
     };
     window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
     return () => window.removeEventListener("scroll", onScroll);
   }, [grouped, activeCat]);
 
@@ -270,28 +273,42 @@ export default function RestaurantPublic() {
     <div className="min-h-screen pb-24">
       <ActiveOrderBanner restaurantId={restaurant.id} />
 
-      <header className="bg-gradient-warm text-primary-foreground">
-        <div className="container py-8 flex items-center gap-4">
+      {/* Header fixo (compacta ao rolar) */}
+      <header
+        className={`fixed top-0 left-0 right-0 z-40 bg-gradient-warm text-primary-foreground shadow-md transition-all duration-300 ${scrolled ? "py-2" : "py-6"}`}
+      >
+        <div className="container flex items-center gap-3">
           {restaurant.logo_url ? (
-            <img src={restaurant.logo_url} alt={restaurant.name} className="w-20 h-20 rounded-2xl object-cover border-4 border-background/20" />
+            <img
+              src={restaurant.logo_url}
+              alt={restaurant.name}
+              className={`object-cover border-background/20 transition-all duration-300 ${scrolled ? "w-9 h-9 rounded-lg border-2" : "w-20 h-20 rounded-2xl border-4"}`}
+            />
           ) : (
-            <div className="w-20 h-20 rounded-2xl bg-background/20 grid place-items-center text-3xl font-bold">{restaurant.name[0]}</div>
+            <div className={`bg-background/20 grid place-items-center font-bold transition-all duration-300 ${scrolled ? "w-9 h-9 text-base rounded-lg" : "w-20 h-20 text-3xl rounded-2xl"}`}>{restaurant.name[0]}</div>
           )}
-          <div className="flex-1">
-            <h1 className="text-3xl font-bold">{restaurant.name}</h1>
-            {restaurant.description && <p className="opacity-90 text-sm mt-1">{restaurant.description}</p>}
-            <div className="mt-2">
-              {isOpenNow(restaurant.opening_hours, restaurant.manual_override)
-                ? <Badge className="bg-success text-success-foreground">Aberto agora</Badge>
-                : <Badge variant="secondary">Fechado no momento</Badge>}
-            </div>
+          <div className="flex-1 min-w-0">
+            <h1 className={`font-bold truncate transition-all duration-300 ${scrolled ? "text-base" : "text-3xl"}`}>{restaurant.name}</h1>
+            {!scrolled && restaurant.description && <p className="opacity-90 text-sm mt-1">{restaurant.description}</p>}
+            {!scrolled && (
+              <div className="mt-2">
+                {isOpenNow(restaurant.opening_hours, restaurant.manual_override)
+                  ? <Badge className="bg-success text-success-foreground">Aberto agora</Badge>
+                  : <Badge variant="secondary">Fechado no momento</Badge>}
+              </div>
+            )}
           </div>
         </div>
       </header>
 
-      {/* Sticky horizontal category nav */}
+      {/* Espaçador para compensar o header fixo */}
+      <div className={`transition-all duration-300 ${scrolled ? "h-[56px]" : "h-[148px]"}`} />
+
+      {/* Nav horizontal de categorias — fixo logo abaixo do header */}
       {grouped.length > 0 && (
-        <nav className="sticky top-0 z-30 bg-background/95 backdrop-blur border-b shadow-sm">
+        <nav
+          className={`fixed left-0 right-0 z-30 bg-background/95 backdrop-blur border-b shadow-sm transition-all duration-300 ${scrolled ? "top-[56px]" : "top-[148px]"}`}
+        >
           <div
             ref={navRef}
             className="container flex gap-2 overflow-x-auto py-2 scrollbar-none"
@@ -315,6 +332,10 @@ export default function RestaurantPublic() {
           </div>
         </nav>
       )}
+
+      {/* Espaçador do nav */}
+      {grouped.length > 0 && <div className="h-[52px]" />}
+
 
       <main className="container py-6 space-y-8">
         {grouped.length === 0 && <p className="text-center text-muted-foreground py-12">Cardápio sendo montado...</p>}
