@@ -66,7 +66,7 @@ export async function fetchOrders(restaurantId: string): Promise<{ orders: Order
 
 export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const qc = useQueryClient();
-  const [filter, setFilter] = useState("active");
+  const [filter, setFilter] = useState("pending");
 
   const { data, isLoading } = useQuery({
     queryKey: ordersKey(restaurantId),
