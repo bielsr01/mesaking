@@ -276,82 +276,43 @@ export default function RestaurantPublic() {
 
   return (
     <div className="min-h-screen pb-24">
-      {/* Header fixo com altura constante (compacta o conteúdo interno ao rolar)
-          - Mantemos a altura do header fixa para evitar reflow no scroll mobile.
-          - A foto de capa fica num <div> absoluto atrás do conteúdo, evitando o
-            "flash" em que a imagem aparece maior que a tela antes de se ajustar. */}
-      <header
-        className="fixed top-0 left-0 right-0 z-40 text-primary-foreground shadow-md overflow-hidden bg-gradient-warm"
-        style={{
-          height: scrolled ? 56 : 148,
-          transition: "height 250ms ease",
-          willChange: "height",
-        }}
-      >
-        {restaurant.cover_url && (
-          <div
-            aria-hidden
-            className="absolute inset-0 -z-0"
-            style={{
-              backgroundImage: `url(${restaurant.cover_url})`,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              backgroundRepeat: "no-repeat",
-            }}
-          />
-        )}
-        <div className="relative z-10 container h-full flex items-center gap-3">
-          {restaurant.logo_url ? (
+      {/* Banner com foto de capa + logo central deslocada para baixo */}
+      <header className="relative">
+        <div className="relative w-full aspect-[16/7] sm:aspect-[16/5] overflow-hidden bg-gradient-warm">
+          {restaurant.cover_url && (
             <img
-              src={restaurant.logo_url}
-              alt={restaurant.name}
-              className={`object-cover border-background/20 transition-all duration-300 ${scrolled ? "w-9 h-9 rounded-lg border-2" : "w-20 h-20 rounded-2xl border-4"}`}
-              style={{ willChange: "width, height" }}
+              src={restaurant.cover_url}
+              alt={`Capa ${restaurant.name}`}
+              className="absolute inset-0 w-full h-full object-cover"
             />
-          ) : (
-            <div className={`bg-background/20 grid place-items-center font-bold transition-all duration-300 ${scrolled ? "w-9 h-9 text-base rounded-lg" : "w-20 h-20 text-3xl rounded-2xl"}`}>{restaurant.name[0]}</div>
           )}
-          <div className="flex-1 min-w-0">
-            <h1
-              className="font-bold truncate origin-left"
-              style={{
-                fontSize: "1.875rem", // text-3xl base
-                lineHeight: 1.15,
-                transform: scrolled ? "scale(0.55)" : "scale(1)",
-                transformOrigin: "left center",
-                transition: "transform 250ms ease",
-                willChange: "transform",
-              }}
-            >
-              {restaurant.name}
-            </h1>
-            <div
-              className="mt-2"
-              style={{
-                opacity: scrolled ? 0 : 1,
-                transform: scrolled ? "translateY(-4px)" : "translateY(0)",
-                transition: "opacity 200ms ease, transform 250ms ease",
-                pointerEvents: scrolled ? "none" : "auto",
-                willChange: "opacity, transform",
-              }}
-            >
-              {isOpenNow(restaurant.opening_hours, restaurant.manual_override)
-                ? <Badge className="bg-success text-success-foreground">Aberto agora</Badge>
-                : <Badge variant="secondary">Fechado no momento</Badge>}
-            </div>
+          {/* Badge aberto/fechado sobre a capa */}
+          <div className="absolute top-3 left-3 z-10">
+            {isOpenNow(restaurant.opening_hours, restaurant.manual_override)
+              ? <Badge className="bg-success text-success-foreground shadow">Aberto agora</Badge>
+              : <Badge variant="secondary" className="shadow">Fechado no momento</Badge>}
+          </div>
+        </div>
+
+        {/* Logo central, deslocada para baixo (sobreposta ao banner) */}
+        <div className="container relative">
+          <div className="flex justify-center -mt-10 sm:-mt-14">
+            {restaurant.logo_url ? (
+              <img
+                src={restaurant.logo_url}
+                alt={restaurant.name}
+                className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover border-4 border-background shadow-lg bg-background"
+              />
+            ) : (
+              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-primary text-primary-foreground grid place-items-center text-3xl font-bold border-4 border-background shadow-lg">
+                {restaurant.name[0]}
+              </div>
+            )}
           </div>
         </div>
       </header>
 
-      {/* Espaçador para compensar o header fixo (acompanha a altura do header) */}
-      <div
-        style={{
-          height: scrolled ? 56 : 148,
-          transition: "height 250ms ease",
-        }}
-      />
-
-      {/* Endereço + tempo de entrega — abaixo do cabeçalho, rola normalmente */}
+      {/* Nome + endereço + tempo */}
       {(() => {
         const addressLine = [
           restaurant.address_street,
@@ -367,29 +328,41 @@ export default function RestaurantPublic() {
         const timeLabel = hasTime
           ? (tmin != null && tmax != null ? `${tmin}–${tmax} min` : `${tmin ?? tmax} min`)
           : null;
-        if (!addressLine && !timeLabel) return null;
         return (
-          <div className="container py-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground border-b">
-            {addressLine && <span className="truncate">📍 {addressLine}</span>}
-            {timeLabel && (
-              <span>🕒 Entrega em <strong className="font-bold text-foreground">{timeLabel}</strong></span>
+          <div className="container pt-3 pb-4 text-center space-y-2">
+            <h1 className="text-2xl sm:text-3xl font-bold leading-tight">{restaurant.name}</h1>
+            {addressLine && (
+              <div className="flex items-center justify-center gap-1.5 text-sm text-muted-foreground">
+                <MapPin className="w-4 h-4 shrink-0" />
+                <span className="truncate">{addressLine}</span>
+              </div>
             )}
+            {timeLabel && (
+              <div className="flex items-center justify-center gap-1.5 text-sm text-muted-foreground">
+                <Clock className="w-4 h-4 shrink-0" />
+                <span>Entrega <strong className="font-bold text-foreground">{timeLabel}</strong></span>
+              </div>
+            )}
+            <div className="pt-2">
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" className="w-full sm:w-auto sm:min-w-[280px] gap-2">
+                    <Info className="w-4 h-4" /> Informação
+                  </Button>
+                </SheetTrigger>
+                <InfoSheetContent restaurant={restaurant} addressLine={addressLine} timeLabel={timeLabel} />
+              </Sheet>
+            </div>
           </div>
         );
       })()}
 
-      {/* Banner de pedido ativo — abaixo do header, acima das categorias (rola normalmente) */}
+      {/* Banner de pedido ativo — acima das categorias (rola normalmente) */}
       <ActiveOrderBanner restaurantId={restaurant.id} />
 
-      {/* Nav horizontal de categorias — sticky logo abaixo do header */}
+      {/* Nav horizontal de categorias — sticky no topo da viewport */}
       {grouped.length > 0 && (
-        <nav
-          className="sticky z-30 bg-background/95 backdrop-blur border-b shadow-sm"
-          style={{
-            top: scrolled ? 56 : 148,
-            transition: "top 250ms ease",
-          }}
-        >
+        <nav className="sticky top-0 z-30 bg-background/95 backdrop-blur border-y shadow-sm">
           <div
             ref={navRef}
             className="container flex gap-2 overflow-x-auto py-2 scrollbar-none"
