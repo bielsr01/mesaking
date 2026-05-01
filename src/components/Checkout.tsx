@@ -271,7 +271,19 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Finalizar pedido</DialogTitle>
+          <div className="flex items-center justify-between gap-3">
+            <DialogTitle>Finalizar pedido</DialogTitle>
+            <span
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${
+                isPickup
+                  ? "bg-accent text-accent-foreground border-border"
+                  : "bg-primary/10 text-primary border-primary/30"
+              }`}
+            >
+              {isPickup ? <Store className="w-3.5 h-3.5" /> : <Bike className="w-3.5 h-3.5" />}
+              {isPickup ? "Retirada" : "Delivery"}
+            </span>
+          </div>
           <div className="flex items-center gap-1.5 mt-2">
             {Array.from({ length: totalSteps }).map((_, i) => (
               <div key={i} className={`h-1.5 flex-1 rounded-full transition-colors ${i + 1 <= stepIndex ? "bg-primary" : "bg-muted"}`} />
