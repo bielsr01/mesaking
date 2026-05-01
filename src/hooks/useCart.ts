@@ -31,9 +31,9 @@ export function useCart() {
     total: snap.items.reduce((sum, i) => sum + i.price * i.quantity, 0),
     add(restaurantId: string, item: CartItem) {
       if (state.restaurantId && state.restaurantId !== restaurantId) {
-        state = { restaurantId, items: [item] };
+        state = { restaurantId, items: [{ ...item }] };
       } else {
-        const existing = state.items.find((i) => i.productId === item.productId && i.notes === item.notes);
+        const existing = state.items.find((i) => i.productId === item.productId && (i.notes ?? "") === (item.notes ?? ""));
         if (existing) {
           state = {
             restaurantId,
@@ -42,7 +42,7 @@ export function useCart() {
             ),
           };
         } else {
-          state = { restaurantId, items: [...state.items, item] };
+          state = { restaurantId, items: [...state.items, { ...item }] };
         }
       }
       emit();
