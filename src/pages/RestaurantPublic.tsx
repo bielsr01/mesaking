@@ -271,8 +271,6 @@ export default function RestaurantPublic() {
 
   return (
     <div className="min-h-screen pb-24">
-      <ActiveOrderBanner restaurantId={restaurant.id} />
-
       {/* Header fixo (compacta ao rolar) */}
       <header
         className={`fixed top-0 left-0 right-0 z-40 bg-gradient-warm text-primary-foreground shadow-md transition-all duration-300 ${scrolled ? "py-2" : "py-6"}`}
@@ -304,10 +302,13 @@ export default function RestaurantPublic() {
       {/* Espaçador para compensar o header fixo */}
       <div className={`transition-all duration-300 ${scrolled ? "h-[56px]" : "h-[148px]"}`} />
 
-      {/* Nav horizontal de categorias — fixo logo abaixo do header */}
+      {/* Banner de pedido ativo — abaixo do header, acima das categorias (rola normalmente) */}
+      <ActiveOrderBanner restaurantId={restaurant.id} />
+
+      {/* Nav horizontal de categorias — sticky logo abaixo do header */}
       {grouped.length > 0 && (
         <nav
-          className={`fixed left-0 right-0 z-30 bg-background/95 backdrop-blur border-b shadow-sm transition-all duration-300 ${scrolled ? "top-[56px]" : "top-[148px]"}`}
+          className={`sticky z-30 bg-background/95 backdrop-blur border-b shadow-sm transition-all duration-300 ${scrolled ? "top-[56px]" : "top-[148px]"}`}
         >
           <div
             ref={navRef}
@@ -333,8 +334,6 @@ export default function RestaurantPublic() {
         </nav>
       )}
 
-      {/* Espaçador do nav */}
-      {grouped.length > 0 && <div className="h-[52px]" />}
 
 
       <main className="container py-6 space-y-8">
