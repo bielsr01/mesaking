@@ -134,6 +134,60 @@ export default function RestaurantPublic() {
 
   const itemCount = cart.items.reduce((s, i) => s + i.quantity, 0);
 
+  // Scroll-spy + nav refs
+  const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
+  const navRef = useRef<HTMLDivElement | null>(null);
+  const navItemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const [activeCat, setActiveCat] = useState<string>("");
+  const isScrollingRef = useRef(false);
+
+  useEffect(() => {
+    if (grouped.length && !activeCat) {
+      setActiveCat(grouped[0].cat?.id ?? "_orphans");
+    }
+  }, [grouped, activeCat]);
+
+  useEffect(() => {
+    const onScroll = () => {
+      if (isScrollingRef.current) return;
+      const offset = 140; // header + sticky nav
+      let current = "";
+      for (const g of grouped) {
+        const key = g.cat?.id ?? "_orphans";
+        const el = sectionRefs.current[key];
+        if (!el) continue;
+        const top = el.getBoundingClientRect().top;
+        if (top - offset <= 0) current = key;
+      }
+      if (current && current !== activeCat) setActiveCat(current);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [grouped, activeCat]);
+
+  // Auto-scroll a categoria ativa para dentro da área visível do nav horizontal
+  useEffect(() => {
+    const btn = navItemRefs.current[activeCat];
+    const nav = navRef.current;
+    if (!btn || !nav) return;
+    const btnRect = btn.getBoundingClientRect();
+    const navRect = nav.getBoundingClientRect();
+    if (btnRect.left < navRect.left || btnRect.right > navRect.right) {
+      nav.scrollTo({ left: btn.offsetLeft - 16, behavior: "smooth" });
+    }
+  }, [activeCat]);
+
+  const goToCategory = (key: string) => {
+    const el = sectionRefs.current[key];
+    if (!el) return;
+    isScrollingRef.current = true;
+    setActiveCat(key);
+    const y = el.getBoundingClientRect().top + window.scrollY - 120;
+    window.scrollTo({ top: y, behavior: "smooth" });
+    setTimeout(() => { isScrollingRef.current = false; }, 700);
+  };
+
+
   const extrasTotal = useMemo(() => {
     let sum = 0;
     productGroups.forEach((g) => {
