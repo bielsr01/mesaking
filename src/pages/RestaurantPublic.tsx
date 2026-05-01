@@ -397,7 +397,7 @@ export default function RestaurantPublic() {
             <section
               key={key}
               ref={(el) => { sectionRefs.current[key] = el; }}
-              style={{ scrollMarginTop: 120 }}
+              style={{ scrollMarginTop: 70 }}
             >
               <h2 className="text-xl font-bold mb-3">{g.cat?.name ?? "Outros"}</h2>
               <div className="grid gap-3 md:grid-cols-2">
