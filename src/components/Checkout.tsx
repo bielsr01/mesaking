@@ -168,7 +168,7 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
     if (step === 1 && !validateStep1()) return;
     if (step === 2 && !isPickup && !validateStep2()) return;
     if (isPickup && step === 1) { setStep(3); return; } // pula endereço
-    setStep((s) => Math.min(3, (s + 1) as Step));
+    setStep((s) => (Math.min(3, s + 1) as Step));
   };
   const goBack = () => {
     if (isPickup && step === 3) { setStep(1); return; }
