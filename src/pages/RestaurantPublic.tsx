@@ -302,6 +302,33 @@ export default function RestaurantPublic() {
       {/* Espaçador para compensar o header fixo */}
       <div className={`transition-all duration-300 ${scrolled ? "h-[56px]" : "h-[148px]"}`} />
 
+      {/* Endereço + tempo de entrega — abaixo do cabeçalho, rola normalmente */}
+      {(() => {
+        const addressLine = [
+          restaurant.address_street,
+          restaurant.address_number,
+          restaurant.address_neighborhood,
+          restaurant.address_city && restaurant.address_state
+            ? `${restaurant.address_city}/${restaurant.address_state}`
+            : restaurant.address_city || restaurant.address_state,
+        ].filter(Boolean).join(", ");
+        const tmin = restaurant.delivery_time_min;
+        const tmax = restaurant.delivery_time_max;
+        const hasTime = tmin != null || tmax != null;
+        const timeLabel = hasTime
+          ? (tmin != null && tmax != null ? `${tmin}–${tmax} min` : `${tmin ?? tmax} min`)
+          : null;
+        if (!addressLine && !timeLabel) return null;
+        return (
+          <div className="container py-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground border-b">
+            {addressLine && <span className="truncate">📍 {addressLine}</span>}
+            {timeLabel && (
+              <span>🕒 Entrega em <strong className="font-bold text-foreground">{timeLabel}</strong></span>
+            )}
+          </div>
+        );
+      })()}
+
       {/* Banner de pedido ativo — abaixo do header, acima das categorias (rola normalmente) */}
       <ActiveOrderBanner restaurantId={restaurant.id} />
 
