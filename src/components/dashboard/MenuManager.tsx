@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Plus, Pencil, Trash2, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { brl } from "@/lib/format";
+import { OptionGroupsManager, fetchGroups, optionKeys, OptionGroup } from "./OptionGroupsManager";
 
 interface Category { id: string; name: string; sort_order: number; is_active: boolean; }
 interface Product { id: string; category_id: string | null; name: string; description: string | null; price: number; image_url: string | null; is_active: boolean; }
@@ -19,6 +20,7 @@ interface Product { id: string; category_id: string | null; name: string; descri
 export const menuKeys = {
   categories: (rid: string) => ["menu", rid, "categories"] as const,
   products: (rid: string) => ["menu", rid, "products"] as const,
+  productGroups: (pid: string) => ["menu", "product-groups", pid] as const,
 };
 
 export async function fetchCategories(restaurantId: string): Promise<Category[]> {
@@ -28,6 +30,10 @@ export async function fetchCategories(restaurantId: string): Promise<Category[]>
 export async function fetchProducts(restaurantId: string): Promise<Product[]> {
   const { data } = await supabase.from("products").select("*").eq("restaurant_id", restaurantId).order("created_at");
   return (data ?? []) as Product[];
+}
+async function fetchProductGroupIds(productId: string): Promise<string[]> {
+  const { data } = await supabase.from("product_option_groups").select("group_id").eq("product_id", productId);
+  return (data ?? []).map((r: any) => r.group_id);
 }
 
 export function MenuManager({ restaurantId }: { restaurantId: string }) {
@@ -42,13 +48,17 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
     queryFn: () => fetchProducts(restaurantId),
     staleTime: 30_000,
   });
+  const { data: groups = [] } = useQuery({
+    queryKey: optionKeys.groups(restaurantId),
+    queryFn: () => fetchGroups(restaurantId),
+    staleTime: 30_000,
+  });
 
   const reload = () => {
     qc.invalidateQueries({ queryKey: menuKeys.categories(restaurantId) });
     qc.invalidateQueries({ queryKey: menuKeys.products(restaurantId) });
   };
 
-  // Realtime: keep menu in sync across tabs/devices
   useEffect(() => {
     const ch = supabase.channel(`menu-${restaurantId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "categories", filter: `restaurant_id=eq.${restaurantId}` }, () => {
@@ -66,6 +76,16 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
   const [editingCat, setEditingCat] = useState<Category | null>(null);
   const [editingProd, setEditingProd] = useState<Product | null>(null);
   const [defaultCat, setDefaultCat] = useState<string | null>(null);
+  const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
+
+  // Load product->groups when editing
+  useEffect(() => {
+    if (prodOpen && editingProd) {
+      fetchProductGroupIds(editingProd.id).then(setSelectedGroupIds);
+    } else if (prodOpen && !editingProd) {
+      setSelectedGroupIds([]);
+    }
+  }, [prodOpen, editingProd]);
 
   const saveCategory = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -85,7 +105,6 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
   };
 
   const toggleCat = async (c: Category) => {
-    // optimistic
     qc.setQueryData<Category[]>(menuKeys.categories(restaurantId), (prev) =>
       (prev ?? []).map((x) => (x.id === c.id ? { ...x, is_active: !c.is_active } : x))
     );
@@ -118,15 +137,31 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
       image_url = supabase.storage.from("menu-images").getPublicUrl(path).data.publicUrl;
     }
 
+    let productId: string;
     if (editingProd) {
       const { error } = await supabase.from("products").update({ name, description, price, category_id, image_url }).eq("id", editingProd.id);
       if (error) return toast.error(error.message);
+      productId = editingProd.id;
     } else {
-      const { error } = await supabase.from("products").insert({ name, description, price, category_id, image_url, restaurant_id: restaurantId });
-      if (error) return toast.error(error.message);
+      const { data, error } = await supabase.from("products").insert({ name, description, price, category_id, image_url, restaurant_id: restaurantId }).select("id").single();
+      if (error || !data) return toast.error(error?.message || "Erro");
+      productId = data.id;
     }
+
+    // Sync product_option_groups
+    const { data: existing } = await supabase.from("product_option_groups").select("group_id").eq("product_id", productId);
+    const existingIds = (existing ?? []).map((r: any) => r.group_id);
+    const toAdd = selectedGroupIds.filter((id) => !existingIds.includes(id));
+    const toRemove = existingIds.filter((id) => !selectedGroupIds.includes(id));
+    if (toRemove.length) {
+      await supabase.from("product_option_groups").delete().eq("product_id", productId).in("group_id", toRemove);
+    }
+    if (toAdd.length) {
+      await supabase.from("product_option_groups").insert(toAdd.map((gid, idx) => ({ product_id: productId, group_id: gid, sort_order: idx })));
+    }
+
     toast.success("Produto salvo");
-    setProdOpen(false); setEditingProd(null); reload();
+    setProdOpen(false); setEditingProd(null); setSelectedGroupIds([]); reload();
   };
 
   const toggleProd = async (p: Product) => {
@@ -145,6 +180,25 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
 
   const isLoading = (loadingCats || loadingProds) && categories.length === 0 && products.length === 0;
 
+  // Quick-create option group from product dialog
+  const [quickGroupOpen, setQuickGroupOpen] = useState(false);
+  const quickCreateGroup = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    const name = String(fd.get("name") || "").trim();
+    const min_select = Number(fd.get("min_select") || 0);
+    const max_select = Number(fd.get("max_select") || 1);
+    if (!name) return toast.error("Informe o nome");
+    const { data, error } = await supabase.from("option_groups").insert({
+      restaurant_id: restaurantId, name, min_select, max_select,
+    }).select("id").single();
+    if (error || !data) return toast.error(error?.message || "Erro");
+    qc.invalidateQueries({ queryKey: optionKeys.groups(restaurantId) });
+    setSelectedGroupIds((prev) => [...prev, data.id]);
+    setQuickGroupOpen(false);
+    toast.success("Grupo criado. Adicione itens depois em 'Grupos de opções'.");
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -161,9 +215,9 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
               </form>
             </DialogContent>
           </Dialog>
-          <Dialog open={prodOpen} onOpenChange={(o) => { setProdOpen(o); if (!o) setEditingProd(null); }}>
+          <Dialog open={prodOpen} onOpenChange={(o) => { setProdOpen(o); if (!o) { setEditingProd(null); setSelectedGroupIds([]); } }}>
             <DialogTrigger asChild><Button onClick={() => setDefaultCat(categories[0]?.id ?? null)} disabled={categories.length === 0}><Plus className="w-4 h-4 mr-1" />Produto</Button></DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-h-[90vh] overflow-y-auto">
               <DialogHeader><DialogTitle>{editingProd ? "Editar" : "Novo"} produto</DialogTitle></DialogHeader>
               <form onSubmit={saveProduct} className="space-y-4">
                 <div className="space-y-2"><Label>Nome</Label><Input name="name" defaultValue={editingProd?.name} required /></div>
@@ -179,7 +233,50 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
                   </div>
                 </div>
                 <div className="space-y-2"><Label>Foto</Label><Input name="image" type="file" accept="image/*" /></div>
+
+                <div className="space-y-2 border-t pt-3">
+                  <div className="flex items-center justify-between">
+                    <Label>Grupos de opções</Label>
+                    <Button type="button" size="sm" variant="outline" onClick={() => setQuickGroupOpen(true)}>
+                      <Plus className="w-3.5 h-3.5 mr-1" />Novo grupo
+                    </Button>
+                  </div>
+                  {groups.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Nenhum grupo criado. Crie um para oferecer sabores, adicionais, etc.</p>
+                  ) : (
+                    <div className="space-y-1.5 max-h-48 overflow-y-auto border rounded-md p-2">
+                      {groups.map((g) => (
+                        <label key={g.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted px-2 py-1 rounded">
+                          <input
+                            type="checkbox"
+                            checked={selectedGroupIds.includes(g.id)}
+                            onChange={(e) => setSelectedGroupIds((prev) => e.target.checked ? [...prev, g.id] : prev.filter((x) => x !== g.id))}
+                          />
+                          <span className="flex-1">{g.name}</span>
+                          <span className="text-xs text-muted-foreground">mín {g.min_select} · máx {g.max_select}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <DialogFooter><Button type="submit">Salvar</Button></DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+
+          {/* Quick group create from product dialog */}
+          <Dialog open={quickGroupOpen} onOpenChange={setQuickGroupOpen}>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Novo grupo de opções</DialogTitle></DialogHeader>
+              <form onSubmit={quickCreateGroup} className="space-y-4">
+                <div className="space-y-2"><Label>Nome</Label><Input name="name" placeholder="Ex: Sabores" required /></div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2"><Label>Mín</Label><Input name="min_select" type="number" min="0" defaultValue={0} /></div>
+                  <div className="space-y-2"><Label>Máx</Label><Input name="max_select" type="number" min="1" defaultValue={1} /></div>
+                </div>
+                <p className="text-xs text-muted-foreground">Os itens (ex: "Catupiry +R$2,00") são cadastrados depois na aba "Grupos de opções".</p>
+                <DialogFooter><Button type="submit">Criar grupo</Button></DialogFooter>
               </form>
             </DialogContent>
           </Dialog>
@@ -236,6 +333,10 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
             </Card>
           ))}
         </div>
+      </div>
+
+      <div className="border-t pt-6">
+        <OptionGroupsManager restaurantId={restaurantId} />
       </div>
     </div>
   );
