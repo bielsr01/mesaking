@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -7,11 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ChefHat, ExternalLink, LogOut, ShoppingBag, DollarSign, TrendingUp } from "lucide-react";
 import { brl } from "@/lib/format";
 import { toast } from "sonner";
-import { OrdersPanel } from "@/components/dashboard/OrdersPanel";
-import { MenuManager } from "@/components/dashboard/MenuManager";
+import { OrdersPanel, fetchOrders, ordersKey } from "@/components/dashboard/OrdersPanel";
+import { MenuManager, fetchCategories, fetchProducts, menuKeys } from "@/components/dashboard/MenuManager";
 import { StoreSettings } from "@/components/dashboard/StoreSettings";
 
 interface Restaurant {
@@ -21,58 +23,94 @@ interface Restaurant {
   is_open: boolean;
 }
 
+async function fetchRestaurantForUser(userId: string, isMasterAdmin: boolean): Promise<Restaurant | null> {
+  let { data: own } = await supabase.from("restaurants").select("id,name,slug,is_open").eq("owner_id", userId).maybeSingle();
+  if (!own) {
+    const { data: mem } = await supabase.from("restaurant_members").select("restaurant_id").eq("user_id", userId).maybeSingle();
+    if (mem) {
+      const { data: r } = await supabase.from("restaurants").select("id,name,slug,is_open").eq("id", mem.restaurant_id).maybeSingle();
+      own = r ?? null;
+    }
+  }
+  if (!own && isMasterAdmin) {
+    const { data: any } = await supabase.from("restaurants").select("id,name,slug,is_open").order("created_at", { ascending: false }).limit(1).maybeSingle();
+    own = any ?? null;
+  }
+  return own as Restaurant | null;
+}
+
+async function fetchTodayStats(restaurantId: string) {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const { data } = await supabase.from("orders").select("total").eq("restaurant_id", restaurantId).gte("created_at", today.toISOString()).neq("status", "cancelled");
+  const orders = data?.length ?? 0;
+  const revenue = data?.reduce((s, o) => s + Number(o.total), 0) ?? 0;
+  return { orders, revenue, avg: orders ? revenue / orders : 0 };
+}
+
 export default function ManagerDashboard() {
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const { user, signOut, isMasterAdmin } = useAuth();
-  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ orders: 0, revenue: 0, avg: 0 });
 
-  const loadRestaurant = async () => {
-    if (!user) return;
-    // owner
-    let { data: own } = await supabase.from("restaurants").select("id,name,slug,is_open").eq("owner_id", user.id).maybeSingle();
-    if (!own) {
-      const { data: mem } = await supabase.from("restaurant_members").select("restaurant_id").eq("user_id", user.id).maybeSingle();
-      if (mem) {
-        const { data: r } = await supabase.from("restaurants").select("id,name,slug,is_open").eq("id", mem.restaurant_id).maybeSingle();
-        own = r ?? null;
-      }
-    }
-    if (!own && isMasterAdmin) {
-      const { data: any } = await supabase.from("restaurants").select("id,name,slug,is_open").order("created_at", { ascending: false }).limit(1).maybeSingle();
-      own = any ?? null;
-    }
-    setRestaurant(own ?? null);
-    setLoading(false);
-  };
+  const { data: restaurant, isLoading: loadingRest } = useQuery({
+    queryKey: ["managerRestaurant", user?.id],
+    queryFn: () => fetchRestaurantForUser(user!.id, isMasterAdmin),
+    enabled: !!user,
+    staleTime: 60_000,
+  });
 
-  const loadStats = async (rid: string) => {
-    const today = new Date(); today.setHours(0, 0, 0, 0);
-    const { data } = await supabase.from("orders").select("total").eq("restaurant_id", rid).gte("created_at", today.toISOString()).neq("status", "cancelled");
-    const orders = data?.length ?? 0;
-    const revenue = data?.reduce((s, o) => s + Number(o.total), 0) ?? 0;
-    setStats({ orders, revenue, avg: orders ? revenue / orders : 0 });
-  };
+  const { data: stats } = useQuery({
+    queryKey: ["managerStats", restaurant?.id],
+    queryFn: () => fetchTodayStats(restaurant!.id),
+    enabled: !!restaurant?.id,
+    staleTime: 15_000,
+  });
 
-  useEffect(() => { loadRestaurant(); }, [user]);
+  // Prefetch all tabs data as soon as we know the restaurant — eliminates blank tab on first click.
   useEffect(() => {
-    if (!restaurant) return;
-    loadStats(restaurant.id);
+    if (!restaurant?.id) return;
+    qc.prefetchQuery({ queryKey: ordersKey(restaurant.id), queryFn: () => fetchOrders(restaurant.id) });
+    qc.prefetchQuery({ queryKey: menuKeys.categories(restaurant.id), queryFn: () => fetchCategories(restaurant.id) });
+    qc.prefetchQuery({ queryKey: menuKeys.products(restaurant.id), queryFn: () => fetchProducts(restaurant.id) });
+  }, [restaurant?.id, qc]);
+
+  // Keep stats live
+  useEffect(() => {
+    if (!restaurant?.id) return;
     const ch = supabase.channel(`stats-${restaurant.id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurant.id}` }, () => loadStats(restaurant.id))
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurant.id}` }, () => {
+        qc.invalidateQueries({ queryKey: ["managerStats", restaurant.id] });
+      })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [restaurant?.id]);
+  }, [restaurant?.id, qc]);
 
   const toggleOpen = async () => {
     if (!restaurant) return;
     const { error } = await supabase.from("restaurants").update({ is_open: !restaurant.is_open }).eq("id", restaurant.id);
     if (error) return toast.error(error.message);
-    setRestaurant({ ...restaurant, is_open: !restaurant.is_open });
+    qc.setQueryData(["managerRestaurant", user?.id], { ...restaurant, is_open: !restaurant.is_open });
   };
 
-  if (loading) return <div className="min-h-screen grid place-items-center text-muted-foreground">Carregando...</div>;
+  if (loadingRest) {
+    return (
+      <div className="min-h-screen bg-muted/30">
+        <header className="bg-background border-b sticky top-0 z-30">
+          <div className="container h-16 flex items-center justify-between gap-4">
+            <Skeleton className="h-8 w-40" />
+            <Skeleton className="h-8 w-32" />
+          </div>
+        </header>
+        <main className="container py-6 space-y-4">
+          <Skeleton className="h-10 w-80" />
+          <div className="grid gap-4 md:grid-cols-3">
+            <Skeleton className="h-24" /><Skeleton className="h-24" /><Skeleton className="h-24" />
+          </div>
+          <Skeleton className="h-64" />
+        </main>
+      </div>
+    );
+  }
 
   if (!restaurant) {
     return (
@@ -121,24 +159,27 @@ export default function ManagerDashboard() {
             <TabsTrigger value="settings">Configurações</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-4">
+          <TabsContent value="overview" forceMount className="space-y-4 data-[state=inactive]:hidden">
             <div className="grid gap-4 md:grid-cols-3">
-              <StatCard icon={ShoppingBag} label="Pedidos hoje" value={stats.orders.toString()} />
-              <StatCard icon={DollarSign} label="Faturamento hoje" value={brl(stats.revenue)} />
-              <StatCard icon={TrendingUp} label="Ticket médio" value={brl(stats.avg)} />
+              <StatCard icon={ShoppingBag} label="Pedidos hoje" value={(stats?.orders ?? 0).toString()} />
+              <StatCard icon={DollarSign} label="Faturamento hoje" value={brl(stats?.revenue ?? 0)} />
+              <StatCard icon={TrendingUp} label="Ticket médio" value={brl(stats?.avg ?? 0)} />
             </div>
           </TabsContent>
 
-          <TabsContent value="orders">
+          <TabsContent value="orders" forceMount className="data-[state=inactive]:hidden">
             <OrdersPanel restaurantId={restaurant.id} />
           </TabsContent>
 
-          <TabsContent value="menu">
+          <TabsContent value="menu" forceMount className="data-[state=inactive]:hidden">
             <MenuManager restaurantId={restaurant.id} />
           </TabsContent>
 
-          <TabsContent value="settings">
-            <StoreSettings restaurant={restaurant} onUpdated={loadRestaurant} />
+          <TabsContent value="settings" forceMount className="data-[state=inactive]:hidden">
+            <StoreSettings
+              restaurant={restaurant}
+              onUpdated={() => qc.invalidateQueries({ queryKey: ["managerRestaurant", user?.id] })}
+            />
           </TabsContent>
         </Tabs>
       </main>
