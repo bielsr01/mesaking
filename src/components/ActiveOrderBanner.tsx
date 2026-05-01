@@ -76,7 +76,7 @@ export function ActiveOrderBanner({ restaurantId }: { restaurantId: string }) {
   };
 
   return (
-    <div className="sticky top-0 z-40 px-3 pt-3">
+    <div className="px-3 pt-3">
       <Card className="border-primary/40 shadow-elegant bg-card">
         <div className="p-3 flex items-center gap-3">
           <div className={`w-10 h-10 rounded-full grid place-items-center shrink-0 ${order.status === "cancelled" ? "bg-destructive text-destructive-foreground" : "bg-primary text-primary-foreground"}`}>
