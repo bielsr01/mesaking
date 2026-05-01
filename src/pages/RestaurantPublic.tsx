@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -134,6 +134,60 @@ export default function RestaurantPublic() {
 
   const itemCount = cart.items.reduce((s, i) => s + i.quantity, 0);
 
+  // Scroll-spy + nav refs
+  const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
+  const navRef = useRef<HTMLDivElement | null>(null);
+  const navItemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const [activeCat, setActiveCat] = useState<string>("");
+  const isScrollingRef = useRef(false);
+
+  useEffect(() => {
+    if (grouped.length && !activeCat) {
+      setActiveCat(grouped[0].cat?.id ?? "_orphans");
+    }
+  }, [grouped, activeCat]);
+
+  useEffect(() => {
+    const onScroll = () => {
+      if (isScrollingRef.current) return;
+      const offset = 140; // header + sticky nav
+      let current = "";
+      for (const g of grouped) {
+        const key = g.cat?.id ?? "_orphans";
+        const el = sectionRefs.current[key];
+        if (!el) continue;
+        const top = el.getBoundingClientRect().top;
+        if (top - offset <= 0) current = key;
+      }
+      if (current && current !== activeCat) setActiveCat(current);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [grouped, activeCat]);
+
+  // Auto-scroll a categoria ativa para dentro da área visível do nav horizontal
+  useEffect(() => {
+    const btn = navItemRefs.current[activeCat];
+    const nav = navRef.current;
+    if (!btn || !nav) return;
+    const btnRect = btn.getBoundingClientRect();
+    const navRect = nav.getBoundingClientRect();
+    if (btnRect.left < navRect.left || btnRect.right > navRect.right) {
+      nav.scrollTo({ left: btn.offsetLeft - 16, behavior: "smooth" });
+    }
+  }, [activeCat]);
+
+  const goToCategory = (key: string) => {
+    const el = sectionRefs.current[key];
+    if (!el) return;
+    isScrollingRef.current = true;
+    setActiveCat(key);
+    const y = el.getBoundingClientRect().top + window.scrollY - 120;
+    window.scrollTo({ top: y, behavior: "smooth" });
+    setTimeout(() => { isScrollingRef.current = false; }, 700);
+  };
+
+
   const extrasTotal = useMemo(() => {
     let sum = 0;
     productGroups.forEach((g) => {
@@ -235,29 +289,63 @@ export default function RestaurantPublic() {
         </div>
       </header>
 
+      {/* Sticky horizontal category nav */}
+      {grouped.length > 0 && (
+        <nav className="sticky top-0 z-30 bg-background/95 backdrop-blur border-b shadow-sm">
+          <div
+            ref={navRef}
+            className="container flex gap-2 overflow-x-auto py-2 scrollbar-none"
+            style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}
+          >
+            {grouped.map((g) => {
+              const key = g.cat?.id ?? "_orphans";
+              const label = g.cat?.name ?? "Outros";
+              const isActive = activeCat === key;
+              return (
+                <button
+                  key={key}
+                  ref={(el) => { navItemRefs.current[key] = el; }}
+                  onClick={() => goToCategory(key)}
+                  className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors border ${isActive ? "bg-primary text-primary-foreground border-primary" : "bg-muted text-foreground border-transparent hover:bg-muted/70"}`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+      )}
+
       <main className="container py-6 space-y-8">
         {grouped.length === 0 && <p className="text-center text-muted-foreground py-12">Cardápio sendo montado...</p>}
-        {grouped.map((g) => (
-          <section key={g.cat?.id ?? "_"}>
-            <h2 className="text-xl font-bold mb-3">{g.cat?.name ?? "Outros"}</h2>
-            <div className="grid gap-3 md:grid-cols-2">
-              {g.products.map((p) => (
-                <Card key={p.id} className="cursor-pointer hover:shadow-elegant transition-shadow" onClick={() => { setSelected(p); setQty(1); setNotes(""); }}>
-                  <CardContent className="p-3 flex gap-3">
-                    <div className="w-24 h-24 rounded-lg bg-muted overflow-hidden grid place-items-center shrink-0">
-                      {p.image_url ? <img src={p.image_url} alt={p.name} loading="lazy" decoding="async" className="w-full h-full object-cover" /> : <ImageIcon className="w-7 h-7 text-muted-foreground" />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold">{p.name}</div>
-                      {p.description && <div className="text-sm text-muted-foreground line-clamp-2">{p.description}</div>}
-                      <div className="font-bold text-primary mt-1">{brl(p.price)}</div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </section>
-        ))}
+        {grouped.map((g) => {
+          const key = g.cat?.id ?? "_orphans";
+          return (
+            <section
+              key={key}
+              ref={(el) => { sectionRefs.current[key] = el; }}
+              style={{ scrollMarginTop: 120 }}
+            >
+              <h2 className="text-xl font-bold mb-3">{g.cat?.name ?? "Outros"}</h2>
+              <div className="grid gap-3 md:grid-cols-2">
+                {g.products.map((p) => (
+                  <Card key={p.id} className="cursor-pointer hover:shadow-elegant transition-shadow" onClick={() => { setSelected(p); setQty(1); setNotes(""); }}>
+                    <CardContent className="p-3 flex gap-3">
+                      <div className="w-24 h-24 rounded-lg bg-muted overflow-hidden grid place-items-center shrink-0">
+                        {p.image_url ? <img src={p.image_url} alt={p.name} loading="lazy" decoding="async" className="w-full h-full object-cover" /> : <ImageIcon className="w-7 h-7 text-muted-foreground" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold">{p.name}</div>
+                        {p.description && <div className="text-sm text-muted-foreground line-clamp-2">{p.description}</div>}
+                        <div className="font-bold text-primary mt-1">{brl(p.price)}</div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </section>
+          );
+        })}
       </main>
 
       {/* Floating cart */}
