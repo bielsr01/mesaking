@@ -55,6 +55,28 @@ export default function RestaurantPublic() {
     return () => { cancelled = true; };
   }, [slug]);
 
+  // Realtime: react to open/close, menu and product changes instantly
+  useEffect(() => {
+    if (!restaurant?.id) return;
+    const rid = restaurant.id;
+    const reloadMenu = async () => {
+      const [catsRes, prodsRes] = await Promise.all([
+        supabase.from("categories").select("*").eq("restaurant_id", rid).eq("is_active", true).order("sort_order"),
+        supabase.from("products").select("*").eq("restaurant_id", rid).eq("is_active", true).order("created_at"),
+      ]);
+      setCategories(catsRes.data ?? []);
+      setProducts((prodsRes.data ?? []) as Product[]);
+    };
+    const ch = supabase.channel(`public-${rid}`)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "restaurants", filter: `id=eq.${rid}` }, (payload) => {
+        setRestaurant((prev) => (prev ? { ...prev, ...(payload.new as Restaurant) } : prev));
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "categories", filter: `restaurant_id=eq.${rid}` }, () => reloadMenu())
+      .on("postgres_changes", { event: "*", schema: "public", table: "products", filter: `restaurant_id=eq.${rid}` }, () => reloadMenu())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [restaurant?.id]);
+
   const grouped = useMemo(() => {
     const m: { cat: Category | null; products: Product[] }[] = [];
     categories.forEach((c) => m.push({ cat: c, products: products.filter((p) => p.category_id === c.id) }));
