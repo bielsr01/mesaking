@@ -40,6 +40,7 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
   const cart = useCart();
   const [busy, setBusy] = useState(false);
   const [cep, setCep] = useState("");
+  const [phone, setPhone] = useState("");
   const [addr, setAddr] = useState({ street: "", number: "", neighborhood: "", city: "", state: "" });
   const [payment, setPayment] = useState<"cash" | "pix" | "card_on_delivery">("cash");
 
