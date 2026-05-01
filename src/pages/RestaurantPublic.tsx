@@ -271,9 +271,18 @@ export default function RestaurantPublic() {
 
   return (
     <div className="min-h-screen pb-24">
-      {/* Header fixo (compacta ao rolar) */}
+      {/* Header fixo (compacta ao rolar) — usa foto de capa como fundo se houver */}
       <header
-        className={`fixed top-0 left-0 right-0 z-40 bg-gradient-warm text-primary-foreground shadow-md transition-all duration-300 ${scrolled ? "py-2" : "py-6"}`}
+        className={`fixed top-0 left-0 right-0 z-40 text-primary-foreground shadow-md transition-all duration-300 ${scrolled ? "py-2" : "py-6"} ${restaurant.cover_url ? "" : "bg-gradient-warm"}`}
+        style={
+          restaurant.cover_url
+            ? {
+                backgroundImage: `linear-gradient(to bottom, hsl(var(--primary) / 0.55), hsl(var(--primary) / 0.75)), url(${restaurant.cover_url})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }
+            : undefined
+        }
       >
         <div className="container flex items-center gap-3">
           {restaurant.logo_url ? (
