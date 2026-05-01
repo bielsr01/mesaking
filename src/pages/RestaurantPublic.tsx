@@ -28,17 +28,18 @@ export default function RestaurantPublic() {
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [groupsByProduct, setGroupsByProduct] = useState<Record<string, OptionGroup[]>>({});
   const [selected, setSelected] = useState<Product | null>(null);
   const [qty, setQty] = useState(1);
   const [notes, setNotes] = useState("");
-  const [productGroups, setProductGroups] = useState<OptionGroup[]>([]);
-  const [loadingGroups, setLoadingGroups] = useState(false);
   const [selectedOpts, setSelectedOpts] = useState<Record<string, string[]>>({}); // groupId -> itemIds
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const cart = useCart();
 
   const [loading, setLoading] = useState(true);
+
+  const productGroups = selected ? (groupsByProduct[selected.id] ?? []) : [];
 
   useEffect(() => {
     let cancelled = false;
