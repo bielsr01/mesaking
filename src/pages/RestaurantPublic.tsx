@@ -151,9 +151,6 @@ export default function RestaurantPublic() {
     let ticking = false;
     const update = () => {
       ticking = false;
-      const y = window.scrollY;
-      // Hysteresis para evitar flicker perto do limite
-      setScrolled((prev) => (prev ? y > 60 : y > 100));
       if (isScrollingRef.current) return;
       const offset = 160; // header reduzido + nav
       let current = "";
