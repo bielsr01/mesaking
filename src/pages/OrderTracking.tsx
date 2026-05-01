@@ -3,15 +3,23 @@ import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { brl, orderStatusLabel, paymentLabel } from "@/lib/format";
-import { Check, ChefHat, Clock, MapPin, Truck, Package, X } from "lucide-react";
+import { brl, orderStatusLabel, paymentLabel, orderTypeLabel } from "@/lib/format";
+import { Check, ChefHat, Clock, MapPin, Truck, Package, X, Bike, Store } from "lucide-react";
 
-const STEPS = [
+const STEPS_DELIVERY = [
   { key: "pending", label: "Recebido", icon: Clock },
   { key: "accepted", label: "Aceito", icon: Check },
   { key: "preparing", label: "Em preparo", icon: Package },
   { key: "out_for_delivery", label: "Saiu para entrega", icon: Truck },
   { key: "delivered", label: "Entregue", icon: ChefHat },
+];
+
+const STEPS_PICKUP = [
+  { key: "pending", label: "Recebido", icon: Clock },
+  { key: "accepted", label: "Aceito", icon: Check },
+  { key: "preparing", label: "Em preparo", icon: Package },
+  { key: "awaiting_pickup", label: "Pronto p/ retirada", icon: Store },
+  { key: "delivered", label: "Retirado", icon: ChefHat },
 ];
 
 export default function OrderTracking() {
@@ -26,7 +34,7 @@ export default function OrderTracking() {
     setOrder(o);
     const [{ data: its }, { data: r }] = await Promise.all([
       supabase.from("order_items").select("*").eq("order_id", o.id),
-      supabase.from("restaurants").select("name,slug,logo_url").eq("id", o.restaurant_id).maybeSingle(),
+      supabase.from("restaurants").select("name,slug,logo_url,address_street,address_number,address_complement,address_neighborhood,address_city,address_state,address_cep,phone").eq("id", o.restaurant_id).maybeSingle(),
     ]);
     setItems(its ?? []);
     setRestaurant(r);
@@ -53,7 +61,17 @@ export default function OrderTracking() {
   );
 
   const cancelled = order.status === "cancelled";
+  const isPickup = order.order_type === "pickup";
+  const STEPS = isPickup ? STEPS_PICKUP : STEPS_DELIVERY;
   const currentIdx = STEPS.findIndex((s) => s.key === order.status);
+
+  const storeAddress = restaurant ? [
+    restaurant.address_street && `${restaurant.address_street}${restaurant.address_number ? `, ${restaurant.address_number}` : ""}`,
+    restaurant.address_complement,
+    restaurant.address_neighborhood,
+    restaurant.address_city && restaurant.address_state ? `${restaurant.address_city}/${restaurant.address_state}` : restaurant.address_city,
+    restaurant.address_cep,
+  ].filter(Boolean).join(" • ") : "";
 
   return (
     <div className="min-h-screen bg-muted/30 pb-12">
@@ -65,6 +83,19 @@ export default function OrderTracking() {
       </header>
 
       <main className="container py-6 max-w-2xl space-y-4">
+        {/* Tipo do pedido — destaque no topo */}
+        <Card className={isPickup ? "border-accent/40" : "border-primary/40"}>
+          <CardContent className="py-3 flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-full grid place-items-center ${isPickup ? "bg-accent/20 text-accent-foreground" : "bg-primary/10 text-primary"}`}>
+              {isPickup ? <Store className="w-5 h-5" /> : <Bike className="w-5 h-5" />}
+            </div>
+            <div className="flex-1">
+              <div className="text-xs text-muted-foreground">Modalidade</div>
+              <div className="font-semibold">{orderTypeLabel[order.order_type] ?? "Delivery"}</div>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardContent className="pt-6">
             {cancelled ? (
@@ -111,13 +142,27 @@ export default function OrderTracking() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="pt-6 space-y-2">
-            <h3 className="font-semibold flex items-center gap-2"><MapPin className="w-4 h-4" />Endereço</h3>
-            <p className="text-sm">{order.address_street}, {order.address_number}{order.address_complement && ` - ${order.address_complement}`}</p>
-            <p className="text-sm text-muted-foreground">{order.address_neighborhood} • {order.address_city}/{order.address_state} • {order.address_cep}</p>
-          </CardContent>
-        </Card>
+        {isPickup ? (
+          <Card>
+            <CardContent className="pt-6 space-y-2">
+              <h3 className="font-semibold flex items-center gap-2"><Store className="w-4 h-4" />Endereço para retirada</h3>
+              {storeAddress ? (
+                <p className="text-sm">{storeAddress}</p>
+              ) : (
+                <p className="text-sm text-muted-foreground">Endereço da loja não informado.</p>
+              )}
+              {restaurant?.phone && <p className="text-xs text-muted-foreground">Contato: {restaurant.phone}</p>}
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardContent className="pt-6 space-y-2">
+              <h3 className="font-semibold flex items-center gap-2"><MapPin className="w-4 h-4" />Endereço de entrega</h3>
+              <p className="text-sm">{order.address_street}, {order.address_number}{order.address_complement && ` - ${order.address_complement}`}</p>
+              <p className="text-sm text-muted-foreground">{order.address_neighborhood} • {order.address_city}/{order.address_state} • {order.address_cep}</p>
+            </CardContent>
+          </Card>
+        )}
       </main>
     </div>
   );
