@@ -199,6 +199,54 @@ export function OrderConfigSettings({ restaurantId }: Props) {
           </div>
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-lg bg-accent text-accent-foreground grid place-items-center">
+                <Bike className="w-5 h-5" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">Delivery</CardTitle>
+                <CardDescription>Quando ativo, os clientes podem solicitar entrega no endereço.</CardDescription>
+              </div>
+            </div>
+            <Switch checked={serviceDelivery} onCheckedChange={handleDeliveryToggle} disabled={saving} aria-label="Ativar delivery" />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            {serviceDelivery
+              ? "Delivery está ativado e disponível no cardápio do cliente."
+              : "Delivery está desativado. A opção não aparecerá no cardápio do cliente."}
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-lg bg-accent text-accent-foreground grid place-items-center">
+                <Store className="w-5 h-5" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">Retirada</CardTitle>
+                <CardDescription>Quando ativo, os clientes podem optar por retirar na loja.</CardDescription>
+              </div>
+            </div>
+            <Switch checked={servicePickup} onCheckedChange={handlePickupToggle} disabled={saving} aria-label="Ativar retirada" />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            {servicePickup
+              ? "Retirada está ativada e disponível no cardápio do cliente."
+              : "Retirada está desativada. A opção não aparecerá no cardápio do cliente."}
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }
