@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Trash2, Plus, MapPin, Loader2, Crop } from "lucide-react";
 import { toast } from "sonner";
 import { DAY_LABELS, defaultHours, OpeningHours } from "@/lib/hours";
@@ -31,6 +32,8 @@ type Restaurant = {
   facebook_url?: string | null;
   service_delivery?: boolean | null;
   service_pickup?: boolean | null;
+  delivery_fee_mode?: "fixed" | "radius" | null;
+  delivery_fixed_fee?: number | null;
 };
 
 export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restaurant; onUpdated: () => void }) {
@@ -139,11 +142,16 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
     if (!full.latitude || !full.longitude) {
       return toast.error("Calcule as coordenadas do endereço (botão Localizar no mapa)");
     }
+    const feeMode = (full.delivery_fee_mode ?? "radius") as "fixed" | "radius";
     const cleanZones = zones
       .filter((z) => Number(z.radius_km) > 0 && Number(z.fee) >= 0 && Number(z.radius_km) <= 50)
       .map((z) => ({ radius_km: Number(z.radius_km), fee: Number(z.fee) }));
-    if (cleanZones.length === 0) {
+    if (feeMode === "radius" && cleanZones.length === 0) {
       return toast.error("Cadastre ao menos uma faixa de entrega");
+    }
+    const fixedFee = Number(full.delivery_fixed_fee ?? 0);
+    if (feeMode === "fixed" && (!isFinite(fixedFee) || fixedFee < 0)) {
+      return toast.error("Informe um valor fixo válido para a taxa de entrega");
     }
     if (!Object.values(hours).some((h: any) => h?.enabled)) {
       return toast.error("Habilite ao menos um dia no horário de funcionamento");
@@ -203,6 +211,8 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
       facebook_url: full.facebook_url || null,
       service_delivery: full.service_delivery ?? true,
       service_pickup: full.service_pickup ?? false,
+      delivery_fee_mode: feeMode,
+      delivery_fixed_fee: feeMode === "fixed" ? fixedFee : 0,
     };
     if (logo_url !== undefined) update.logo_url = logo_url;
     if (cover_url !== undefined) update.cover_url = cover_url;
@@ -382,9 +392,9 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
 
       <Card>
         <CardHeader>
-          <CardTitle>Taxas de entrega por raio</CardTitle>
+          <CardTitle>Configurar taxas de entrega</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-3 p-3 rounded-lg border bg-muted/30">
             <div className="space-y-1">
               <Label className="text-xs">Tempo mínimo de entrega (min) *</Label>
@@ -412,45 +422,97 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
             </div>
             <p className="text-xs text-muted-foreground col-span-2">Exibido para o cliente como "30-50 min" abaixo do cabeçalho.</p>
           </div>
-          <p className="text-sm text-muted-foreground">
-            Cadastre faixas de raio (em km) e o valor da entrega. O sistema usa a menor faixa cujo raio comporta a distância do cliente.
-            Ex: <strong>5 km → R$ 7</strong> e <strong>10 km → R$ 12</strong> significa que pedidos até 5 km pagam R$ 7 e entre 5 e 10 km pagam R$ 12.
-            Pedidos acima do maior raio cadastrado ficam fora da área de entrega.
-          </p>
-          {zones.length === 0 && (
-            <div className="text-sm text-muted-foreground text-center py-4 border-2 border-dashed rounded-lg">
-              Nenhuma zona cadastrada — sem cobrança de entrega.
+
+          <div className="space-y-3">
+            <Label className="text-sm font-semibold">Como cobrar a taxa de entrega</Label>
+            <RadioGroup
+              value={(full.delivery_fee_mode ?? "radius") as string}
+              onValueChange={(v) => setFull({ ...full, delivery_fee_mode: v as "fixed" | "radius" })}
+              className="gap-3"
+            >
+              <Label
+                htmlFor="fee-fixed"
+                className="flex items-start gap-3 rounded-lg border p-4 cursor-pointer hover:bg-accent/40 transition-colors data-[state=checked]:border-primary"
+                data-state={(full.delivery_fee_mode ?? "radius") === "fixed" ? "checked" : "unchecked"}
+              >
+                <RadioGroupItem value="fixed" id="fee-fixed" className="mt-0.5" />
+                <div className="flex-1">
+                  <div className="font-medium">Valor fixo</div>
+                  <div className="text-sm text-muted-foreground">Cobra o mesmo valor de entrega para qualquer endereço dentro da sua área de atendimento.</div>
+                </div>
+              </Label>
+              <Label
+                htmlFor="fee-radius"
+                className="flex items-start gap-3 rounded-lg border p-4 cursor-pointer hover:bg-accent/40 transition-colors data-[state=checked]:border-primary"
+                data-state={(full.delivery_fee_mode ?? "radius") === "radius" ? "checked" : "unchecked"}
+              >
+                <RadioGroupItem value="radius" id="fee-radius" className="mt-0.5" />
+                <div className="flex-1">
+                  <div className="font-medium">Por raio de entrega</div>
+                  <div className="text-sm text-muted-foreground">Define faixas em km e o sistema calcula a taxa pela distância do cliente.</div>
+                </div>
+              </Label>
+            </RadioGroup>
+          </div>
+
+          {(full.delivery_fee_mode ?? "radius") === "fixed" ? (
+            <div className="space-y-2 p-3 rounded-lg border">
+              <Label className="text-xs">Valor fixo da taxa de entrega (R$) *</Label>
+              <Input
+                type="number"
+                min={0}
+                step={0.01}
+                value={full.delivery_fixed_fee ?? ""}
+                onChange={(e) => setFull({ ...full, delivery_fixed_fee: e.target.value === "" ? null : Number(e.target.value) })}
+                placeholder="Ex: 8.00"
+              />
+              <p className="text-xs text-muted-foreground">
+                O valor é exibido para o cliente já no início do checkout, sem precisar digitar o endereço.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Cadastre faixas de raio (em km) e o valor da entrega. O sistema usa a menor faixa cujo raio comporta a distância do cliente.
+                Ex: <strong>5 km → R$ 7</strong> e <strong>10 km → R$ 12</strong> significa que pedidos até 5 km pagam R$ 7 e entre 5 e 10 km pagam R$ 12.
+                Pedidos acima do maior raio cadastrado ficam fora da área de entrega.
+              </p>
+              {zones.length === 0 && (
+                <div className="text-sm text-muted-foreground text-center py-4 border-2 border-dashed rounded-lg">
+                  Nenhuma zona cadastrada — sem cobrança de entrega.
+                </div>
+              )}
+              {zones.map((z, i) => (
+                <div key={i} className="flex items-end gap-3 p-3 rounded-lg border">
+                  <div className="flex-1 space-y-1">
+                    <Label className="text-xs">Raio máximo (km)</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={50}
+                      step={0.1}
+                      value={z.radius_km === 0 ? "" : z.radius_km}
+                      onChange={(e) => updateZoneRadius(i, e.target.value)}
+                    />
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    <Label className="text-xs">Taxa de entrega (R$)</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      value={z.fee === 0 ? "" : z.fee}
+                      onChange={(e) => updateZoneFee(i, e.target.value)}
+                    />
+                  </div>
+                  <Button type="button" variant="ghost" size="icon" onClick={() => removeZone(i)}>
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+              <Button type="button" variant="outline" onClick={addZone}><Plus className="w-4 h-4 mr-1" /> Adicionar faixa</Button>
             </div>
           )}
-          {zones.map((z, i) => (
-            <div key={i} className="flex items-end gap-3 p-3 rounded-lg border">
-              <div className="flex-1 space-y-1">
-                <Label className="text-xs">Raio máximo (km)</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  max={50}
-                  step={0.1}
-                  value={z.radius_km === 0 ? "" : z.radius_km}
-                  onChange={(e) => updateZoneRadius(i, e.target.value)}
-                />
-              </div>
-              <div className="flex-1 space-y-1">
-                <Label className="text-xs">Taxa de entrega (R$)</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  step={0.01}
-                  value={z.fee === 0 ? "" : z.fee}
-                  onChange={(e) => updateZoneFee(i, e.target.value)}
-                />
-              </div>
-              <Button type="button" variant="ghost" size="icon" onClick={() => removeZone(i)}>
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            </div>
-          ))}
-          <Button type="button" variant="outline" onClick={addZone}><Plus className="w-4 h-4 mr-1" /> Adicionar faixa</Button>
         </CardContent>
       </Card>
 

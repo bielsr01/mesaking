@@ -417,6 +417,8 @@ export type Database = {
           address_street: string | null
           cover_url: string | null
           created_at: string
+          delivery_fee_mode: string
+          delivery_fixed_fee: number
           delivery_time_max: number | null
           delivery_time_min: number | null
           delivery_zones: Json
@@ -451,6 +453,8 @@ export type Database = {
           address_street?: string | null
           cover_url?: string | null
           created_at?: string
+          delivery_fee_mode?: string
+          delivery_fixed_fee?: number
           delivery_time_max?: number | null
           delivery_time_min?: number | null
           delivery_zones?: Json
@@ -485,6 +489,8 @@ export type Database = {
           address_street?: string | null
           cover_url?: string | null
           created_at?: string
+          delivery_fee_mode?: string
+          delivery_fixed_fee?: number
           delivery_time_max?: number | null
           delivery_time_min?: number | null
           delivery_zones?: Json

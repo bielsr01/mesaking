@@ -40,6 +40,8 @@ type RestaurantInfo = {
   latitude?: number | null;
   longitude?: number | null;
   delivery_zones?: DeliveryZone[] | null;
+  delivery_fee_mode?: "fixed" | "radius" | null;
+  delivery_fixed_fee?: number | null;
   address_cep?: string | null;
   address_street?: string | null;
   address_number?: string | null;
@@ -76,6 +78,8 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
   const [calculating, setCalculating] = useState(false);
 
   const zones = (restaurant.delivery_zones ?? []) as DeliveryZone[];
+  const feeMode = (restaurant.delivery_fee_mode ?? "radius") as "fixed" | "radius";
+  const fixedFee = Number(restaurant.delivery_fixed_fee ?? 0);
   const hasZones = zones.length > 0;
   const restaurantHasCoords = !!(restaurant.latitude && restaurant.longitude);
   const deliveryEnabled = restaurant.service_delivery !== false;
@@ -109,6 +113,13 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
     setDelivery(null);
     setDeliveryError(null);
     if (isPickup) return;
+
+    // Modo valor fixo: já mostra o valor sem precisar do endereço
+    if (feeMode === "fixed") {
+      setDelivery({ fee: fixedFee, km: 0, pt: { lat: 0, lng: 0 } });
+      return;
+    }
+
     if (!hasZones || !restaurantHasCoords) return;
     const cleanCep = cep.replace(/\D/g, "");
     if (cleanCep.length !== 8 || !addr.street || !addr.number || !addr.city || !addr.state) return;
@@ -136,7 +147,7 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
       setDelivery({ fee: found.fee, km, pt });
     }, 500);
     return () => { cancelled = true; clearTimeout(t); setCalculating(false); };
-  }, [cep, addr.street, addr.number, addr.neighborhood, addr.city, addr.state, hasZones, restaurantHasCoords, restaurant.latitude, restaurant.longitude, zones, isPickup]);
+  }, [cep, addr.street, addr.number, addr.neighborhood, addr.city, addr.state, hasZones, restaurantHasCoords, restaurant.latitude, restaurant.longitude, zones, isPickup, feeMode, fixedFee]);
 
   const lookupCep = async (raw: string) => {
     const clean = raw.replace(/\D/g, "");
@@ -226,9 +237,9 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
       payload.address_city = addr.city;
       payload.address_state = addr.state;
       payload.address_notes = addr.notes || null;
-      payload.delivery_distance_km = delivery?.km ?? null;
-      payload.delivery_latitude = delivery?.pt.lat ?? null;
-      payload.delivery_longitude = delivery?.pt.lng ?? null;
+      payload.delivery_distance_km = feeMode === "fixed" ? null : (delivery?.km ?? null);
+      payload.delivery_latitude = feeMode === "fixed" ? null : (delivery?.pt.lat ?? null);
+      payload.delivery_longitude = feeMode === "fixed" ? null : (delivery?.pt.lng ?? null);
     }
 
     // Remove customer_cpf se a coluna não existir (failsafe)
@@ -351,7 +362,15 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
               </div>
               <div className="space-y-2"><Label>Observação do endereço</Label><Textarea value={addr.notes} onChange={(e) => setAddr({ ...addr, notes: e.target.value })} rows={2} placeholder="Ponto de referência, instruções..." /></div>
 
-              {hasZones && restaurantHasCoords && (
+              {feeMode === "fixed" && (
+                <div className="text-sm rounded-lg p-3 flex items-start gap-2 bg-success/10 text-success-foreground border border-success/30">
+                  <MapPin className="w-4 h-4 mt-0.5" />
+                  <div className="flex-1">
+                    Taxa de entrega: <strong>{brl(fixedFee)}</strong> (valor fixo)
+                  </div>
+                </div>
+              )}
+              {feeMode !== "fixed" && hasZones && restaurantHasCoords && (
                 <div className={`text-sm rounded-lg p-3 flex items-start gap-2 ${deliveryError ? "bg-destructive/10 text-destructive" : delivery ? "bg-success/10 text-success-foreground border border-success/30" : "bg-muted"}`}>
                   {calculating ? <Loader2 className="w-4 h-4 animate-spin mt-0.5" /> : <MapPin className="w-4 h-4 mt-0.5" />}
                   <div className="flex-1">
@@ -362,7 +381,7 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
                   </div>
                 </div>
               )}
-              {!hasZones && (
+              {feeMode !== "fixed" && !hasZones && (
                 <p className="text-xs text-muted-foreground">Sem taxa de entrega configurada pela loja.</p>
               )}
             </div>
