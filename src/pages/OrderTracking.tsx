@@ -79,6 +79,9 @@ export default function OrderTracking() {
         <div className="container">
           <Link to={restaurant ? `/r/${restaurant.slug}` : "/"} className="text-sm opacity-90 hover:opacity-100">← {restaurant?.name ?? "Voltar"}</Link>
           <h1 className="text-2xl font-bold mt-2">Acompanhe seu pedido</h1>
+          {order.order_number && (
+            <div className="mt-1 text-sm opacity-90">Pedido <span className="font-mono font-bold">#{order.order_number}</span></div>
+          )}
         </div>
       </header>
 

@@ -190,6 +190,7 @@ export type Database = {
           delivery_latitude: number | null
           delivery_longitude: number | null
           id: string
+          order_number: number
           order_type: Database["public"]["Enums"]["order_type"]
           payment_method: Database["public"]["Enums"]["payment_method"]
           public_token: string
@@ -217,6 +218,7 @@ export type Database = {
           delivery_latitude?: number | null
           delivery_longitude?: number | null
           id?: string
+          order_number: number
           order_type?: Database["public"]["Enums"]["order_type"]
           payment_method: Database["public"]["Enums"]["payment_method"]
           public_token?: string
@@ -244,6 +246,7 @@ export type Database = {
           delivery_latitude?: number | null
           delivery_longitude?: number | null
           id?: string
+          order_number?: number
           order_type?: Database["public"]["Enums"]["order_type"]
           payment_method?: Database["public"]["Enums"]["payment_method"]
           public_token?: string

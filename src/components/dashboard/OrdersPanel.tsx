@@ -16,6 +16,7 @@ import { Bike, Clock, MapPin, Phone, Store, User, X } from "lucide-react";
 
 interface Order {
   id: string;
+  order_number: number;
   customer_name: string;
   customer_phone: string;
   address_street: string;
@@ -212,7 +213,10 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
 
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <div className="font-semibold flex items-center gap-2"><User className="w-4 h-4" />{o.customer_name}</div>
+                    <div className="font-semibold flex items-center gap-2 flex-wrap">
+                      <User className="w-4 h-4" />{o.customer_name}
+                      <Badge variant="outline" className="font-mono text-xs">#{o.order_number}</Badge>
+                    </div>
                     <div className="text-xs text-muted-foreground flex items-center gap-2 mt-1 flex-wrap">
                       <Clock className="w-3 h-3" />
                       {new Date(o.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" })}
