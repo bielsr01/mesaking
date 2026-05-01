@@ -421,7 +421,9 @@ export type Database = {
           delivery_time_min: number | null
           delivery_zones: Json
           description: string | null
+          facebook_url: string | null
           id: string
+          instagram_url: string | null
           is_open: boolean
           latitude: number | null
           logo_url: string | null
@@ -431,8 +433,11 @@ export type Database = {
           opening_hours: Json
           owner_id: string | null
           phone: string | null
+          service_delivery: boolean
+          service_pickup: boolean
           slug: string
           updated_at: string
+          whatsapp_url: string | null
         }
         Insert: {
           address_cep?: string | null
@@ -448,7 +453,9 @@ export type Database = {
           delivery_time_min?: number | null
           delivery_zones?: Json
           description?: string | null
+          facebook_url?: string | null
           id?: string
+          instagram_url?: string | null
           is_open?: boolean
           latitude?: number | null
           logo_url?: string | null
@@ -458,8 +465,11 @@ export type Database = {
           opening_hours?: Json
           owner_id?: string | null
           phone?: string | null
+          service_delivery?: boolean
+          service_pickup?: boolean
           slug: string
           updated_at?: string
+          whatsapp_url?: string | null
         }
         Update: {
           address_cep?: string | null
@@ -475,7 +485,9 @@ export type Database = {
           delivery_time_min?: number | null
           delivery_zones?: Json
           description?: string | null
+          facebook_url?: string | null
           id?: string
+          instagram_url?: string | null
           is_open?: boolean
           latitude?: number | null
           logo_url?: string | null
@@ -485,8 +497,11 @@ export type Database = {
           opening_hours?: Json
           owner_id?: string | null
           phone?: string | null
+          service_delivery?: boolean
+          service_pickup?: boolean
           slug?: string
           updated_at?: string
+          whatsapp_url?: string | null
         }
         Relationships: []
       }
