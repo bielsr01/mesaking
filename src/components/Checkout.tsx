@@ -113,6 +113,13 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
     setDelivery(null);
     setDeliveryError(null);
     if (isPickup) return;
+
+    // Modo valor fixo: já mostra o valor sem precisar do endereço
+    if (feeMode === "fixed") {
+      setDelivery({ fee: fixedFee, km: 0, pt: { lat: 0, lng: 0 } });
+      return;
+    }
+
     if (!hasZones || !restaurantHasCoords) return;
     const cleanCep = cep.replace(/\D/g, "");
     if (cleanCep.length !== 8 || !addr.street || !addr.number || !addr.city || !addr.state) return;
@@ -140,7 +147,7 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
       setDelivery({ fee: found.fee, km, pt });
     }, 500);
     return () => { cancelled = true; clearTimeout(t); setCalculating(false); };
-  }, [cep, addr.street, addr.number, addr.neighborhood, addr.city, addr.state, hasZones, restaurantHasCoords, restaurant.latitude, restaurant.longitude, zones, isPickup]);
+  }, [cep, addr.street, addr.number, addr.neighborhood, addr.city, addr.state, hasZones, restaurantHasCoords, restaurant.latitude, restaurant.longitude, zones, isPickup, feeMode, fixedFee]);
 
   const lookupCep = async (raw: string) => {
     const clean = raw.replace(/\D/g, "");
