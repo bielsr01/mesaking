@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { brl } from "@/lib/format";
+import { brl, formatPhone, unmaskPhone } from "@/lib/format";
 import { toast } from "sonner";
 import { DeliveryZone, GeoPoint, findDeliveryFee, geocodeAddress, haversineKm } from "@/lib/delivery";
 import { Loader2, MapPin } from "lucide-react";
