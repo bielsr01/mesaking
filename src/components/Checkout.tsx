@@ -135,14 +135,19 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
 
     if (error || !order) { setBusy(false); return toast.error(error?.message || "Erro"); }
 
-    const items = cart.items.map((i) => ({
-      order_id: order.id,
-      product_id: i.productId,
-      product_name: i.name,
-      unit_price: i.price,
-      quantity: i.quantity,
-      notes: i.notes || null,
-    }));
+    const items = cart.items.map((i) => {
+      const optsLines = (i.options ?? []).map((o) => `+ ${o.itemName}${o.extraPrice > 0 ? ` (${brl(o.extraPrice)})` : ""}`);
+      const fullNotes = [optsLines.join("\n"), i.notes].filter(Boolean).join("\n").trim() || null;
+      const unit = i.price + (i.options?.reduce((s, o) => s + (Number(o.extraPrice) || 0), 0) ?? 0);
+      return {
+        order_id: order.id,
+        product_id: i.productId,
+        product_name: i.name,
+        unit_price: unit,
+        quantity: i.quantity,
+        notes: fullNotes,
+      };
+    });
     const { error: ie } = await supabase.from("order_items").insert(items);
     if (ie) { setBusy(false); return toast.error(ie.message); }
 
