@@ -16,7 +16,7 @@ import { Loader2, MapPin } from "lucide-react";
 
 const schema = z.object({
   customer_name: z.string().trim().min(2, "Informe seu nome").max(80),
-  customer_phone: z.string().trim().min(8, "Telefone inválido").max(20),
+  customer_phone: z.string().trim().refine((v) => unmaskPhone(v).length >= 10, "Telefone inválido").transform((v) => formatPhone(v)),
   address_cep: z.string().trim().regex(/^\d{5}-?\d{3}$/, "CEP inválido"),
   address_street: z.string().trim().min(2).max(120),
   address_number: z.string().trim().min(1).max(10),
