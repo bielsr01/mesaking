@@ -152,7 +152,7 @@ export default function RestaurantPublic() {
     const update = () => {
       ticking = false;
       if (isScrollingRef.current) return;
-      const offset = 160; // header reduzido + nav
+      const offset = 80; // nav sticky no topo
       let current = "";
       for (const g of grouped) {
         const key = g.cat?.id ?? "_orphans";
