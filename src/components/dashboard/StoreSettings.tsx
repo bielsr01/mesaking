@@ -12,6 +12,7 @@ import { DAY_LABELS, defaultHours, OpeningHours } from "@/lib/hours";
 import { DeliveryZone, geocodeAddress } from "@/lib/delivery";
 import { brl, formatPhone } from "@/lib/format";
 import { CoverImageCropper } from "@/components/CoverImageCropper";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type Restaurant = {
   id: string; name: string; slug: string;
