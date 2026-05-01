@@ -74,9 +74,11 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
     toast.success("Coordenadas atualizadas");
   };
 
-  const addZone = () => setZones((z) => [...z, { radius_km: 5, fee: 5 }]);
-  const updateZone = (i: number, patch: Partial<DeliveryZone>) =>
-    setZones((z) => z.map((x, idx) => (idx === i ? { ...x, ...patch } : x)));
+  const addZone = () => setZones((z) => [...z, { radius_km: 0, fee: 0 }]);
+  const updateZoneRadius = (i: number, v: string) =>
+    setZones((z) => z.map((x, idx) => (idx === i ? { ...x, radius_km: v === "" ? 0 : Number(v) } : x)));
+  const updateZoneFee = (i: number, v: string) =>
+    setZones((z) => z.map((x, idx) => (idx === i ? { ...x, fee: v === "" ? 0 : Number(v) } : x)));
   const removeZone = (i: number) => setZones((z) => z.filter((_, idx) => idx !== i));
 
   const save = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -200,25 +202,34 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
               Nenhuma zona cadastrada — sem cobrança de entrega.
             </div>
           )}
-          {zones
-            .map((z, i) => ({ z, i }))
-            .sort((a, b) => a.z.radius_km - b.z.radius_km)
-            .map(({ z, i }) => (
-              <div key={i} className="flex items-end gap-3 p-3 rounded-lg border">
-                <div className="flex-1 space-y-1">
-                  <Label className="text-xs">Raio máximo (km)</Label>
-                  <Input type="number" min={0.1} max={50} step={0.1} value={z.radius_km}
-                    onChange={(e) => updateZone(i, { radius_km: Number(e.target.value) })} />
-                </div>
-                <div className="flex-1 space-y-1">
-                  <Label className="text-xs">Taxa de entrega (R$)</Label>
-                  <Input type="number" min={0} step={0.01} value={z.fee}
-                    onChange={(e) => updateZone(i, { fee: Number(e.target.value) })} />
-                </div>
-                <div className="text-xs text-muted-foreground pb-2 w-28">até {z.radius_km} km<br />{brl(Number(z.fee) || 0)}</div>
-                <Button type="button" variant="ghost" size="icon" onClick={() => removeZone(i)}><Trash2 className="w-4 h-4" /></Button>
+          {zones.map((z, i) => (
+            <div key={i} className="flex items-end gap-3 p-3 rounded-lg border">
+              <div className="flex-1 space-y-1">
+                <Label className="text-xs">Raio máximo (km)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={50}
+                  step={0.1}
+                  value={z.radius_km === 0 ? "" : z.radius_km}
+                  onChange={(e) => updateZoneRadius(i, e.target.value)}
+                />
               </div>
-            ))}
+              <div className="flex-1 space-y-1">
+                <Label className="text-xs">Taxa de entrega (R$)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  value={z.fee === 0 ? "" : z.fee}
+                  onChange={(e) => updateZoneFee(i, e.target.value)}
+                />
+              </div>
+              <Button type="button" variant="ghost" size="icon" onClick={() => removeZone(i)}>
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
+          ))}
           <Button type="button" variant="outline" onClick={addZone}><Plus className="w-4 h-4 mr-1" /> Adicionar faixa</Button>
         </CardContent>
       </Card>
