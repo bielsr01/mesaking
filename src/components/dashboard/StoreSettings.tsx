@@ -183,7 +183,7 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
               </div>
             );
           })}
-          <p className="text-xs text-muted-foreground pt-2">O status "Aberto/Fechado" no cardápio é definido automaticamente conforme estes horários.</p>
+          <p className="text-xs text-muted-foreground pt-2">O status "Aberto/Fechado" segue automaticamente estes horários, mas você pode abrir ou fechar manualmente a qualquer momento pelo botão no topo do painel.</p>
         </CardContent>
       </Card>
 
