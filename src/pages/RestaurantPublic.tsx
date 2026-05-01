@@ -289,29 +289,63 @@ export default function RestaurantPublic() {
         </div>
       </header>
 
+      {/* Sticky horizontal category nav */}
+      {grouped.length > 0 && (
+        <nav className="sticky top-0 z-30 bg-background/95 backdrop-blur border-b shadow-sm">
+          <div
+            ref={navRef}
+            className="container flex gap-2 overflow-x-auto py-2 scrollbar-none"
+            style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}
+          >
+            {grouped.map((g) => {
+              const key = g.cat?.id ?? "_orphans";
+              const label = g.cat?.name ?? "Outros";
+              const isActive = activeCat === key;
+              return (
+                <button
+                  key={key}
+                  ref={(el) => { navItemRefs.current[key] = el; }}
+                  onClick={() => goToCategory(key)}
+                  className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors border ${isActive ? "bg-primary text-primary-foreground border-primary" : "bg-muted text-foreground border-transparent hover:bg-muted/70"}`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+      )}
+
       <main className="container py-6 space-y-8">
         {grouped.length === 0 && <p className="text-center text-muted-foreground py-12">Cardápio sendo montado...</p>}
-        {grouped.map((g) => (
-          <section key={g.cat?.id ?? "_"}>
-            <h2 className="text-xl font-bold mb-3">{g.cat?.name ?? "Outros"}</h2>
-            <div className="grid gap-3 md:grid-cols-2">
-              {g.products.map((p) => (
-                <Card key={p.id} className="cursor-pointer hover:shadow-elegant transition-shadow" onClick={() => { setSelected(p); setQty(1); setNotes(""); }}>
-                  <CardContent className="p-3 flex gap-3">
-                    <div className="w-24 h-24 rounded-lg bg-muted overflow-hidden grid place-items-center shrink-0">
-                      {p.image_url ? <img src={p.image_url} alt={p.name} loading="lazy" decoding="async" className="w-full h-full object-cover" /> : <ImageIcon className="w-7 h-7 text-muted-foreground" />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold">{p.name}</div>
-                      {p.description && <div className="text-sm text-muted-foreground line-clamp-2">{p.description}</div>}
-                      <div className="font-bold text-primary mt-1">{brl(p.price)}</div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </section>
-        ))}
+        {grouped.map((g) => {
+          const key = g.cat?.id ?? "_orphans";
+          return (
+            <section
+              key={key}
+              ref={(el) => { sectionRefs.current[key] = el; }}
+              style={{ scrollMarginTop: 120 }}
+            >
+              <h2 className="text-xl font-bold mb-3">{g.cat?.name ?? "Outros"}</h2>
+              <div className="grid gap-3 md:grid-cols-2">
+                {g.products.map((p) => (
+                  <Card key={p.id} className="cursor-pointer hover:shadow-elegant transition-shadow" onClick={() => { setSelected(p); setQty(1); setNotes(""); }}>
+                    <CardContent className="p-3 flex gap-3">
+                      <div className="w-24 h-24 rounded-lg bg-muted overflow-hidden grid place-items-center shrink-0">
+                        {p.image_url ? <img src={p.image_url} alt={p.name} loading="lazy" decoding="async" className="w-full h-full object-cover" /> : <ImageIcon className="w-7 h-7 text-muted-foreground" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold">{p.name}</div>
+                        {p.description && <div className="text-sm text-muted-foreground line-clamp-2">{p.description}</div>}
+                        <div className="font-bold text-primary mt-1">{brl(p.price)}</div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </section>
+          );
+        })}
       </main>
 
       {/* Floating cart */}
