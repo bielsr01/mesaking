@@ -319,7 +319,6 @@ export default function RestaurantPublic() {
               {selected.image_url && <img src={selected.image_url} alt={selected.name} className="w-full h-48 object-cover rounded-lg" />}
               {selected.description && <p className="text-sm text-muted-foreground">{selected.description}</p>}
 
-              {loadingGroups && <p className="text-xs text-muted-foreground">Carregando opções...</p>}
 
               {productGroups.map((g) => {
                 const cur = selectedOpts[g.id] ?? [];
