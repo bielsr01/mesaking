@@ -28,6 +28,7 @@ interface Order {
   change_for: number | null;
   total: number;
   status: string;
+  order_type: "delivery" | "pickup";
   created_at: string;
 }
 
