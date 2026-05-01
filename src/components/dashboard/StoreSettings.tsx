@@ -193,6 +193,11 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
     const { error } = await supabase.from("restaurants").update(update).eq("id", restaurant.id);
     setBusy(false);
     if (error) return toast.error(error.message);
+    if (cover_url) {
+      setFull((p) => ({ ...p, cover_url }));
+      setCoverBlob(null);
+      if (coverPreview) { URL.revokeObjectURL(coverPreview); setCoverPreview(null); }
+    }
     toast.success("Configurações salvas");
     onUpdated();
   };
