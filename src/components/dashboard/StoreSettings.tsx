@@ -219,6 +219,23 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
     onUpdated();
   };
 
+  if (!loaded) {
+    return (
+      <div className="space-y-4 max-w-3xl animate-fade-in">
+        {[0, 1, 2].map((i) => (
+          <Card key={i}>
+            <CardHeader><Skeleton className="h-6 w-48" /></CardHeader>
+            <CardContent className="space-y-3">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-2/3" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <>
     <form onSubmit={save} className="space-y-4 max-w-3xl">
