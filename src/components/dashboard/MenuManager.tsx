@@ -130,13 +130,17 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
   };
 
   const toggleProd = async (p: Product) => {
-    await supabase.from("products").update({ is_active: !p.is_active }).eq("id", p.id);
-    reload();
+    qc.setQueryData<Product[]>(menuKeys.products(restaurantId), (prev) =>
+      (prev ?? []).map((x) => (x.id === p.id ? { ...x, is_active: !p.is_active } : x))
+    );
+    const { error } = await supabase.from("products").update({ is_active: !p.is_active }).eq("id", p.id);
+    if (error) { toast.error(error.message); reload(); }
   };
   const removeProd = async (p: Product) => {
     if (!confirm(`Remover "${p.name}"?`)) return;
-    await supabase.from("products").delete().eq("id", p.id);
-    reload();
+    qc.setQueryData<Product[]>(menuKeys.products(restaurantId), (prev) => (prev ?? []).filter((x) => x.id !== p.id));
+    const { error } = await supabase.from("products").delete().eq("id", p.id);
+    if (error) { toast.error(error.message); reload(); }
   };
 
   const isLoading = (loadingCats || loadingProds) && categories.length === 0 && products.length === 0;
