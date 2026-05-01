@@ -10,7 +10,7 @@ import { Trash2, Plus, MapPin, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { DAY_LABELS, defaultHours, OpeningHours } from "@/lib/hours";
 import { DeliveryZone, geocodeAddress } from "@/lib/delivery";
-import { brl } from "@/lib/format";
+import { brl, formatPhone } from "@/lib/format";
 
 type Restaurant = {
   id: string; name: string; slug: string;
