@@ -90,8 +90,8 @@ export function Checkout({ open, onOpenChange, restaurantId }: { open: boolean; 
     cart.clear();
     setBusy(false);
     onOpenChange(false);
-    toast.success("Pedido enviado!");
-    navigate(`/pedido/${order.public_token}`);
+    setActiveOrder(restaurantId, order.public_token);
+    toast.success("Pedido enviado! Acompanhe o status no topo da tela.");
   };
 
   return (
