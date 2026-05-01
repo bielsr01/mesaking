@@ -362,7 +362,15 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
               </div>
               <div className="space-y-2"><Label>Observação do endereço</Label><Textarea value={addr.notes} onChange={(e) => setAddr({ ...addr, notes: e.target.value })} rows={2} placeholder="Ponto de referência, instruções..." /></div>
 
-              {hasZones && restaurantHasCoords && (
+              {feeMode === "fixed" && (
+                <div className="text-sm rounded-lg p-3 flex items-start gap-2 bg-success/10 text-success-foreground border border-success/30">
+                  <MapPin className="w-4 h-4 mt-0.5" />
+                  <div className="flex-1">
+                    Taxa de entrega: <strong>{brl(fixedFee)}</strong> (valor fixo)
+                  </div>
+                </div>
+              )}
+              {feeMode !== "fixed" && hasZones && restaurantHasCoords && (
                 <div className={`text-sm rounded-lg p-3 flex items-start gap-2 ${deliveryError ? "bg-destructive/10 text-destructive" : delivery ? "bg-success/10 text-success-foreground border border-success/30" : "bg-muted"}`}>
                   {calculating ? <Loader2 className="w-4 h-4 animate-spin mt-0.5" /> : <MapPin className="w-4 h-4 mt-0.5" />}
                   <div className="flex-1">
@@ -373,7 +381,7 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
                   </div>
                 </div>
               )}
-              {!hasZones && (
+              {feeMode !== "fixed" && !hasZones && (
                 <p className="text-xs text-muted-foreground">Sem taxa de entrega configurada pela loja.</p>
               )}
             </div>
