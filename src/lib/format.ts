@@ -6,17 +6,40 @@ export const orderStatusLabel: Record<string, string> = {
   accepted: "Aceito",
   preparing: "Em preparo",
   out_for_delivery: "Saiu para entrega",
+  awaiting_pickup: "Aguardando retirada",
   delivered: "Entregue",
   cancelled: "Cancelado",
 };
 
-export const nextStatus: Record<string, string | null> = {
+/** Próximo status para pedidos de delivery */
+export const nextStatusDelivery: Record<string, string | null> = {
   pending: "preparing",
   accepted: "preparing",
   preparing: "out_for_delivery",
   out_for_delivery: "delivered",
   delivered: null,
   cancelled: null,
+};
+
+/** Próximo status para pedidos de retirada */
+export const nextStatusPickup: Record<string, string | null> = {
+  pending: "preparing",
+  accepted: "preparing",
+  preparing: "awaiting_pickup",
+  awaiting_pickup: "delivered",
+  delivered: null,
+  cancelled: null,
+};
+
+/** Compat: mantém a API antiga, default para delivery */
+export const nextStatus: Record<string, string | null> = nextStatusDelivery;
+
+export const getNextStatus = (status: string, orderType: "delivery" | "pickup" = "delivery") =>
+  (orderType === "pickup" ? nextStatusPickup : nextStatusDelivery)[status] ?? null;
+
+export const orderTypeLabel: Record<string, string> = {
+  delivery: "Delivery",
+  pickup: "Retirada na loja",
 };
 
 export const paymentLabel: Record<string, string> = {
