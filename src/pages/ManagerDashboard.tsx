@@ -14,6 +14,9 @@ import { MenuManager, fetchCategories, fetchProducts, menuKeys } from "@/compone
 import { StoreSettings } from "@/components/dashboard/StoreSettings";
 import { StoreOpenToggle } from "@/components/dashboard/StoreOpenToggle";
 import { AppSidebar, DashboardView } from "@/components/dashboard/AppSidebar";
+import { NotificationsBell } from "@/components/dashboard/NotificationsBell";
+import { LazyView } from "@/components/dashboard/LazyView";
+import { useNewOrderNotifications } from "@/hooks/useNewOrderNotifications";
 import { ManualOverride, OpeningHours } from "@/lib/hours";
 
 interface Restaurant {
