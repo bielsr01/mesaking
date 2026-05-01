@@ -317,7 +317,7 @@ export default function RestaurantPublic() {
           )}
           <div className="flex-1 min-w-0">
             <h1 className={`font-bold truncate transition-all duration-300 ${scrolled ? "text-base" : "text-3xl"}`}>{restaurant.name}</h1>
-            {!scrolled && restaurant.description && <p className="opacity-90 text-sm mt-1 truncate">{restaurant.description}</p>}
+            
             {!scrolled && (
               <div className="mt-2">
                 {isOpenNow(restaurant.opening_hours, restaurant.manual_override)
