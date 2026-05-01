@@ -158,9 +158,9 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
     }
 
     let cover_url: string | null | undefined;
-    if (coverFile && coverFile.size > 0) {
-      const path = `${restaurant.id}/cover-${Date.now()}-${coverFile.name.replace(/\s+/g, "_")}`;
-      const { error: upErr } = await supabase.storage.from("menu-images").upload(path, coverFile, { upsert: true });
+    if (coverBlob) {
+      const path = `${restaurant.id}/cover-${Date.now()}.jpg`;
+      const { error: upErr } = await supabase.storage.from("menu-images").upload(path, coverBlob, { upsert: true, contentType: "image/jpeg" });
       if (upErr) { setBusy(false); return toast.error(upErr.message); }
       cover_url = supabase.storage.from("menu-images").getPublicUrl(path).data.publicUrl;
     }
