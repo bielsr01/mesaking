@@ -138,13 +138,16 @@ export default function ManagerDashboard() {
             <span className="hidden sm:inline">MesaPro</span>
           </Link>
           <div className="flex items-center gap-3">
-            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted">
-              <span className="text-sm font-medium">{restaurant.name}</span>
-              <Badge className={restaurant.is_open ? "bg-success text-success-foreground" : ""} variant={restaurant.is_open ? "default" : "secondary"}>
-                {restaurant.is_open ? "Aberto" : "Fechado"}
-              </Badge>
-              <Switch checked={restaurant.is_open} onCheckedChange={toggleOpen} />
-            </div>
+            <span className="hidden md:inline text-sm font-medium">{restaurant.name}</span>
+            <StoreOpenToggle
+              restaurantId={restaurant.id}
+              openingHours={restaurant.opening_hours}
+              manualOverride={restaurant.manual_override}
+              onChanged={refetchRestaurant}
+            />
+            <Button asChild variant="outline" size="sm"><Link to={`/r/${restaurant.slug}`} target="_blank"><ExternalLink className="w-4 h-4 mr-1" />Ver cardápio</Link></Button>
+            <Button variant="ghost" size="sm" onClick={signOut}><LogOut className="w-4 h-4" /></Button>
+          </div>
             <Button asChild variant="outline" size="sm"><Link to={`/r/${restaurant.slug}`} target="_blank"><ExternalLink className="w-4 h-4 mr-1" />Ver cardápio</Link></Button>
             <Button variant="ghost" size="sm" onClick={signOut}><LogOut className="w-4 h-4" /></Button>
           </div>
