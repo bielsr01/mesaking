@@ -409,5 +409,6 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
         toast.success("Enquadramento aplicado — clique em Salvar tudo.");
       }}
     />
+    </>
   );
 }
