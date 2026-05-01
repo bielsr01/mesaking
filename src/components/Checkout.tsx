@@ -60,7 +60,6 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
   // Etapa 1 — cliente
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [cpf, setCpf] = useState("");
 
   // Etapa 2 — endereço
   const [cep, setCep] = useState("");
@@ -151,7 +150,6 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
   const validateStep1 = () => {
     if (name.trim().length < 2) { toast.error("Informe seu nome"); return false; }
     if (unmaskPhone(phone).length < 10) { toast.error("Telefone inválido"); return false; }
-    if (!isValidCPF(cpf)) { toast.error("CPF inválido"); return false; }
     return true;
   };
   const validateStep2 = () => {
@@ -188,7 +186,6 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
       order_type: orderType,
       customer_name: name.trim(),
       customer_phone: formatPhone(phone),
-      customer_cpf: onlyDigits(cpf),
       payment_method: payment,
       change_for: payment === "cash" && changeFor ? Number(changeFor) : null,
       subtotal,
@@ -305,7 +302,7 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
             <div className="space-y-3">
               <div className="space-y-2"><Label>Nome completo</Label><Input value={name} onChange={(e) => setName(e.target.value)} required /></div>
               <div className="space-y-2"><Label>Telefone</Label><Input value={phone} onChange={(e) => setPhone(formatPhone(e.target.value))} placeholder="(11) 99999-0000" inputMode="tel" required /></div>
-              <div className="space-y-2"><Label>CPF</Label><Input value={cpf} onChange={(e) => setCpf(formatCPF(e.target.value))} placeholder="000.000.000-00" inputMode="numeric" required /></div>
+              
             </div>
           )}
 
