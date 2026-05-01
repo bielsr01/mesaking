@@ -63,6 +63,8 @@ export default function RestaurantPublic() {
 
   return (
     <div className="min-h-screen pb-24">
+      <ActiveOrderBanner restaurantId={restaurant.id} />
+
       <header className="bg-gradient-warm text-primary-foreground">
         <div className="container py-8 flex items-center gap-4">
           {restaurant.logo_url ? (
