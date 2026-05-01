@@ -58,14 +58,19 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
   };
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       const { data } = await supabase.from("restaurants").select("*").eq("id", restaurant.id).maybeSingle();
-      if (!data) return;
-      setFull(data as unknown as Restaurant);
-      const oh = data.opening_hours as unknown as OpeningHours | null;
-      setHours(oh && Object.keys(oh).length ? oh : defaultHours());
-      setZones(((data.delivery_zones as unknown) ?? []) as DeliveryZone[]);
+      if (cancelled) return;
+      if (data) {
+        setFull(data as unknown as Restaurant);
+        const oh = data.opening_hours as unknown as OpeningHours | null;
+        setHours(oh && Object.keys(oh).length ? oh : defaultHours());
+        setZones(((data.delivery_zones as unknown) ?? []) as DeliveryZone[]);
+      }
+      setLoaded(true);
     })();
+    return () => { cancelled = true; };
   }, [restaurant.id]);
 
   const lookupCep = async (raw: string) => {
