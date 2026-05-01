@@ -28,17 +28,53 @@ export default function RestaurantPublic() {
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [groupsByProduct, setGroupsByProduct] = useState<Record<string, OptionGroup[]>>({});
   const [selected, setSelected] = useState<Product | null>(null);
   const [qty, setQty] = useState(1);
   const [notes, setNotes] = useState("");
-  const [productGroups, setProductGroups] = useState<OptionGroup[]>([]);
-  const [loadingGroups, setLoadingGroups] = useState(false);
   const [selectedOpts, setSelectedOpts] = useState<Record<string, string[]>>({}); // groupId -> itemIds
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const cart = useCart();
 
   const [loading, setLoading] = useState(true);
+
+  const productGroups = selected ? (groupsByProduct[selected.id] ?? []) : [];
+
+  // Loads categories + products + option groups/items/links and indexes by product
+  const loadMenu = async (rid: string) => {
+    const [catsRes, prodsRes, linksRes, groupsRes, itemsRes] = await Promise.all([
+      supabase.from("categories").select("*").eq("restaurant_id", rid).eq("is_active", true).order("sort_order"),
+      supabase.from("products").select("*").eq("restaurant_id", rid).eq("is_active", true).order("created_at"),
+      supabase.from("product_option_groups").select("product_id, group_id, sort_order"),
+      supabase.from("option_groups").select("id, name, min_select, max_select, sort_order, is_active, restaurant_id").eq("restaurant_id", rid).eq("is_active", true),
+      supabase.from("option_items").select("id, group_id, name, extra_price, sort_order, is_active, option_groups!inner(restaurant_id)").eq("option_groups.restaurant_id", rid).eq("is_active", true).order("sort_order"),
+    ]);
+    const cats = catsRes.data ?? [];
+    const prods = (prodsRes.data ?? []) as Product[];
+    const groups = (groupsRes.data ?? []) as any[];
+    const groupById = new Map<string, any>(groups.map((g) => [g.id, g]));
+    const itemsByGroup = new Map<string, any[]>();
+    ((itemsRes.data ?? []) as any[]).forEach((it) => {
+      const arr = itemsByGroup.get(it.group_id) ?? [];
+      arr.push(it);
+      itemsByGroup.set(it.group_id, arr);
+    });
+    const idx: Record<string, OptionGroup[]> = {};
+    ((linksRes.data ?? []) as any[]).forEach((l) => {
+      const g = groupById.get(l.group_id);
+      if (!g) return; // group inactive or not in this restaurant
+      const og: OptionGroup = {
+        id: g.id, name: g.name, min_select: g.min_select, max_select: g.max_select, sort_order: g.sort_order,
+        items: (itemsByGroup.get(g.id) ?? []).map((it) => ({ id: it.id, name: it.name, extra_price: Number(it.extra_price) })),
+      };
+      const arr = idx[l.product_id] ?? [];
+      arr.push(og);
+      idx[l.product_id] = arr;
+    });
+    Object.keys(idx).forEach((pid) => idx[pid].sort((a, b) => a.sort_order - b.sort_order));
+    return { cats, prods, idx };
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -48,13 +84,11 @@ export default function RestaurantPublic() {
       if (cancelled) return;
       if (!r) { setLoading(false); return; }
       setRestaurant(r as unknown as Restaurant);
-      const [catsRes, prodsRes] = await Promise.all([
-        supabase.from("categories").select("*").eq("restaurant_id", r.id).eq("is_active", true).order("sort_order"),
-        supabase.from("products").select("*").eq("restaurant_id", r.id).eq("is_active", true).order("created_at"),
-      ]);
+      const { cats, prods, idx } = await loadMenu(r.id);
       if (cancelled) return;
-      setCategories(catsRes.data ?? []);
-      setProducts((prodsRes.data ?? []) as Product[]);
+      setCategories(cats);
+      setProducts(prods);
+      setGroupsByProduct(idx);
       setLoading(false);
     })();
     return () => { cancelled = true; };
@@ -64,12 +98,10 @@ export default function RestaurantPublic() {
     if (!restaurant?.id) return;
     const rid = restaurant.id;
     const reloadMenu = async () => {
-      const [catsRes, prodsRes] = await Promise.all([
-        supabase.from("categories").select("*").eq("restaurant_id", rid).eq("is_active", true).order("sort_order"),
-        supabase.from("products").select("*").eq("restaurant_id", rid).eq("is_active", true).order("created_at"),
-      ]);
-      setCategories(catsRes.data ?? []);
-      setProducts((prodsRes.data ?? []) as Product[]);
+      const { cats, prods, idx } = await loadMenu(rid);
+      setCategories(cats);
+      setProducts(prods);
+      setGroupsByProduct(idx);
     };
     const ch = supabase.channel(`public-${rid}`)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "restaurants", filter: `id=eq.${rid}` }, (payload) => {
@@ -77,49 +109,20 @@ export default function RestaurantPublic() {
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "categories", filter: `restaurant_id=eq.${rid}` }, () => reloadMenu())
       .on("postgres_changes", { event: "*", schema: "public", table: "products", filter: `restaurant_id=eq.${rid}` }, () => reloadMenu())
+      .on("postgres_changes", { event: "*", schema: "public", table: "option_groups", filter: `restaurant_id=eq.${rid}` }, () => reloadMenu())
+      .on("postgres_changes", { event: "*", schema: "public", table: "option_items" }, () => reloadMenu())
+      .on("postgres_changes", { event: "*", schema: "public", table: "product_option_groups" }, () => reloadMenu())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [restaurant?.id]);
 
-  // Load groups + items when product opens
+  // Reset selected options when product changes
   useEffect(() => {
-    if (!selected) { setProductGroups([]); setSelectedOpts({}); return; }
-    let cancelled = false;
-    setLoadingGroups(true);
-    (async () => {
-      const { data: links } = await supabase
-        .from("product_option_groups")
-        .select("group_id, sort_order, option_groups!inner(id, name, min_select, max_select, sort_order, is_active)")
-        .eq("product_id", selected.id);
-      const activeGroups = (links ?? [])
-        .map((l: any) => l.option_groups)
-        .filter((g: any) => g && g.is_active)
-        .sort((a: any, b: any) => a.sort_order - b.sort_order);
-      if (activeGroups.length === 0) {
-        if (!cancelled) { setProductGroups([]); setLoadingGroups(false); }
-        return;
-      }
-      const ids = activeGroups.map((g: any) => g.id);
-      const { data: itemsData } = await supabase
-        .from("option_items")
-        .select("id, group_id, name, extra_price, sort_order, is_active")
-        .in("group_id", ids)
-        .eq("is_active", true)
-        .order("sort_order");
-      if (cancelled) return;
-      const groups: OptionGroup[] = activeGroups.map((g: any) => ({
-        id: g.id, name: g.name, min_select: g.min_select, max_select: g.max_select, sort_order: g.sort_order,
-        items: (itemsData ?? []).filter((it: any) => it.group_id === g.id).map((it: any) => ({ id: it.id, name: it.name, extra_price: Number(it.extra_price) })),
-      }));
-      setProductGroups(groups);
-      // pre-select first item if min=1 and max=1 (radio with required)
-      const initial: Record<string, string[]> = {};
-      groups.forEach((g) => { initial[g.id] = []; });
-      setSelectedOpts(initial);
-      setLoadingGroups(false);
-    })();
-    return () => { cancelled = true; };
-  }, [selected]);
+    if (!selected) { setSelectedOpts({}); return; }
+    const initial: Record<string, string[]> = {};
+    (groupsByProduct[selected.id] ?? []).forEach((g) => { initial[g.id] = []; });
+    setSelectedOpts(initial);
+  }, [selected, groupsByProduct]);
 
   const grouped = useMemo(() => {
     const m: { cat: Category | null; products: Product[] }[] = [];
@@ -316,7 +319,6 @@ export default function RestaurantPublic() {
               {selected.image_url && <img src={selected.image_url} alt={selected.name} className="w-full h-48 object-cover rounded-lg" />}
               {selected.description && <p className="text-sm text-muted-foreground">{selected.description}</p>}
 
-              {loadingGroups && <p className="text-xs text-muted-foreground">Carregando opções...</p>}
 
               {productGroups.map((g) => {
                 const cur = selectedOpts[g.id] ?? [];
