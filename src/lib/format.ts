@@ -11,7 +11,7 @@ export const orderStatusLabel: Record<string, string> = {
 };
 
 export const nextStatus: Record<string, string | null> = {
-  pending: "accepted",
+  pending: "preparing",
   accepted: "preparing",
   preparing: "out_for_delivery",
   out_for_delivery: "delivered",
