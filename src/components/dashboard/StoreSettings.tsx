@@ -34,9 +34,10 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
     (async () => {
       const { data } = await supabase.from("restaurants").select("*").eq("id", restaurant.id).maybeSingle();
       if (!data) return;
-      setFull(data as Restaurant);
-      setHours((data.opening_hours && Object.keys(data.opening_hours).length ? data.opening_hours : defaultHours()) as OpeningHours);
-      setZones((data.delivery_zones ?? []) as DeliveryZone[]);
+      setFull(data as unknown as Restaurant);
+      const oh = data.opening_hours as unknown as OpeningHours | null;
+      setHours(oh && Object.keys(oh).length ? oh : defaultHours());
+      setZones(((data.delivery_zones as unknown) ?? []) as DeliveryZone[]);
     })();
   }, [restaurant.id]);
 
