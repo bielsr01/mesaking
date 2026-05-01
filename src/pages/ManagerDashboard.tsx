@@ -6,34 +6,37 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChefHat, ExternalLink, LogOut, ShoppingBag, DollarSign, TrendingUp } from "lucide-react";
 import { brl } from "@/lib/format";
-import { toast } from "sonner";
 import { OrdersPanel, fetchOrders, ordersKey } from "@/components/dashboard/OrdersPanel";
 import { MenuManager, fetchCategories, fetchProducts, menuKeys } from "@/components/dashboard/MenuManager";
 import { StoreSettings } from "@/components/dashboard/StoreSettings";
+
+import { StoreOpenToggle } from "@/components/dashboard/StoreOpenToggle";
+import { ManualOverride, OpeningHours } from "@/lib/hours";
 
 interface Restaurant {
   id: string;
   name: string;
   slug: string;
   is_open: boolean;
+  opening_hours: OpeningHours | null;
+  manual_override: ManualOverride;
 }
 
 async function fetchRestaurantForUser(userId: string, isMasterAdmin: boolean): Promise<Restaurant | null> {
-  let { data: own } = await supabase.from("restaurants").select("id,name,slug,is_open").eq("owner_id", userId).maybeSingle();
+  const cols = "id,name,slug,is_open,opening_hours,manual_override";
+  let { data: own } = await supabase.from("restaurants").select(cols).eq("owner_id", userId).maybeSingle();
   if (!own) {
     const { data: mem } = await supabase.from("restaurant_members").select("restaurant_id").eq("user_id", userId).maybeSingle();
     if (mem) {
-      const { data: r } = await supabase.from("restaurants").select("id,name,slug,is_open").eq("id", mem.restaurant_id).maybeSingle();
+      const { data: r } = await supabase.from("restaurants").select(cols).eq("id", mem.restaurant_id).maybeSingle();
       own = r ?? null;
     }
   }
   if (!own && isMasterAdmin) {
-    const { data: any } = await supabase.from("restaurants").select("id,name,slug,is_open").order("created_at", { ascending: false }).limit(1).maybeSingle();
+    const { data: any } = await supabase.from("restaurants").select(cols).order("created_at", { ascending: false }).limit(1).maybeSingle();
     own = any ?? null;
   }
   return own as Restaurant | null;
@@ -85,12 +88,7 @@ export default function ManagerDashboard() {
     return () => { supabase.removeChannel(ch); };
   }, [restaurant?.id, qc]);
 
-  const toggleOpen = async () => {
-    if (!restaurant) return;
-    const { error } = await supabase.from("restaurants").update({ is_open: !restaurant.is_open }).eq("id", restaurant.id);
-    if (error) return toast.error(error.message);
-    qc.setQueryData(["managerRestaurant", user?.id], { ...restaurant, is_open: !restaurant.is_open });
-  };
+  const refetchRestaurant = () => qc.invalidateQueries({ queryKey: ["managerRestaurant", user?.id] });
 
   if (loadingRest) {
     return (
@@ -137,13 +135,13 @@ export default function ManagerDashboard() {
             <span className="hidden sm:inline">MesaPro</span>
           </Link>
           <div className="flex items-center gap-3">
-            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted">
-              <span className="text-sm font-medium">{restaurant.name}</span>
-              <Badge className={restaurant.is_open ? "bg-success text-success-foreground" : ""} variant={restaurant.is_open ? "default" : "secondary"}>
-                {restaurant.is_open ? "Aberto" : "Fechado"}
-              </Badge>
-              <Switch checked={restaurant.is_open} onCheckedChange={toggleOpen} />
-            </div>
+            <span className="hidden md:inline text-sm font-medium">{restaurant.name}</span>
+            <StoreOpenToggle
+              restaurantId={restaurant.id}
+              openingHours={restaurant.opening_hours}
+              manualOverride={restaurant.manual_override}
+              onChanged={refetchRestaurant}
+            />
             <Button asChild variant="outline" size="sm"><Link to={`/r/${restaurant.slug}`} target="_blank"><ExternalLink className="w-4 h-4 mr-1" />Ver cardápio</Link></Button>
             <Button variant="ghost" size="sm" onClick={signOut}><LogOut className="w-4 h-4" /></Button>
           </div>

@@ -310,6 +310,7 @@ export type Database = {
           latitude: number | null
           logo_url: string | null
           longitude: number | null
+          manual_override: Json | null
           name: string
           opening_hours: Json
           owner_id: string | null
@@ -333,6 +334,7 @@ export type Database = {
           latitude?: number | null
           logo_url?: string | null
           longitude?: number | null
+          manual_override?: Json | null
           name: string
           opening_hours?: Json
           owner_id?: string | null
@@ -356,6 +358,7 @@ export type Database = {
           latitude?: number | null
           logo_url?: string | null
           longitude?: number | null
+          manual_override?: Json | null
           name?: string
           opening_hours?: Json
           owner_id?: string | null

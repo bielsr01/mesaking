@@ -13,7 +13,7 @@ export const defaultHours = (): OpeningHours => {
   return h;
 };
 
-export function isOpenNow(hours: OpeningHours | null | undefined, now: Date = new Date()): boolean {
+export function isWithinSchedule(hours: OpeningHours | null | undefined, now: Date = new Date()): boolean {
   if (!hours) return false;
   const day = String(now.getDay());
   const cfg = hours[day];
@@ -26,4 +26,30 @@ export function isOpenNow(hours: OpeningHours | null | undefined, now: Date = ne
   if (closeMin <= openMin) closeMin += 24 * 60; // cruza meia-noite
   const curAdj = cur < openMin ? cur + 24 * 60 : cur;
   return curAdj >= openMin && curAdj < closeMin;
+}
+
+// Override manual: { type: 'open' | 'closed', until: ISO string | null }
+// until=null em 'closed' = fechado o dia todo (até próxima reabertura agendada)
+// until=null em 'open' = aberto até o dono fechar manualmente
+export type ManualOverride = { type: "open" | "closed"; until: string | null } | null;
+
+function overrideActive(ov: ManualOverride, now: Date): ManualOverride {
+  if (!ov) return null;
+  if (ov.until && new Date(ov.until).getTime() <= now.getTime()) return null;
+  return ov;
+}
+
+export function isOpenNow(
+  hours: OpeningHours | null | undefined,
+  override?: ManualOverride,
+  now: Date = new Date()
+): boolean {
+  const ov = overrideActive(override ?? null, now);
+  if (ov?.type === "open") return true;
+  if (ov?.type === "closed") return false;
+  return isWithinSchedule(hours, now);
+}
+
+export function getEffectiveOverride(ov: ManualOverride, now: Date = new Date()): ManualOverride {
+  return overrideActive(ov, now);
 }

@@ -15,9 +15,9 @@ import { brl } from "@/lib/format";
 import { Checkout } from "@/components/Checkout";
 import { ActiveOrderBanner } from "@/components/ActiveOrderBanner";
 import { Skeleton } from "@/components/ui/skeleton";
-import { isOpenNow } from "@/lib/hours";
+import { isOpenNow, ManualOverride } from "@/lib/hours";
 
-interface Restaurant { id: string; name: string; slug: string; description: string | null; logo_url: string | null; is_open: boolean; phone: string | null; opening_hours: any; latitude: number | null; longitude: number | null; delivery_zones: any; }
+interface Restaurant { id: string; name: string; slug: string; description: string | null; logo_url: string | null; is_open: boolean; phone: string | null; opening_hours: any; latitude: number | null; longitude: number | null; delivery_zones: any; manual_override: ManualOverride; }
 interface Category { id: string; name: string; sort_order: number; }
 interface Product { id: string; name: string; description: string | null; price: number; image_url: string | null; category_id: string | null; }
 
@@ -42,7 +42,7 @@ export default function RestaurantPublic() {
       const { data: r } = await supabase.from("restaurants").select("*").eq("slug", slug!).maybeSingle();
       if (cancelled) return;
       if (!r) { setLoading(false); return; }
-      setRestaurant(r as Restaurant);
+      setRestaurant(r as unknown as Restaurant);
       // Parallel fetch categories + products for ~2x faster menu load
       const [catsRes, prodsRes] = await Promise.all([
         supabase.from("categories").select("*").eq("restaurant_id", r.id).eq("is_active", true).order("sort_order"),
@@ -133,7 +133,7 @@ export default function RestaurantPublic() {
             <h1 className="text-3xl font-bold">{restaurant.name}</h1>
             {restaurant.description && <p className="opacity-90 text-sm mt-1">{restaurant.description}</p>}
             <div className="mt-2">
-              {isOpenNow(restaurant.opening_hours)
+              {isOpenNow(restaurant.opening_hours, restaurant.manual_override)
                 ? <Badge className="bg-success text-success-foreground">Aberto agora</Badge>
                 : <Badge variant="secondary">Fechado no momento</Badge>}
             </div>
@@ -201,8 +201,8 @@ export default function RestaurantPublic() {
           </div>
           <div className="border-t pt-4 space-y-3">
             <div className="flex justify-between font-bold text-lg"><span>Total</span><span>{brl(cart.total)}</span></div>
-            {!isOpenNow(restaurant.opening_hours) && <p className="text-sm text-destructive text-center">Loja fechada — não é possível finalizar.</p>}
-            <Button className="w-full" size="lg" disabled={cart.items.length === 0 || !isOpenNow(restaurant.opening_hours)} onClick={() => { setCartOpen(false); setCheckoutOpen(true); }}>
+            {!isOpenNow(restaurant.opening_hours, restaurant.manual_override) && <p className="text-sm text-destructive text-center">Loja fechada — não é possível finalizar.</p>}
+            <Button className="w-full" size="lg" disabled={cart.items.length === 0 || !isOpenNow(restaurant.opening_hours, restaurant.manual_override)} onClick={() => { setCartOpen(false); setCheckoutOpen(true); }}>
               Finalizar pedido
             </Button>
           </div>
