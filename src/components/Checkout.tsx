@@ -150,7 +150,6 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
   const validateStep1 = () => {
     if (name.trim().length < 2) { toast.error("Informe seu nome"); return false; }
     if (unmaskPhone(phone).length < 10) { toast.error("Telefone inválido"); return false; }
-    if (!isValidCPF(cpf)) { toast.error("CPF inválido"); return false; }
     return true;
   };
   const validateStep2 = () => {
