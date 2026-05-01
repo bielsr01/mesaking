@@ -150,8 +150,9 @@ export default function RestaurantPublic() {
 
   useEffect(() => {
     const onScroll = () => {
+      setScrolled(window.scrollY > 80);
       if (isScrollingRef.current) return;
-      const offset = 140; // header + sticky nav
+      const offset = 160; // header reduzido + nav
       let current = "";
       for (const g of grouped) {
         const key = g.cat?.id ?? "_orphans";
