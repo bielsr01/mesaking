@@ -280,32 +280,44 @@ export default function RestaurantPublic() {
 
   return (
     <div className="min-h-screen pb-24">
-      {/* Header fixo (compacta ao rolar) — usa foto de capa como fundo se houver */}
+      {/* Header fixo com altura constante (compacta o conteúdo interno ao rolar)
+          - Mantemos a altura do header fixa para evitar reflow no scroll mobile.
+          - A foto de capa fica num <div> absoluto atrás do conteúdo, evitando o
+            "flash" em que a imagem aparece maior que a tela antes de se ajustar. */}
       <header
-        className={`fixed top-0 left-0 right-0 z-40 text-primary-foreground shadow-md transition-all duration-300 ${scrolled ? "py-2" : "py-6"} ${restaurant.cover_url ? "" : "bg-gradient-warm"}`}
-        style={
-          restaurant.cover_url
-            ? {
-                backgroundImage: `url(${restaurant.cover_url})`,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-              }
-            : undefined
-        }
+        className="fixed top-0 left-0 right-0 z-40 text-primary-foreground shadow-md overflow-hidden bg-gradient-warm"
+        style={{
+          height: scrolled ? 56 : 148,
+          transition: "height 250ms ease",
+          willChange: "height",
+        }}
       >
-        <div className="container flex items-center gap-3">
+        {restaurant.cover_url && (
+          <div
+            aria-hidden
+            className="absolute inset-0 -z-0"
+            style={{
+              backgroundImage: `url(${restaurant.cover_url})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              backgroundRepeat: "no-repeat",
+            }}
+          />
+        )}
+        <div className="relative z-10 container h-full flex items-center gap-3">
           {restaurant.logo_url ? (
             <img
               src={restaurant.logo_url}
               alt={restaurant.name}
               className={`object-cover border-background/20 transition-all duration-300 ${scrolled ? "w-9 h-9 rounded-lg border-2" : "w-20 h-20 rounded-2xl border-4"}`}
+              style={{ willChange: "width, height" }}
             />
           ) : (
             <div className={`bg-background/20 grid place-items-center font-bold transition-all duration-300 ${scrolled ? "w-9 h-9 text-base rounded-lg" : "w-20 h-20 text-3xl rounded-2xl"}`}>{restaurant.name[0]}</div>
           )}
           <div className="flex-1 min-w-0">
             <h1 className={`font-bold truncate transition-all duration-300 ${scrolled ? "text-base" : "text-3xl"}`}>{restaurant.name}</h1>
-            {!scrolled && restaurant.description && <p className="opacity-90 text-sm mt-1">{restaurant.description}</p>}
+            {!scrolled && restaurant.description && <p className="opacity-90 text-sm mt-1 truncate">{restaurant.description}</p>}
             {!scrolled && (
               <div className="mt-2">
                 {isOpenNow(restaurant.opening_hours, restaurant.manual_override)
@@ -317,8 +329,13 @@ export default function RestaurantPublic() {
         </div>
       </header>
 
-      {/* Espaçador para compensar o header fixo */}
-      <div className={`transition-all duration-300 ${scrolled ? "h-[56px]" : "h-[148px]"}`} />
+      {/* Espaçador para compensar o header fixo (acompanha a altura do header) */}
+      <div
+        style={{
+          height: scrolled ? 56 : 148,
+          transition: "height 250ms ease",
+        }}
+      />
 
       {/* Endereço + tempo de entrega — abaixo do cabeçalho, rola normalmente */}
       {(() => {
@@ -353,7 +370,11 @@ export default function RestaurantPublic() {
       {/* Nav horizontal de categorias — sticky logo abaixo do header */}
       {grouped.length > 0 && (
         <nav
-          className={`sticky z-30 bg-background/95 backdrop-blur border-b shadow-sm transition-all duration-300 ${scrolled ? "top-[56px]" : "top-[148px]"}`}
+          className="sticky z-30 bg-background/95 backdrop-blur border-b shadow-sm"
+          style={{
+            top: scrolled ? 56 : 148,
+            transition: "top 250ms ease",
+          }}
         >
           <div
             ref={navRef}
