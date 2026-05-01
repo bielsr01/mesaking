@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -48,6 +48,19 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
     qc.invalidateQueries({ queryKey: menuKeys.products(restaurantId) });
   };
 
+  // Realtime: keep menu in sync across tabs/devices
+  useEffect(() => {
+    const ch = supabase.channel(`menu-${restaurantId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "categories", filter: `restaurant_id=eq.${restaurantId}` }, () => {
+        qc.invalidateQueries({ queryKey: menuKeys.categories(restaurantId) });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "products", filter: `restaurant_id=eq.${restaurantId}` }, () => {
+        qc.invalidateQueries({ queryKey: menuKeys.products(restaurantId) });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [restaurantId, qc]);
+
   const [catOpen, setCatOpen] = useState(false);
   const [prodOpen, setProdOpen] = useState(false);
   const [editingCat, setEditingCat] = useState<Category | null>(null);
@@ -72,13 +85,18 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
   };
 
   const toggleCat = async (c: Category) => {
-    await supabase.from("categories").update({ is_active: !c.is_active }).eq("id", c.id);
-    reload();
+    // optimistic
+    qc.setQueryData<Category[]>(menuKeys.categories(restaurantId), (prev) =>
+      (prev ?? []).map((x) => (x.id === c.id ? { ...x, is_active: !c.is_active } : x))
+    );
+    const { error } = await supabase.from("categories").update({ is_active: !c.is_active }).eq("id", c.id);
+    if (error) { toast.error(error.message); reload(); }
   };
   const removeCat = async (c: Category) => {
     if (!confirm(`Remover categoria "${c.name}"?`)) return;
-    await supabase.from("categories").delete().eq("id", c.id);
-    reload();
+    qc.setQueryData<Category[]>(menuKeys.categories(restaurantId), (prev) => (prev ?? []).filter((x) => x.id !== c.id));
+    const { error } = await supabase.from("categories").delete().eq("id", c.id);
+    if (error) { toast.error(error.message); reload(); }
   };
 
   const saveProduct = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -112,13 +130,17 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
   };
 
   const toggleProd = async (p: Product) => {
-    await supabase.from("products").update({ is_active: !p.is_active }).eq("id", p.id);
-    reload();
+    qc.setQueryData<Product[]>(menuKeys.products(restaurantId), (prev) =>
+      (prev ?? []).map((x) => (x.id === p.id ? { ...x, is_active: !p.is_active } : x))
+    );
+    const { error } = await supabase.from("products").update({ is_active: !p.is_active }).eq("id", p.id);
+    if (error) { toast.error(error.message); reload(); }
   };
   const removeProd = async (p: Product) => {
     if (!confirm(`Remover "${p.name}"?`)) return;
-    await supabase.from("products").delete().eq("id", p.id);
-    reload();
+    qc.setQueryData<Product[]>(menuKeys.products(restaurantId), (prev) => (prev ?? []).filter((x) => x.id !== p.id));
+    const { error } = await supabase.from("products").delete().eq("id", p.id);
+    if (error) { toast.error(error.message); reload(); }
   };
 
   const isLoading = (loadingCats || loadingProds) && categories.length === 0 && products.length === 0;
