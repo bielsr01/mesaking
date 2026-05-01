@@ -128,7 +128,7 @@ export default function RestaurantPublic() {
                 <Card key={p.id} className="cursor-pointer hover:shadow-elegant transition-shadow" onClick={() => { setSelected(p); setQty(1); setNotes(""); }}>
                   <CardContent className="p-3 flex gap-3">
                     <div className="w-24 h-24 rounded-lg bg-muted overflow-hidden grid place-items-center shrink-0">
-                      {p.image_url ? <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" /> : <ImageIcon className="w-7 h-7 text-muted-foreground" />}
+                      {p.image_url ? <img src={p.image_url} alt={p.name} loading="lazy" decoding="async" className="w-full h-full object-cover" /> : <ImageIcon className="w-7 h-7 text-muted-foreground" />}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold">{p.name}</div>
