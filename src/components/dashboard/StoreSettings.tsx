@@ -15,6 +15,7 @@ import { brl, formatPhone } from "@/lib/format";
 type Restaurant = {
   id: string; name: string; slug: string;
   description?: string | null; phone?: string | null; logo_url?: string | null;
+  cover_url?: string | null;
   opening_hours?: OpeningHours | null;
   address_cep?: string | null; address_street?: string | null; address_number?: string | null;
   address_complement?: string | null; address_neighborhood?: string | null;
