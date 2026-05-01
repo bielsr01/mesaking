@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { RequireRole } from "@/components/RequireRole";
-import Landing from "./pages/Landing";
+import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import MasterAdmin from "./pages/MasterAdmin";
 import ManagerDashboard from "./pages/ManagerDashboard";
@@ -23,7 +23,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Routes>
-            <Route path="/" element={<Landing />} />
+            <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/admin" element={<RequireRole role="master_admin"><MasterAdmin /></RequireRole>} />
             <Route path="/dashboard" element={<RequireRole role="manager"><ManagerDashboard /></RequireRole>} />
