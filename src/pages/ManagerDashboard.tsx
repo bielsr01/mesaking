@@ -178,6 +178,11 @@ export default function ManagerDashboard() {
               />
             )}
 
+            {view === "customers" && <EmptyState title="Clientes" />}
+            {view === "marketing:coupons" && <EmptyState title="Cupons de desconto" />}
+            {view === "marketing:loyalty" && <EmptyState title="Programa de fidelidade" />}
+            {view === "marketing:bulk" && <EmptyState title="Envio em massa" />}
+            {view === "settings:order-config" && <EmptyState title="Configurações de Pedidos" />}
             {view === "settings:printers" && <EmptyState title="Impressões" />}
             {view === "settings:integrations" && <EmptyState title="Integrações" />}
           </main>
