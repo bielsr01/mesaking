@@ -160,7 +160,7 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
         <form onSubmit={submit} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2 col-span-2"><Label>Nome</Label><Input name="customer_name" required /></div>
-            <div className="space-y-2 col-span-2"><Label>Telefone</Label><Input name="customer_phone" placeholder="(11) 99999-0000" required /></div>
+            <div className="space-y-2 col-span-2"><Label>Telefone</Label><Input name="customer_phone" value={phone} onChange={(e) => setPhone(formatPhone(e.target.value))} placeholder="(11) 99999-0000" inputMode="tel" required /></div>
           </div>
 
           <div className="border-t pt-3 space-y-3">
