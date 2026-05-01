@@ -123,7 +123,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   };
 
   const advance = async (o: Order) => {
-    const next = nextStatus[o.status];
+    const next = getNextStatus(o.status, o.order_type);
     if (!next) return;
     const prevStatus = o.status;
     patchOrder(o.id, { status: next }); // optimistic
