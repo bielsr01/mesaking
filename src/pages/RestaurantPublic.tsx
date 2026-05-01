@@ -149,8 +149,12 @@ export default function RestaurantPublic() {
   }, [grouped, activeCat]);
 
   useEffect(() => {
-    const onScroll = () => {
-      setScrolled(window.scrollY > 80);
+    let ticking = false;
+    const update = () => {
+      ticking = false;
+      const y = window.scrollY;
+      // Hysteresis para evitar flicker perto do limite
+      setScrolled((prev) => (prev ? y > 60 : y > 100));
       if (isScrollingRef.current) return;
       const offset = 160; // header reduzido + nav
       let current = "";
@@ -163,8 +167,13 @@ export default function RestaurantPublic() {
       }
       if (current && current !== activeCat) setActiveCat(current);
     };
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(update);
+    };
     window.addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
+    update();
     return () => window.removeEventListener("scroll", onScroll);
   }, [grouped, activeCat]);
 
