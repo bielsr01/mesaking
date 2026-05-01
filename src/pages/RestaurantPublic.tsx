@@ -13,6 +13,7 @@ import { ShoppingCart, Plus, Minus, Image as ImageIcon, Trash2 } from "lucide-re
 import { useCart } from "@/hooks/useCart";
 import { brl } from "@/lib/format";
 import { Checkout } from "@/components/Checkout";
+import { ActiveOrderBanner } from "@/components/ActiveOrderBanner";
 
 interface Restaurant { id: string; name: string; slug: string; description: string | null; logo_url: string | null; is_open: boolean; phone: string | null; }
 interface Category { id: string; name: string; sort_order: number; }
