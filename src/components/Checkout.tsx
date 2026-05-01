@@ -281,8 +281,8 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Tipo do pedido — visível só na etapa 1 */}
-          {step === 1 && (
+          {/* Tipo do pedido — visível só na etapa 1, e só se houver mais de uma opção */}
+          {step === 1 && (deliveryEnabled && pickupEnabled) && (
             <div className="space-y-2">
               <Label className="text-sm font-semibold">Como você quer receber?</Label>
               <div className="grid grid-cols-2 gap-2">
