@@ -40,6 +40,8 @@ type RestaurantInfo = {
   latitude?: number | null;
   longitude?: number | null;
   delivery_zones?: DeliveryZone[] | null;
+  delivery_fee_mode?: "fixed" | "radius" | null;
+  delivery_fixed_fee?: number | null;
   address_cep?: string | null;
   address_street?: string | null;
   address_number?: string | null;
