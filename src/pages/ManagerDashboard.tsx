@@ -159,32 +159,46 @@ export default function ManagerDashboard() {
           </header>
 
           <main className="flex-1 p-4 sm:p-6">
-            {view === "overview" && (
-              <div className="grid gap-4 md:grid-cols-3">
-                <StatCard icon={ShoppingBag} label="Pedidos hoje" value={(stats?.orders ?? 0).toString()} />
-                <StatCard icon={DollarSign} label="Faturamento hoje" value={brl(stats?.revenue ?? 0)} />
-                <StatCard icon={TrendingUp} label="Ticket médio" value={brl(stats?.avg ?? 0)} />
-              </div>
-            )}
+            <ViewTransition viewKey={view}>
+              {view === "overview" && (
+                <Suspense fallback={<OverviewSkeleton />}>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <StatCard icon={ShoppingBag} label="Pedidos hoje" value={(stats?.orders ?? 0).toString()} />
+                    <StatCard icon={DollarSign} label="Faturamento hoje" value={brl(stats?.revenue ?? 0)} />
+                    <StatCard icon={TrendingUp} label="Ticket médio" value={brl(stats?.avg ?? 0)} />
+                  </div>
+                </Suspense>
+              )}
 
-            {view === "orders" && <OrdersPanel restaurantId={restaurant.id} />}
+              {view === "orders" && (
+                <Suspense fallback={<ListSkeleton />}>
+                  <OrdersPanel restaurantId={restaurant.id} />
+                </Suspense>
+              )}
 
-            {view === "menu" && <MenuManager restaurantId={restaurant.id} />}
+              {view === "menu" && (
+                <Suspense fallback={<ListSkeleton />}>
+                  <MenuManager restaurantId={restaurant.id} />
+                </Suspense>
+              )}
 
-            {view === "settings:business" && (
-              <StoreSettings
-                restaurant={restaurant}
-                onUpdated={refetchRestaurant}
-              />
-            )}
+              {view === "settings:business" && (
+                <Suspense fallback={<FormSkeleton />}>
+                  <StoreSettings
+                    restaurant={restaurant}
+                    onUpdated={refetchRestaurant}
+                  />
+                </Suspense>
+              )}
 
-            {view === "customers" && <EmptyState title="Clientes" />}
-            {view === "marketing:coupons" && <EmptyState title="Cupons de desconto" />}
-            {view === "marketing:loyalty" && <EmptyState title="Programa de fidelidade" />}
-            {view === "marketing:bulk" && <EmptyState title="Envio em massa" />}
-            {view === "settings:order-config" && <EmptyState title="Configurações de Pedidos" />}
-            {view === "settings:printers" && <EmptyState title="Impressões" />}
-            {view === "settings:integrations" && <EmptyState title="Integrações" />}
+              {view === "customers" && <EmptyState title="Clientes" />}
+              {view === "marketing:coupons" && <EmptyState title="Cupons de desconto" />}
+              {view === "marketing:loyalty" && <EmptyState title="Programa de fidelidade" />}
+              {view === "marketing:bulk" && <EmptyState title="Envio em massa" />}
+              {view === "settings:order-config" && <EmptyState title="Configurações de Pedidos" />}
+              {view === "settings:printers" && <EmptyState title="Impressões" />}
+              {view === "settings:integrations" && <EmptyState title="Integrações" />}
+            </ViewTransition>
           </main>
         </div>
       </div>
