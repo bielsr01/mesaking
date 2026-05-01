@@ -3,10 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Inbox, Zap } from "lucide-react";
+import { Inbox, Zap, Bike, Store } from "lucide-react";
 
 type ReceiveMode = "system" | "system_whatsapp";
 type AcceptanceMode = "auto" | "manual";
@@ -20,13 +21,15 @@ export function OrderConfigSettings({ restaurantId }: Props) {
   const [saving, setSaving] = useState(false);
   const [receiveMode, setReceiveMode] = useState<ReceiveMode>("system");
   const [acceptanceMode, setAcceptanceMode] = useState<AcceptanceMode>("manual");
+  const [serviceDelivery, setServiceDelivery] = useState(true);
+  const [servicePickup, setServicePickup] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const { data, error } = await supabase
         .from("restaurants")
-        .select("order_receive_mode, order_acceptance_mode")
+        .select("order_receive_mode, order_acceptance_mode, service_delivery, service_pickup")
         .eq("id", restaurantId)
         .maybeSingle();
       if (cancelled) return;
@@ -35,13 +38,15 @@ export function OrderConfigSettings({ restaurantId }: Props) {
       } else if (data) {
         setReceiveMode(((data as any).order_receive_mode ?? "system") as ReceiveMode);
         setAcceptanceMode(((data as any).order_acceptance_mode ?? "manual") as AcceptanceMode);
+        setServiceDelivery(Boolean((data as any).service_delivery ?? true));
+        setServicePickup(Boolean((data as any).service_pickup ?? false));
       }
       setLoaded(true);
     })();
     return () => { cancelled = true; };
   }, [restaurantId]);
 
-  async function update(patch: { order_receive_mode?: ReceiveMode; order_acceptance_mode?: AcceptanceMode }) {
+  async function update(patch: Partial<{ order_receive_mode: ReceiveMode; order_acceptance_mode: AcceptanceMode; service_delivery: boolean; service_pickup: boolean }>) {
     setSaving(true);
     const { error } = await supabase.from("restaurants").update(patch as any).eq("id", restaurantId);
     setSaving(false);
