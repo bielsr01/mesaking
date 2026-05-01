@@ -12,6 +12,7 @@ import { DAY_LABELS, defaultHours, OpeningHours } from "@/lib/hours";
 import { DeliveryZone, geocodeAddress } from "@/lib/delivery";
 import { brl, formatPhone } from "@/lib/format";
 import { CoverImageCropper } from "@/components/CoverImageCropper";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type Restaurant = {
   id: string; name: string; slug: string;
@@ -34,6 +35,7 @@ type Restaurant = {
 
 export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restaurant; onUpdated: () => void }) {
   const [busy, setBusy] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const [full, setFull] = useState<Restaurant>(restaurant);
   const [hours, setHours] = useState<OpeningHours>(defaultHours());
   const [zones, setZones] = useState<DeliveryZone[]>([]);
@@ -57,14 +59,19 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
   };
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       const { data } = await supabase.from("restaurants").select("*").eq("id", restaurant.id).maybeSingle();
-      if (!data) return;
-      setFull(data as unknown as Restaurant);
-      const oh = data.opening_hours as unknown as OpeningHours | null;
-      setHours(oh && Object.keys(oh).length ? oh : defaultHours());
-      setZones(((data.delivery_zones as unknown) ?? []) as DeliveryZone[]);
+      if (cancelled) return;
+      if (data) {
+        setFull(data as unknown as Restaurant);
+        const oh = data.opening_hours as unknown as OpeningHours | null;
+        setHours(oh && Object.keys(oh).length ? oh : defaultHours());
+        setZones(((data.delivery_zones as unknown) ?? []) as DeliveryZone[]);
+      }
+      setLoaded(true);
     })();
+    return () => { cancelled = true; };
   }, [restaurant.id]);
 
   const lookupCep = async (raw: string) => {
@@ -211,6 +218,23 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
     toast.success("Configurações salvas");
     onUpdated();
   };
+
+  if (!loaded) {
+    return (
+      <div className="space-y-4 max-w-3xl animate-fade-in">
+        {[0, 1, 2].map((i) => (
+          <Card key={i}>
+            <CardHeader><Skeleton className="h-6 w-48" /></CardHeader>
+            <CardContent className="space-y-3">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-2/3" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <>
