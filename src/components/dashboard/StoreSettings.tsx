@@ -185,14 +185,38 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
         <CardHeader><CardTitle>Informações da loja</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <div className="grid sm:grid-cols-2 gap-3">
-            <div className="space-y-2"><Label>Nome</Label><Input value={full.name || ""} onChange={(e) => setFull({ ...full, name: e.target.value })} required /></div>
-            <div className="space-y-2"><Label>Telefone</Label><Input value={formatPhone(full.phone || "")} onChange={(e) => setFull({ ...full, phone: formatPhone(e.target.value) })} placeholder="(11) 99999-0000" inputMode="tel" /></div>
+            <div className="space-y-2"><Label>Nome *</Label><Input value={full.name || ""} onChange={(e) => setFull({ ...full, name: e.target.value })} required /></div>
+            <div className="space-y-2"><Label>Telefone *</Label><Input value={formatPhone(full.phone || "")} onChange={(e) => setFull({ ...full, phone: formatPhone(e.target.value) })} placeholder="(11) 99999-0000" inputMode="tel" required /></div>
           </div>
-          <div className="space-y-2"><Label>Descrição</Label><Textarea value={full.description || ""} onChange={(e) => setFull({ ...full, description: e.target.value })} rows={2} /></div>
-          <div className="space-y-2"><Label>Logo</Label><Input name="logo" type="file" accept="image/*" /></div>
+          <div className="space-y-2"><Label>Descrição *</Label><Textarea value={full.description || ""} onChange={(e) => setFull({ ...full, description: e.target.value })} rows={2} required /></div>
+          <div className="space-y-2">
+            <Label>Logo *</Label>
+            {full.logo_url && <img src={full.logo_url} alt="Logo atual" className="w-20 h-20 rounded-lg object-cover border" />}
+            <Input name="logo" type="file" accept="image/*" {...(!full.logo_url ? { required: true } : {})} />
+            <p className="text-xs text-muted-foreground">{full.logo_url ? "Envie um arquivo para substituir." : "Obrigatório."}</p>
+          </div>
+          <div className="space-y-2">
+            <Label>Foto de capa *</Label>
+            {full.cover_url && <img src={full.cover_url} alt="Capa atual" className="w-full max-h-40 rounded-lg object-cover border" />}
+            <Input name="cover" type="file" accept="image/*" {...(!full.cover_url ? { required: true } : {})} />
+            <p className="text-xs text-muted-foreground">Aparece como fundo do cabeçalho do site do cliente. {full.cover_url ? "Envie um arquivo para substituir." : "Obrigatório."}</p>
+          </div>
           <div className="space-y-2"><Label>URL pública</Label><Input value={`/r/${restaurant.slug}`} readOnly /></div>
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Endereço do restaurante</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-3 gap-3">
+            <div className="space-y-2"><Label>CEP *</Label><Input value={full.address_cep || ""} onChange={(e) => setFull({ ...full, address_cep: e.target.value })} onBlur={(e) => lookupCep(e.target.value)} placeholder="00000-000" required /></div>
+            <div className="space-y-2 col-span-2"><Label>Rua *</Label><Input value={full.address_street || ""} onChange={(e) => setFull({ ...full, address_street: e.target.value })} required /></div>
+            <div className="space-y-2"><Label>Número *</Label><Input value={full.address_number || ""} onChange={(e) => setFull({ ...full, address_number: e.target.value })} required /></div>
+            <div className="space-y-2 col-span-2"><Label>Complemento</Label><Input value={full.address_complement || ""} onChange={(e) => setFull({ ...full, address_complement: e.target.value })} /></div>
+            <div className="space-y-2 col-span-2"><Label>Bairro *</Label><Input value={full.address_neighborhood || ""} onChange={(e) => setFull({ ...full, address_neighborhood: e.target.value })} required /></div>
+            <div className="space-y-2"><Label>Cidade *</Label><Input value={full.address_city || ""} onChange={(e) => setFull({ ...full, address_city: e.target.value })} required /></div>
+            <div className="space-y-2"><Label>UF *</Label><Input maxLength={2} value={full.address_state || ""} onChange={(e) => setFull({ ...full, address_state: e.target.value.toUpperCase() })} required /></div>
+          </div>
 
       <Card>
         <CardHeader><CardTitle>Endereço do restaurante</CardTitle></CardHeader>
