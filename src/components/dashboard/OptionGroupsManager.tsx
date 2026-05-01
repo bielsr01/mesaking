@@ -8,9 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, X } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { brl } from "@/lib/format";
+import { fetchProducts, menuKeys } from "./MenuManager";
 
 export interface OptionGroup {
   id: string;
