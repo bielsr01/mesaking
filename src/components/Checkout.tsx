@@ -60,7 +60,6 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
   // Etapa 1 — cliente
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [cpf, setCpf] = useState("");
 
   // Etapa 2 — endereço
   const [cep, setCep] = useState("");
