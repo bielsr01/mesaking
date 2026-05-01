@@ -2,6 +2,10 @@ import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -67,6 +71,7 @@ export async function fetchOrders(restaurantId: string): Promise<{ orders: Order
 export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const qc = useQueryClient();
   const [filter, setFilter] = useState("pending");
+  const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ordersKey(restaurantId),
@@ -240,7 +245,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                         {o.status === "pending" ? "✓ Aceitar pedido" : `→ ${orderStatusLabel[nextStatus[o.status]!]}`}
                       </Button>
                     )}
-                    <Button size="sm" variant="outline" onClick={() => cancel(o)}><X className="w-4 h-4" /></Button>
+                    <Button size="sm" variant="outline" onClick={() => setCancelTarget(o)} aria-label="Cancelar pedido"><X className="w-4 h-4" /></Button>
                   </div>
                 )}
               </CardContent>
@@ -248,6 +253,28 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
           ))}
         </div>
       )}
+
+      <AlertDialog open={!!cancelTarget} onOpenChange={(o) => !o && setCancelTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelar este pedido?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {cancelTarget && (
+                <>Você está prestes a cancelar o pedido de <strong>{cancelTarget.customer_name}</strong> no valor de <strong>{brl(cancelTarget.total)}</strong>. Esta ação não pode ser desfeita.</>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => { if (cancelTarget) { cancel(cancelTarget); setCancelTarget(null); } }}
+            >
+              Sim, cancelar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
