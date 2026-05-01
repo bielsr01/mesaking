@@ -12,6 +12,7 @@ import { brl } from "@/lib/format";
 import { OrdersPanel, fetchOrders, ordersKey } from "@/components/dashboard/OrdersPanel";
 import { MenuManager, fetchCategories, fetchProducts, menuKeys } from "@/components/dashboard/MenuManager";
 import { StoreSettings } from "@/components/dashboard/StoreSettings";
+import { OrderConfigSettings } from "@/components/dashboard/OrderConfigSettings";
 import { StoreOpenToggle } from "@/components/dashboard/StoreOpenToggle";
 import { AppSidebar, DashboardView } from "@/components/dashboard/AppSidebar";
 import { NotificationsBell } from "@/components/dashboard/NotificationsBell";
