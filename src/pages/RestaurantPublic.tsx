@@ -277,7 +277,7 @@ export default function RestaurantPublic() {
         style={
           restaurant.cover_url
             ? {
-                backgroundImage: `linear-gradient(to bottom, hsl(var(--primary) / 0.55), hsl(var(--primary) / 0.75)), url(${restaurant.cover_url})`,
+                backgroundImage: `url(${restaurant.cover_url})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
               }
