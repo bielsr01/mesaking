@@ -45,6 +45,7 @@ const FILTERS = [
   { value: "pending", label: "Novos" },
   { value: "preparing", label: "Em preparo" },
   { value: "out_for_delivery", label: "Em entrega" },
+  { value: "awaiting_pickup", label: "Aguardando retirada" },
   { value: "delivered", label: "Entregues" },
   { value: "active", label: "Ativos" },
   { value: "all", label: "Todos" },
