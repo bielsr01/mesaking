@@ -111,6 +111,10 @@ export type Database = {
           created_at: string
           customer_name: string
           customer_phone: string
+          delivery_distance_km: number | null
+          delivery_fee: number
+          delivery_latitude: number | null
+          delivery_longitude: number | null
           id: string
           payment_method: Database["public"]["Enums"]["payment_method"]
           public_token: string
@@ -133,6 +137,10 @@ export type Database = {
           created_at?: string
           customer_name: string
           customer_phone: string
+          delivery_distance_km?: number | null
+          delivery_fee?: number
+          delivery_latitude?: number | null
+          delivery_longitude?: number | null
           id?: string
           payment_method: Database["public"]["Enums"]["payment_method"]
           public_token?: string
@@ -155,6 +163,10 @@ export type Database = {
           created_at?: string
           customer_name?: string
           customer_phone?: string
+          delivery_distance_km?: number | null
+          delivery_fee?: number
+          delivery_latitude?: number | null
+          delivery_longitude?: number | null
           id?: string
           payment_method?: Database["public"]["Enums"]["payment_method"]
           public_token?: string
@@ -283,11 +295,21 @@ export type Database = {
       }
       restaurants: {
         Row: {
+          address_cep: string | null
+          address_city: string | null
+          address_complement: string | null
+          address_neighborhood: string | null
+          address_number: string | null
+          address_state: string | null
+          address_street: string | null
           created_at: string
+          delivery_zones: Json
           description: string | null
           id: string
           is_open: boolean
+          latitude: number | null
           logo_url: string | null
+          longitude: number | null
           name: string
           opening_hours: Json
           owner_id: string | null
@@ -296,11 +318,21 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          address_cep?: string | null
+          address_city?: string | null
+          address_complement?: string | null
+          address_neighborhood?: string | null
+          address_number?: string | null
+          address_state?: string | null
+          address_street?: string | null
           created_at?: string
+          delivery_zones?: Json
           description?: string | null
           id?: string
           is_open?: boolean
+          latitude?: number | null
           logo_url?: string | null
+          longitude?: number | null
           name: string
           opening_hours?: Json
           owner_id?: string | null
@@ -309,11 +341,21 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          address_cep?: string | null
+          address_city?: string | null
+          address_complement?: string | null
+          address_neighborhood?: string | null
+          address_number?: string | null
+          address_state?: string | null
+          address_street?: string | null
           created_at?: string
+          delivery_zones?: Json
           description?: string | null
           id?: string
           is_open?: boolean
+          latitude?: number | null
           logo_url?: string | null
+          longitude?: number | null
           name?: string
           opening_hours?: Json
           owner_id?: string | null
