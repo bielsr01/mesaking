@@ -14,6 +14,7 @@ import { useCart } from "@/hooks/useCart";
 import { brl } from "@/lib/format";
 import { Checkout } from "@/components/Checkout";
 import { ActiveOrderBanner } from "@/components/ActiveOrderBanner";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Restaurant { id: string; name: string; slug: string; description: string | null; logo_url: string | null; is_open: boolean; phone: string | null; }
 interface Category { id: string; name: string; sort_order: number; }
@@ -31,16 +32,27 @@ export default function RestaurantPublic() {
   const [cartOpen, setCartOpen] = useState(false);
   const cart = useCart();
 
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
+    let cancelled = false;
     (async () => {
+      setLoading(true);
       const { data: r } = await supabase.from("restaurants").select("*").eq("slug", slug!).maybeSingle();
-      if (!r) return;
+      if (cancelled) return;
+      if (!r) { setLoading(false); return; }
       setRestaurant(r as Restaurant);
-      const { data: cats } = await supabase.from("categories").select("*").eq("restaurant_id", r.id).eq("is_active", true).order("sort_order");
-      const { data: prods } = await supabase.from("products").select("*").eq("restaurant_id", r.id).eq("is_active", true).order("created_at");
-      setCategories(cats ?? []);
-      setProducts((prods ?? []) as Product[]);
+      // Parallel fetch categories + products for ~2x faster menu load
+      const [catsRes, prodsRes] = await Promise.all([
+        supabase.from("categories").select("*").eq("restaurant_id", r.id).eq("is_active", true).order("sort_order"),
+        supabase.from("products").select("*").eq("restaurant_id", r.id).eq("is_active", true).order("created_at"),
+      ]);
+      if (cancelled) return;
+      setCategories(catsRes.data ?? []);
+      setProducts((prodsRes.data ?? []) as Product[]);
+      setLoading(false);
     })();
+    return () => { cancelled = true; };
   }, [slug]);
 
   const grouped = useMemo(() => {
@@ -53,7 +65,29 @@ export default function RestaurantPublic() {
 
   const itemCount = cart.items.reduce((s, i) => s + i.quantity, 0);
 
-  if (!restaurant) return <div className="min-h-screen grid place-items-center text-muted-foreground">Carregando cardápio...</div>;
+  if (loading && !restaurant) {
+    return (
+      <div className="min-h-screen pb-24">
+        <header className="bg-gradient-warm">
+          <div className="container py-8 flex items-center gap-4">
+            <Skeleton className="w-20 h-20 rounded-2xl" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-8 w-64" />
+              <Skeleton className="h-4 w-80" />
+              <Skeleton className="h-5 w-24" />
+            </div>
+          </div>
+        </header>
+        <main className="container py-6 space-y-6">
+          <Skeleton className="h-7 w-40" />
+          <div className="grid gap-3 md:grid-cols-2">
+            <Skeleton className="h-28" /><Skeleton className="h-28" /><Skeleton className="h-28" /><Skeleton className="h-28" />
+          </div>
+        </main>
+      </div>
+    );
+  }
+  if (!restaurant) return <div className="min-h-screen grid place-items-center text-muted-foreground">Restaurante não encontrado.</div>;
 
   const addToCart = () => {
     if (!selected) return;
@@ -94,7 +128,7 @@ export default function RestaurantPublic() {
                 <Card key={p.id} className="cursor-pointer hover:shadow-elegant transition-shadow" onClick={() => { setSelected(p); setQty(1); setNotes(""); }}>
                   <CardContent className="p-3 flex gap-3">
                     <div className="w-24 h-24 rounded-lg bg-muted overflow-hidden grid place-items-center shrink-0">
-                      {p.image_url ? <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" /> : <ImageIcon className="w-7 h-7 text-muted-foreground" />}
+                      {p.image_url ? <img src={p.image_url} alt={p.name} loading="lazy" decoding="async" className="w-full h-full object-cover" /> : <ImageIcon className="w-7 h-7 text-muted-foreground" />}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold">{p.name}</div>

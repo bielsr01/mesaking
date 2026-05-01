@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Pencil, Trash2, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -14,22 +16,43 @@ import { brl } from "@/lib/format";
 interface Category { id: string; name: string; sort_order: number; is_active: boolean; }
 interface Product { id: string; category_id: string | null; name: string; description: string | null; price: number; image_url: string | null; is_active: boolean; }
 
+export const menuKeys = {
+  categories: (rid: string) => ["menu", rid, "categories"] as const,
+  products: (rid: string) => ["menu", rid, "products"] as const,
+};
+
+export async function fetchCategories(restaurantId: string): Promise<Category[]> {
+  const { data } = await supabase.from("categories").select("*").eq("restaurant_id", restaurantId).order("sort_order");
+  return (data ?? []) as Category[];
+}
+export async function fetchProducts(restaurantId: string): Promise<Product[]> {
+  const { data } = await supabase.from("products").select("*").eq("restaurant_id", restaurantId).order("created_at");
+  return (data ?? []) as Product[];
+}
+
 export function MenuManager({ restaurantId }: { restaurantId: string }) {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
+  const qc = useQueryClient();
+  const { data: categories = [], isLoading: loadingCats } = useQuery({
+    queryKey: menuKeys.categories(restaurantId),
+    queryFn: () => fetchCategories(restaurantId),
+    staleTime: 30_000,
+  });
+  const { data: products = [], isLoading: loadingProds } = useQuery({
+    queryKey: menuKeys.products(restaurantId),
+    queryFn: () => fetchProducts(restaurantId),
+    staleTime: 30_000,
+  });
+
+  const reload = () => {
+    qc.invalidateQueries({ queryKey: menuKeys.categories(restaurantId) });
+    qc.invalidateQueries({ queryKey: menuKeys.products(restaurantId) });
+  };
+
   const [catOpen, setCatOpen] = useState(false);
   const [prodOpen, setProdOpen] = useState(false);
   const [editingCat, setEditingCat] = useState<Category | null>(null);
   const [editingProd, setEditingProd] = useState<Product | null>(null);
   const [defaultCat, setDefaultCat] = useState<string | null>(null);
-
-  const load = async () => {
-    const { data: cats } = await supabase.from("categories").select("*").eq("restaurant_id", restaurantId).order("sort_order");
-    const { data: prods } = await supabase.from("products").select("*").eq("restaurant_id", restaurantId).order("created_at");
-    setCategories(cats ?? []);
-    setProducts((prods ?? []) as Product[]);
-  };
-  useEffect(() => { load(); }, [restaurantId]);
 
   const saveCategory = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -45,17 +68,17 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
       if (error) return toast.error(error.message);
     }
     toast.success("Categoria salva");
-    setCatOpen(false); setEditingCat(null); load();
+    setCatOpen(false); setEditingCat(null); reload();
   };
 
   const toggleCat = async (c: Category) => {
     await supabase.from("categories").update({ is_active: !c.is_active }).eq("id", c.id);
-    load();
+    reload();
   };
   const removeCat = async (c: Category) => {
     if (!confirm(`Remover categoria "${c.name}"?`)) return;
     await supabase.from("categories").delete().eq("id", c.id);
-    load();
+    reload();
   };
 
   const saveProduct = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -85,18 +108,20 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
       if (error) return toast.error(error.message);
     }
     toast.success("Produto salvo");
-    setProdOpen(false); setEditingProd(null); load();
+    setProdOpen(false); setEditingProd(null); reload();
   };
 
   const toggleProd = async (p: Product) => {
     await supabase.from("products").update({ is_active: !p.is_active }).eq("id", p.id);
-    load();
+    reload();
   };
   const removeProd = async (p: Product) => {
     if (!confirm(`Remover "${p.name}"?`)) return;
     await supabase.from("products").delete().eq("id", p.id);
-    load();
+    reload();
   };
+
+  const isLoading = (loadingCats || loadingProds) && categories.length === 0 && products.length === 0;
 
   return (
     <div className="space-y-6">
@@ -143,8 +168,15 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
         <Card>
           <CardContent className="p-3 space-y-1">
             <div className="text-xs uppercase font-semibold text-muted-foreground px-2 py-1.5">Categorias</div>
-            {categories.length === 0 && <div className="text-sm text-muted-foreground p-2">Crie sua primeira categoria.</div>}
-            {categories.map((c) => (
+            {isLoading ? (
+              <>
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-3/4" />
+              </>
+            ) : categories.length === 0 ? (
+              <div className="text-sm text-muted-foreground p-2">Crie sua primeira categoria.</div>
+            ) : categories.map((c) => (
               <div key={c.id} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted">
                 <span className={`flex-1 text-sm ${!c.is_active && "text-muted-foreground line-through"}`}>{c.name}</span>
                 <Switch checked={c.is_active} onCheckedChange={() => toggleCat(c)} />
@@ -156,13 +188,19 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
         </Card>
 
         <div className="space-y-3">
-          {products.length === 0 ? (
+          {isLoading ? (
+            <>
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-20 w-full" />
+            </>
+          ) : products.length === 0 ? (
             <Card><CardContent className="py-12 text-center text-muted-foreground">Nenhum produto cadastrado.</CardContent></Card>
           ) : products.map((p) => (
             <Card key={p.id} className={!p.is_active ? "opacity-60" : ""}>
               <CardContent className="p-3 flex gap-3 items-center">
                 <div className="w-16 h-16 rounded-lg bg-muted overflow-hidden grid place-items-center shrink-0">
-                  {p.image_url ? <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" /> : <ImageIcon className="w-6 h-6 text-muted-foreground" />}
+                  {p.image_url ? <img src={p.image_url} alt={p.name} loading="lazy" className="w-full h-full object-cover" /> : <ImageIcon className="w-6 h-6 text-muted-foreground" />}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-medium">{p.name}</div>
