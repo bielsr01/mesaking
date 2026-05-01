@@ -198,7 +198,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                     <div className="font-semibold flex items-center gap-2"><User className="w-4 h-4" />{o.customer_name}</div>
                     <div className="text-xs text-muted-foreground flex items-center gap-2 mt-1">
                       <Clock className="w-3 h-3" />{new Date(o.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                      <Phone className="w-3 h-3 ml-2" />{o.customer_phone}
+                      <Phone className="w-3 h-3 ml-2" />{formatPhone(o.customer_phone)}
                     </div>
                   </div>
                   <Badge className={statusColor(o.status)}>{orderStatusLabel[o.status]}</Badge>
