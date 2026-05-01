@@ -211,7 +211,11 @@ export default function ManagerDashboard() {
             {view === "marketing:coupons" && <LazyView viewKey={view} variant="list"><EmptyState title="Cupons de desconto" /></LazyView>}
             {view === "marketing:loyalty" && <LazyView viewKey={view} variant="list"><EmptyState title="Programa de fidelidade" /></LazyView>}
             {view === "marketing:bulk" && <LazyView viewKey={view} variant="list"><EmptyState title="Envio em massa" /></LazyView>}
-            {view === "settings:order-config" && <LazyView viewKey={view} variant="form"><EmptyState title="Configurações de Pedidos" /></LazyView>}
+            {view === "settings:order-config" && (
+              <LazyView viewKey={view} variant="form">
+                <OrderConfigSettings restaurantId={restaurant.id} />
+              </LazyView>
+            )}
             {view === "settings:printers" && <LazyView viewKey={view} variant="form"><EmptyState title="Impressões" /></LazyView>}
             {view === "settings:integrations" && <LazyView viewKey={view} variant="form"><EmptyState title="Integrações" /></LazyView>}
           </main>
