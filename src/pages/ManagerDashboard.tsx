@@ -90,6 +90,11 @@ export default function ManagerDashboard() {
     return () => { supabase.removeChannel(ch); };
   }, [restaurant?.id, qc]);
 
+  const { notifications, unreadCount, pulse, markAllRead, clear } = useNewOrderNotifications(
+    restaurant?.id,
+    view === "orders"
+  );
+
   const refetchRestaurant = () => qc.invalidateQueries({ queryKey: ["managerRestaurant", user?.id] });
 
   if (loadingRest) {
