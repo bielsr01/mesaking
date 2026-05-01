@@ -42,7 +42,7 @@ export default function RestaurantPublic() {
       const { data: r } = await supabase.from("restaurants").select("*").eq("slug", slug!).maybeSingle();
       if (cancelled) return;
       if (!r) { setLoading(false); return; }
-      setRestaurant(r as Restaurant);
+      setRestaurant(r as unknown as Restaurant);
       // Parallel fetch categories + products for ~2x faster menu load
       const [catsRes, prodsRes] = await Promise.all([
         supabase.from("categories").select("*").eq("restaurant_id", r.id).eq("is_active", true).order("sort_order"),
