@@ -190,7 +190,7 @@ export default function RestaurantPublic() {
     if (!el) return;
     isScrollingRef.current = true;
     setActiveCat(key);
-    const y = el.getBoundingClientRect().top + window.scrollY - 120;
+    const y = el.getBoundingClientRect().top + window.scrollY - 60;
     window.scrollTo({ top: y, behavior: "smooth" });
     setTimeout(() => { isScrollingRef.current = false; }, 700);
   };
