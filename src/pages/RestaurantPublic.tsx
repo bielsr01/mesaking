@@ -316,15 +316,33 @@ export default function RestaurantPublic() {
             <div className={`bg-background/20 grid place-items-center font-bold transition-all duration-300 ${scrolled ? "w-9 h-9 text-base rounded-lg" : "w-20 h-20 text-3xl rounded-2xl"}`}>{restaurant.name[0]}</div>
           )}
           <div className="flex-1 min-w-0">
-            <h1 className={`font-bold truncate transition-all duration-300 ${scrolled ? "text-base" : "text-3xl"}`}>{restaurant.name}</h1>
-            
-            {!scrolled && (
-              <div className="mt-2">
-                {isOpenNow(restaurant.opening_hours, restaurant.manual_override)
-                  ? <Badge className="bg-success text-success-foreground">Aberto agora</Badge>
-                  : <Badge variant="secondary">Fechado no momento</Badge>}
-              </div>
-            )}
+            <h1
+              className="font-bold truncate origin-left"
+              style={{
+                fontSize: "1.875rem", // text-3xl base
+                lineHeight: 1.15,
+                transform: scrolled ? "scale(0.55)" : "scale(1)",
+                transformOrigin: "left center",
+                transition: "transform 250ms ease",
+                willChange: "transform",
+              }}
+            >
+              {restaurant.name}
+            </h1>
+            <div
+              className="mt-2"
+              style={{
+                opacity: scrolled ? 0 : 1,
+                transform: scrolled ? "translateY(-4px)" : "translateY(0)",
+                transition: "opacity 200ms ease, transform 250ms ease",
+                pointerEvents: scrolled ? "none" : "auto",
+                willChange: "opacity, transform",
+              }}
+            >
+              {isOpenNow(restaurant.opening_hours, restaurant.manual_override)
+                ? <Badge className="bg-success text-success-foreground">Aberto agora</Badge>
+                : <Badge variant="secondary">Fechado no momento</Badge>}
+            </div>
           </div>
         </div>
       </header>
