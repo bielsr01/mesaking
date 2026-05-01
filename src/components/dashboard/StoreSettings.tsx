@@ -299,6 +299,44 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
       </Card>
 
       <Card>
+        <CardHeader><CardTitle>Redes sociais e contato</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <div className="space-y-2">
+            <Label>WhatsApp (link wa.me ou número)</Label>
+            <Input value={full.whatsapp_url || ""} onChange={(e) => setFull({ ...full, whatsapp_url: e.target.value })} placeholder="https://wa.me/5511999990000" />
+          </div>
+          <div className="space-y-2">
+            <Label>Instagram (URL do perfil)</Label>
+            <Input value={full.instagram_url || ""} onChange={(e) => setFull({ ...full, instagram_url: e.target.value })} placeholder="https://instagram.com/sualoja" />
+          </div>
+          <div className="space-y-2">
+            <Label>Facebook (URL da página)</Label>
+            <Input value={full.facebook_url || ""} onChange={(e) => setFull({ ...full, facebook_url: e.target.value })} placeholder="https://facebook.com/sualoja" />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Tipos de serviço</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center justify-between p-3 rounded-lg border">
+            <div>
+              <div className="font-medium">Delivery</div>
+              <div className="text-xs text-muted-foreground">Entrega no endereço do cliente.</div>
+            </div>
+            <Switch checked={full.service_delivery ?? true} onCheckedChange={(v) => setFull({ ...full, service_delivery: v })} />
+          </div>
+          <div className="flex items-center justify-between p-3 rounded-lg border">
+            <div>
+              <div className="font-medium">Retirada na loja</div>
+              <div className="text-xs text-muted-foreground">Cliente busca o pedido no balcão.</div>
+            </div>
+            <Switch checked={full.service_pickup ?? false} onCheckedChange={(v) => setFull({ ...full, service_pickup: v })} />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardHeader><CardTitle>Horário de funcionamento</CardTitle></CardHeader>
         <CardContent className="space-y-2">
           {DAY_LABELS.map((label, i) => {
