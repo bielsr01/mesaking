@@ -415,6 +415,7 @@ export type Database = {
           address_number: string | null
           address_state: string | null
           address_street: string | null
+          cover_url: string | null
           created_at: string
           delivery_time_max: number | null
           delivery_time_min: number | null
@@ -441,6 +442,7 @@ export type Database = {
           address_number?: string | null
           address_state?: string | null
           address_street?: string | null
+          cover_url?: string | null
           created_at?: string
           delivery_time_max?: number | null
           delivery_time_min?: number | null
@@ -467,6 +469,7 @@ export type Database = {
           address_number?: string | null
           address_state?: string | null
           address_street?: string | null
+          cover_url?: string | null
           created_at?: string
           delivery_time_max?: number | null
           delivery_time_min?: number | null
