@@ -16,6 +16,7 @@ import { Bike, Clock, MapPin, Phone, Store, User, X } from "lucide-react";
 
 interface Order {
   id: string;
+  order_number: number;
   customer_name: string;
   customer_phone: string;
   address_street: string;
