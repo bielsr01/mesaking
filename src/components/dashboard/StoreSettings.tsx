@@ -203,6 +203,7 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
   };
 
   return (
+    <>
     <form onSubmit={save} className="space-y-4 max-w-3xl">
       <Card>
         <CardHeader><CardTitle>Informações da loja</CardTitle></CardHeader>
