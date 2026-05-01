@@ -164,6 +164,7 @@ export default function RestaurantPublic() {
       if (current && current !== activeCat) setActiveCat(current);
     };
     window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
     return () => window.removeEventListener("scroll", onScroll);
   }, [grouped, activeCat]);
 
