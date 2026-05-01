@@ -7,9 +7,9 @@ import { Card } from "@/components/ui/card";
 import { brl, orderStatusLabel } from "@/lib/format";
 import { Check, ChefHat, Clock, Package, Truck, X, ChevronRight } from "lucide-react";
 
-const STEPS = ["pending", "accepted", "preparing", "out_for_delivery", "delivered"] as const;
+const STEPS = ["pending", "accepted", "preparing", "out_for_delivery", "awaiting_pickup", "delivered"] as const;
 const ICONS: Record<string, any> = {
-  pending: Clock, accepted: Check, preparing: Package, out_for_delivery: Truck, delivered: ChefHat, cancelled: X,
+  pending: Clock, accepted: Check, preparing: Package, out_for_delivery: Truck, awaiting_pickup: Package, delivered: ChefHat, cancelled: X,
 };
 
 const storageKey = (restaurantId: string) => `mesapro:active-order:${restaurantId}`;

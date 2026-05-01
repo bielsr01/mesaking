@@ -10,9 +10,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { brl, orderStatusLabel, nextStatus, paymentLabel, formatPhone } from "@/lib/format";
+import { brl, orderStatusLabel, getNextStatus, paymentLabel, formatPhone, orderTypeLabel } from "@/lib/format";
 import { toast } from "sonner";
-import { Clock, MapPin, Phone, User, X } from "lucide-react";
+import { Bike, Clock, MapPin, Phone, Store, User, X } from "lucide-react";
 
 interface Order {
   id: string;
@@ -28,6 +28,7 @@ interface Order {
   change_for: number | null;
   total: number;
   status: string;
+  order_type: "delivery" | "pickup";
   created_at: string;
 }
 
@@ -44,6 +45,7 @@ const FILTERS = [
   { value: "pending", label: "Novos" },
   { value: "preparing", label: "Em preparo" },
   { value: "out_for_delivery", label: "Em entrega" },
+  { value: "awaiting_pickup", label: "Aguardando retirada" },
   { value: "delivered", label: "Entregues" },
   { value: "active", label: "Ativos" },
   { value: "all", label: "Todos" },
@@ -121,7 +123,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   };
 
   const advance = async (o: Order) => {
-    const next = nextStatus[o.status];
+    const next = getNextStatus(o.status, o.order_type);
     if (!next) return;
     const prevStatus = o.status;
     patchOrder(o.id, { status: next }); // optimistic
@@ -163,6 +165,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     pending: orders.filter((o) => o.status === "pending").length,
     preparing: orders.filter((o) => o.status === "preparing").length,
     out_for_delivery: orders.filter((o) => o.status === "out_for_delivery").length,
+    awaiting_pickup: orders.filter((o) => o.status === "awaiting_pickup").length,
     delivered: orders.filter((o) => o.status === "delivered").length,
     active: orders.filter((o) => !["delivered", "cancelled"].includes(o.status)).length,
     all: orders.length,
@@ -195,9 +198,18 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
         <Card><CardContent className="py-12 text-center text-muted-foreground">Nenhum pedido nesta categoria.</CardContent></Card>
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
-          {filtered.map((o) => (
+          {filtered.map((o) => {
+            const isPickup = o.order_type === "pickup";
+            const next = getNextStatus(o.status, o.order_type);
+            return (
             <Card key={o.id} className="shadow-soft">
               <CardContent className="pt-5 space-y-3">
+                {/* Tipo do pedido — destaque no topo */}
+                <div className={`-mt-2 -mx-1 px-3 py-1.5 rounded-md flex items-center gap-2 text-xs font-semibold ${isPickup ? "bg-accent/20 text-accent-foreground border border-accent/40" : "bg-primary/10 text-primary border border-primary/20"}`}>
+                  {isPickup ? <Store className="w-3.5 h-3.5" /> : <Bike className="w-3.5 h-3.5" />}
+                  {orderTypeLabel[o.order_type] ?? "Delivery"}
+                </div>
+
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <div className="font-semibold flex items-center gap-2"><User className="w-4 h-4" />{o.customer_name}</div>
@@ -212,14 +224,21 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                   <Badge className={statusColor(o.status)}>{orderStatusLabel[o.status]}</Badge>
                 </div>
 
-                <div className="text-sm flex gap-2">
-                  <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground" />
-                  <div>
-                    {o.address_street}, {o.address_number} {o.address_complement && `- ${o.address_complement}`}<br />
-                    <span className="text-muted-foreground">{o.address_neighborhood} • {o.address_city}</span>
-                    {o.address_notes && <div className="text-xs italic text-muted-foreground mt-0.5">"{o.address_notes}"</div>}
+                {isPickup ? (
+                  <div className="text-sm flex gap-2 bg-accent/10 rounded-md p-2">
+                    <Store className="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground" />
+                    <div className="text-muted-foreground italic">Retirada na loja — cliente irá buscar.</div>
                   </div>
-                </div>
+                ) : (
+                  <div className="text-sm flex gap-2">
+                    <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground" />
+                    <div>
+                      {o.address_street}, {o.address_number} {o.address_complement && `- ${o.address_complement}`}<br />
+                      <span className="text-muted-foreground">{o.address_neighborhood} • {o.address_city}</span>
+                      {o.address_notes && <div className="text-xs italic text-muted-foreground mt-0.5">"{o.address_notes}"</div>}
+                    </div>
+                  </div>
+                )}
 
                 <div className="border-t pt-3 space-y-1 text-sm">
                   {(items[o.id] ?? []).map((it) => (
@@ -240,9 +259,9 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
 
                 {!["delivered", "cancelled"].includes(o.status) && (
                   <div className="flex gap-2 pt-1">
-                    {nextStatus[o.status] && (
+                    {next && (
                       <Button size="sm" className="flex-1" onClick={() => advance(o)}>
-                        {o.status === "pending" ? "✓ Aceitar pedido" : `→ ${orderStatusLabel[nextStatus[o.status]!]}`}
+                        {o.status === "pending" ? "✓ Aceitar pedido" : `→ ${orderStatusLabel[next]}`}
                       </Button>
                     )}
                     <Button size="sm" variant="outline" onClick={() => setCancelTarget(o)} aria-label="Cancelar pedido"><X className="w-4 h-4" /></Button>
@@ -250,7 +269,8 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                 )}
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </div>
       )}
 

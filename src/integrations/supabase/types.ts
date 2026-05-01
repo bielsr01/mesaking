@@ -173,14 +173,14 @@ export type Database = {
       }
       orders: {
         Row: {
-          address_cep: string
-          address_city: string
+          address_cep: string | null
+          address_city: string | null
           address_complement: string | null
-          address_neighborhood: string
+          address_neighborhood: string | null
           address_notes: string | null
-          address_number: string
-          address_state: string
-          address_street: string
+          address_number: string | null
+          address_state: string | null
+          address_street: string | null
           change_for: number | null
           created_at: string
           customer_name: string
@@ -190,6 +190,7 @@ export type Database = {
           delivery_latitude: number | null
           delivery_longitude: number | null
           id: string
+          order_type: Database["public"]["Enums"]["order_type"]
           payment_method: Database["public"]["Enums"]["payment_method"]
           public_token: string
           restaurant_id: string
@@ -199,14 +200,14 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          address_cep: string
-          address_city: string
+          address_cep?: string | null
+          address_city?: string | null
           address_complement?: string | null
-          address_neighborhood: string
+          address_neighborhood?: string | null
           address_notes?: string | null
-          address_number: string
-          address_state: string
-          address_street: string
+          address_number?: string | null
+          address_state?: string | null
+          address_street?: string | null
           change_for?: number | null
           created_at?: string
           customer_name: string
@@ -216,6 +217,7 @@ export type Database = {
           delivery_latitude?: number | null
           delivery_longitude?: number | null
           id?: string
+          order_type?: Database["public"]["Enums"]["order_type"]
           payment_method: Database["public"]["Enums"]["payment_method"]
           public_token?: string
           restaurant_id: string
@@ -225,14 +227,14 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          address_cep?: string
-          address_city?: string
+          address_cep?: string | null
+          address_city?: string | null
           address_complement?: string | null
-          address_neighborhood?: string
+          address_neighborhood?: string | null
           address_notes?: string | null
-          address_number?: string
-          address_state?: string
-          address_street?: string
+          address_number?: string | null
+          address_state?: string | null
+          address_street?: string | null
           change_for?: number | null
           created_at?: string
           customer_name?: string
@@ -242,6 +244,7 @@ export type Database = {
           delivery_latitude?: number | null
           delivery_longitude?: number | null
           id?: string
+          order_type?: Database["public"]["Enums"]["order_type"]
           payment_method?: Database["public"]["Enums"]["payment_method"]
           public_token?: string
           restaurant_id?: string
@@ -522,6 +525,8 @@ export type Database = {
         | "out_for_delivery"
         | "delivered"
         | "cancelled"
+        | "awaiting_pickup"
+      order_type: "delivery" | "pickup"
       payment_method: "cash" | "pix" | "card_on_delivery"
     }
     CompositeTypes: {
@@ -658,7 +663,9 @@ export const Constants = {
         "out_for_delivery",
         "delivered",
         "cancelled",
+        "awaiting_pickup",
       ],
+      order_type: ["delivery", "pickup"],
       payment_method: ["cash", "pix", "card_on_delivery"],
     },
   },
