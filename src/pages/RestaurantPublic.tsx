@@ -139,6 +139,7 @@ export default function RestaurantPublic() {
   const navRef = useRef<HTMLDivElement | null>(null);
   const navItemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const [activeCat, setActiveCat] = useState<string>("");
+  const [scrolled, setScrolled] = useState(false);
   const isScrollingRef = useRef(false);
 
   useEffect(() => {
