@@ -173,7 +173,7 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
   const goBack = () => {
     if (isPickup && step === 3) { setStep(1); return; }
     if (step === 1) { onOpenChange(false); return; } // volta para o carrinho
-    setStep((s) => Math.max(1, (s - 1) as Step));
+    setStep((s) => (Math.max(1, s - 1) as Step));
   };
 
   const submit = async () => {
