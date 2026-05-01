@@ -1,19 +1,19 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChefHat, ExternalLink, LogOut, ShoppingBag, DollarSign, TrendingUp } from "lucide-react";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { ExternalLink, LogOut, ShoppingBag, DollarSign, TrendingUp, Construction } from "lucide-react";
 import { brl } from "@/lib/format";
 import { OrdersPanel, fetchOrders, ordersKey } from "@/components/dashboard/OrdersPanel";
 import { MenuManager, fetchCategories, fetchProducts, menuKeys } from "@/components/dashboard/MenuManager";
 import { StoreSettings } from "@/components/dashboard/StoreSettings";
-
 import { StoreOpenToggle } from "@/components/dashboard/StoreOpenToggle";
+import { AppSidebar, DashboardView } from "@/components/dashboard/AppSidebar";
 import { ManualOverride, OpeningHours } from "@/lib/hours";
 
 interface Restaurant {
@@ -54,6 +54,7 @@ export default function ManagerDashboard() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { user, signOut, isMasterAdmin } = useAuth();
+  const [view, setView] = useState<DashboardView>("orders");
 
   const { data: restaurant, isLoading: loadingRest } = useQuery({
     queryKey: ["managerRestaurant", user?.id],
@@ -69,7 +70,6 @@ export default function ManagerDashboard() {
     staleTime: 15_000,
   });
 
-  // Prefetch all tabs data as soon as we know the restaurant — eliminates blank tab on first click.
   useEffect(() => {
     if (!restaurant?.id) return;
     qc.prefetchQuery({ queryKey: ordersKey(restaurant.id), queryFn: () => fetchOrders(restaurant.id) });
@@ -77,7 +77,6 @@ export default function ManagerDashboard() {
     qc.prefetchQuery({ queryKey: menuKeys.products(restaurant.id), queryFn: () => fetchProducts(restaurant.id) });
   }, [restaurant?.id, qc]);
 
-  // Keep stats live
   useEffect(() => {
     if (!restaurant?.id) return;
     const ch = supabase.channel(`stats-${restaurant.id}`)
@@ -92,20 +91,8 @@ export default function ManagerDashboard() {
 
   if (loadingRest) {
     return (
-      <div className="min-h-screen bg-muted/30">
-        <header className="bg-background border-b sticky top-0 z-30">
-          <div className="container h-16 flex items-center justify-between gap-4">
-            <Skeleton className="h-8 w-40" />
-            <Skeleton className="h-8 w-32" />
-          </div>
-        </header>
-        <main className="container py-6 space-y-4">
-          <Skeleton className="h-10 w-80" />
-          <div className="grid gap-4 md:grid-cols-3">
-            <Skeleton className="h-24" /><Skeleton className="h-24" /><Skeleton className="h-24" />
-          </div>
-          <Skeleton className="h-64" />
-        </main>
+      <div className="min-h-screen grid place-items-center">
+        <Skeleton className="h-10 w-40" />
       </div>
     );
   }
@@ -124,64 +111,90 @@ export default function ManagerDashboard() {
     );
   }
 
+  const titleByView: Record<DashboardView, string> = {
+    overview: "Visão geral",
+    orders: "Pedidos",
+    menu: "Cardápio",
+    "settings:business": "Informações do negócio",
+    "settings:printers": "Impressões",
+    "settings:integrations": "Integrações",
+  };
+
   return (
-    <div className="min-h-screen bg-muted/30">
-      <header className="bg-background border-b sticky top-0 z-30">
-        <div className="container h-16 flex items-center justify-between gap-4">
-          <Link to="/" className="flex items-center gap-2 font-bold">
-            <div className="w-9 h-9 rounded-lg bg-gradient-primary flex items-center justify-center">
-              <ChefHat className="w-5 h-5 text-primary-foreground" />
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-muted/30">
+        <AppSidebar active={view} onChange={setView} />
+
+        <div className="flex-1 flex flex-col min-w-0">
+          <header className="bg-background border-b sticky top-0 z-30">
+            <div className="h-16 px-4 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2 min-w-0">
+                <SidebarTrigger />
+                <div className="min-w-0">
+                  <div className="font-semibold truncate">{titleByView[view]}</div>
+                  <div className="text-xs text-muted-foreground truncate">{restaurant.name}</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <StoreOpenToggle
+                  restaurantId={restaurant.id}
+                  openingHours={restaurant.opening_hours}
+                  manualOverride={restaurant.manual_override}
+                  onChanged={refetchRestaurant}
+                />
+                <Button asChild variant="outline" size="sm">
+                  <Link to={`/r/${restaurant.slug}`} target="_blank">
+                    <ExternalLink className="w-4 h-4 sm:mr-1" />
+                    <span className="hidden sm:inline">Ver cardápio</span>
+                  </Link>
+                </Button>
+                <Button variant="ghost" size="sm" onClick={signOut}><LogOut className="w-4 h-4" /></Button>
+              </div>
             </div>
-            <span className="hidden sm:inline">MesaPro</span>
-          </Link>
-          <div className="flex items-center gap-3">
-            <span className="hidden md:inline text-sm font-medium">{restaurant.name}</span>
-            <StoreOpenToggle
-              restaurantId={restaurant.id}
-              openingHours={restaurant.opening_hours}
-              manualOverride={restaurant.manual_override}
-              onChanged={refetchRestaurant}
-            />
-            <Button asChild variant="outline" size="sm"><Link to={`/r/${restaurant.slug}`} target="_blank"><ExternalLink className="w-4 h-4 mr-1" />Ver cardápio</Link></Button>
-            <Button variant="ghost" size="sm" onClick={signOut}><LogOut className="w-4 h-4" /></Button>
-          </div>
+          </header>
+
+          <main className="flex-1 p-4 sm:p-6">
+            {view === "overview" && (
+              <div className="grid gap-4 md:grid-cols-3">
+                <StatCard icon={ShoppingBag} label="Pedidos hoje" value={(stats?.orders ?? 0).toString()} />
+                <StatCard icon={DollarSign} label="Faturamento hoje" value={brl(stats?.revenue ?? 0)} />
+                <StatCard icon={TrendingUp} label="Ticket médio" value={brl(stats?.avg ?? 0)} />
+              </div>
+            )}
+
+            {view === "orders" && <OrdersPanel restaurantId={restaurant.id} />}
+
+            {view === "menu" && <MenuManager restaurantId={restaurant.id} />}
+
+            {view === "settings:business" && (
+              <StoreSettings
+                restaurant={restaurant}
+                onUpdated={refetchRestaurant}
+              />
+            )}
+
+            {view === "settings:printers" && <EmptyState title="Impressões" />}
+            {view === "settings:integrations" && <EmptyState title="Integrações" />}
+          </main>
         </div>
-      </header>
+      </div>
+    </SidebarProvider>
+  );
+}
 
-      <main className="container py-6">
-        <Tabs defaultValue="orders">
-          <TabsList className="mb-6">
-            <TabsTrigger value="overview">Visão geral</TabsTrigger>
-            <TabsTrigger value="orders">Pedidos</TabsTrigger>
-            <TabsTrigger value="menu">Cardápio</TabsTrigger>
-            <TabsTrigger value="settings">Configurações</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" forceMount className="space-y-4 data-[state=inactive]:hidden">
-            <div className="grid gap-4 md:grid-cols-3">
-              <StatCard icon={ShoppingBag} label="Pedidos hoje" value={(stats?.orders ?? 0).toString()} />
-              <StatCard icon={DollarSign} label="Faturamento hoje" value={brl(stats?.revenue ?? 0)} />
-              <StatCard icon={TrendingUp} label="Ticket médio" value={brl(stats?.avg ?? 0)} />
-            </div>
-          </TabsContent>
-
-          <TabsContent value="orders" forceMount className="data-[state=inactive]:hidden">
-            <OrdersPanel restaurantId={restaurant.id} />
-          </TabsContent>
-
-          <TabsContent value="menu" forceMount className="data-[state=inactive]:hidden">
-            <MenuManager restaurantId={restaurant.id} />
-          </TabsContent>
-
-          <TabsContent value="settings" forceMount className="data-[state=inactive]:hidden">
-            <StoreSettings
-              restaurant={restaurant}
-              onUpdated={() => qc.invalidateQueries({ queryKey: ["managerRestaurant", user?.id] })}
-            />
-          </TabsContent>
-        </Tabs>
-      </main>
-    </div>
+function EmptyState({ title }: { title: string }) {
+  return (
+    <Card>
+      <CardContent className="py-16 flex flex-col items-center justify-center text-center gap-3">
+        <div className="w-14 h-14 rounded-2xl bg-accent text-accent-foreground grid place-items-center">
+          <Construction className="w-7 h-7" />
+        </div>
+        <div>
+          <div className="text-lg font-semibold">{title}</div>
+          <p className="text-sm text-muted-foreground">Em breve. Esta seção ainda está em construção.</p>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
