@@ -15,9 +15,9 @@ import { brl } from "@/lib/format";
 import { Checkout } from "@/components/Checkout";
 import { ActiveOrderBanner } from "@/components/ActiveOrderBanner";
 import { Skeleton } from "@/components/ui/skeleton";
-import { isOpenNow } from "@/lib/hours";
+import { isOpenNow, ManualOverride } from "@/lib/hours";
 
-interface Restaurant { id: string; name: string; slug: string; description: string | null; logo_url: string | null; is_open: boolean; phone: string | null; opening_hours: any; latitude: number | null; longitude: number | null; delivery_zones: any; }
+interface Restaurant { id: string; name: string; slug: string; description: string | null; logo_url: string | null; is_open: boolean; phone: string | null; opening_hours: any; latitude: number | null; longitude: number | null; delivery_zones: any; manual_override: ManualOverride; }
 interface Category { id: string; name: string; sort_order: number; }
 interface Product { id: string; name: string; description: string | null; price: number; image_url: string | null; category_id: string | null; }
 
