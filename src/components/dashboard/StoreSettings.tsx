@@ -210,6 +210,8 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
       facebook_url: full.facebook_url || null,
       service_delivery: full.service_delivery ?? true,
       service_pickup: full.service_pickup ?? false,
+      delivery_fee_mode: feeMode,
+      delivery_fixed_fee: feeMode === "fixed" ? fixedFee : 0,
     };
     if (logo_url !== undefined) update.logo_url = logo_url;
     if (cover_url !== undefined) update.cover_url = cover_url;
