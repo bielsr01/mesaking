@@ -78,6 +78,7 @@ export function OptionGroupsManager({ restaurantId }: { restaurantId: string }) 
 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<OptionGroup | null>(null);
+  const [linkingGroup, setLinkingGroup] = useState<OptionGroup | null>(null);
 
   const openNew = () => { setEditing(null); setOpen(true); };
   const openEdit = (g: OptionGroup) => { setEditing(g); setOpen(true); };
