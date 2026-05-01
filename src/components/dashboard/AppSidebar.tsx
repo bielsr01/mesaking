@@ -53,9 +53,13 @@ const settingsItems: { id: DashboardView; title: string; icon: any }[] = [
 export function AppSidebar({
   active,
   onChange,
+  ordersBadge = 0,
+  ordersBlinking = false,
 }: {
   active: DashboardView;
   onChange: (v: DashboardView) => void;
+  ordersBadge?: number;
+  ordersBlinking?: boolean;
 }) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
