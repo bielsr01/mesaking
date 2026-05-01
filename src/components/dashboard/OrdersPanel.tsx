@@ -37,11 +37,11 @@ interface Item {
 }
 
 const FILTERS = [
-  { value: "active", label: "Ativos" },
   { value: "pending", label: "Novos" },
   { value: "preparing", label: "Em preparo" },
   { value: "out_for_delivery", label: "Em entrega" },
   { value: "delivered", label: "Entregues" },
+  { value: "active", label: "Ativos" },
   { value: "all", label: "Todos" },
 ];
 
@@ -66,7 +66,7 @@ export async function fetchOrders(restaurantId: string): Promise<{ orders: Order
 
 export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const qc = useQueryClient();
-  const [filter, setFilter] = useState("active");
+  const [filter, setFilter] = useState("pending");
 
   const { data, isLoading } = useQuery({
     queryKey: ordersKey(restaurantId),
@@ -83,6 +83,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` }, () => {
         toast.success("Novo pedido recebido!");
         try { new Audio("data:audio/wav;base64,UklGRl9vAAA=").play().catch(() => {}); } catch {}
+        setFilter("pending"); // auto-switch to new orders tab
         qc.invalidateQueries({ queryKey: ordersKey(restaurantId) });
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` }, (payload) => {
@@ -153,11 +154,30 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     return "bg-primary text-primary-foreground";
   };
 
+  const counts: Record<string, number> = {
+    pending: orders.filter((o) => o.status === "pending").length,
+    preparing: orders.filter((o) => o.status === "preparing").length,
+    out_for_delivery: orders.filter((o) => o.status === "out_for_delivery").length,
+    delivered: orders.filter((o) => o.status === "delivered").length,
+    active: orders.filter((o) => !["delivered", "cancelled"].includes(o.status)).length,
+    all: orders.length,
+  };
+
   return (
     <div className="space-y-4">
       <Tabs value={filter} onValueChange={setFilter}>
         <TabsList className="flex-wrap h-auto">
-          {FILTERS.map((f) => <TabsTrigger key={f.value} value={f.value}>{f.label}</TabsTrigger>)}
+          {FILTERS.map((f) => (
+            <TabsTrigger key={f.value} value={f.value} className="gap-2">
+              {f.label}
+              <Badge
+                variant={f.value === "pending" && counts[f.value] > 0 ? "destructive" : "secondary"}
+                className="h-5 min-w-5 px-1.5 text-xs"
+              >
+                {counts[f.value] ?? 0}
+              </Badge>
+            </TabsTrigger>
+          ))}
         </TabsList>
       </Tabs>
 
@@ -214,7 +234,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                   <div className="flex gap-2 pt-1">
                     {nextStatus[o.status] && (
                       <Button size="sm" className="flex-1" onClick={() => advance(o)}>
-                        → {orderStatusLabel[nextStatus[o.status]!]}
+                        {o.status === "pending" ? "✓ Aceitar pedido" : `→ ${orderStatusLabel[nextStatus[o.status]!]}`}
                       </Button>
                     )}
                     <Button size="sm" variant="outline" onClick={() => cancel(o)}><X className="w-4 h-4" /></Button>
