@@ -61,7 +61,14 @@ export default function MasterAdmin() {
     });
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    const ch = supabase.channel("admin-restaurants")
+      .on("postgres_changes", { event: "*", schema: "public", table: "restaurants" }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => load())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, []);
 
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -96,9 +103,13 @@ export default function MasterAdmin() {
   };
 
   const toggleOpen = async (r: Restaurant) => {
+    // optimistic
+    setRestaurants((prev) => prev.map((x) => (x.id === r.id ? { ...x, is_open: !r.is_open } : x)));
     const { error } = await supabase.from("restaurants").update({ is_open: !r.is_open }).eq("id", r.id);
-    if (error) return toast.error(error.message);
-    load();
+    if (error) {
+      setRestaurants((prev) => prev.map((x) => (x.id === r.id ? { ...x, is_open: r.is_open } : x)));
+      toast.error(error.message);
+    }
   };
 
   const handleDelete = async (r: Restaurant) => {
