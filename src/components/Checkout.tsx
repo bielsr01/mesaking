@@ -186,7 +186,6 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
       order_type: orderType,
       customer_name: name.trim(),
       customer_phone: formatPhone(phone),
-      customer_cpf: onlyDigits(cpf),
       payment_method: payment,
       change_for: payment === "cash" && changeFor ? Number(changeFor) : null,
       subtotal,
