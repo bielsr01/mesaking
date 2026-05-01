@@ -33,3 +33,21 @@ export const slugify = (s: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "")
     .slice(0, 60);
+
+/**
+ * Aplica máscara de telefone brasileiro: (XX) XXXXX-XXXX (celular) ou (XX) XXXX-XXXX (fixo).
+ * Aceita qualquer entrada, ignora não-dígitos, retorna parcial enquanto digita.
+ */
+export const formatPhone = (input: string | null | undefined): string => {
+  if (!input) return "";
+  const d = String(input).replace(/\D/g, "").slice(0, 11);
+  if (d.length === 0) return "";
+  if (d.length <= 2) return `(${d}`;
+  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7, 11)}`;
+};
+
+/** Remove a máscara, devolvendo apenas dígitos. */
+export const unmaskPhone = (input: string | null | undefined): string =>
+  String(input ?? "").replace(/\D/g, "");

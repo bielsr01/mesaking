@@ -9,14 +9,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { brl } from "@/lib/format";
+import { brl, formatPhone, unmaskPhone } from "@/lib/format";
 import { toast } from "sonner";
 import { DeliveryZone, GeoPoint, findDeliveryFee, geocodeAddress, haversineKm } from "@/lib/delivery";
 import { Loader2, MapPin } from "lucide-react";
 
 const schema = z.object({
   customer_name: z.string().trim().min(2, "Informe seu nome").max(80),
-  customer_phone: z.string().trim().min(8, "Telefone inválido").max(20),
+  customer_phone: z.string().trim().refine((v) => unmaskPhone(v).length >= 10, "Telefone inválido").transform((v) => formatPhone(v)),
   address_cep: z.string().trim().regex(/^\d{5}-?\d{3}$/, "CEP inválido"),
   address_street: z.string().trim().min(2).max(120),
   address_number: z.string().trim().min(1).max(10),
@@ -40,6 +40,7 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
   const cart = useCart();
   const [busy, setBusy] = useState(false);
   const [cep, setCep] = useState("");
+  const [phone, setPhone] = useState("");
   const [addr, setAddr] = useState({ street: "", number: "", neighborhood: "", city: "", state: "" });
   const [payment, setPayment] = useState<"cash" | "pix" | "card_on_delivery">("cash");
 
@@ -159,7 +160,7 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
         <form onSubmit={submit} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2 col-span-2"><Label>Nome</Label><Input name="customer_name" required /></div>
-            <div className="space-y-2 col-span-2"><Label>Telefone</Label><Input name="customer_phone" placeholder="(11) 99999-0000" required /></div>
+            <div className="space-y-2 col-span-2"><Label>Telefone</Label><Input name="customer_phone" value={phone} onChange={(e) => setPhone(formatPhone(e.target.value))} placeholder="(11) 99999-0000" inputMode="tel" required /></div>
           </div>
 
           <div className="border-t pt-3 space-y-3">

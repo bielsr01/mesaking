@@ -10,7 +10,7 @@ import { Trash2, Plus, MapPin, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { DAY_LABELS, defaultHours, OpeningHours } from "@/lib/hours";
 import { DeliveryZone, geocodeAddress } from "@/lib/delivery";
-import { brl } from "@/lib/format";
+import { brl, formatPhone } from "@/lib/format";
 
 type Restaurant = {
   id: string; name: string; slug: string;
@@ -131,7 +131,7 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
         <CardContent className="space-y-4">
           <div className="grid sm:grid-cols-2 gap-3">
             <div className="space-y-2"><Label>Nome</Label><Input value={full.name || ""} onChange={(e) => setFull({ ...full, name: e.target.value })} required /></div>
-            <div className="space-y-2"><Label>Telefone</Label><Input value={full.phone || ""} onChange={(e) => setFull({ ...full, phone: e.target.value })} placeholder="(11) 99999-0000" /></div>
+            <div className="space-y-2"><Label>Telefone</Label><Input value={formatPhone(full.phone || "")} onChange={(e) => setFull({ ...full, phone: formatPhone(e.target.value) })} placeholder="(11) 99999-0000" inputMode="tel" /></div>
           </div>
           <div className="space-y-2"><Label>Descrição</Label><Textarea value={full.description || ""} onChange={(e) => setFull({ ...full, description: e.target.value })} rows={2} /></div>
           <div className="space-y-2"><Label>Logo</Label><Input name="logo" type="file" accept="image/*" /></div>
