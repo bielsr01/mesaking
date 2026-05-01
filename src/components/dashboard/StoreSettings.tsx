@@ -116,6 +116,8 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
       longitude: full.longitude ?? null,
       opening_hours: hours,
       delivery_zones: cleanZones,
+      delivery_time_min: full.delivery_time_min ?? null,
+      delivery_time_max: full.delivery_time_max ?? null,
     };
     if (logo_url !== undefined) update.logo_url = logo_url;
 
