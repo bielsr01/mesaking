@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/hooks/useCart";
+import { setActiveOrder } from "@/components/ActiveOrderBanner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +28,6 @@ const schema = z.object({
 });
 
 export function Checkout({ open, onOpenChange, restaurantId }: { open: boolean; onOpenChange: (o: boolean) => void; restaurantId: string }) {
-  const navigate = useNavigate();
   const cart = useCart();
   const [busy, setBusy] = useState(false);
   const [cep, setCep] = useState("");
@@ -91,8 +90,8 @@ export function Checkout({ open, onOpenChange, restaurantId }: { open: boolean; 
     cart.clear();
     setBusy(false);
     onOpenChange(false);
-    toast.success("Pedido enviado!");
-    navigate(`/pedido/${order.public_token}`);
+    setActiveOrder(restaurantId, order.public_token);
+    toast.success("Pedido enviado! Acompanhe o status no topo da tela.");
   };
 
   return (

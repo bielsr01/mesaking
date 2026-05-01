@@ -13,6 +13,7 @@ import { ShoppingCart, Plus, Minus, Image as ImageIcon, Trash2 } from "lucide-re
 import { useCart } from "@/hooks/useCart";
 import { brl } from "@/lib/format";
 import { Checkout } from "@/components/Checkout";
+import { ActiveOrderBanner } from "@/components/ActiveOrderBanner";
 
 interface Restaurant { id: string; name: string; slug: string; description: string | null; logo_url: string | null; is_open: boolean; phone: string | null; }
 interface Category { id: string; name: string; sort_order: number; }
@@ -62,6 +63,8 @@ export default function RestaurantPublic() {
 
   return (
     <div className="min-h-screen pb-24">
+      <ActiveOrderBanner restaurantId={restaurant.id} />
+
       <header className="bg-gradient-warm text-primary-foreground">
         <div className="container py-8 flex items-center gap-4">
           {restaurant.logo_url ? (
