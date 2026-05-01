@@ -17,34 +17,70 @@ export type GeocodeAddress = {
 const NOMINATIM = "https://nominatim.openstreetmap.org/search";
 
 export async function geocodeAddress(addr: GeocodeAddress): Promise<GeoPoint | null> {
-  // Estratégia 1: cep (mais preciso no Brasil quando válido no OSM)
-  if (addr.cep) {
-    const cleanCep = addr.cep.replace(/\D/g, "");
-    if (cleanCep.length === 8) {
-      const url = `${NOMINATIM}?postalcode=${cleanCep}&country=Brazil&format=json&limit=1`;
-      const r = await tryFetch(url);
-      if (r) return r;
-    }
+  const cleanCep = addr.cep ? addr.cep.replace(/\D/g, "") : "";
+
+  // Estratégia 1: Endereço estruturado completo (mais preciso)
+  if (addr.street && addr.city) {
+    const params = new URLSearchParams({
+      street: [addr.number, addr.street].filter(Boolean).join(" "),
+      city: addr.city,
+      country: "Brazil",
+      format: "json",
+      limit: "1",
+      addressdetails: "0",
+    });
+    if (addr.state) params.set("state", addr.state);
+    if (cleanCep.length === 8) params.set("postalcode", cleanCep);
+    const r = await tryFetch(`${NOMINATIM}?${params.toString()}`);
+    if (r) return r;
   }
-  // Estratégia 2: rua + numero + cidade + uf
-  const parts = [
+
+  // Estratégia 2: rua + número + bairro + cidade + UF como query livre
+  const fullParts = [
     addr.street && addr.number ? `${addr.street}, ${addr.number}` : addr.street,
     addr.neighborhood,
     addr.city,
     addr.state,
     "Brasil",
   ].filter(Boolean).join(", ");
-  if (parts) {
-    const url = `${NOMINATIM}?q=${encodeURIComponent(parts)}&format=json&limit=1`;
-    const r = await tryFetch(url);
+  if (fullParts) {
+    const r = await tryFetch(`${NOMINATIM}?q=${encodeURIComponent(fullParts)}&format=json&limit=1`);
     if (r) return r;
   }
+
+  // Estratégia 3: rua + cidade + UF (sem número, sem bairro — pega a rua inteira)
+  if (addr.street && addr.city) {
+    const ruaOnly = [addr.street, addr.city, addr.state, "Brasil"].filter(Boolean).join(", ");
+    const r = await tryFetch(`${NOMINATIM}?q=${encodeURIComponent(ruaOnly)}&format=json&limit=1`);
+    if (r) return r;
+  }
+
+  // Estratégia 4: bairro + cidade + UF (aproximação por bairro)
+  if (addr.neighborhood && addr.city) {
+    const bairro = [addr.neighborhood, addr.city, addr.state, "Brasil"].filter(Boolean).join(", ");
+    const r = await tryFetch(`${NOMINATIM}?q=${encodeURIComponent(bairro)}&format=json&limit=1`);
+    if (r) return r;
+  }
+
+  // Estratégia 5: CEP isolado (Nominatim aceita postalcode)
+  if (cleanCep.length === 8) {
+    const r = await tryFetch(`${NOMINATIM}?postalcode=${cleanCep}&country=Brazil&format=json&limit=1`);
+    if (r) return r;
+  }
+
+  // Estratégia 6: cidade + UF (último recurso, aproximação grosseira pelo centro da cidade)
+  if (addr.city) {
+    const cidade = [addr.city, addr.state, "Brasil"].filter(Boolean).join(", ");
+    const r = await tryFetch(`${NOMINATIM}?q=${encodeURIComponent(cidade)}&format=json&limit=1`);
+    if (r) return r;
+  }
+
   return null;
 }
 
 async function tryFetch(url: string): Promise<GeoPoint | null> {
   try {
-    const res = await fetch(url, { headers: { "Accept": "application/json" } });
+    const res = await fetch(url, { headers: { "Accept": "application/json", "Accept-Language": "pt-BR" } });
     if (!res.ok) return null;
     const arr = await res.json();
     if (!Array.isArray(arr) || arr.length === 0) return null;
