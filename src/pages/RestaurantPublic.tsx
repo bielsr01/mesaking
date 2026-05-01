@@ -15,8 +15,9 @@ import { brl } from "@/lib/format";
 import { Checkout } from "@/components/Checkout";
 import { ActiveOrderBanner } from "@/components/ActiveOrderBanner";
 import { Skeleton } from "@/components/ui/skeleton";
+import { isOpenNow } from "@/lib/hours";
 
-interface Restaurant { id: string; name: string; slug: string; description: string | null; logo_url: string | null; is_open: boolean; phone: string | null; }
+interface Restaurant { id: string; name: string; slug: string; description: string | null; logo_url: string | null; is_open: boolean; phone: string | null; opening_hours: any; latitude: number | null; longitude: number | null; delivery_zones: any; }
 interface Category { id: string; name: string; sort_order: number; }
 interface Product { id: string; name: string; description: string | null; price: number; image_url: string | null; category_id: string | null; }
 
@@ -132,7 +133,7 @@ export default function RestaurantPublic() {
             <h1 className="text-3xl font-bold">{restaurant.name}</h1>
             {restaurant.description && <p className="opacity-90 text-sm mt-1">{restaurant.description}</p>}
             <div className="mt-2">
-              {restaurant.is_open
+              {isOpenNow(restaurant.opening_hours)
                 ? <Badge className="bg-success text-success-foreground">Aberto agora</Badge>
                 : <Badge variant="secondary">Fechado no momento</Badge>}
             </div>
@@ -200,8 +201,8 @@ export default function RestaurantPublic() {
           </div>
           <div className="border-t pt-4 space-y-3">
             <div className="flex justify-between font-bold text-lg"><span>Total</span><span>{brl(cart.total)}</span></div>
-            {!restaurant.is_open && <p className="text-sm text-destructive text-center">Loja fechada — não é possível finalizar.</p>}
-            <Button className="w-full" size="lg" disabled={cart.items.length === 0 || !restaurant.is_open} onClick={() => { setCartOpen(false); setCheckoutOpen(true); }}>
+            {!isOpenNow(restaurant.opening_hours) && <p className="text-sm text-destructive text-center">Loja fechada — não é possível finalizar.</p>}
+            <Button className="w-full" size="lg" disabled={cart.items.length === 0 || !isOpenNow(restaurant.opening_hours)} onClick={() => { setCartOpen(false); setCheckoutOpen(true); }}>
               Finalizar pedido
             </Button>
           </div>
@@ -238,7 +239,7 @@ export default function RestaurantPublic() {
       <Checkout
         open={checkoutOpen}
         onOpenChange={setCheckoutOpen}
-        restaurantId={restaurant.id}
+        restaurant={restaurant}
       />
 
       <footer className="container py-6 text-center text-xs text-muted-foreground">
