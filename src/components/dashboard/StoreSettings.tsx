@@ -21,6 +21,8 @@ type Restaurant = {
   address_city?: string | null; address_state?: string | null;
   latitude?: number | null; longitude?: number | null;
   delivery_zones?: DeliveryZone[] | null;
+  delivery_time_min?: number | null;
+  delivery_time_max?: number | null;
 };
 
 export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restaurant; onUpdated: () => void }) {
