@@ -16,24 +16,30 @@ import { OrdersPanel, fetchOrders, ordersKey } from "@/components/dashboard/Orde
 import { MenuManager, fetchCategories, fetchProducts, menuKeys } from "@/components/dashboard/MenuManager";
 import { StoreSettings } from "@/components/dashboard/StoreSettings";
 
+import { StoreOpenToggle } from "@/components/dashboard/StoreOpenToggle";
+import { ManualOverride, OpeningHours } from "@/lib/hours";
+
 interface Restaurant {
   id: string;
   name: string;
   slug: string;
   is_open: boolean;
+  opening_hours: OpeningHours | null;
+  manual_override: ManualOverride;
 }
 
 async function fetchRestaurantForUser(userId: string, isMasterAdmin: boolean): Promise<Restaurant | null> {
-  let { data: own } = await supabase.from("restaurants").select("id,name,slug,is_open").eq("owner_id", userId).maybeSingle();
+  const cols = "id,name,slug,is_open,opening_hours,manual_override";
+  let { data: own } = await supabase.from("restaurants").select(cols).eq("owner_id", userId).maybeSingle();
   if (!own) {
     const { data: mem } = await supabase.from("restaurant_members").select("restaurant_id").eq("user_id", userId).maybeSingle();
     if (mem) {
-      const { data: r } = await supabase.from("restaurants").select("id,name,slug,is_open").eq("id", mem.restaurant_id).maybeSingle();
+      const { data: r } = await supabase.from("restaurants").select(cols).eq("id", mem.restaurant_id).maybeSingle();
       own = r ?? null;
     }
   }
   if (!own && isMasterAdmin) {
-    const { data: any } = await supabase.from("restaurants").select("id,name,slug,is_open").order("created_at", { ascending: false }).limit(1).maybeSingle();
+    const { data: any } = await supabase.from("restaurants").select(cols).order("created_at", { ascending: false }).limit(1).maybeSingle();
     own = any ?? null;
   }
   return own as Restaurant | null;
