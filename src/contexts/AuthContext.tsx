@@ -66,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         roles,
         loading,
         isMasterAdmin: roles.includes("master_admin"),
-        isManager: roles.includes("manager") || roles.includes("master_admin"),
+        isManager: roles.includes("manager"),
         signOut,
         refreshRoles,
       }}
