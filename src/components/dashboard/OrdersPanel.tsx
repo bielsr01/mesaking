@@ -165,6 +165,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     pending: orders.filter((o) => o.status === "pending").length,
     preparing: orders.filter((o) => o.status === "preparing").length,
     out_for_delivery: orders.filter((o) => o.status === "out_for_delivery").length,
+    awaiting_pickup: orders.filter((o) => o.status === "awaiting_pickup").length,
     delivered: orders.filter((o) => o.status === "delivered").length,
     active: orders.filter((o) => !["delivered", "cancelled"].includes(o.status)).length,
     all: orders.length,
