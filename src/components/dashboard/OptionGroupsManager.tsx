@@ -151,7 +151,123 @@ export function OptionGroupsManager({ restaurantId }: { restaurantId: string }) 
         existingItems={editing ? items.filter((i) => i.group_id === editing.id) : []}
         onSaved={reload}
       />
+
+      <LinkProductsDialog
+        group={linkingGroup}
+        restaurantId={restaurantId}
+        onClose={() => setLinkingGroup(null)}
+      />
     </div>
+  );
+}
+
+function LinkProductsDialog({
+  group, restaurantId, onClose,
+}: {
+  group: OptionGroup | null;
+  restaurantId: string;
+  onClose: () => void;
+}) {
+  const qc = useQueryClient();
+  const open = !!group;
+  const { data: products = [] } = useQuery({
+    queryKey: menuKeys.products(restaurantId),
+    queryFn: () => fetchProducts(restaurantId),
+    enabled: open,
+    staleTime: 30_000,
+  });
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [busy, setBusy] = useState(false);
+  const [filter, setFilter] = useState("");
+
+  useEffect(() => {
+    if (!group) { setSelected(new Set()); setFilter(""); return; }
+    (async () => {
+      const { data } = await supabase.from("product_option_groups").select("product_id").eq("group_id", group.id);
+      setSelected(new Set((data ?? []).map((r: any) => r.product_id)));
+    })();
+  }, [group]);
+
+  const toggle = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const filtered = products.filter((p) => p.name.toLowerCase().includes(filter.toLowerCase()));
+  const allFilteredSelected = filtered.length > 0 && filtered.every((p) => selected.has(p.id));
+  const toggleAllFiltered = () => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allFilteredSelected) filtered.forEach((p) => next.delete(p.id));
+      else filtered.forEach((p) => next.add(p.id));
+      return next;
+    });
+  };
+
+  const save = async () => {
+    if (!group) return;
+    setBusy(true);
+    try {
+      const { data: existing } = await supabase.from("product_option_groups").select("product_id").eq("group_id", group.id);
+      const existingIds = new Set((existing ?? []).map((r: any) => r.product_id));
+      const toAdd = [...selected].filter((id) => !existingIds.has(id));
+      const toRemove = [...existingIds].filter((id) => !selected.has(id));
+      if (toRemove.length) {
+        const { error } = await supabase.from("product_option_groups").delete().eq("group_id", group.id).in("product_id", toRemove);
+        if (error) throw error;
+      }
+      if (toAdd.length) {
+        const { error } = await supabase.from("product_option_groups").insert(toAdd.map((pid) => ({ group_id: group.id, product_id: pid })));
+        if (error) throw error;
+      }
+      qc.invalidateQueries({ queryKey: menuKeys.products(restaurantId) });
+      toast.success(`Vínculos atualizados (${selected.size} ${selected.size === 1 ? "produto" : "produtos"})`);
+      onClose();
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Vincular "{group?.name}" a produtos</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3 flex-1 overflow-hidden flex flex-col">
+          <Input placeholder="Buscar produto..." value={filter} onChange={(e) => setFilter(e.target.value)} />
+          {products.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-8 text-center">Nenhum produto cadastrado.</p>
+          ) : (
+            <>
+              <label className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted px-2 py-1.5 rounded border">
+                <input type="checkbox" checked={allFilteredSelected} onChange={toggleAllFiltered} />
+                <span className="font-medium">Selecionar todos {filter && "(filtrados)"}</span>
+                <span className="ml-auto text-xs text-muted-foreground">{selected.size} selecionado(s)</span>
+              </label>
+              <div className="flex-1 overflow-y-auto space-y-1 border rounded-md p-2">
+                {filtered.map((p) => (
+                  <label key={p.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted px-2 py-1.5 rounded">
+                    <input type="checkbox" checked={selected.has(p.id)} onChange={() => toggle(p.id)} />
+                    <span className="flex-1">{p.name}</span>
+                    <span className="text-xs text-muted-foreground">{brl(Number(p.price))}</span>
+                  </label>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button onClick={save} disabled={busy}>{busy ? "Salvando..." : "Salvar vínculos"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
