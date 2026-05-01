@@ -217,19 +217,6 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
             <div className="space-y-2"><Label>Cidade *</Label><Input value={full.address_city || ""} onChange={(e) => setFull({ ...full, address_city: e.target.value })} required /></div>
             <div className="space-y-2"><Label>UF *</Label><Input maxLength={2} value={full.address_state || ""} onChange={(e) => setFull({ ...full, address_state: e.target.value.toUpperCase() })} required /></div>
           </div>
-
-      <Card>
-        <CardHeader><CardTitle>Endereço do restaurante</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid grid-cols-3 gap-3">
-            <div className="space-y-2"><Label>CEP</Label><Input value={full.address_cep || ""} onChange={(e) => setFull({ ...full, address_cep: e.target.value })} onBlur={(e) => lookupCep(e.target.value)} placeholder="00000-000" /></div>
-            <div className="space-y-2 col-span-2"><Label>Rua</Label><Input value={full.address_street || ""} onChange={(e) => setFull({ ...full, address_street: e.target.value })} /></div>
-            <div className="space-y-2"><Label>Número</Label><Input value={full.address_number || ""} onChange={(e) => setFull({ ...full, address_number: e.target.value })} /></div>
-            <div className="space-y-2 col-span-2"><Label>Complemento</Label><Input value={full.address_complement || ""} onChange={(e) => setFull({ ...full, address_complement: e.target.value })} /></div>
-            <div className="space-y-2 col-span-2"><Label>Bairro</Label><Input value={full.address_neighborhood || ""} onChange={(e) => setFull({ ...full, address_neighborhood: e.target.value })} /></div>
-            <div className="space-y-2"><Label>Cidade</Label><Input value={full.address_city || ""} onChange={(e) => setFull({ ...full, address_city: e.target.value })} /></div>
-            <div className="space-y-2"><Label>UF</Label><Input maxLength={2} value={full.address_state || ""} onChange={(e) => setFull({ ...full, address_state: e.target.value.toUpperCase() })} /></div>
-          </div>
           <div className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/50">
             <div className="text-sm">
               <div className="font-medium flex items-center gap-1"><MapPin className="w-4 h-4" /> Coordenadas geográficas</div>
