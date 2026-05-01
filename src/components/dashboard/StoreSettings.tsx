@@ -34,6 +34,7 @@ type Restaurant = {
 
 export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restaurant; onUpdated: () => void }) {
   const [busy, setBusy] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const [full, setFull] = useState<Restaurant>(restaurant);
   const [hours, setHours] = useState<OpeningHours>(defaultHours());
   const [zones, setZones] = useState<DeliveryZone[]>([]);
