@@ -245,7 +245,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                         {o.status === "pending" ? "✓ Aceitar pedido" : `→ ${orderStatusLabel[nextStatus[o.status]!]}`}
                       </Button>
                     )}
-                    <Button size="sm" variant="outline" onClick={() => cancel(o)}><X className="w-4 h-4" /></Button>
+                    <Button size="sm" variant="outline" onClick={() => setCancelTarget(o)} aria-label="Cancelar pedido"><X className="w-4 h-4" /></Button>
                   </div>
                 )}
               </CardContent>
