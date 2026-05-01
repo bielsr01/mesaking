@@ -143,7 +143,7 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
     setBusy(true);
     const fd = new FormData(e.currentTarget);
     const logoFile = fd.get("logo") as File | null;
-    const coverFile = fd.get("cover") as File | null;
+    // capa vem do cropper (coverBlob), não mais do FormData
 
     let logo_url: string | null | undefined;
     if (logoFile && logoFile.size > 0) {
