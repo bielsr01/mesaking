@@ -75,6 +75,3 @@ export function useCart() {
     },
   };
 }
-
-// dummy export to satisfy eslint
-export const _create = create;
