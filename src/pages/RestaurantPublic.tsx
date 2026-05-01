@@ -4,21 +4,21 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ShoppingCart, Plus, Minus, Image as ImageIcon, Trash2 } from "lucide-react";
+import { ShoppingCart, Plus, Minus, Image as ImageIcon, Trash2, Info, MapPin, Clock, Bike, Store, Share2, MessageCircle, Instagram, Facebook } from "lucide-react";
 import { useCart, CartItemOption } from "@/hooks/useCart";
 import { brl } from "@/lib/format";
 import { Checkout } from "@/components/Checkout";
 import { ActiveOrderBanner } from "@/components/ActiveOrderBanner";
 import { Skeleton } from "@/components/ui/skeleton";
-import { isOpenNow, ManualOverride } from "@/lib/hours";
+import { isOpenNow, ManualOverride, DAY_LABELS } from "@/lib/hours";
 import { toast } from "sonner";
 
-interface Restaurant { id: string; name: string; slug: string; description: string | null; logo_url: string | null; cover_url: string | null; is_open: boolean; phone: string | null; opening_hours: any; latitude: number | null; longitude: number | null; delivery_zones: any; manual_override: ManualOverride; address_cep: string | null; address_street: string | null; address_number: string | null; address_complement: string | null; address_neighborhood: string | null; address_city: string | null; address_state: string | null; delivery_time_min: number | null; delivery_time_max: number | null; }
+interface Restaurant { id: string; name: string; slug: string; description: string | null; logo_url: string | null; cover_url: string | null; is_open: boolean; phone: string | null; opening_hours: any; latitude: number | null; longitude: number | null; delivery_zones: any; manual_override: ManualOverride; address_cep: string | null; address_street: string | null; address_number: string | null; address_complement: string | null; address_neighborhood: string | null; address_city: string | null; address_state: string | null; delivery_time_min: number | null; delivery_time_max: number | null; whatsapp_url: string | null; instagram_url: string | null; facebook_url: string | null; service_delivery: boolean | null; service_pickup: boolean | null; }
 interface Category { id: string; name: string; sort_order: number; }
 interface Product { id: string; name: string; description: string | null; price: number; image_url: string | null; category_id: string | null; }
 interface OptionGroup { id: string; name: string; min_select: number; max_select: number; sort_order: number; items: { id: string; name: string; extra_price: number }[]; }
@@ -139,7 +139,6 @@ export default function RestaurantPublic() {
   const navRef = useRef<HTMLDivElement | null>(null);
   const navItemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const [activeCat, setActiveCat] = useState<string>("");
-  const [scrolled, setScrolled] = useState(false);
   const isScrollingRef = useRef(false);
 
   useEffect(() => {
@@ -152,11 +151,8 @@ export default function RestaurantPublic() {
     let ticking = false;
     const update = () => {
       ticking = false;
-      const y = window.scrollY;
-      // Hysteresis para evitar flicker perto do limite
-      setScrolled((prev) => (prev ? y > 60 : y > 100));
       if (isScrollingRef.current) return;
-      const offset = 160; // header reduzido + nav
+      const offset = 80; // nav sticky no topo
       let current = "";
       for (const g of grouped) {
         const key = g.cat?.id ?? "_orphans";
@@ -194,7 +190,7 @@ export default function RestaurantPublic() {
     if (!el) return;
     isScrollingRef.current = true;
     setActiveCat(key);
-    const y = el.getBoundingClientRect().top + window.scrollY - 120;
+    const y = el.getBoundingClientRect().top + window.scrollY - 60;
     window.scrollTo({ top: y, behavior: "smooth" });
     setTimeout(() => { isScrollingRef.current = false; }, 700);
   };
@@ -280,82 +276,43 @@ export default function RestaurantPublic() {
 
   return (
     <div className="min-h-screen pb-24">
-      {/* Header fixo com altura constante (compacta o conteúdo interno ao rolar)
-          - Mantemos a altura do header fixa para evitar reflow no scroll mobile.
-          - A foto de capa fica num <div> absoluto atrás do conteúdo, evitando o
-            "flash" em que a imagem aparece maior que a tela antes de se ajustar. */}
-      <header
-        className="fixed top-0 left-0 right-0 z-40 text-primary-foreground shadow-md overflow-hidden bg-gradient-warm"
-        style={{
-          height: scrolled ? 56 : 148,
-          transition: "height 250ms ease",
-          willChange: "height",
-        }}
-      >
-        {restaurant.cover_url && (
-          <div
-            aria-hidden
-            className="absolute inset-0 -z-0"
-            style={{
-              backgroundImage: `url(${restaurant.cover_url})`,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              backgroundRepeat: "no-repeat",
-            }}
-          />
-        )}
-        <div className="relative z-10 container h-full flex items-center gap-3">
-          {restaurant.logo_url ? (
+      {/* Banner com foto de capa + logo central deslocada para baixo */}
+      <header className="relative">
+        <div className="relative w-full aspect-[16/7] sm:aspect-[16/5] overflow-hidden bg-gradient-warm">
+          {restaurant.cover_url && (
             <img
-              src={restaurant.logo_url}
-              alt={restaurant.name}
-              className={`object-cover border-background/20 transition-all duration-300 ${scrolled ? "w-9 h-9 rounded-lg border-2" : "w-20 h-20 rounded-2xl border-4"}`}
-              style={{ willChange: "width, height" }}
+              src={restaurant.cover_url}
+              alt={`Capa ${restaurant.name}`}
+              className="absolute inset-0 w-full h-full object-cover"
             />
-          ) : (
-            <div className={`bg-background/20 grid place-items-center font-bold transition-all duration-300 ${scrolled ? "w-9 h-9 text-base rounded-lg" : "w-20 h-20 text-3xl rounded-2xl"}`}>{restaurant.name[0]}</div>
           )}
-          <div className="flex-1 min-w-0">
-            <h1
-              className="font-bold truncate origin-left"
-              style={{
-                fontSize: "1.875rem", // text-3xl base
-                lineHeight: 1.15,
-                transform: scrolled ? "scale(0.55)" : "scale(1)",
-                transformOrigin: "left center",
-                transition: "transform 250ms ease",
-                willChange: "transform",
-              }}
-            >
-              {restaurant.name}
-            </h1>
-            <div
-              className="mt-2"
-              style={{
-                opacity: scrolled ? 0 : 1,
-                transform: scrolled ? "translateY(-4px)" : "translateY(0)",
-                transition: "opacity 200ms ease, transform 250ms ease",
-                pointerEvents: scrolled ? "none" : "auto",
-                willChange: "opacity, transform",
-              }}
-            >
-              {isOpenNow(restaurant.opening_hours, restaurant.manual_override)
-                ? <Badge className="bg-success text-success-foreground">Aberto agora</Badge>
-                : <Badge variant="secondary">Fechado no momento</Badge>}
-            </div>
+          {/* Badge aberto/fechado sobre a capa */}
+          <div className="absolute top-3 left-3 z-10">
+            {isOpenNow(restaurant.opening_hours, restaurant.manual_override)
+              ? <Badge className="bg-success text-success-foreground shadow">Aberto agora</Badge>
+              : <Badge variant="secondary" className="shadow">Fechado no momento</Badge>}
+          </div>
+        </div>
+
+        {/* Logo central, deslocada para baixo (sobreposta ao banner) */}
+        <div className="container relative">
+          <div className="flex justify-center -mt-10 sm:-mt-14">
+            {restaurant.logo_url ? (
+              <img
+                src={restaurant.logo_url}
+                alt={restaurant.name}
+                className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover border-4 border-background shadow-lg bg-background"
+              />
+            ) : (
+              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-primary text-primary-foreground grid place-items-center text-3xl font-bold border-4 border-background shadow-lg">
+                {restaurant.name[0]}
+              </div>
+            )}
           </div>
         </div>
       </header>
 
-      {/* Espaçador para compensar o header fixo (acompanha a altura do header) */}
-      <div
-        style={{
-          height: scrolled ? 56 : 148,
-          transition: "height 250ms ease",
-        }}
-      />
-
-      {/* Endereço + tempo de entrega — abaixo do cabeçalho, rola normalmente */}
+      {/* Nome + endereço + tempo */}
       {(() => {
         const addressLine = [
           restaurant.address_street,
@@ -371,29 +328,41 @@ export default function RestaurantPublic() {
         const timeLabel = hasTime
           ? (tmin != null && tmax != null ? `${tmin}–${tmax} min` : `${tmin ?? tmax} min`)
           : null;
-        if (!addressLine && !timeLabel) return null;
         return (
-          <div className="container py-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground border-b">
-            {addressLine && <span className="truncate">📍 {addressLine}</span>}
-            {timeLabel && (
-              <span>🕒 Entrega em <strong className="font-bold text-foreground">{timeLabel}</strong></span>
+          <div className="container pt-3 pb-4 text-center space-y-2">
+            <h1 className="text-2xl sm:text-3xl font-bold leading-tight">{restaurant.name}</h1>
+            {addressLine && (
+              <div className="flex items-center justify-center gap-1.5 text-sm text-muted-foreground">
+                <MapPin className="w-4 h-4 shrink-0" />
+                <span className="truncate">{addressLine}</span>
+              </div>
             )}
+            {timeLabel && (
+              <div className="flex items-center justify-center gap-1.5 text-sm text-muted-foreground">
+                <Clock className="w-4 h-4 shrink-0" />
+                <span>Entrega <strong className="font-bold text-foreground">{timeLabel}</strong></span>
+              </div>
+            )}
+            <div className="pt-2">
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" className="w-full sm:w-auto sm:min-w-[280px] gap-2">
+                    <Info className="w-4 h-4" /> Informação
+                  </Button>
+                </SheetTrigger>
+                <InfoSheetContent restaurant={restaurant} addressLine={addressLine} timeLabel={timeLabel} />
+              </Sheet>
+            </div>
           </div>
         );
       })()}
 
-      {/* Banner de pedido ativo — abaixo do header, acima das categorias (rola normalmente) */}
+      {/* Banner de pedido ativo — acima das categorias (rola normalmente) */}
       <ActiveOrderBanner restaurantId={restaurant.id} />
 
-      {/* Nav horizontal de categorias — sticky logo abaixo do header */}
+      {/* Nav horizontal de categorias — sticky no topo da viewport */}
       {grouped.length > 0 && (
-        <nav
-          className="sticky z-30 bg-background/95 backdrop-blur border-b shadow-sm"
-          style={{
-            top: scrolled ? 56 : 148,
-            transition: "top 250ms ease",
-          }}
-        >
+        <nav className="sticky top-0 z-30 bg-background/95 backdrop-blur border-y shadow-sm">
           <div
             ref={navRef}
             className="container flex gap-2 overflow-x-auto py-2 scrollbar-none"
@@ -428,7 +397,7 @@ export default function RestaurantPublic() {
             <section
               key={key}
               ref={(el) => { sectionRefs.current[key] = el; }}
-              style={{ scrollMarginTop: 120 }}
+              style={{ scrollMarginTop: 70 }}
             >
               <h2 className="text-xl font-bold mb-3">{g.cat?.name ?? "Outros"}</h2>
               <div className="grid gap-3 md:grid-cols-2">
@@ -576,5 +545,166 @@ export default function RestaurantPublic() {
         <Link to="/" className="hover:underline">Powered by MesaPro</Link>
       </footer>
     </div>
+  );
+}
+
+/* ===========================
+   Sheet "Informação" da loja
+   =========================== */
+function InfoSheetContent({
+  restaurant,
+  addressLine,
+  timeLabel,
+}: {
+  restaurant: Restaurant;
+  addressLine: string;
+  timeLabel: string | null;
+}) {
+  const zones = Array.isArray(restaurant.delivery_zones) ? (restaurant.delivery_zones as { radius_km: number; fee: number }[]) : [];
+  const validZones = zones.filter((z) => z && z.radius_km > 0).sort((a, b) => Number(a.fee) - Number(b.fee));
+  const minFee = validZones.length ? Number(validZones[0].fee) : null;
+  const feeMessage = minFee == null
+    ? null
+    : validZones.length === 1
+      ? `Taxa de entrega por apenas ${brl(minFee)}`
+      : `Taxa de entrega a partir de ${brl(minFee)}`;
+
+  const normalizeWhats = (v?: string | null) => {
+    if (!v) return null;
+    const t = v.trim();
+    if (!t) return null;
+    if (t.startsWith("http")) return t;
+    const digits = t.replace(/\D/g, "");
+    return digits ? `https://wa.me/${digits}` : null;
+  };
+  const wa = normalizeWhats(restaurant.whatsapp_url);
+  const ig = restaurant.instagram_url?.trim() || null;
+  const fb = restaurant.facebook_url?.trim() || null;
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: restaurant.name, url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast.success("Link copiado!");
+      }
+    } catch {
+      /* user cancel */
+    }
+  };
+
+  return (
+    <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+      <SheetHeader>
+        <SheetTitle>Informações</SheetTitle>
+      </SheetHeader>
+
+      <div className="space-y-5 mt-4">
+        <div>
+          <div className="text-lg font-bold">{restaurant.name}</div>
+          {restaurant.description && (
+            <p className="text-sm text-muted-foreground mt-1">{restaurant.description}</p>
+          )}
+        </div>
+
+        {/* Botões sociais */}
+        <div className="flex flex-wrap gap-2">
+          {wa && (
+            <a href={wa} target="_blank" rel="noreferrer">
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <MessageCircle className="w-4 h-4" /> WhatsApp
+              </Button>
+            </a>
+          )}
+          {ig && (
+            <a href={ig} target="_blank" rel="noreferrer">
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <Instagram className="w-4 h-4" /> Instagram
+              </Button>
+            </a>
+          )}
+          {fb && (
+            <a href={fb} target="_blank" rel="noreferrer">
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <Facebook className="w-4 h-4" /> Facebook
+              </Button>
+            </a>
+          )}
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={handleShare}>
+            <Share2 className="w-4 h-4" /> Compartilhar
+          </Button>
+        </div>
+
+        {/* Endereço */}
+        {addressLine && (
+          <section className="space-y-1">
+            <div className="text-sm font-semibold flex items-center gap-1.5">
+              <MapPin className="w-4 h-4" /> Endereço
+            </div>
+            <p className="text-sm text-muted-foreground">{addressLine}</p>
+            {restaurant.address_complement && (
+              <p className="text-xs text-muted-foreground">Complemento: {restaurant.address_complement}</p>
+            )}
+            {restaurant.address_cep && (
+              <p className="text-xs text-muted-foreground">CEP: {restaurant.address_cep}</p>
+            )}
+          </section>
+        )}
+
+        {/* Tipos de serviço */}
+        <section className="space-y-2">
+          <div className="text-sm font-semibold">Tipos de serviço</div>
+          <div className="space-y-2">
+            {(restaurant.service_delivery ?? true) && (
+              <div className="p-3 rounded-lg border space-y-1">
+                <div className="flex items-center gap-2 font-medium text-sm">
+                  <Bike className="w-4 h-4" /> Delivery
+                </div>
+                {timeLabel && (
+                  <div className="text-xs text-muted-foreground">Tempo estimado: <strong className="text-foreground">{timeLabel}</strong></div>
+                )}
+                {feeMessage && (
+                  <div className="text-xs text-muted-foreground">{feeMessage}</div>
+                )}
+              </div>
+            )}
+            {restaurant.service_pickup && (
+              <div className="p-3 rounded-lg border space-y-1">
+                <div className="flex items-center gap-2 font-medium text-sm">
+                  <Store className="w-4 h-4" /> Retirada na loja
+                </div>
+                <div className="text-xs text-muted-foreground">Retire o pedido diretamente no balcão.</div>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Horário de funcionamento detalhado */}
+        <section className="space-y-2">
+          <div className="text-sm font-semibold flex items-center gap-1.5">
+            <Clock className="w-4 h-4" /> Horário de funcionamento
+          </div>
+          <div className="rounded-lg border divide-y">
+            {DAY_LABELS.map((label, i) => {
+              const cfg = restaurant.opening_hours?.[String(i)];
+              const today = new Date().getDay() === i;
+              return (
+                <div
+                  key={i}
+                  className={`flex items-center justify-between px-3 py-2 text-sm ${today ? "bg-muted/50 font-semibold" : ""}`}
+                >
+                  <span>{label}{today ? " (hoje)" : ""}</span>
+                  <span className="text-muted-foreground">
+                    {cfg?.enabled ? `${cfg.open} – ${cfg.close}` : "Fechado"}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      </div>
+    </SheetContent>
   );
 }

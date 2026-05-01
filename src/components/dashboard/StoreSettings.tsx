@@ -25,6 +25,11 @@ type Restaurant = {
   delivery_zones?: DeliveryZone[] | null;
   delivery_time_min?: number | null;
   delivery_time_max?: number | null;
+  whatsapp_url?: string | null;
+  instagram_url?: string | null;
+  facebook_url?: string | null;
+  service_delivery?: boolean | null;
+  service_pickup?: boolean | null;
 };
 
 export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restaurant; onUpdated: () => void }) {
@@ -186,6 +191,11 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
       delivery_zones: cleanZones,
       delivery_time_min: full.delivery_time_min,
       delivery_time_max: full.delivery_time_max,
+      whatsapp_url: full.whatsapp_url || null,
+      instagram_url: full.instagram_url || null,
+      facebook_url: full.facebook_url || null,
+      service_delivery: full.service_delivery ?? true,
+      service_pickup: full.service_pickup ?? false,
     };
     if (logo_url !== undefined) update.logo_url = logo_url;
     if (cover_url !== undefined) update.cover_url = cover_url;
@@ -284,6 +294,44 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
             <Button type="button" variant="outline" onClick={geocode} disabled={geocoding}>
               {geocoding ? <Loader2 className="w-4 h-4 animate-spin" /> : "Localizar no mapa"}
             </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Redes sociais e contato</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <div className="space-y-2">
+            <Label>WhatsApp (link wa.me ou número)</Label>
+            <Input value={full.whatsapp_url || ""} onChange={(e) => setFull({ ...full, whatsapp_url: e.target.value })} placeholder="https://wa.me/5511999990000" />
+          </div>
+          <div className="space-y-2">
+            <Label>Instagram (URL do perfil)</Label>
+            <Input value={full.instagram_url || ""} onChange={(e) => setFull({ ...full, instagram_url: e.target.value })} placeholder="https://instagram.com/sualoja" />
+          </div>
+          <div className="space-y-2">
+            <Label>Facebook (URL da página)</Label>
+            <Input value={full.facebook_url || ""} onChange={(e) => setFull({ ...full, facebook_url: e.target.value })} placeholder="https://facebook.com/sualoja" />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Tipos de serviço</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center justify-between p-3 rounded-lg border">
+            <div>
+              <div className="font-medium">Delivery</div>
+              <div className="text-xs text-muted-foreground">Entrega no endereço do cliente.</div>
+            </div>
+            <Switch checked={full.service_delivery ?? true} onCheckedChange={(v) => setFull({ ...full, service_delivery: v })} />
+          </div>
+          <div className="flex items-center justify-between p-3 rounded-lg border">
+            <div>
+              <div className="font-medium">Retirada na loja</div>
+              <div className="text-xs text-muted-foreground">Cliente busca o pedido no balcão.</div>
+            </div>
+            <Switch checked={full.service_pickup ?? false} onCheckedChange={(v) => setFull({ ...full, service_pickup: v })} />
           </div>
         </CardContent>
       </Card>
