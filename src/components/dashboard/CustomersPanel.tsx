@@ -36,12 +36,12 @@ const STATUS_LABELS: Record<ClientStatus, string> = {
   risk: "Em risco (+90 dias)",
 };
 
-function getClientType(orders: number): ClientType {
+function getClientType(orders: number): ClientType | null {
   if (orders >= 8) return "elite";
   if (orders >= 5) return "best";
   if (orders >= 3) return "frequent";
   if (orders === 0) return "none";
-  return "frequent"; // 1-2 default to frequent group? Actually spec doesn't cover 1-2
+  return null;
 }
 
 function getClientStatus(lastOrderAt: string | null): ClientStatus | null {
