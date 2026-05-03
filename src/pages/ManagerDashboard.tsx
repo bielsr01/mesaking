@@ -14,6 +14,7 @@ import { MenuManager, fetchCategories, fetchProducts, menuKeys } from "@/compone
 import { StoreSettings } from "@/components/dashboard/StoreSettings";
 import { OrderConfigSettings } from "@/components/dashboard/OrderConfigSettings";
 import { PrintSettingsCard } from "@/components/dashboard/PrintSettings";
+import { CustomersPanel } from "@/components/dashboard/CustomersPanel";
 import { StoreOpenToggle } from "@/components/dashboard/StoreOpenToggle";
 import { AppSidebar, DashboardView } from "@/components/dashboard/AppSidebar";
 import { NotificationsBell } from "@/components/dashboard/NotificationsBell";
@@ -208,7 +209,7 @@ export default function ManagerDashboard() {
               </LazyView>
             )}
 
-            {view === "customers" && <LazyView viewKey={view} variant="list"><EmptyState title="Clientes" /></LazyView>}
+            {view === "customers" && <LazyView viewKey={view} variant="list"><CustomersPanel restaurantId={restaurant.id} /></LazyView>}
             {view === "marketing:coupons" && <LazyView viewKey={view} variant="list"><EmptyState title="Cupons de desconto" /></LazyView>}
             {view === "marketing:loyalty" && <LazyView viewKey={view} variant="list"><EmptyState title="Programa de fidelidade" /></LazyView>}
             {view === "marketing:bulk" && <LazyView viewKey={view} variant="list"><EmptyState title="Envio em massa" /></LazyView>}
