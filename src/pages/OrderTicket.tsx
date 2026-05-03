@@ -84,7 +84,7 @@ export default function OrderTicket() {
   if (loading) return <div className="p-6 text-sm">Carregando ticket…</div>;
   if (!order) return <div className="p-6 text-sm">Pedido não encontrado.</div>;
 
-  const ps: PrintSettings = { ...DEFAULT_PRINT_SETTINGS, ...(restaurant?.print_settings ?? {}) };
+  const ps: PrintSettings = normalizePrintSettings(restaurant?.print_settings as any, DEFAULT_PRINT_SETTINGS);
   const fullBizAddress = [
     [restaurant?.address_street, restaurant?.address_number].filter(Boolean).join(", "),
     restaurant?.address_neighborhood,
