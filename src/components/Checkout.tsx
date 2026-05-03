@@ -320,6 +320,7 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
       subtotal,
       delivery_fee: fee,
       total,
+      coupon_code: coupon?.code ?? null,
     };
 
     if (isPickup) {
