@@ -314,6 +314,7 @@ export type Database = {
           address_state: string | null
           address_street: string | null
           change_for: number | null
+          coupon_code: string | null
           created_at: string
           customer_name: string
           customer_phone: string
@@ -342,6 +343,7 @@ export type Database = {
           address_state?: string | null
           address_street?: string | null
           change_for?: number | null
+          coupon_code?: string | null
           created_at?: string
           customer_name: string
           customer_phone: string
@@ -370,6 +372,7 @@ export type Database = {
           address_state?: string | null
           address_street?: string | null
           change_for?: number | null
+          coupon_code?: string | null
           created_at?: string
           customer_name?: string
           customer_phone?: string
