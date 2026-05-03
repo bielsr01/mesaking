@@ -98,7 +98,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     queryFn: async () => {
       const { data } = await supabase
         .from("restaurants")
-        .select("name,logo_url,address_street,address_number,address_neighborhood,address_city,address_state,address_cep,print_settings")
+        .select("name,logo_url,address_street,address_number,address_neighborhood,address_city,address_state,address_cep,print_settings,kitchen_print_settings")
         .eq("id", restaurantId)
         .maybeSingle();
       return data;
