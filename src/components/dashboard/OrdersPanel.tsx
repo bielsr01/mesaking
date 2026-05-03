@@ -86,6 +86,32 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const qc = useQueryClient();
   const [filter, setFilter] = useState("pending");
   const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
+  const [printTarget, setPrintTarget] = useState<Order | null>(null);
+
+  const doPrint = (o: Order, mode: TicketMode) => {
+    const html = buildTicketHtml(
+      o,
+      items[o.id] ?? [],
+      (restaurantInfo as unknown as TicketRestaurant | null) ?? null,
+      optionCatalog,
+      mode,
+    );
+    const w = window.open("", "_blank", "width=420,height=720");
+    if (!w) {
+      const blob = new Blob([html], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 30_000);
+      return;
+    }
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+  };
 
   const { data, isLoading } = useQuery({
     queryKey: ordersKey(restaurantId),
