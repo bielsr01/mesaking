@@ -598,6 +598,9 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
                   {isPickup && (
                     <div className="flex justify-between text-muted-foreground"><span>Retirada na loja</span><span>Sem taxa</span></div>
                   )}
+                  {discount > 0 && (
+                    <div className="flex justify-between text-success"><span>Desconto ({coupon?.code})</span><span>− {brl(discount)}</span></div>
+                  )}
                   <div className="flex justify-between font-bold text-base pt-1 border-t"><span>Total</span><span>{brl(total)}</span></div>
                 </div>
               </div>
