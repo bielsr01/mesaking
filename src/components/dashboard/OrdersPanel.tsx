@@ -13,6 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { brl, orderStatusLabel, getNextStatus, paymentLabel, formatPhone, orderTypeLabel } from "@/lib/format";
 import { toast } from "sonner";
 import { Bike, Clock, MapPin, Phone, Printer, Store, User, X } from "lucide-react";
+import { buildTicketHtml } from "@/lib/ticket";
 
 interface Order {
   id: string;
