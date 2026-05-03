@@ -13,7 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { brl, orderStatusLabel, getNextStatus, paymentLabel, formatPhone, orderTypeLabel } from "@/lib/format";
 import { toast } from "sonner";
 import { Bike, Clock, MapPin, Phone, Printer, Store, User, X } from "lucide-react";
-import { buildTicketHtml } from "@/lib/ticket";
+import { buildTicketHtml, TicketOptionCatalog, TicketRestaurant } from "@/lib/ticket";
 
 interface Order {
   id: string;
@@ -25,11 +25,15 @@ interface Order {
   address_complement: string | null;
   address_neighborhood: string;
   address_city: string;
+  address_state: string;
+  address_cep: string;
   address_notes: string | null;
   payment_method: string;
   change_for: number | null;
+  subtotal: number;
+  delivery_fee: number;
   total: number;
-  status: string;
+  status: "accepted" | "awaiting_pickup" | "cancelled" | "delivered" | "out_for_delivery" | "pending" | "preparing";
   order_type: "delivery" | "pickup";
   created_at: string;
 }
@@ -37,11 +41,16 @@ interface Order {
 interface Item {
   id: string;
   order_id: string;
+  product_id: string | null;
   product_name: string;
   unit_price: number;
   quantity: number;
   notes: string | null;
 }
+
+interface OptionGroupRow { id: string; name: string; sort_order: number | null; }
+interface OptionItemRow { id: string; group_id: string; name: string; sort_order: number | null; }
+interface ProductOptionGroupRow { product_id: string; group_id: string; sort_order: number | null; }
 
 const FILTERS = [
   { value: "pending", label: "Novos" },
@@ -64,7 +73,7 @@ export async function fetchOrders(restaurantId: string): Promise<{ orders: Order
     .limit(100);
   const orders = (data ?? []) as Order[];
   const ids = orders.map((o) => o.id);
-  let grouped: Record<string, Item[]> = {};
+  const grouped: Record<string, Item[]> = {};
   if (ids.length) {
     const { data: its } = await supabase.from("order_items").select("*").in("order_id", ids);
     (its ?? []).forEach((it) => { (grouped[it.order_id] ||= []).push(it as Item); });
@@ -98,6 +107,50 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
 
   const orders = data?.orders ?? [];
   const items = data?.items ?? {};
+  const productIds = Array.from(new Set(Object.values(items).flat().map((it) => it.product_id).filter(Boolean))) as string[];
+
+  const { data: optionCatalog = {} } = useQuery({
+    queryKey: ["ticket-option-catalog", restaurantId, productIds.join("|")],
+    enabled: productIds.length > 0,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const [{ data: groups }, { data: optionRows }, { data: links }] = await Promise.all([
+        supabase.from("option_groups").select("id,name,sort_order").eq("restaurant_id", restaurantId),
+        supabase
+          .from("option_items")
+          .select("id,group_id,name,sort_order,option_groups!inner(restaurant_id)")
+          .eq("option_groups.restaurant_id", restaurantId),
+        supabase.from("product_option_groups").select("product_id,group_id,sort_order").in("product_id", productIds),
+      ]);
+
+      const groupRows = (groups ?? []) as OptionGroupRow[];
+      const itemRows = (optionRows ?? []) as OptionItemRow[];
+      const linkRows = (links ?? []) as ProductOptionGroupRow[];
+      const groupMap = new Map(groupRows.map((g) => [g.id, g]));
+      const itemsByGroup = new Map<string, OptionItemRow[]>();
+      itemRows.forEach((row) => {
+        const arr = itemsByGroup.get(row.group_id) ?? [];
+        arr.push(row);
+        itemsByGroup.set(row.group_id, arr);
+      });
+
+      return linkRows.reduce<TicketOptionCatalog>((acc, link) => {
+        const group = groupMap.get(link.group_id);
+        if (!group) return acc;
+        const catalogItems = itemsByGroup.get(link.group_id) ?? [];
+        acc[link.product_id] = [
+          ...(acc[link.product_id] ?? []),
+          ...catalogItems.map((it) => ({
+            groupName: group.name,
+            itemName: it.name,
+            groupSortOrder: link.sort_order ?? group.sort_order ?? 0,
+            itemSortOrder: it.sort_order ?? 0,
+          })),
+        ].sort((a, b) => (a.groupSortOrder ?? 0) - (b.groupSortOrder ?? 0) || (a.itemSortOrder ?? 0) - (b.itemSortOrder ?? 0));
+        return acc;
+      }, {});
+    },
+  });
 
   useEffect(() => {
     const ch = supabase
@@ -115,7 +168,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
         });
       })
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` }, (payload) => {
-        const id = (payload.old as any)?.id;
+        const id = (payload.old as Partial<Order>)?.id;
         qc.setQueryData<{ orders: Order[]; items: Record<string, Item[]> }>(ordersKey(restaurantId), (prev) => {
           if (!prev) return prev;
           return { ...prev, orders: prev.orders.filter((o) => o.id !== id) };
@@ -136,11 +189,11 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   };
 
   const advance = async (o: Order) => {
-    const next = getNextStatus(o.status, o.order_type);
+    const next = getNextStatus(o.status, o.order_type) as Order["status"] | null;
     if (!next) return;
     const prevStatus = o.status;
     patchOrder(o.id, { status: next }); // optimistic
-    const { error } = await supabase.from("orders").update({ status: next as any }).eq("id", o.id);
+    const { error } = await supabase.from("orders").update({ status: next }).eq("id", o.id);
     if (error) {
       patchOrder(o.id, { status: prevStatus });
       toast.error(error.message);
@@ -152,7 +205,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const cancel = async (o: Order) => {
     const prevStatus = o.status;
     patchOrder(o.id, { status: "cancelled" }); // optimistic
-    const { error } = await supabase.from("orders").update({ status: "cancelled" as any }).eq("id", o.id);
+    const { error } = await supabase.from("orders").update({ status: "cancelled" }).eq("id", o.id);
     if (error) {
       patchOrder(o.id, { status: prevStatus });
       toast.error(error.message);
@@ -278,7 +331,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                     size="sm"
                     variant="outline"
                     onClick={() => {
-                      const html = buildTicketHtml(o as any, items[o.id] ?? [], (restaurantInfo as any) ?? null);
+                      const html = buildTicketHtml(o, items[o.id] ?? [], (restaurantInfo as unknown as TicketRestaurant | null) ?? null, optionCatalog);
                       const w = window.open("", "_blank", "width=420,height=720");
                       if (!w) {
                         // Fallback: blob URL (works even if popup is blocked into a new tab via user gesture)

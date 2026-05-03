@@ -25,11 +25,21 @@ export interface TicketOrder {
 
 export interface TicketItem {
   id: string;
+  product_id?: string | null;
   product_name: string;
   unit_price: number;
   quantity: number;
   notes?: string | null;
 }
+
+interface TicketOptionCatalogEntry {
+  groupName: string;
+  itemName: string;
+  groupSortOrder?: number;
+  itemSortOrder?: number;
+}
+
+export type TicketOptionCatalog = Record<string, TicketOptionCatalogEntry[]>;
 
 export interface TicketRestaurant {
   name?: string | null;
@@ -50,10 +60,63 @@ const esc = (s: unknown) =>
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 
+const normalizeOptionText = (s: string) =>
+  s
+    .replace(/^[+•-]\s*/, "")
+    .replace(/\s*\([^)]*\)\s*$/g, "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+
+const ticketItemDetailLines = (item: TicketItem, catalog: TicketOptionCatalog) => {
+  const rawLines = (item.notes ?? "")
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+  const lines = rawLines.flatMap((line) => {
+    if (line.includes(":") || /^obs\s*:/i.test(line)) return [line];
+    const parts = line.match(/[+•-]\s*[^+•-]+/g);
+    return parts && parts.length > 1 ? parts.map((p) => p.trim()) : [line];
+  });
+
+  const productOptions = item.product_id ? (catalog[item.product_id] ?? []) : [];
+  const productGroups = Array.from(new Set(productOptions.map((o) => o.groupName).filter(Boolean)));
+  const grouped = new Map<string, string[]>();
+  const details: string[] = [];
+
+  lines.forEach((line) => {
+    if (/^obs\s*:/i.test(line) || line.includes(":")) {
+      details.push(line);
+      return;
+    }
+
+    const optionName = line.replace(/^[+•-]\s*/, "").trim();
+    const normalized = normalizeOptionText(optionName);
+    const match = productOptions.find((o) => normalizeOptionText(o.itemName) === normalized);
+    const groupName = match?.groupName ?? (productGroups.length === 1 ? productGroups[0] : "");
+
+    if (!groupName) {
+      details.push(optionName);
+      return;
+    }
+
+    const arr = grouped.get(groupName) ?? [];
+    arr.push(match?.itemName ?? optionName);
+    grouped.set(groupName, arr);
+  });
+
+  return [
+    ...Array.from(grouped.entries()).map(([groupName, names]) => `${groupName}: ${names.join(", ")}`),
+    ...details,
+  ];
+};
+
 export function buildTicketHtml(
   order: TicketOrder,
   items: TicketItem[],
   restaurant: TicketRestaurant | null,
+  optionCatalog: TicketOptionCatalog = {},
 ): string {
   const ps: PrintSettings = { ...DEFAULT_PRINT_SETTINGS, ...(restaurant?.print_settings ?? {}) };
 
@@ -79,11 +142,7 @@ export function buildTicketHtml(
 
   const itemsHtml = items
     .map((it) => {
-      const noteLines = (it.notes ?? "")
-        .split("\n")
-        .map((l) => l.trim())
-        .filter(Boolean);
-      const notesHtml = noteLines
+      const notesHtml = ticketItemDetailLines(it, optionCatalog)
         .map((l) => `<div class="muted" style="font-size:11px">${esc(l)}</div>`)
         .join("");
       return `
