@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Ticket } from "lucide-react";
 import { brl } from "@/lib/format";
 
@@ -20,6 +22,7 @@ type Coupon = {
 
 export function CouponsBanner({ restaurantId }: { restaurantId: string }) {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     if (!restaurantId) return;
@@ -44,34 +47,46 @@ export function CouponsBanner({ restaurantId }: { restaurantId: string }) {
 
   return (
     <div className="container pt-2">
-      <div className="space-y-2">
+      <Card className="flex items-center justify-between gap-3 p-3 border-2 border-dashed border-primary/40 bg-primary/5">
         <div className="flex items-center gap-2 text-sm font-semibold">
           <Ticket className="w-4 h-4 text-primary" /> Descontos disponíveis
+          <Badge variant="secondary" className="ml-1">{coupons.length}</Badge>
         </div>
-        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-          {coupons.map((c) => {
-            const value = c.discount_type === "percent" ? `${Number(c.discount_value)}% OFF` : `${brl(c.discount_value)} OFF`;
-            const services: string[] = [];
-            if (c.service_delivery) services.push("Delivery");
-            if (c.service_pickup) services.push("Retirada");
-            return (
-              <Card key={c.id} className="shrink-0 min-w-[240px] max-w-[280px] border-2 border-dashed border-primary/40 bg-primary/5 p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-lg font-extrabold text-primary leading-none">{value}</span>
-                  <Badge variant="outline" className="font-mono text-[10px]">{c.code}</Badge>
-                </div>
-                <div className="text-sm font-medium mt-1 line-clamp-1">{c.name}</div>
-                <div className="text-[11px] text-muted-foreground mt-1 space-y-0.5">
-                  {Number(c.min_order_value) > 0 && <div>Pedido mínimo {brl(c.min_order_value)}</div>}
-                  {c.apply_to === "items" && <div>Válido para itens selecionados</div>}
-                  {services.length > 0 && <div>{services.join(" · ")}</div>}
-                  {c.ends_at && <div>Até {new Date(c.ends_at).toLocaleDateString()}</div>}
-                </div>
-              </Card>
-            );
-          })}
-        </div>
-      </div>
+        <Button size="sm" onClick={() => setOpen(true)}>Ver</Button>
+      </Card>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Ticket className="w-4 h-4 text-primary" /> Descontos disponíveis
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            {coupons.map((c) => {
+              const value = c.discount_type === "percent" ? `${Number(c.discount_value)}% OFF` : `${brl(c.discount_value)} OFF`;
+              const services: string[] = [];
+              if (c.service_delivery) services.push("Delivery");
+              if (c.service_pickup) services.push("Retirada");
+              return (
+                <Card key={c.id} className="border-2 border-dashed border-primary/40 bg-primary/5 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-lg font-extrabold text-primary leading-none">{value}</span>
+                    <Badge variant="outline" className="font-mono text-[10px]">{c.code}</Badge>
+                  </div>
+                  <div className="text-sm font-medium mt-1">{c.name}</div>
+                  <div className="text-[11px] text-muted-foreground mt-1 space-y-0.5">
+                    {Number(c.min_order_value) > 0 && <div>Pedido mínimo {brl(c.min_order_value)}</div>}
+                    {c.apply_to === "items" && <div>Válido para itens selecionados</div>}
+                    {services.length > 0 && <div>{services.join(" · ")}</div>}
+                    {c.ends_at && <div>Até {new Date(c.ends_at).toLocaleDateString()}</div>}
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
