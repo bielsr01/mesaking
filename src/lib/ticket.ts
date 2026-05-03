@@ -202,13 +202,17 @@ export function buildTicketHtml(
   ${ps.customer_name ? `<div><strong>${esc(order.customer_name)}</strong></div>` : ""}
   ${ps.customer_phone ? `<div>${esc(formatPhone(order.customer_phone))}</div>` : ""}
   ${ps.customer_address && order.order_type === "delivery" && fullCustAddress ? `<div style="margin-top:2px">${esc(fullCustAddress)}${order.address_notes ? ` (${esc(order.address_notes)})` : ""}</div>` : ""}
-  ${ps.products_with_prices ? `
+  ${ps.products ? `
     <div class="sep"></div>
     ${itemsHtml}
+  ` : ""}
+  ${ps.prices ? `
     <div class="sep"></div>
     <div class="row"><span>Subtotal</span><span>${brl(subtotal)}</span></div>
     ${order.order_type === "delivery" ? `<div class="row"><span>Taxa de entrega</span><span>${brl(deliveryFee)}</span></div>` : ""}
     <div class="row total" style="margin-top:4px"><span>TOTAL</span><span>${brl(order.total)}</span></div>
+  ` : ""}
+  ${ps.payment_method ? `
     <div class="muted" style="margin-top:4px">Pagamento: ${esc(paymentLabel[order.payment_method] ?? order.payment_method)}${order.change_for ? ` (troco p/ ${brl(order.change_for)})` : ""}</div>
   ` : ""}
   <div class="sep"></div>
