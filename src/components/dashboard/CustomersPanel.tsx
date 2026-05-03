@@ -14,8 +14,57 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Pencil, Trash2, Plus, Search, Users } from "lucide-react";
+import { Pencil, Trash2, Plus, Search, Users, Filter, X } from "lucide-react";
 import { formatPhone, unmaskPhone } from "@/lib/format";
+import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+
+type ClientType = "elite" | "best" | "frequent" | "none";
+type ClientStatus = "active" | "inactive" | "sleeping" | "risk";
+
+const TYPE_LABELS: Record<ClientType, string> = {
+  elite: "Comprador Elite (+8)",
+  best: "Melhor Comprador (5–7)",
+  frequent: "Comprador Frequente (3–4)",
+  none: "Sem pedido",
+};
+const STATUS_LABELS: Record<ClientStatus, string> = {
+  active: "Ativo (≤15 dias)",
+  inactive: "Inativo (16–30 dias)",
+  sleeping: "Dormindo (31–90 dias)",
+  risk: "Em risco (+90 dias)",
+};
+
+function getClientType(orders: number): ClientType {
+  if (orders >= 8) return "elite";
+  if (orders >= 5) return "best";
+  if (orders >= 3) return "frequent";
+  if (orders === 0) return "none";
+  return "frequent"; // 1-2 default to frequent group? Actually spec doesn't cover 1-2
+}
+
+function getClientStatus(lastOrderAt: string | null): ClientStatus | null {
+  if (!lastOrderAt) return null;
+  const days = (Date.now() - new Date(lastOrderAt).getTime()) / 86400000;
+  if (days <= 15) return "active";
+  if (days <= 30) return "inactive";
+  if (days <= 90) return "sleeping";
+  return "risk";
+}
+
+const TYPE_BADGE: Record<ClientType, string> = {
+  elite: "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-200",
+  best: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200",
+  frequent: "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200",
+  none: "bg-muted text-muted-foreground",
+};
+const STATUS_BADGE: Record<ClientStatus, string> = {
+  active: "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200",
+  inactive: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-200",
+  sleeping: "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-200",
+  risk: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200",
+};
 
 type Customer = {
   id: string;
