@@ -277,6 +277,40 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
     const { error: ie } = await supabase.from("order_items").insert(items);
     if (ie) { setBusy(false); return toast.error(ie.message); }
 
+    // Salva/atualiza cliente automaticamente (dedupe por telefone)
+    try {
+      const phoneFmt = formatPhone(phone);
+      const { data: existing } = await supabase
+        .from("customers" as any)
+        .select("id, orders_count")
+        .eq("restaurant_id", restaurant.id)
+        .eq("phone", phoneFmt)
+        .maybeSingle();
+      const customerPayload: any = {
+        restaurant_id: restaurant.id,
+        name: name.trim(),
+        phone: phoneFmt,
+        last_order_at: new Date().toISOString(),
+      };
+      if (!isPickup) {
+        customerPayload.address_cep = cep;
+        customerPayload.address_street = addr.street;
+        customerPayload.address_number = addr.number;
+        customerPayload.address_complement = addr.complement || null;
+        customerPayload.address_neighborhood = addr.neighborhood;
+        customerPayload.address_city = addr.city;
+        customerPayload.address_state = addr.state;
+      }
+      if (existing) {
+        await supabase.from("customers" as any).update({
+          ...customerPayload,
+          orders_count: ((existing as any).orders_count ?? 0) + 1,
+        }).eq("id", (existing as any).id);
+      } else {
+        await supabase.from("customers" as any).insert({ ...customerPayload, orders_count: 1 });
+      }
+    } catch (_) { /* não bloqueia o pedido */ }
+
     cart.clear();
     setBusy(false);
     onOpenChange(false);
