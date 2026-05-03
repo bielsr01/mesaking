@@ -253,8 +253,17 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
     if (error || !order) { setBusy(false); return toast.error(error?.message || "Erro"); }
 
     const items = cart.items.map((i) => {
-      const optsLines = (i.options ?? []).map((o) => `+ ${o.itemName}${o.extraPrice > 0 ? ` (${brl(o.extraPrice)})` : ""}`);
-      const fullNotes = [optsLines.join("\n"), i.notes].filter(Boolean).join("\n").trim() || null;
+      // Group options by groupName: "Sabores: Pizza, Frango (R$ 5,00)"
+      const grouped = new Map<string, string[]>();
+      (i.options ?? []).forEach((o) => {
+        const label = `${o.itemName}${o.extraPrice > 0 ? ` (${brl(o.extraPrice)})` : ""}`;
+        const arr = grouped.get(o.groupName) ?? [];
+        arr.push(label);
+        grouped.set(o.groupName, arr);
+      });
+      const optsLines = Array.from(grouped.entries()).map(([g, items]) => `${g}: ${items.join(", ")}`);
+      const obsLine = i.notes ? `Obs: ${i.notes}` : "";
+      const fullNotes = [...optsLines, obsLine].filter(Boolean).join("\n").trim() || null;
       const unit = i.price + (i.options?.reduce((s, o) => s + (Number(o.extraPrice) || 0), 0) ?? 0);
       return {
         order_id: order.id,
