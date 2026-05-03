@@ -129,7 +129,9 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
         .maybeSingle();
       return data;
     },
-    staleTime: 5 * 60_000,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
 
   const orders = data?.orders ?? [];
