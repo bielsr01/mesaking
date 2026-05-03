@@ -12,8 +12,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { brl, orderStatusLabel, getNextStatus, paymentLabel, formatPhone, orderTypeLabel } from "@/lib/format";
 import { toast } from "sonner";
-import { Bike, Clock, MapPin, Phone, Printer, Store, User, X } from "lucide-react";
-import { buildTicketHtml, TicketOptionCatalog, TicketRestaurant } from "@/lib/ticket";
+import { Bike, ChefHat, Clock, MapPin, Phone, Printer, Store, User, X } from "lucide-react";
+import { buildTicketHtml, TicketMode, TicketOptionCatalog, TicketRestaurant } from "@/lib/ticket";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 interface Order {
   id: string;
