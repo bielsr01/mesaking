@@ -357,25 +357,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => {
-                      const html = buildTicketHtml(o, items[o.id] ?? [], (restaurantInfo as unknown as TicketRestaurant | null) ?? null, optionCatalog);
-                      const w = window.open("", "_blank", "width=420,height=720");
-                      if (!w) {
-                        // Fallback: blob URL (works even if popup is blocked into a new tab via user gesture)
-                        const blob = new Blob([html], { type: "text/html" });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement("a");
-                        a.href = url;
-                        a.target = "_blank";
-                        a.rel = "noopener";
-                        a.click();
-                        setTimeout(() => URL.revokeObjectURL(url), 30_000);
-                        return;
-                      }
-                      w.document.open();
-                      w.document.write(html);
-                      w.document.close();
-                    }}
+                    onClick={() => setPrintTarget(o)}
                     aria-label="Imprimir ticket"
                     title="Imprimir ticket"
                   >
