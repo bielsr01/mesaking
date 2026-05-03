@@ -128,6 +128,7 @@ function SettingsCard({
 }
 
 export function PrintSettingsCard({ restaurantId }: { restaurantId: string }) {
+  const qc = useQueryClient();
   const [customer, setCustomer] = useState<PrintSettings>(DEFAULT_PRINT_SETTINGS);
   const [kitchen, setKitchen] = useState<PrintSettings>(DEFAULT_KITCHEN_PRINT_SETTINGS);
   const [loading, setLoading] = useState(true);
@@ -149,24 +150,29 @@ export function PrintSettingsCard({ restaurantId }: { restaurantId: string }) {
 
   const saveCustomer = async () => {
     setSavingCustomer(true);
+    // Strip legacy field so it never overrides the new split toggles
+    const { products_with_prices: _legacy, ...clean } = customer as any;
     const { error } = await supabase
       .from("restaurants")
-      .update({ print_settings: customer as any })
+      .update({ print_settings: clean })
       .eq("id", restaurantId);
     setSavingCustomer(false);
-    if (error) toast.error(error.message);
-    else toast.success("Configurações do ticket do cliente salvas");
+    if (error) return toast.error(error.message);
+    qc.invalidateQueries({ queryKey: ["restaurant-print-info", restaurantId] });
+    toast.success("Configurações do ticket do cliente salvas");
   };
 
   const saveKitchen = async () => {
     setSavingKitchen(true);
+    const { products_with_prices: _legacy, ...clean } = kitchen as any;
     const { error } = await supabase
       .from("restaurants")
-      .update({ kitchen_print_settings: kitchen as any } as any)
+      .update({ kitchen_print_settings: clean } as any)
       .eq("id", restaurantId);
     setSavingKitchen(false);
-    if (error) toast.error(error.message);
-    else toast.success("Configurações do ticket da cozinha salvas");
+    if (error) return toast.error(error.message);
+    qc.invalidateQueries({ queryKey: ["restaurant-print-info", restaurantId] });
+    toast.success("Configurações do ticket da cozinha salvas");
   };
 
   if (loading) return <Skeleton className="h-96 w-full" />;
