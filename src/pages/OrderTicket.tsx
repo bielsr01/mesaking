@@ -168,18 +168,22 @@ export default function OrderTicket() {
           <div style={{ marginTop: 2 }}>{fullCustAddress}{order.address_notes ? ` (${order.address_notes})` : ""}</div>
         )}
 
-        {ps.products_with_prices && (
+        {ps.products && (
           <>
             <div className="sep" />
             {items.map((it) => (
               <div key={it.id} style={{ marginBottom: 4 }}>
                 <div className="row">
                   <span className="item-name">{it.quantity}× {it.product_name}</span>
-                  <span>{brl(it.unit_price * it.quantity)}</span>
+                  {ps.prices && <span>{brl(it.unit_price * it.quantity)}</span>}
                 </div>
                 {it.notes && <div className="muted" style={{ fontSize: 11 }}>obs: {it.notes}</div>}
               </div>
             ))}
+          </>
+        )}
+        {ps.prices && (
+          <>
             <div className="sep" />
             <div className="row"><span>Subtotal</span><span>{brl(order.subtotal)}</span></div>
             {order.order_type === "delivery" && (
@@ -188,11 +192,13 @@ export default function OrderTicket() {
             <div className="row total" style={{ marginTop: 4 }}>
               <span>TOTAL</span><span>{brl(order.total)}</span>
             </div>
-            <div className="muted" style={{ marginTop: 4 }}>
-              Pagamento: {paymentLabel[order.payment_method]}
-              {order.change_for ? ` (troco p/ ${brl(order.change_for)})` : ""}
-            </div>
           </>
+        )}
+        {ps.payment_method && (
+          <div className="muted" style={{ marginTop: 4 }}>
+            Pagamento: {paymentLabel[order.payment_method]}
+            {order.change_for ? ` (troco p/ ${brl(order.change_for)})` : ""}
+          </div>
         )}
 
         <div className="sep" />
