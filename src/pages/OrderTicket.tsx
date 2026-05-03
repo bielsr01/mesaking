@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { brl, formatPhone, orderTypeLabel, paymentLabel } from "@/lib/format";
-import { DEFAULT_PRINT_SETTINGS, PrintSettings } from "@/components/dashboard/PrintSettings";
+import { DEFAULT_PRINT_SETTINGS, PrintSettings, normalizePrintSettings } from "@/components/dashboard/PrintSettings";
 
 interface OrderRow {
   id: string;
