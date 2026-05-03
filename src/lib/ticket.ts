@@ -78,13 +78,20 @@ export function buildTicketHtml(
   const deliveryFee = order.delivery_fee ?? 0;
 
   const itemsHtml = items
-    .map(
-      (it) => `
+    .map((it) => {
+      const noteLines = (it.notes ?? "")
+        .split("\n")
+        .map((l) => l.trim())
+        .filter(Boolean);
+      const notesHtml = noteLines
+        .map((l) => `<div class="muted" style="font-size:11px">${esc(l)}</div>`)
+        .join("");
+      return `
       <div style="margin-bottom:4px">
         <div class="row"><span class="item-name">${it.quantity}× ${esc(it.product_name)}</span><span>${brl(it.unit_price * it.quantity)}</span></div>
-        ${it.notes ? `<div class="muted" style="font-size:11px">obs: ${esc(it.notes)}</div>` : ""}
-      </div>`,
-    )
+        ${notesHtml}
+      </div>`;
+    })
     .join("");
 
   return `<!doctype html>
