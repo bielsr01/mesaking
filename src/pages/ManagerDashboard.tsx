@@ -217,7 +217,11 @@ export default function ManagerDashboard() {
                 <OrderConfigSettings restaurantId={restaurant.id} />
               </LazyView>
             )}
-            {view === "settings:printers" && <LazyView viewKey={view} variant="form"><EmptyState title="Impressões" /></LazyView>}
+            {view === "settings:printers" && (
+              <LazyView viewKey={view} variant="form">
+                <PrintSettingsCard restaurantId={restaurant.id} />
+              </LazyView>
+            )}
             {view === "settings:integrations" && <LazyView viewKey={view} variant="form"><EmptyState title="Integrações" /></LazyView>}
           </main>
         </div>
