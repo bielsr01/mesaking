@@ -277,7 +277,17 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => window.open(`/ticket/${o.id}`, "_blank", "noopener")}
+                    onClick={() => {
+                      const w = window.open("", "_blank", "noopener,width=420,height=720");
+                      if (!w) {
+                        toast.error("Permita popups para imprimir");
+                        return;
+                      }
+                      const html = buildTicketHtml(o as any, items[o.id] ?? [], (restaurantInfo as any) ?? null);
+                      w.document.open();
+                      w.document.write(html);
+                      w.document.close();
+                    }}
                     aria-label="Imprimir ticket"
                     title="Imprimir ticket"
                   >
