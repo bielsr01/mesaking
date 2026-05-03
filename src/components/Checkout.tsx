@@ -547,6 +547,35 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
                 )}
               </div>
 
+              {/* Cupom de desconto */}
+              <div className="space-y-2">
+                <h3 className="font-semibold text-sm">Cupom de desconto</h3>
+                {coupon ? (
+                  <div className="flex items-center justify-between gap-2 rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 p-3">
+                    <div className="text-sm">
+                      <div className="font-mono font-bold text-primary">{coupon.code}</div>
+                      <div className="text-xs text-muted-foreground">{coupon.name} — desconto {brl(discount)}</div>
+                    </div>
+                    <Button type="button" variant="ghost" size="sm" onClick={removeCoupon}>Remover</Button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex gap-2">
+                      <Input
+                        value={couponInput}
+                        onChange={(e) => { setCouponInput(e.target.value.toUpperCase()); setCouponError(null); }}
+                        placeholder="Digite o código"
+                        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); applyCoupon(); } }}
+                      />
+                      <Button type="button" variant="outline" onClick={applyCoupon} disabled={validatingCoupon || !couponInput.trim()}>
+                        {validatingCoupon ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar"}
+                      </Button>
+                    </div>
+                    {couponError && <p className="text-xs text-destructive">{couponError}</p>}
+                  </>
+                )}
+              </div>
+
               {/* Resumo do pedido */}
               <div className="border rounded-lg p-3 space-y-2">
                 <h3 className="font-semibold text-sm">Resumo do pedido</h3>
