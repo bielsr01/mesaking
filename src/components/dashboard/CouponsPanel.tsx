@@ -62,8 +62,18 @@ const empty = (rid: string): Partial<Coupon> => ({
   is_active: true,
 });
 
-const toLocalInput = (iso: string | null) => (iso ? new Date(iso).toISOString().slice(0, 16) : "");
-const fromLocalInput = (v: string) => (v ? new Date(v).toISOString() : null);
+const toLocalInput = (iso: string | null) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+const fromLocalInput = (v: string) => {
+  if (!v) return null;
+  const m = v.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  if (!m) return null;
+  return new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]).toISOString();
+};
 
 export function CouponsPanel({ restaurantId }: { restaurantId: string }) {
   const qc = useQueryClient();
