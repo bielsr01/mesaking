@@ -130,8 +130,6 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
       ["Bairro", full.address_neighborhood],
       ["Cidade", full.address_city],
       ["UF", full.address_state],
-      ["Tempo mínimo de entrega", full.delivery_time_min],
-      ["Tempo máximo de entrega", full.delivery_time_max],
     ];
     for (const [label, val] of required) {
       if (val === null || val === undefined || String(val).trim() === "") {
@@ -140,17 +138,6 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
     }
     if (!full.latitude || !full.longitude) {
       return toast.error("Calcule as coordenadas do endereço (botão Localizar no mapa)");
-    }
-    const feeMode = (full.delivery_fee_mode ?? "radius") as "fixed" | "radius";
-    const cleanZones = zones
-      .filter((z) => Number(z.radius_km) > 0 && Number(z.fee) >= 0 && Number(z.radius_km) <= 50)
-      .map((z) => ({ radius_km: Number(z.radius_km), fee: Number(z.fee) }));
-    if (feeMode === "radius" && cleanZones.length === 0) {
-      return toast.error("Cadastre ao menos uma faixa de entrega");
-    }
-    const fixedFee = Number(full.delivery_fixed_fee ?? 0);
-    if (feeMode === "fixed" && (!isFinite(fixedFee) || fixedFee < 0)) {
-      return toast.error("Informe um valor fixo válido para a taxa de entrega");
     }
     if (!Object.values(hours).some((h: any) => h?.enabled)) {
       return toast.error("Habilite ao menos um dia no horário de funcionamento");
