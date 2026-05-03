@@ -102,6 +102,10 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
   useEffect(() => {
     if (open) {
       setStep(1);
+      // Cupom NUNCA deve vir aplicado por cache — sempre limpa ao abrir
+      setCoupon(null);
+      setCouponInput("");
+      setCouponError(null);
       // ao abrir, escolhe a opção disponível por padrão
       if (!deliveryEnabled && pickupEnabled) setOrderType("pickup");
       else if (deliveryEnabled) setOrderType("delivery");
