@@ -88,9 +88,22 @@ export function useNewOrderNotifications(restaurantId: string | undefined, isOnO
     };
   }, [restaurantId, qc, isOnOrdersTab]);
 
+  const stopPulse = () => {
+    if (pulseTimer.current) {
+      window.clearTimeout(pulseTimer.current);
+      pulseTimer.current = null;
+    }
+    setPulse(false);
+  };
   const unreadCount = notifications.filter((n) => !n.read).length;
-  const markAllRead = () => setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-  const clear = () => setNotifications([]);
+  const markAllRead = () => {
+    stopPulse();
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  };
+  const clear = () => {
+    stopPulse();
+    setNotifications([]);
+  };
 
   return { notifications, unreadCount, pulse, markAllRead, clear };
 }
