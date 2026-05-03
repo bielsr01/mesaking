@@ -198,10 +198,16 @@ export function buildTicketHtml(
     <div class="center">${dateStr}</div>
     <div class="center" style="font-weight:700;margin-top:2px">${orderTypeLabel[order.order_type]} #${order.order_number}</div>
   ` : ""}
-  ${(ps.customer_name || ps.customer_phone || ps.customer_address) ? `<div class="sep"></div>` : ""}
-  ${ps.customer_name ? `<div><strong>${esc(order.customer_name)}</strong></div>` : ""}
-  ${ps.customer_phone ? `<div>${esc(formatPhone(order.customer_phone))}</div>` : ""}
-  ${ps.customer_address && order.order_type === "delivery" && fullCustAddress ? `<div style="margin-top:2px">${esc(fullCustAddress)}${order.address_notes ? ` (${esc(order.address_notes)})` : ""}</div>` : ""}
+  ${(() => {
+    const showAddr = ps.customer_address && order.order_type === "delivery" && !!fullCustAddress;
+    const hasAny = ps.customer_name || ps.customer_phone || showAddr;
+    if (!hasAny) return "";
+    return `
+    <div class="sep"></div>
+    ${ps.customer_name ? `<div><strong>${esc(order.customer_name)}</strong></div>` : ""}
+    ${ps.customer_phone ? `<div>${esc(formatPhone(order.customer_phone))}</div>` : ""}
+    ${showAddr ? `<div style="margin-top:2px">${esc(fullCustAddress)}${order.address_notes ? ` (${esc(order.address_notes)})` : ""}</div>` : ""}`;
+  })()}
   ${ps.products ? `
     <div class="sep"></div>
     ${itemsHtml}
