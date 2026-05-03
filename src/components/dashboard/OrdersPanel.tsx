@@ -13,6 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { brl, orderStatusLabel, getNextStatus, paymentLabel, formatPhone, orderTypeLabel } from "@/lib/format";
 import { toast } from "sonner";
 import { Bike, Clock, MapPin, Phone, Printer, Store, User, X } from "lucide-react";
+import { buildTicketHtml } from "@/lib/ticket";
 
 interface Order {
   id: string;
@@ -80,6 +81,19 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     queryKey: ordersKey(restaurantId),
     queryFn: () => fetchOrders(restaurantId),
     staleTime: 10_000,
+  });
+
+  const { data: restaurantInfo } = useQuery({
+    queryKey: ["restaurant-print-info", restaurantId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("restaurants")
+        .select("name,logo_url,address_street,address_number,address_neighborhood,address_city,address_state,address_cep,print_settings")
+        .eq("id", restaurantId)
+        .maybeSingle();
+      return data;
+    },
+    staleTime: 5 * 60_000,
   });
 
   const orders = data?.orders ?? [];
@@ -263,7 +277,17 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => window.open(`/ticket/${o.id}`, "_blank", "noopener")}
+                    onClick={() => {
+                      const w = window.open("", "_blank", "noopener,width=420,height=720");
+                      if (!w) {
+                        toast.error("Permita popups para imprimir");
+                        return;
+                      }
+                      const html = buildTicketHtml(o as any, items[o.id] ?? [], (restaurantInfo as any) ?? null);
+                      w.document.open();
+                      w.document.write(html);
+                      w.document.close();
+                    }}
                     aria-label="Imprimir ticket"
                     title="Imprimir ticket"
                   >
