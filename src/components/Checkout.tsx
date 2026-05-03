@@ -394,15 +394,18 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
     const { error: ie } = await supabase.from("order_items").insert(items);
     if (ie) { setBusy(false); return toast.error(ie.message); }
 
-    // Salva/atualiza cliente automaticamente (dedupe por telefone)
+    // Salva/atualiza cliente automaticamente (dedupe por telefone — busca todas as variantes)
     try {
       const phoneFmt = formatPhone(phone);
-      const { data: existing } = await supabase
+      const phoneDigits = unmaskPhone(phone);
+      const phoneVariants = Array.from(new Set([phoneFmt, phoneDigits].filter(Boolean)));
+      const { data: existingList } = await supabase
         .from("customers" as any)
         .select("id, orders_count")
         .eq("restaurant_id", restaurant.id)
-        .eq("phone", phoneFmt)
-        .maybeSingle();
+        .in("phone", phoneVariants)
+        .limit(1);
+      const existing = Array.isArray(existingList) && existingList.length > 0 ? (existingList[0] as any) : null;
       const customerPayload: any = {
         restaurant_id: restaurant.id,
         name: name.trim(),
@@ -421,8 +424,8 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
       if (existing) {
         await supabase.from("customers" as any).update({
           ...customerPayload,
-          orders_count: ((existing as any).orders_count ?? 0) + 1,
-        }).eq("id", (existing as any).id);
+          orders_count: Number(existing.orders_count ?? 0) + 1,
+        }).eq("id", existing.id);
       } else {
         await supabase.from("customers" as any).insert({ ...customerPayload, orders_count: 1 });
       }
