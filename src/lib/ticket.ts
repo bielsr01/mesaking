@@ -70,10 +70,15 @@ const normalizeOptionText = (s: string) =>
     .toLowerCase();
 
 const ticketItemDetailLines = (item: TicketItem, catalog: TicketOptionCatalog) => {
-  const lines = (item.notes ?? "")
+  const rawLines = (item.notes ?? "")
     .split("\n")
     .map((l) => l.trim())
     .filter(Boolean);
+  const lines = rawLines.flatMap((line) => {
+    if (line.includes(":") || /^obs\s*:/i.test(line)) return [line];
+    const parts = line.match(/[+•-]\s*[^+•-]+/g);
+    return parts && parts.length > 1 ? parts.map((p) => p.trim()) : [line];
+  });
 
   const productOptions = item.product_id ? (catalog[item.product_id] ?? []) : [];
   const productGroups = Array.from(new Set(productOptions.map((o) => o.groupName).filter(Boolean)));
