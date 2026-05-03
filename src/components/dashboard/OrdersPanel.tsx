@@ -13,7 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { brl, orderStatusLabel, getNextStatus, paymentLabel, formatPhone, orderTypeLabel } from "@/lib/format";
 import { toast } from "sonner";
 import { Bike, Clock, MapPin, Phone, Printer, Store, User, X } from "lucide-react";
-import { buildTicketHtml } from "@/lib/ticket";
+import { buildTicketHtml, TicketOptionCatalog } from "@/lib/ticket";
 
 interface Order {
   id: string;
@@ -37,6 +37,7 @@ interface Order {
 interface Item {
   id: string;
   order_id: string;
+  product_id: string | null;
   product_name: string;
   unit_price: number;
   quantity: number;
@@ -98,6 +99,47 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
 
   const orders = data?.orders ?? [];
   const items = data?.items ?? {};
+  const productIds = Array.from(new Set(Object.values(items).flat().map((it) => it.product_id).filter(Boolean))) as string[];
+
+  const { data: optionCatalog = {} } = useQuery({
+    queryKey: ["ticket-option-catalog", restaurantId, productIds.join("|")],
+    enabled: productIds.length > 0,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const [{ data: groups }, { data: optionRows }, { data: links }] = await Promise.all([
+        supabase.from("option_groups").select("id,name,sort_order").eq("restaurant_id", restaurantId),
+        supabase
+          .from("option_items")
+          .select("id,group_id,name,sort_order,option_groups!inner(restaurant_id)")
+          .eq("option_groups.restaurant_id", restaurantId),
+        supabase.from("product_option_groups").select("product_id,group_id,sort_order").in("product_id", productIds),
+      ]);
+
+      const groupMap = new Map((groups ?? []).map((g: any) => [g.id, g]));
+      const itemsByGroup = new Map<string, any[]>();
+      (optionRows ?? []).forEach((row: any) => {
+        const arr = itemsByGroup.get(row.group_id) ?? [];
+        arr.push(row);
+        itemsByGroup.set(row.group_id, arr);
+      });
+
+      return (links ?? []).reduce<TicketOptionCatalog>((acc, link: any) => {
+        const group = groupMap.get(link.group_id);
+        if (!group) return acc;
+        const catalogItems = itemsByGroup.get(link.group_id) ?? [];
+        acc[link.product_id] = [
+          ...(acc[link.product_id] ?? []),
+          ...catalogItems.map((it) => ({
+            groupName: group.name,
+            itemName: it.name,
+            groupSortOrder: link.sort_order ?? group.sort_order ?? 0,
+            itemSortOrder: it.sort_order ?? 0,
+          })),
+        ].sort((a, b) => (a.groupSortOrder ?? 0) - (b.groupSortOrder ?? 0) || (a.itemSortOrder ?? 0) - (b.itemSortOrder ?? 0));
+        return acc;
+      }, {});
+    },
+  });
 
   useEffect(() => {
     const ch = supabase
@@ -278,7 +320,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                     size="sm"
                     variant="outline"
                     onClick={() => {
-                      const html = buildTicketHtml(o as any, items[o.id] ?? [], (restaurantInfo as any) ?? null);
+                      const html = buildTicketHtml(o as any, items[o.id] ?? [], (restaurantInfo as any) ?? null, optionCatalog);
                       const w = window.open("", "_blank", "width=420,height=720");
                       if (!w) {
                         // Fallback: blob URL (works even if popup is blocked into a new tab via user gesture)
