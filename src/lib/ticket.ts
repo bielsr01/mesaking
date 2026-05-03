@@ -157,9 +157,12 @@ export function buildTicketHtml(
       const notesHtml = ticketItemDetailLines(it, optionCatalog)
         .map((l) => `<div class="muted" style="font-size:11px">${esc(l)}</div>`)
         .join("");
+      const priceCell = ps.prices
+        ? `<span>${brl(it.unit_price * it.quantity)}</span>`
+        : "";
       return `
       <div style="margin-bottom:4px">
-        <div class="row"><span class="item-name">${it.quantity}× ${esc(it.product_name)}</span><span>${brl(it.unit_price * it.quantity)}</span></div>
+        <div class="row"><span class="item-name">${it.quantity}× ${esc(it.product_name)}</span>${priceCell}</div>
         ${notesHtml}
       </div>`;
     })
