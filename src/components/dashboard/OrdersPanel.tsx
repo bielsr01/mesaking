@@ -278,12 +278,20 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                     size="sm"
                     variant="outline"
                     onClick={() => {
-                      const w = window.open("", "_blank", "noopener,width=420,height=720");
+                      const html = buildTicketHtml(o as any, items[o.id] ?? [], (restaurantInfo as any) ?? null);
+                      const w = window.open("", "_blank", "width=420,height=720");
                       if (!w) {
-                        toast.error("Permita popups para imprimir");
+                        // Fallback: blob URL (works even if popup is blocked into a new tab via user gesture)
+                        const blob = new Blob([html], { type: "text/html" });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.target = "_blank";
+                        a.rel = "noopener";
+                        a.click();
+                        setTimeout(() => URL.revokeObjectURL(url), 30_000);
                         return;
                       }
-                      const html = buildTicketHtml(o as any, items[o.id] ?? [], (restaurantInfo as any) ?? null);
                       w.document.open();
                       w.document.write(html);
                       w.document.close();
