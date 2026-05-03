@@ -1,0 +1,144 @@
+import { brl, formatPhone, orderTypeLabel, paymentLabel } from "./format";
+import { DEFAULT_PRINT_SETTINGS, PrintSettings } from "@/components/dashboard/PrintSettings";
+
+export interface TicketOrder {
+  id: string;
+  order_number: number;
+  order_type: "delivery" | "pickup";
+  customer_name: string;
+  customer_phone: string;
+  address_street?: string | null;
+  address_number?: string | null;
+  address_complement?: string | null;
+  address_neighborhood?: string | null;
+  address_city?: string | null;
+  address_state?: string | null;
+  address_cep?: string | null;
+  address_notes?: string | null;
+  payment_method: string;
+  change_for?: number | null;
+  subtotal?: number;
+  delivery_fee?: number;
+  total: number;
+  created_at: string;
+}
+
+export interface TicketItem {
+  id: string;
+  product_name: string;
+  unit_price: number;
+  quantity: number;
+  notes?: string | null;
+}
+
+export interface TicketRestaurant {
+  name?: string | null;
+  logo_url?: string | null;
+  address_street?: string | null;
+  address_number?: string | null;
+  address_neighborhood?: string | null;
+  address_city?: string | null;
+  address_state?: string | null;
+  address_cep?: string | null;
+  print_settings?: PrintSettings | null;
+}
+
+const esc = (s: unknown) =>
+  String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+
+export function buildTicketHtml(
+  order: TicketOrder,
+  items: TicketItem[],
+  restaurant: TicketRestaurant | null,
+): string {
+  const ps: PrintSettings = { ...DEFAULT_PRINT_SETTINGS, ...(restaurant?.print_settings ?? {}) };
+
+  const fullBizAddress = [
+    [restaurant?.address_street, restaurant?.address_number].filter(Boolean).join(", "),
+    restaurant?.address_neighborhood,
+    [restaurant?.address_city, restaurant?.address_state].filter(Boolean).join(" - "),
+    restaurant?.address_cep,
+  ].filter(Boolean).join(" • ");
+
+  const fullCustAddress = [
+    [order.address_street, order.address_number].filter(Boolean).join(", "),
+    order.address_complement,
+    order.address_neighborhood,
+    [order.address_city, order.address_state].filter(Boolean).join(" - "),
+    order.address_cep,
+  ].filter(Boolean).join(" • ");
+
+  const created = new Date(order.created_at);
+  const dateStr = `${created.toLocaleDateString("pt-BR")} - ${created.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
+  const subtotal = order.subtotal ?? items.reduce((s, it) => s + it.unit_price * it.quantity, 0);
+  const deliveryFee = order.delivery_fee ?? 0;
+
+  const itemsHtml = items
+    .map(
+      (it) => `
+      <div style="margin-bottom:4px">
+        <div class="row"><span class="item-name">${it.quantity}× ${esc(it.product_name)}</span><span>${brl(it.unit_price * it.quantity)}</span></div>
+        ${it.notes ? `<div class="muted" style="font-size:11px">obs: ${esc(it.notes)}</div>` : ""}
+      </div>`,
+    )
+    .join("");
+
+  return `<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8" />
+<title>Ticket #${order.order_number}</title>
+<style>
+  @page { size: 80mm auto; margin: 4mm; }
+  @media print { body { background:#fff !important; } .no-print { display:none !important; } }
+  body { margin:0; background:#f5f5f5; }
+  .ticket { width:72mm; margin:0 auto; padding:8px; font-family:'Courier New',monospace; color:#000; font-size:12px; line-height:1.35; background:#fff; }
+  .ticket h1 { font-size:14px; font-weight:700; margin:0; text-align:center; }
+  .muted { color:#333; }
+  .center { text-align:center; }
+  .row { display:flex; justify-content:space-between; gap:8px; }
+  .sep { border-top:1px dashed #000; margin:6px 0; }
+  .item-name { font-weight:700; }
+  .total { font-size:14px; font-weight:700; }
+  .logo { max-width:50mm; max-height:25mm; display:block; margin:0 auto 6px; object-fit:contain; }
+  .no-print { padding:12px; text-align:center; }
+  .no-print button { padding:8px 16px; border:1px solid #333; border-radius:6px; cursor:pointer; background:#fff; }
+</style></head>
+<body>
+<div class="no-print"><button onclick="window.print()">🖨️ Imprimir novamente</button></div>
+<div class="ticket">
+  ${ps.logo && restaurant?.logo_url ? `<img src="${esc(restaurant.logo_url)}" alt="" class="logo" />` : ""}
+  ${ps.business_name && restaurant?.name ? `<h1>${esc(restaurant.name)}</h1>` : ""}
+  ${ps.business_address && fullBizAddress ? `<div class="center muted" style="margin-top:4px">${esc(fullBizAddress)}</div>` : ""}
+  ${ps.order_type_date ? `
+    <div class="sep"></div>
+    <div class="center">${dateStr}</div>
+    <div class="center" style="font-weight:700;margin-top:2px">${orderTypeLabel[order.order_type]} #${order.order_number}</div>
+  ` : ""}
+  ${(ps.customer_name || ps.customer_phone || ps.customer_address) ? `<div class="sep"></div>` : ""}
+  ${ps.customer_name ? `<div><strong>${esc(order.customer_name)}</strong></div>` : ""}
+  ${ps.customer_phone ? `<div>${esc(formatPhone(order.customer_phone))}</div>` : ""}
+  ${ps.customer_address && order.order_type === "delivery" && fullCustAddress ? `<div style="margin-top:2px">${esc(fullCustAddress)}${order.address_notes ? ` (${esc(order.address_notes)})` : ""}</div>` : ""}
+  ${ps.products_with_prices ? `
+    <div class="sep"></div>
+    ${itemsHtml}
+    <div class="sep"></div>
+    <div class="row"><span>Subtotal</span><span>${brl(subtotal)}</span></div>
+    ${order.order_type === "delivery" ? `<div class="row"><span>Taxa de entrega</span><span>${brl(deliveryFee)}</span></div>` : ""}
+    <div class="row total" style="margin-top:4px"><span>TOTAL</span><span>${brl(order.total)}</span></div>
+    <div class="muted" style="margin-top:4px">Pagamento: ${esc(paymentLabel[order.payment_method] ?? order.payment_method)}${order.change_for ? ` (troco p/ ${brl(order.change_for)})` : ""}</div>
+  ` : ""}
+  <div class="sep"></div>
+  <div class="center muted" style="font-size:10px">Esse documento não tem valor fiscal.</div>
+</div>
+<script>
+  (function(){
+    function go(){ try { window.focus(); window.print(); } catch(e){} }
+    if (document.readyState === 'complete') go();
+    else window.addEventListener('load', go);
+  })();
+</script>
+</body></html>`;
+}
