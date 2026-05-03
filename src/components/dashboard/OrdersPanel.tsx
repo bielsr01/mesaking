@@ -33,7 +33,7 @@ interface Order {
   subtotal: number;
   delivery_fee: number;
   total: number;
-  status: string;
+  status: "accepted" | "awaiting_pickup" | "cancelled" | "delivered" | "out_for_delivery" | "pending" | "preparing";
   order_type: "delivery" | "pickup";
   created_at: string;
 }
@@ -189,7 +189,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   };
 
   const advance = async (o: Order) => {
-    const next = getNextStatus(o.status, o.order_type);
+    const next = getNextStatus(o.status, o.order_type) as Order["status"] | null;
     if (!next) return;
     const prevStatus = o.status;
     patchOrder(o.id, { status: next }); // optimistic
@@ -331,7 +331,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                     size="sm"
                     variant="outline"
                     onClick={() => {
-                      const html = buildTicketHtml(o, items[o.id] ?? [], (restaurantInfo as TicketRestaurant | null) ?? null, optionCatalog);
+                      const html = buildTicketHtml(o, items[o.id] ?? [], (restaurantInfo as unknown as TicketRestaurant | null) ?? null, optionCatalog);
                       const w = window.open("", "_blank", "width=420,height=720");
                       if (!w) {
                         // Fallback: blob URL (works even if popup is blocked into a new tab via user gesture)
