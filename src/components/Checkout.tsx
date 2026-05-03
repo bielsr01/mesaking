@@ -391,6 +391,13 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
       }
     } catch (_) { /* não bloqueia o pedido */ }
 
+    // Incrementa uses_count do cupom (best-effort)
+    if (coupon?.id) {
+      try {
+        await supabase.from("coupons" as any).update({ uses_count: Number(coupon.uses_count ?? 0) + 1 }).eq("id", coupon.id);
+      } catch (_) {}
+    }
+
     cart.clear();
     setBusy(false);
     onOpenChange(false);
