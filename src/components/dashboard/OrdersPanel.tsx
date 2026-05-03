@@ -25,9 +25,13 @@ interface Order {
   address_complement: string | null;
   address_neighborhood: string;
   address_city: string;
+  address_state: string;
+  address_cep: string;
   address_notes: string | null;
   payment_method: string;
   change_for: number | null;
+  subtotal: number;
+  delivery_fee: number;
   total: number;
   status: string;
   order_type: "delivery" | "pickup";
@@ -164,7 +168,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
         });
       })
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` }, (payload) => {
-        const id = (payload.old as any)?.id;
+        const id = (payload.old as Partial<Order>)?.id;
         qc.setQueryData<{ orders: Order[]; items: Record<string, Item[]> }>(ordersKey(restaurantId), (prev) => {
           if (!prev) return prev;
           return { ...prev, orders: prev.orders.filter((o) => o.id !== id) };
@@ -189,7 +193,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     if (!next) return;
     const prevStatus = o.status;
     patchOrder(o.id, { status: next }); // optimistic
-    const { error } = await supabase.from("orders").update({ status: next as any }).eq("id", o.id);
+    const { error } = await supabase.from("orders").update({ status: next }).eq("id", o.id);
     if (error) {
       patchOrder(o.id, { status: prevStatus });
       toast.error(error.message);
@@ -201,7 +205,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const cancel = async (o: Order) => {
     const prevStatus = o.status;
     patchOrder(o.id, { status: "cancelled" }); // optimistic
-    const { error } = await supabase.from("orders").update({ status: "cancelled" as any }).eq("id", o.id);
+    const { error } = await supabase.from("orders").update({ status: "cancelled" }).eq("id", o.id);
     if (error) {
       patchOrder(o.id, { status: prevStatus });
       toast.error(error.message);
@@ -327,7 +331,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                     size="sm"
                     variant="outline"
                     onClick={() => {
-                      const html = buildTicketHtml(o as any, items[o.id] ?? [], (restaurantInfo as any) ?? null, optionCatalog);
+                      const html = buildTicketHtml(o, items[o.id] ?? [], (restaurantInfo as TicketRestaurant | null) ?? null, optionCatalog);
                       const w = window.open("", "_blank", "width=420,height=720");
                       if (!w) {
                         // Fallback: blob URL (works even if popup is blocked into a new tab via user gesture)
