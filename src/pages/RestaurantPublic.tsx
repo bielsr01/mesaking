@@ -477,7 +477,7 @@ export default function RestaurantPublic() {
 
       {/* Product modal */}
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-h-[90vh] overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
           {selected && (
             <>
               <DialogHeader><DialogTitle>{selected.name}</DialogTitle></DialogHeader>
