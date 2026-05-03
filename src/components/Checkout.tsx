@@ -398,41 +398,21 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
     const { error: ie } = await supabase.from("order_items").insert(items);
     if (ie) { setBusy(false); return toast.error(ie.message); }
 
-    // Salva/atualiza cliente automaticamente (dedupe por telefone — busca todas as variantes)
+    // Salva/atualiza cliente automaticamente via RPC (dedupe pelos dígitos do telefone)
     try {
       const phoneFmt = formatPhone(phone);
-      const phoneDigits = unmaskPhone(phone);
-      const phoneVariants = Array.from(new Set([phoneFmt, phoneDigits].filter(Boolean)));
-      const { data: existingList } = await supabase
-        .from("customers" as any)
-        .select("id, orders_count")
-        .eq("restaurant_id", restaurant.id)
-        .in("phone", phoneVariants)
-        .limit(1);
-      const existing = Array.isArray(existingList) && existingList.length > 0 ? (existingList[0] as any) : null;
-      const customerPayload: any = {
-        restaurant_id: restaurant.id,
-        name: name.trim(),
-        phone: phoneFmt,
-        last_order_at: new Date().toISOString(),
-      };
-      if (!isPickup) {
-        customerPayload.address_cep = cep;
-        customerPayload.address_street = addr.street;
-        customerPayload.address_number = addr.number;
-        customerPayload.address_complement = addr.complement || null;
-        customerPayload.address_neighborhood = addr.neighborhood;
-        customerPayload.address_city = addr.city;
-        customerPayload.address_state = addr.state;
-      }
-      if (existing) {
-        await supabase.from("customers" as any).update({
-          ...customerPayload,
-          orders_count: Number(existing.orders_count ?? 0) + 1,
-        }).eq("id", existing.id);
-      } else {
-        await supabase.from("customers" as any).insert({ ...customerPayload, orders_count: 1 });
-      }
+      await supabase.rpc("upsert_customer_on_order" as any, {
+        _restaurant_id: restaurant.id,
+        _name: name.trim(),
+        _phone: phoneFmt,
+        _address_cep: !isPickup ? cep : null,
+        _address_street: !isPickup ? addr.street : null,
+        _address_number: !isPickup ? addr.number : null,
+        _address_complement: !isPickup ? (addr.complement || null) : null,
+        _address_neighborhood: !isPickup ? addr.neighborhood : null,
+        _address_city: !isPickup ? addr.city : null,
+        _address_state: !isPickup ? addr.state : null,
+      });
     } catch (_) { /* não bloqueia o pedido */ }
 
     // Incrementa uses_count do cupom (best-effort)

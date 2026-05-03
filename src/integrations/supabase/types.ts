@@ -695,6 +695,21 @@ export type Database = {
         Args: { _restaurant_id: string; _user_id: string }
         Returns: boolean
       }
+      upsert_customer_on_order: {
+        Args: {
+          _address_cep?: string
+          _address_city?: string
+          _address_complement?: string
+          _address_neighborhood?: string
+          _address_number?: string
+          _address_state?: string
+          _address_street?: string
+          _name: string
+          _phone: string
+          _restaurant_id: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "master_admin" | "manager" | "customer"
