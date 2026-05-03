@@ -402,6 +402,31 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={!!printTarget} onOpenChange={(o) => !o && setPrintTarget(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Imprimir ticket</DialogTitle>
+            <DialogDescription>Escolha qual ticket deseja imprimir.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2">
+            <Button
+              variant="outline"
+              className="justify-start gap-2 h-12"
+              onClick={() => { if (printTarget) { doPrint(printTarget, "customer"); setPrintTarget(null); } }}
+            >
+              <Printer className="w-4 h-4" /> Imprimir Ticket do Cliente
+            </Button>
+            <Button
+              variant="outline"
+              className="justify-start gap-2 h-12"
+              onClick={() => { if (printTarget) { doPrint(printTarget, "kitchen"); setPrintTarget(null); } }}
+            >
+              <ChefHat className="w-4 h-4" /> Imprimir Ticket da Cozinha
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
