@@ -73,6 +73,12 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
   const [payment, setPayment] = useState<"cash" | "pix" | "card_on_delivery">("cash");
   const [changeFor, setChangeFor] = useState("");
 
+  // Cupom
+  const [couponInput, setCouponInput] = useState("");
+  const [coupon, setCoupon] = useState<any | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
+
   const [delivery, setDelivery] = useState<{ fee: number; km: number; pt: GeoPoint } | null>(null);
   const [deliveryError, setDeliveryError] = useState<string | null>(null);
   const [calculating, setCalculating] = useState(false);
@@ -162,7 +168,81 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
 
   const fee = isPickup ? 0 : (delivery?.fee ?? 0);
   const subtotal = cart.total;
-  const total = subtotal + fee;
+
+  // Calcula desconto aplicado
+  const discount = (() => {
+    if (!coupon) return 0;
+    let base = subtotal;
+    if (coupon.apply_to === "items") {
+      const ids: string[] = coupon.product_ids ?? [];
+      base = cart.items
+        .filter((i) => ids.includes(i.productId))
+        .reduce((s, i) => s + (i.price + (i.options?.reduce((a, o) => a + (Number(o.extraPrice) || 0), 0) ?? 0)) * i.quantity, 0);
+    }
+    const v = coupon.discount_type === "percent"
+      ? base * (Number(coupon.discount_value) / 100)
+      : Number(coupon.discount_value);
+    return Math.min(Math.max(0, v), base);
+  })();
+
+  const total = Math.max(0, subtotal + fee - discount);
+
+  const applyCoupon = async () => {
+    setCouponError(null);
+    const code = couponInput.trim().toUpperCase();
+    if (!code) return;
+    setValidatingCoupon(true);
+    try {
+      const { data } = await supabase
+        .from("coupons" as any)
+        .select("*")
+        .eq("restaurant_id", restaurant.id)
+        .eq("code", code)
+        .eq("is_active", true)
+        .maybeSingle();
+      const c: any = data;
+      if (!c) { setCoupon(null); setCouponError("Cupom inválido ou inativo"); return; }
+      const now = new Date();
+      if (c.starts_at && new Date(c.starts_at) > now) { setCoupon(null); setCouponError("Cupom ainda não está disponível"); return; }
+      if (c.ends_at && new Date(c.ends_at) < now) { setCoupon(null); setCouponError("Cupom expirado"); return; }
+      if (isPickup && !c.service_pickup) { setCoupon(null); setCouponError("Cupom não válido para retirada"); return; }
+      if (!isPickup && !c.service_delivery) { setCoupon(null); setCouponError("Cupom não válido para delivery"); return; }
+      if (Number(c.min_order_value) > 0 && subtotal < Number(c.min_order_value)) {
+        setCoupon(null); setCouponError(`Pedido mínimo de ${brl(Number(c.min_order_value))} para usar este cupom`); return;
+      }
+      if (c.usage_limit_total != null && Number(c.uses_count ?? 0) >= Number(c.usage_limit_total)) {
+        setCoupon(null); setCouponError("Cupom esgotado"); return;
+      }
+      if (c.apply_to === "items") {
+        const ids: string[] = c.product_ids ?? [];
+        const hasItem = cart.items.some((i) => ids.includes(i.productId));
+        if (!hasItem) { setCoupon(null); setCouponError("Adicione um produto elegível para usar este cupom"); return; }
+      }
+      // Validações por cliente (telefone)
+      const phoneFmt = formatPhone(phone);
+      if (phoneFmt) {
+        const { data: existing } = await supabase
+          .from("customers" as any)
+          .select("orders_count")
+          .eq("restaurant_id", restaurant.id)
+          .eq("phone", phoneFmt)
+          .maybeSingle();
+        const prevOrders = Number((existing as any)?.orders_count ?? 0);
+        if (c.customer_type === "new" && prevOrders > 0) {
+          setCoupon(null); setCouponError("Cupom válido apenas para novos clientes"); return;
+        }
+        if (Number(c.usage_limit_per_customer ?? 0) === 1 && prevOrders > 0) {
+          setCoupon(null); setCouponError("Cupom de uso único por cliente"); return;
+        }
+      }
+      setCoupon(c);
+      toast.success("Cupom aplicado!");
+    } finally {
+      setValidatingCoupon(false);
+    }
+  };
+
+  const removeCoupon = () => { setCoupon(null); setCouponInput(""); setCouponError(null); };
 
   const storeAddressLine = [
     restaurant.address_street && `${restaurant.address_street}${restaurant.address_number ? `, ${restaurant.address_number}` : ""}`,
