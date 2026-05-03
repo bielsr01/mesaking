@@ -49,6 +49,78 @@ export type Database = {
           },
         ]
       }
+      coupons: {
+        Row: {
+          apply_to: string
+          code: string
+          created_at: string
+          customer_type: string
+          discount_type: string
+          discount_value: number
+          ends_at: string | null
+          id: string
+          is_active: boolean
+          min_order_value: number
+          name: string
+          product_ids: string[]
+          restaurant_id: string
+          service_delivery: boolean
+          service_pickup: boolean
+          show_on_menu: boolean
+          starts_at: string | null
+          updated_at: string
+          usage_limit_per_customer: number
+          usage_limit_total: number | null
+          uses_count: number
+        }
+        Insert: {
+          apply_to?: string
+          code: string
+          created_at?: string
+          customer_type?: string
+          discount_type?: string
+          discount_value?: number
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          min_order_value?: number
+          name: string
+          product_ids?: string[]
+          restaurant_id: string
+          service_delivery?: boolean
+          service_pickup?: boolean
+          show_on_menu?: boolean
+          starts_at?: string | null
+          updated_at?: string
+          usage_limit_per_customer?: number
+          usage_limit_total?: number | null
+          uses_count?: number
+        }
+        Update: {
+          apply_to?: string
+          code?: string
+          created_at?: string
+          customer_type?: string
+          discount_type?: string
+          discount_value?: number
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          min_order_value?: number
+          name?: string
+          product_ids?: string[]
+          restaurant_id?: string
+          service_delivery?: boolean
+          service_pickup?: boolean
+          show_on_menu?: boolean
+          starts_at?: string | null
+          updated_at?: string
+          usage_limit_per_customer?: number
+          usage_limit_total?: number | null
+          uses_count?: number
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           address_cep: string | null
