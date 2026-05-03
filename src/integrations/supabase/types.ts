@@ -49,6 +49,66 @@ export type Database = {
           },
         ]
       }
+      customers: {
+        Row: {
+          address_cep: string | null
+          address_city: string | null
+          address_complement: string | null
+          address_neighborhood: string | null
+          address_number: string | null
+          address_state: string | null
+          address_street: string | null
+          created_at: string
+          email: string | null
+          id: string
+          last_order_at: string | null
+          name: string
+          notes: string | null
+          orders_count: number
+          phone: string
+          restaurant_id: string
+          updated_at: string
+        }
+        Insert: {
+          address_cep?: string | null
+          address_city?: string | null
+          address_complement?: string | null
+          address_neighborhood?: string | null
+          address_number?: string | null
+          address_state?: string | null
+          address_street?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          last_order_at?: string | null
+          name: string
+          notes?: string | null
+          orders_count?: number
+          phone: string
+          restaurant_id: string
+          updated_at?: string
+        }
+        Update: {
+          address_cep?: string | null
+          address_city?: string | null
+          address_complement?: string | null
+          address_neighborhood?: string | null
+          address_number?: string | null
+          address_state?: string | null
+          address_street?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          last_order_at?: string | null
+          name?: string
+          notes?: string | null
+          orders_count?: number
+          phone?: string
+          restaurant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       option_groups: {
         Row: {
           created_at: string
