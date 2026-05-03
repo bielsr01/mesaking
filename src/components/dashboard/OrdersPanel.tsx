@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { brl, orderStatusLabel, getNextStatus, paymentLabel, formatPhone, orderTypeLabel } from "@/lib/format";
 import { toast } from "sonner";
-import { Bike, Clock, MapPin, Phone, Store, User, X } from "lucide-react";
+import { Bike, Clock, MapPin, Phone, Printer, Store, User, X } from "lucide-react";
 
 interface Order {
   id: string;
@@ -259,16 +259,27 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                   <div className="text-lg font-bold">{brl(o.total)}</div>
                 </div>
 
-                {!["delivered", "cancelled"].includes(o.status) && (
-                  <div className="flex gap-2 pt-1">
-                    {next && (
-                      <Button size="sm" className="flex-1" onClick={() => advance(o)}>
-                        {o.status === "pending" ? "✓ Aceitar pedido" : `→ ${orderStatusLabel[next]}`}
-                      </Button>
-                    )}
-                    <Button size="sm" variant="outline" onClick={() => setCancelTarget(o)} aria-label="Cancelar pedido"><X className="w-4 h-4" /></Button>
-                  </div>
-                )}
+                <div className="flex gap-2 pt-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => window.open(`/ticket/${o.id}`, "_blank", "noopener")}
+                    aria-label="Imprimir ticket"
+                    title="Imprimir ticket"
+                  >
+                    <Printer className="w-4 h-4" />
+                  </Button>
+                  {!["delivered", "cancelled"].includes(o.status) && (
+                    <>
+                      {next && (
+                        <Button size="sm" className="flex-1" onClick={() => advance(o)}>
+                          {o.status === "pending" ? "✓ Aceitar pedido" : `→ ${orderStatusLabel[next]}`}
+                        </Button>
+                      )}
+                      <Button size="sm" variant="outline" onClick={() => setCancelTarget(o)} aria-label="Cancelar pedido"><X className="w-4 h-4" /></Button>
+                    </>
+                  )}
+                </div>
               </CardContent>
             </Card>
             );
