@@ -13,7 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { brl, orderStatusLabel, getNextStatus, paymentLabel, formatPhone, orderTypeLabel } from "@/lib/format";
 import { toast } from "sonner";
 import { Bike, Clock, MapPin, Phone, Printer, Store, User, X } from "lucide-react";
-import { buildTicketHtml, TicketOptionCatalog } from "@/lib/ticket";
+import { buildTicketHtml, TicketOptionCatalog, TicketRestaurant } from "@/lib/ticket";
 
 interface Order {
   id: string;
@@ -44,6 +44,10 @@ interface Item {
   notes: string | null;
 }
 
+interface OptionGroupRow { id: string; name: string; sort_order: number | null; }
+interface OptionItemRow { id: string; group_id: string; name: string; sort_order: number | null; }
+interface ProductOptionGroupRow { product_id: string; group_id: string; sort_order: number | null; }
+
 const FILTERS = [
   { value: "pending", label: "Novos" },
   { value: "preparing", label: "Em preparo" },
@@ -65,7 +69,7 @@ export async function fetchOrders(restaurantId: string): Promise<{ orders: Order
     .limit(100);
   const orders = (data ?? []) as Order[];
   const ids = orders.map((o) => o.id);
-  let grouped: Record<string, Item[]> = {};
+  const grouped: Record<string, Item[]> = {};
   if (ids.length) {
     const { data: its } = await supabase.from("order_items").select("*").in("order_id", ids);
     (its ?? []).forEach((it) => { (grouped[it.order_id] ||= []).push(it as Item); });
@@ -115,15 +119,18 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
         supabase.from("product_option_groups").select("product_id,group_id,sort_order").in("product_id", productIds),
       ]);
 
-      const groupMap = new Map((groups ?? []).map((g: any) => [g.id, g]));
-      const itemsByGroup = new Map<string, any[]>();
-      (optionRows ?? []).forEach((row: any) => {
+      const groupRows = (groups ?? []) as OptionGroupRow[];
+      const itemRows = (optionRows ?? []) as OptionItemRow[];
+      const linkRows = (links ?? []) as ProductOptionGroupRow[];
+      const groupMap = new Map(groupRows.map((g) => [g.id, g]));
+      const itemsByGroup = new Map<string, OptionItemRow[]>();
+      itemRows.forEach((row) => {
         const arr = itemsByGroup.get(row.group_id) ?? [];
         arr.push(row);
         itemsByGroup.set(row.group_id, arr);
       });
 
-      return (links ?? []).reduce<TicketOptionCatalog>((acc, link: any) => {
+      return linkRows.reduce<TicketOptionCatalog>((acc, link) => {
         const group = groupMap.get(link.group_id);
         if (!group) return acc;
         const catalogItems = itemsByGroup.get(link.group_id) ?? [];
