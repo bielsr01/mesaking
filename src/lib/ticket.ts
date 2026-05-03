@@ -58,6 +58,7 @@ export interface TicketRestaurant {
   address_state?: string | null;
   address_cep?: string | null;
   print_settings?: PrintSettings | null;
+  kitchen_print_settings?: PrintSettings | null;
 }
 
 const esc = (s: unknown) =>
