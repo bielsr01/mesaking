@@ -12,8 +12,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { brl, orderStatusLabel, getNextStatus, paymentLabel, formatPhone, orderTypeLabel } from "@/lib/format";
 import { toast } from "sonner";
-import { Bike, Clock, MapPin, Phone, Printer, Store, User, X } from "lucide-react";
-import { buildTicketHtml, TicketOptionCatalog, TicketRestaurant } from "@/lib/ticket";
+import { Bike, ChefHat, Clock, MapPin, Phone, Printer, Store, User, X } from "lucide-react";
+import { buildTicketHtml, TicketMode, TicketOptionCatalog, TicketRestaurant } from "@/lib/ticket";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 interface Order {
   id: string;
@@ -85,6 +86,32 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const qc = useQueryClient();
   const [filter, setFilter] = useState("pending");
   const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
+  const [printTarget, setPrintTarget] = useState<Order | null>(null);
+
+  const doPrint = (o: Order, mode: TicketMode) => {
+    const html = buildTicketHtml(
+      o,
+      items[o.id] ?? [],
+      (restaurantInfo as unknown as TicketRestaurant | null) ?? null,
+      optionCatalog,
+      mode,
+    );
+    const w = window.open("", "_blank", "width=420,height=720");
+    if (!w) {
+      const blob = new Blob([html], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 30_000);
+      return;
+    }
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+  };
 
   const { data, isLoading } = useQuery({
     queryKey: ordersKey(restaurantId),
@@ -97,7 +124,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     queryFn: async () => {
       const { data } = await supabase
         .from("restaurants")
-        .select("name,logo_url,address_street,address_number,address_neighborhood,address_city,address_state,address_cep,print_settings")
+        .select("name,logo_url,address_street,address_number,address_neighborhood,address_city,address_state,address_cep,print_settings,kitchen_print_settings")
         .eq("id", restaurantId)
         .maybeSingle();
       return data;
@@ -330,25 +357,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => {
-                      const html = buildTicketHtml(o, items[o.id] ?? [], (restaurantInfo as unknown as TicketRestaurant | null) ?? null, optionCatalog);
-                      const w = window.open("", "_blank", "width=420,height=720");
-                      if (!w) {
-                        // Fallback: blob URL (works even if popup is blocked into a new tab via user gesture)
-                        const blob = new Blob([html], { type: "text/html" });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement("a");
-                        a.href = url;
-                        a.target = "_blank";
-                        a.rel = "noopener";
-                        a.click();
-                        setTimeout(() => URL.revokeObjectURL(url), 30_000);
-                        return;
-                      }
-                      w.document.open();
-                      w.document.write(html);
-                      w.document.close();
-                    }}
+                    onClick={() => setPrintTarget(o)}
                     aria-label="Imprimir ticket"
                     title="Imprimir ticket"
                   >
@@ -393,6 +402,31 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={!!printTarget} onOpenChange={(o) => !o && setPrintTarget(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Imprimir ticket</DialogTitle>
+            <DialogDescription>Escolha qual ticket deseja imprimir.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2">
+            <Button
+              variant="outline"
+              className="justify-start gap-2 h-12"
+              onClick={() => { if (printTarget) { doPrint(printTarget, "customer"); setPrintTarget(null); } }}
+            >
+              <Printer className="w-4 h-4" /> Imprimir Ticket do Cliente
+            </Button>
+            <Button
+              variant="outline"
+              className="justify-start gap-2 h-12"
+              onClick={() => { if (printTarget) { doPrint(printTarget, "kitchen"); setPrintTarget(null); } }}
+            >
+              <ChefHat className="w-4 h-4" /> Imprimir Ticket da Cozinha
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

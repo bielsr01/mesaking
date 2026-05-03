@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Printer } from "lucide-react";
+import { Printer, ChefHat } from "lucide-react";
 
 export interface PrintSettings {
   logo: boolean;
@@ -16,7 +16,11 @@ export interface PrintSettings {
   customer_name: boolean;
   customer_address: boolean;
   customer_phone: boolean;
-  products_with_prices: boolean;
+  products: boolean;
+  prices: boolean;
+  payment_method: boolean;
+  /** @deprecated kept for backwards-compat with old DB rows */
+  products_with_prices?: boolean;
 }
 
 export const DEFAULT_PRINT_SETTINGS: PrintSettings = {
@@ -27,8 +31,36 @@ export const DEFAULT_PRINT_SETTINGS: PrintSettings = {
   customer_name: true,
   customer_address: true,
   customer_phone: true,
-  products_with_prices: true,
+  products: true,
+  prices: true,
+  payment_method: true,
 };
+
+export const DEFAULT_KITCHEN_PRINT_SETTINGS: PrintSettings = {
+  logo: true,
+  business_name: true,
+  business_address: false,
+  order_type_date: true,
+  customer_name: true,
+  customer_address: true,
+  customer_phone: true,
+  products: true,
+  prices: false,
+  payment_method: false,
+};
+
+/** Normalize legacy `products_with_prices` into split fields */
+export function normalizePrintSettings(
+  raw: Partial<PrintSettings> | null | undefined,
+  defaults: PrintSettings,
+): PrintSettings {
+  const merged: PrintSettings = { ...defaults, ...(raw ?? {}) };
+  if (raw && "products_with_prices" in raw && raw.products_with_prices !== undefined) {
+    if (raw.products === undefined) merged.products = !!raw.products_with_prices;
+    if (raw.prices === undefined) merged.prices = !!raw.products_with_prices;
+  }
+  return merged;
+}
 
 const FIELDS: { key: keyof PrintSettings; label: string; description: string }[] = [
   { key: "logo", label: "Logo", description: "Imagem da logo no topo do ticket" },
@@ -38,53 +70,38 @@ const FIELDS: { key: keyof PrintSettings; label: string; description: string }[]
   { key: "customer_name", label: "Nome do cliente", description: "Nome de quem fez o pedido" },
   { key: "customer_address", label: "Endereço do cliente", description: "Endereço de entrega" },
   { key: "customer_phone", label: "Telefone do cliente", description: "Telefone de contato" },
-  { key: "products_with_prices", label: "Produtos com valores", description: "Lista de itens, valores e total" },
+  { key: "products", label: "Produtos", description: "Lista de itens do pedido" },
+  { key: "prices", label: "Valores", description: "Preços, subtotal, taxa e total" },
+  { key: "payment_method", label: "Forma de pagamento", description: "Como o cliente vai pagar" },
 ];
 
-export function PrintSettingsCard({ restaurantId }: { restaurantId: string }) {
-  const [settings, setSettings] = useState<PrintSettings>(DEFAULT_PRINT_SETTINGS);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    (async () => {
-      const { data } = await supabase
-        .from("restaurants")
-        .select("print_settings")
-        .eq("id", restaurantId)
-        .maybeSingle();
-      if (data?.print_settings) {
-        setSettings({ ...DEFAULT_PRINT_SETTINGS, ...(data.print_settings as any) });
-      }
-      setLoading(false);
-    })();
-  }, [restaurantId]);
-
+function SettingsCard({
+  title,
+  icon,
+  description,
+  settings,
+  onChange,
+  onSave,
+  saving,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  description: string;
+  settings: PrintSettings;
+  onChange: (s: PrintSettings) => void;
+  onSave: () => void;
+  saving: boolean;
+}) {
   const toggle = (key: keyof PrintSettings) =>
-    setSettings((s) => ({ ...s, [key]: !s[key] }));
-
-  const save = async () => {
-    setSaving(true);
-    const { error } = await supabase
-      .from("restaurants")
-      .update({ print_settings: settings as any })
-      .eq("id", restaurantId);
-    setSaving(false);
-    if (error) toast.error(error.message);
-    else toast.success("Configurações de impressão salvas");
-  };
-
-  if (loading) return <Skeleton className="h-96 w-full" />;
+    onChange({ ...settings, [key]: !settings[key] });
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-xl">
-          <Printer className="w-5 h-5" /> Configurar impressões
+          {icon} {title}
         </CardTitle>
-        <CardDescription>
-          Escolha quais informações devem aparecer no ticket de impressão dos pedidos.
-        </CardDescription>
+        <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         {FIELDS.map((f) => (
@@ -96,15 +113,83 @@ export function PrintSettingsCard({ restaurantId }: { restaurantId: string }) {
               <Label className="font-medium">{f.label}</Label>
               <p className="text-xs text-muted-foreground">{f.description}</p>
             </div>
-            <Switch checked={settings[f.key]} onCheckedChange={() => toggle(f.key)} />
+            <Switch checked={!!settings[f.key]} onCheckedChange={() => toggle(f.key)} />
           </div>
         ))}
         <div className="pt-2 flex justify-end">
-          <Button onClick={save} disabled={saving}>
+          <Button onClick={onSave} disabled={saving}>
             {saving ? "Salvando..." : "Salvar configurações"}
           </Button>
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+export function PrintSettingsCard({ restaurantId }: { restaurantId: string }) {
+  const [customer, setCustomer] = useState<PrintSettings>(DEFAULT_PRINT_SETTINGS);
+  const [kitchen, setKitchen] = useState<PrintSettings>(DEFAULT_KITCHEN_PRINT_SETTINGS);
+  const [loading, setLoading] = useState(true);
+  const [savingCustomer, setSavingCustomer] = useState(false);
+  const [savingKitchen, setSavingKitchen] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("restaurants")
+        .select("print_settings,kitchen_print_settings")
+        .eq("id", restaurantId)
+        .maybeSingle();
+      setCustomer(normalizePrintSettings(data?.print_settings as any, DEFAULT_PRINT_SETTINGS));
+      setKitchen(normalizePrintSettings((data as any)?.kitchen_print_settings, DEFAULT_KITCHEN_PRINT_SETTINGS));
+      setLoading(false);
+    })();
+  }, [restaurantId]);
+
+  const saveCustomer = async () => {
+    setSavingCustomer(true);
+    const { error } = await supabase
+      .from("restaurants")
+      .update({ print_settings: customer as any })
+      .eq("id", restaurantId);
+    setSavingCustomer(false);
+    if (error) toast.error(error.message);
+    else toast.success("Configurações do ticket do cliente salvas");
+  };
+
+  const saveKitchen = async () => {
+    setSavingKitchen(true);
+    const { error } = await supabase
+      .from("restaurants")
+      .update({ kitchen_print_settings: kitchen as any } as any)
+      .eq("id", restaurantId);
+    setSavingKitchen(false);
+    if (error) toast.error(error.message);
+    else toast.success("Configurações do ticket da cozinha salvas");
+  };
+
+  if (loading) return <Skeleton className="h-96 w-full" />;
+
+  return (
+    <div className="grid gap-6 md:grid-cols-2">
+      <SettingsCard
+        title="Ticket do cliente"
+        icon={<Printer className="w-5 h-5" />}
+        description="Informações que aparecem no ticket entregue ao cliente."
+        settings={customer}
+        onChange={setCustomer}
+        onSave={saveCustomer}
+        saving={savingCustomer}
+      />
+      <SettingsCard
+        title="Ticket da cozinha"
+        icon={<ChefHat className="w-5 h-5" />}
+        description="Informações que aparecem no ticket usado pela cozinha."
+        settings={kitchen}
+        onChange={setKitchen}
+        onSave={saveKitchen}
+        saving={savingKitchen}
+      />
+    </div>
   );
 }

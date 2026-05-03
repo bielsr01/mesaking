@@ -1,5 +1,12 @@
 import { brl, formatPhone, orderTypeLabel, paymentLabel } from "./format";
-import { DEFAULT_PRINT_SETTINGS, PrintSettings } from "@/components/dashboard/PrintSettings";
+import {
+  DEFAULT_KITCHEN_PRINT_SETTINGS,
+  DEFAULT_PRINT_SETTINGS,
+  PrintSettings,
+  normalizePrintSettings,
+} from "@/components/dashboard/PrintSettings";
+
+export type TicketMode = "customer" | "kitchen";
 
 export interface TicketOrder {
   id: string;
@@ -51,6 +58,7 @@ export interface TicketRestaurant {
   address_state?: string | null;
   address_cep?: string | null;
   print_settings?: PrintSettings | null;
+  kitchen_print_settings?: PrintSettings | null;
 }
 
 const esc = (s: unknown) =>
@@ -117,8 +125,12 @@ export function buildTicketHtml(
   items: TicketItem[],
   restaurant: TicketRestaurant | null,
   optionCatalog: TicketOptionCatalog = {},
+  mode: TicketMode = "customer",
 ): string {
-  const ps: PrintSettings = { ...DEFAULT_PRINT_SETTINGS, ...(restaurant?.print_settings ?? {}) };
+  const rawSettings =
+    mode === "kitchen" ? restaurant?.kitchen_print_settings : restaurant?.print_settings;
+  const defaults = mode === "kitchen" ? DEFAULT_KITCHEN_PRINT_SETTINGS : DEFAULT_PRINT_SETTINGS;
+  const ps: PrintSettings = normalizePrintSettings(rawSettings as any, defaults);
 
   const fullBizAddress = [
     [restaurant?.address_street, restaurant?.address_number].filter(Boolean).join(", "),
@@ -145,9 +157,12 @@ export function buildTicketHtml(
       const notesHtml = ticketItemDetailLines(it, optionCatalog)
         .map((l) => `<div class="muted" style="font-size:11px">${esc(l)}</div>`)
         .join("");
+      const priceCell = ps.prices
+        ? `<span>${brl(it.unit_price * it.quantity)}</span>`
+        : "";
       return `
       <div style="margin-bottom:4px">
-        <div class="row"><span class="item-name">${it.quantity}× ${esc(it.product_name)}</span><span>${brl(it.unit_price * it.quantity)}</span></div>
+        <div class="row"><span class="item-name">${it.quantity}× ${esc(it.product_name)}</span>${priceCell}</div>
         ${notesHtml}
       </div>`;
     })
@@ -187,13 +202,17 @@ export function buildTicketHtml(
   ${ps.customer_name ? `<div><strong>${esc(order.customer_name)}</strong></div>` : ""}
   ${ps.customer_phone ? `<div>${esc(formatPhone(order.customer_phone))}</div>` : ""}
   ${ps.customer_address && order.order_type === "delivery" && fullCustAddress ? `<div style="margin-top:2px">${esc(fullCustAddress)}${order.address_notes ? ` (${esc(order.address_notes)})` : ""}</div>` : ""}
-  ${ps.products_with_prices ? `
+  ${ps.products ? `
     <div class="sep"></div>
     ${itemsHtml}
+  ` : ""}
+  ${ps.prices ? `
     <div class="sep"></div>
     <div class="row"><span>Subtotal</span><span>${brl(subtotal)}</span></div>
     ${order.order_type === "delivery" ? `<div class="row"><span>Taxa de entrega</span><span>${brl(deliveryFee)}</span></div>` : ""}
     <div class="row total" style="margin-top:4px"><span>TOTAL</span><span>${brl(order.total)}</span></div>
+  ` : ""}
+  ${ps.payment_method ? `
     <div class="muted" style="margin-top:4px">Pagamento: ${esc(paymentLabel[order.payment_method] ?? order.payment_method)}${order.change_for ? ` (troco p/ ${brl(order.change_for)})` : ""}</div>
   ` : ""}
   <div class="sep"></div>

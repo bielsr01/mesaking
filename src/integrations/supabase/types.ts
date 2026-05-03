@@ -562,6 +562,7 @@ export type Database = {
           id: string
           instagram_url: string | null
           is_open: boolean
+          kitchen_print_settings: Json
           latitude: number | null
           logo_url: string | null
           longitude: number | null
@@ -599,6 +600,7 @@ export type Database = {
           id?: string
           instagram_url?: string | null
           is_open?: boolean
+          kitchen_print_settings?: Json
           latitude?: number | null
           logo_url?: string | null
           longitude?: number | null
@@ -636,6 +638,7 @@ export type Database = {
           id?: string
           instagram_url?: string | null
           is_open?: boolean
+          kitchen_print_settings?: Json
           latitude?: number | null
           logo_url?: string | null
           longitude?: number | null
