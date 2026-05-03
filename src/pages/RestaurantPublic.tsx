@@ -14,6 +14,7 @@ import { useCart, CartItemOption } from "@/hooks/useCart";
 import { brl } from "@/lib/format";
 import { Checkout } from "@/components/Checkout";
 import { ActiveOrderBanner } from "@/components/ActiveOrderBanner";
+import { CouponsBanner } from "@/components/CouponsBanner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isOpenNow, ManualOverride, DAY_LABELS } from "@/lib/hours";
 import { toast } from "sonner";
@@ -359,6 +360,9 @@ export default function RestaurantPublic() {
 
       {/* Banner de pedido ativo — acima das categorias (rola normalmente) */}
       <ActiveOrderBanner restaurantId={restaurant.id} />
+
+      {/* Cupons disponíveis */}
+      <CouponsBanner restaurantId={restaurant.id} />
 
       {/* Nav horizontal de categorias — sticky no topo da viewport */}
       {grouped.length > 0 && (
