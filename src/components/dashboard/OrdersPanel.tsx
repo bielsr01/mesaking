@@ -83,6 +83,19 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     staleTime: 10_000,
   });
 
+  const { data: restaurantInfo } = useQuery({
+    queryKey: ["restaurant-print-info", restaurantId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("restaurants")
+        .select("name,logo_url,address_street,address_number,address_neighborhood,address_city,address_state,address_cep,print_settings")
+        .eq("id", restaurantId)
+        .maybeSingle();
+      return data;
+    },
+    staleTime: 5 * 60_000,
+  });
+
   const orders = data?.orders ?? [];
   const items = data?.items ?? {};
 
