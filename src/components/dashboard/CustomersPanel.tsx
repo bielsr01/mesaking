@@ -214,9 +214,66 @@ export function CustomersPanel({ restaurantId }: { restaurantId: string }) {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="relative max-w-sm">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input className="pl-9" placeholder="Buscar por nome ou telefone..." value={search} onChange={(e) => setSearch(e.target.value)} />
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative flex-1 min-w-[220px] max-w-sm">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input className="pl-9" placeholder="Buscar por nome ou telefone..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Filter className="w-4 h-4 mr-1" /> Filtros
+                {activeFilterCount > 0 && <Badge variant="secondary" className="ml-2">{activeFilterCount}</Badge>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-72" align="start">
+              <div className="space-y-4">
+                <div>
+                  <div className="text-xs font-semibold uppercase text-muted-foreground mb-2">Tipo de cliente</div>
+                  <div className="space-y-2">
+                    {(Object.keys(TYPE_LABELS) as ClientType[]).map((t) => (
+                      <label key={t} className="flex items-center gap-2 text-sm cursor-pointer">
+                        <Checkbox checked={typeFilters.has(t)} onCheckedChange={() => toggleType(t)} />
+                        {TYPE_LABELS[t]}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs font-semibold uppercase text-muted-foreground mb-2">Status</div>
+                  <div className="space-y-2">
+                    {(Object.keys(STATUS_LABELS) as ClientStatus[]).map((s) => (
+                      <label key={s} className="flex items-center gap-2 text-sm cursor-pointer">
+                        <Checkbox checked={statusFilters.has(s)} onCheckedChange={() => toggleStatus(s)} />
+                        {STATUS_LABELS[s]}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                {activeFilterCount > 0 && (
+                  <Button variant="ghost" size="sm" className="w-full" onClick={clearFilters}>
+                    <X className="w-4 h-4 mr-1" /> Limpar filtros
+                  </Button>
+                )}
+              </div>
+            </PopoverContent>
+          </Popover>
+          {activeFilterCount > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {Array.from(typeFilters).map((t) => (
+                <Badge key={t} variant="secondary" className="gap-1">
+                  {TYPE_LABELS[t]}
+                  <button onClick={() => toggleType(t)}><X className="w-3 h-3" /></button>
+                </Badge>
+              ))}
+              {Array.from(statusFilters).map((s) => (
+                <Badge key={s} variant="secondary" className="gap-1">
+                  {STATUS_LABELS[s]}
+                  <button onClick={() => toggleStatus(s)}><X className="w-3 h-3" /></button>
+                </Badge>
+              ))}
+            </div>
+          )}
         </div>
 
         {isLoading ? (
@@ -224,7 +281,7 @@ export function CustomersPanel({ restaurantId }: { restaurantId: string }) {
         ) : filtered.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
             <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-            <p>Nenhum cliente {search ? "encontrado" : "cadastrado ainda"}.</p>
+            <p>Nenhum cliente {search || activeFilterCount ? "encontrado" : "cadastrado ainda"}.</p>
           </div>
         ) : (
           <div className="border rounded-lg overflow-x-auto">
@@ -233,7 +290,8 @@ export function CustomersPanel({ restaurantId }: { restaurantId: string }) {
                 <TableRow>
                   <TableHead>Nome</TableHead>
                   <TableHead>Telefone</TableHead>
-                  <TableHead>Cidade</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead className="text-center">Pedidos</TableHead>
                   <TableHead>Último pedido</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
