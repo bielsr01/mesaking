@@ -219,20 +219,43 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
         if (!hasItem) { setCoupon(null); setCouponError("Adicione um produto elegível para usar este cupom"); return; }
       }
       // Validações por cliente (telefone)
+      const phoneRaw = unmaskPhone(phone);
+      if (phoneRaw.length < 10) {
+        setCoupon(null);
+        setCouponError("Informe seu telefone na etapa 1 antes de aplicar o cupom");
+        return;
+      }
       const phoneFmt = formatPhone(phone);
-      if (phoneFmt) {
-        const { data: existing } = await supabase
+
+      // Verifica se já é cliente (existe na aba Contatos por telefone)
+      if (c.customer_type === "new") {
+        const { data: existingCustomer } = await supabase
           .from("customers" as any)
-          .select("orders_count")
+          .select("id, orders_count")
           .eq("restaurant_id", restaurant.id)
           .eq("phone", phoneFmt)
           .maybeSingle();
-        const prevOrders = Number((existing as any)?.orders_count ?? 0);
-        if (c.customer_type === "new" && prevOrders > 0) {
-          setCoupon(null); setCouponError("Cupom válido apenas para novos clientes"); return;
+        const isExistingCustomer =
+          !!existingCustomer && Number((existingCustomer as any)?.orders_count ?? 0) > 0;
+        if (isExistingCustomer) {
+          setCoupon(null);
+          setCouponError("Cupom válido apenas para novos clientes — você já possui pedidos anteriores");
+          return;
         }
-        if (Number(c.usage_limit_per_customer ?? 0) === 1 && prevOrders > 0) {
-          setCoupon(null); setCouponError("Cupom de uso único por cliente"); return;
+      }
+
+      // Verifica se este cupom já foi usado por este telefone (1 por cliente)
+      if (Number(c.usage_limit_per_customer ?? 0) === 1) {
+        const { count: prevUses } = await supabase
+          .from("orders")
+          .select("id", { count: "exact", head: true })
+          .eq("restaurant_id", restaurant.id)
+          .eq("customer_phone", phoneFmt)
+          .eq("coupon_code", c.code);
+        if ((prevUses ?? 0) > 0) {
+          setCoupon(null);
+          setCouponError("Você já utilizou este cupom — limite de 1 uso por cliente");
+          return;
         }
       }
       setCoupon(c);
