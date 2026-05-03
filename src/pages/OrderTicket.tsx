@@ -69,7 +69,7 @@ export default function OrderTicket() {
           .maybeSingle(),
       ]);
       setItems((its ?? []) as ItemRow[]);
-      setRestaurant(r as RestaurantRow);
+      setRestaurant(r as unknown as RestaurantRow);
       setLoading(false);
     })();
   }, [orderId]);
