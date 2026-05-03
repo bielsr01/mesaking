@@ -125,8 +125,12 @@ export function buildTicketHtml(
   items: TicketItem[],
   restaurant: TicketRestaurant | null,
   optionCatalog: TicketOptionCatalog = {},
+  mode: TicketMode = "customer",
 ): string {
-  const ps: PrintSettings = { ...DEFAULT_PRINT_SETTINGS, ...(restaurant?.print_settings ?? {}) };
+  const rawSettings =
+    mode === "kitchen" ? restaurant?.kitchen_print_settings : restaurant?.print_settings;
+  const defaults = mode === "kitchen" ? DEFAULT_KITCHEN_PRINT_SETTINGS : DEFAULT_PRINT_SETTINGS;
+  const ps: PrintSettings = normalizePrintSettings(rawSettings as any, defaults);
 
   const fullBizAddress = [
     [restaurant?.address_street, restaurant?.address_number].filter(Boolean).join(", "),
