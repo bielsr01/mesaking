@@ -437,6 +437,7 @@ export type Database = {
           order_receive_mode: string
           owner_id: string | null
           phone: string | null
+          print_settings: Json
           service_delivery: boolean
           service_pickup: boolean
           slug: string
@@ -473,6 +474,7 @@ export type Database = {
           order_receive_mode?: string
           owner_id?: string | null
           phone?: string | null
+          print_settings?: Json
           service_delivery?: boolean
           service_pickup?: boolean
           slug: string
@@ -509,6 +511,7 @@ export type Database = {
           order_receive_mode?: string
           owner_id?: string | null
           phone?: string | null
+          print_settings?: Json
           service_delivery?: boolean
           service_pickup?: boolean
           slug?: string

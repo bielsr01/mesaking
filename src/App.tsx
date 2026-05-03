@@ -11,6 +11,7 @@ import MasterAdmin from "./pages/MasterAdmin";
 import ManagerDashboard from "./pages/ManagerDashboard";
 import RestaurantPublic from "./pages/RestaurantPublic";
 import OrderTracking from "./pages/OrderTracking";
+import OrderTicket from "./pages/OrderTicket";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="/dashboard" element={<RequireRole role="manager"><ManagerDashboard /></RequireRole>} />
             <Route path="/r/:slug" element={<RestaurantPublic />} />
             <Route path="/pedido/:token" element={<OrderTracking />} />
+            <Route path="/ticket/:orderId" element={<RequireRole role="manager"><OrderTicket /></RequireRole>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

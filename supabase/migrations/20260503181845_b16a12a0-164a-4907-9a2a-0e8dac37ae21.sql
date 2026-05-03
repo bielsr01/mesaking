@@ -1,0 +1,1 @@
+ALTER TABLE public.restaurants ADD COLUMN IF NOT EXISTS print_settings jsonb NOT NULL DEFAULT '{"logo":true,"business_name":true,"business_address":true,"order_type_date":true,"customer_name":true,"customer_address":true,"customer_phone":true,"products_with_prices":true}'::jsonb;

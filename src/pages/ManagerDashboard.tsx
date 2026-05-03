@@ -13,6 +13,7 @@ import { OrdersPanel, fetchOrders, ordersKey } from "@/components/dashboard/Orde
 import { MenuManager, fetchCategories, fetchProducts, menuKeys } from "@/components/dashboard/MenuManager";
 import { StoreSettings } from "@/components/dashboard/StoreSettings";
 import { OrderConfigSettings } from "@/components/dashboard/OrderConfigSettings";
+import { PrintSettingsCard } from "@/components/dashboard/PrintSettings";
 import { StoreOpenToggle } from "@/components/dashboard/StoreOpenToggle";
 import { AppSidebar, DashboardView } from "@/components/dashboard/AppSidebar";
 import { NotificationsBell } from "@/components/dashboard/NotificationsBell";
@@ -216,7 +217,11 @@ export default function ManagerDashboard() {
                 <OrderConfigSettings restaurantId={restaurant.id} />
               </LazyView>
             )}
-            {view === "settings:printers" && <LazyView viewKey={view} variant="form"><EmptyState title="Impressões" /></LazyView>}
+            {view === "settings:printers" && (
+              <LazyView viewKey={view} variant="form">
+                <PrintSettingsCard restaurantId={restaurant.id} />
+              </LazyView>
+            )}
             {view === "settings:integrations" && <LazyView viewKey={view} variant="form"><EmptyState title="Integrações" /></LazyView>}
           </main>
         </div>
