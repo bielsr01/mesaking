@@ -99,6 +99,8 @@ export function CustomersPanel({ restaurantId }: { restaurantId: string }) {
   const [form, setForm] = useState({ ...empty });
   const [busy, setBusy] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [typeFilters, setTypeFilters] = useState<Set<ClientType>>(new Set());
+  const [statusFilters, setStatusFilters] = useState<Set<ClientStatus>>(new Set());
 
   const { data, isLoading } = useQuery({
     queryKey: ["customers", restaurantId],
@@ -114,10 +116,33 @@ export function CustomersPanel({ restaurantId }: { restaurantId: string }) {
   });
 
   const filtered = (data ?? []).filter((c) => {
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    return c.name.toLowerCase().includes(q) || unmaskPhone(c.phone).includes(unmaskPhone(search));
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      if (!(c.name.toLowerCase().includes(q) || unmaskPhone(c.phone).includes(unmaskPhone(search)))) return false;
+    }
+    if (typeFilters.size > 0) {
+      const t = getClientType(c.orders_count);
+      if (!t || !typeFilters.has(t)) return false;
+    }
+    if (statusFilters.size > 0) {
+      const s = getClientStatus(c.last_order_at);
+      if (!s || !statusFilters.has(s)) return false;
+    }
+    return true;
   });
+
+  const toggleType = (t: ClientType) => {
+    const n = new Set(typeFilters);
+    n.has(t) ? n.delete(t) : n.add(t);
+    setTypeFilters(n);
+  };
+  const toggleStatus = (s: ClientStatus) => {
+    const n = new Set(statusFilters);
+    n.has(s) ? n.delete(s) : n.add(s);
+    setStatusFilters(n);
+  };
+  const clearFilters = () => { setTypeFilters(new Set()); setStatusFilters(new Set()); };
+  const activeFilterCount = typeFilters.size + statusFilters.size;
 
   const openNew = () => { setEditing(null); setForm({ ...empty }); setOpen(true); };
   const openEdit = (c: Customer) => {
