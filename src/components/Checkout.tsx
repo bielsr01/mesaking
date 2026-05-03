@@ -227,34 +227,47 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
       }
       const phoneFmt = formatPhone(phone);
 
-      // Verifica se já é cliente (existe na aba Contatos por telefone)
+      // Verifica se já é cliente (apenas novos clientes)
+      // Considera "cliente antigo" se já existe na aba Contatos OU já fez algum pedido na loja,
+      // independente de o cupom existir antes ou depois desses dados.
       if (c.customer_type === "new") {
-        const { data: existingCustomer } = await supabase
-          .from("customers" as any)
-          .select("id, orders_count")
-          .eq("restaurant_id", restaurant.id)
-          .eq("phone", phoneFmt)
-          .maybeSingle();
+        const phoneDigits = unmaskPhone(phone);
+        const [{ data: existingCustomer }, { count: prevOrdersCount }] = await Promise.all([
+          supabase
+            .from("customers" as any)
+            .select("id, orders_count")
+            .eq("restaurant_id", restaurant.id)
+            .or(`phone.eq.${phoneFmt},phone.eq.${phoneDigits}`)
+            .maybeSingle(),
+          supabase
+            .from("orders")
+            .select("id", { count: "exact", head: true })
+            .eq("restaurant_id", restaurant.id)
+            .or(`customer_phone.eq.${phoneFmt},customer_phone.eq.${phoneDigits}`),
+        ]);
         const isExistingCustomer =
-          !!existingCustomer && Number((existingCustomer as any)?.orders_count ?? 0) > 0;
+          !!existingCustomer ||
+          Number((existingCustomer as any)?.orders_count ?? 0) > 0 ||
+          (prevOrdersCount ?? 0) > 0;
         if (isExistingCustomer) {
           setCoupon(null);
-          setCouponError("Cupom válido apenas para novos clientes — você já possui pedidos anteriores");
+          setCouponError("Cupom válido apenas para novos clientes — você já é nosso cliente");
           return;
         }
       }
 
       // Verifica se este cupom já foi usado por este telefone (1 por cliente)
-      if (Number(c.usage_limit_per_customer ?? 0) === 1) {
+      if (Number(c.usage_limit_per_customer ?? 0) >= 1) {
+        const phoneDigits = unmaskPhone(phone);
         const { count: prevUses } = await supabase
           .from("orders")
           .select("id", { count: "exact", head: true })
           .eq("restaurant_id", restaurant.id)
-          .eq("customer_phone", phoneFmt)
-          .eq("coupon_code", c.code);
-        if ((prevUses ?? 0) > 0) {
+          .eq("coupon_code", c.code)
+          .or(`customer_phone.eq.${phoneFmt},customer_phone.eq.${phoneDigits}`);
+        if ((prevUses ?? 0) >= Number(c.usage_limit_per_customer)) {
           setCoupon(null);
-          setCouponError("Você já utilizou este cupom — limite de 1 uso por cliente");
+          setCouponError("Você já utilizou este cupom — limite por cliente atingido");
           return;
         }
       }
