@@ -1,5 +1,12 @@
 import { brl, formatPhone, orderTypeLabel, paymentLabel } from "./format";
-import { DEFAULT_PRINT_SETTINGS, PrintSettings } from "@/components/dashboard/PrintSettings";
+import {
+  DEFAULT_KITCHEN_PRINT_SETTINGS,
+  DEFAULT_PRINT_SETTINGS,
+  PrintSettings,
+  normalizePrintSettings,
+} from "@/components/dashboard/PrintSettings";
+
+export type TicketMode = "customer" | "kitchen";
 
 export interface TicketOrder {
   id: string;
