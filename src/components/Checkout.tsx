@@ -755,10 +755,12 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
 
           {/* Navegação */}
           <div className="flex gap-2 pt-2 border-t">
-            <Button type="button" variant="outline" onClick={goBack} disabled={busy}>
-              <ArrowLeft className="w-4 h-4 mr-1" />
-              {step === 1 ? "Carrinho" : "Voltar"}
-            </Button>
+            {step > 1 && (
+              <Button type="button" variant="outline" onClick={goBack} disabled={busy}>
+                <ArrowLeft className="w-4 h-4 mr-1" />
+                Voltar
+              </Button>
+            )}
             {step < 3 ? (
               <Button type="button" className="flex-1" onClick={goNext}>
                 Avançar <ArrowRight className="w-4 h-4 ml-1" />
