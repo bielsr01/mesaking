@@ -645,6 +645,14 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
       } catch (_) {}
     }
 
+    // Salva nome+telefone em cache local para pré-preencher próximo pedido
+    try {
+      localStorage.setItem(
+        customerCacheKey,
+        JSON.stringify({ name: name.trim(), phone: formatPhone(phone) }),
+      );
+    } catch (_) { /* ignore */ }
+
     cart.clear();
     setBusy(false);
     onOpenChange(false);
