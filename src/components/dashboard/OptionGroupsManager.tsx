@@ -8,10 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, X, Link2 } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Link2, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 import { brl } from "@/lib/format";
 import { fetchProducts, menuKeys } from "./MenuManager";
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 export interface OptionGroup {
   id: string;
@@ -112,36 +115,17 @@ export function OptionGroupsManager({ restaurantId }: { restaurantId: string }) 
         <><Skeleton className="h-24 w-full" /><Skeleton className="h-24 w-full" /></>
       ) : groups.length === 0 ? (
         <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">Nenhum grupo criado ainda.</CardContent></Card>
-      ) : groups.map((g) => {
-        const groupItems = items.filter((i) => i.group_id === g.id);
-        return (
-          <Card key={g.id} className={!g.is_active ? "opacity-60" : ""}>
-            <CardContent className="p-3 space-y-2">
-              <div className="flex items-center gap-2">
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium">{g.name}</div>
-                  <div className="text-xs text-muted-foreground">
-                    Mín {g.min_select} · Máx {g.max_select} · {groupItems.length} {groupItems.length === 1 ? "item" : "itens"}
-                  </div>
-                </div>
-                <Switch checked={g.is_active} onCheckedChange={() => toggleGroup(g)} />
-                <Button size="icon" variant="ghost" title="Vincular produtos" onClick={() => setLinkingGroup(g)}><Link2 className="w-4 h-4" /></Button>
-                <Button size="icon" variant="ghost" onClick={() => openEdit(g)}><Pencil className="w-4 h-4" /></Button>
-                <Button size="icon" variant="ghost" onClick={() => removeGroup(g)}><Trash2 className="w-4 h-4" /></Button>
-              </div>
-              {groupItems.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {groupItems.map((i) => (
-                    <span key={i.id} className="text-xs px-2 py-1 bg-muted rounded">
-                      {i.name}{Number(i.extra_price) > 0 ? ` +${brl(Number(i.extra_price))}` : ""}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        );
-      })}
+      ) : (
+        <SortableGroupsList
+          groups={groups}
+          items={items}
+          restaurantId={restaurantId}
+          onEdit={openEdit}
+          onRemove={removeGroup}
+          onToggle={toggleGroup}
+          onLink={setLinkingGroup}
+        />
+      )}
 
       <GroupDialog
         open={open}
@@ -400,5 +384,148 @@ function GroupDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function SortableGroupsList({
+  groups, items, restaurantId, onEdit, onRemove, onToggle, onLink,
+}: {
+  groups: OptionGroup[];
+  items: OptionItem[];
+  restaurantId: string;
+  onEdit: (g: OptionGroup) => void;
+  onRemove: (g: OptionGroup) => void;
+  onToggle: (g: OptionGroup) => void;
+  onLink: (g: OptionGroup) => void;
+}) {
+  const qc = useQueryClient();
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const ids = groups.map((g) => g.id);
+
+  const handleDragEnd = async (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const oldIdx = ids.indexOf(String(active.id));
+    const newIdx = ids.indexOf(String(over.id));
+    if (oldIdx < 0 || newIdx < 0) return;
+    const reordered = arrayMove(groups, oldIdx, newIdx);
+    qc.setQueryData<OptionGroup[]>(optionKeys.groups(restaurantId), reordered.map((g, i) => ({ ...g, sort_order: i })));
+    await Promise.all(reordered.map((g, i) => supabase.from("option_groups").update({ sort_order: i }).eq("id", g.id)));
+    qc.invalidateQueries({ queryKey: optionKeys.groups(restaurantId) });
+  };
+
+  return (
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+        <div className="space-y-3">
+          {groups.map((g) => (
+            <SortableGroupCard
+              key={g.id}
+              group={g}
+              items={items.filter((i) => i.group_id === g.id)}
+              restaurantId={restaurantId}
+              onEdit={onEdit}
+              onRemove={onRemove}
+              onToggle={onToggle}
+              onLink={onLink}
+            />
+          ))}
+        </div>
+      </SortableContext>
+    </DndContext>
+  );
+}
+
+function SortableGroupCard({
+  group: g, items: groupItems, restaurantId, onEdit, onRemove, onToggle, onLink,
+}: {
+  group: OptionGroup;
+  items: OptionItem[];
+  restaurantId: string;
+  onEdit: (g: OptionGroup) => void;
+  onRemove: (g: OptionGroup) => void;
+  onToggle: (g: OptionGroup) => void;
+  onLink: (g: OptionGroup) => void;
+}) {
+  const qc = useQueryClient();
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: g.id });
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const itemIds = groupItems.map((i) => i.id);
+
+  const handleItemsDragEnd = async (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const oldIdx = itemIds.indexOf(String(active.id));
+    const newIdx = itemIds.indexOf(String(over.id));
+    if (oldIdx < 0 || newIdx < 0) return;
+    const reordered = arrayMove(groupItems, oldIdx, newIdx);
+    qc.setQueryData<OptionItem[]>(optionKeys.items(restaurantId), (prev) => {
+      if (!prev) return prev;
+      const others = prev.filter((i) => i.group_id !== g.id);
+      const updated = reordered.map((i, idx) => ({ ...i, sort_order: idx }));
+      return [...others, ...updated];
+    });
+    await Promise.all(reordered.map((i, idx) => supabase.from("option_items").update({ sort_order: idx }).eq("id", i.id)));
+    qc.invalidateQueries({ queryKey: optionKeys.items(restaurantId) });
+  };
+
+  return (
+    <Card ref={setNodeRef} style={style} className={!g.is_active ? "opacity-60" : ""}>
+      <CardContent className="p-3 space-y-2">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="touch-none cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-1"
+            {...attributes}
+            {...listeners}
+            aria-label="Arrastar grupo"
+          >
+            <GripVertical className="w-5 h-5" />
+          </button>
+          <div className="flex-1 min-w-0">
+            <div className="font-medium">{g.name}</div>
+            <div className="text-xs text-muted-foreground">
+              Mín {g.min_select} · Máx {g.max_select} · {groupItems.length} {groupItems.length === 1 ? "item" : "itens"}
+            </div>
+          </div>
+          <Switch checked={g.is_active} onCheckedChange={() => onToggle(g)} />
+          <Button size="icon" variant="ghost" title="Vincular produtos" onClick={() => onLink(g)}><Link2 className="w-4 h-4" /></Button>
+          <Button size="icon" variant="ghost" onClick={() => onEdit(g)}><Pencil className="w-4 h-4" /></Button>
+          <Button size="icon" variant="ghost" onClick={() => onRemove(g)}><Trash2 className="w-4 h-4" /></Button>
+        </div>
+        {groupItems.length > 0 && (
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleItemsDragEnd}>
+            <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
+              <div className="flex flex-col gap-1 pt-1 pl-7">
+                {groupItems.map((i) => (
+                  <SortableItemRow key={i.id} item={i} />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function SortableItemRow({ item }: { item: OptionItem }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id });
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center gap-2 text-xs px-2 py-1 bg-muted rounded">
+      <button
+        type="button"
+        className="touch-none cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
+        {...attributes}
+        {...listeners}
+        aria-label="Arrastar item"
+      >
+        <GripVertical className="w-3.5 h-3.5" />
+      </button>
+      <span className="flex-1">{item.name}</span>
+      {Number(item.extra_price) > 0 && <span className="text-muted-foreground">+{brl(Number(item.extra_price))}</span>}
+    </div>
   );
 }
