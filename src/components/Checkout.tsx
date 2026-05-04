@@ -127,6 +127,7 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
       setCoupon(null);
       setCouponInput("");
       setCouponError(null);
+      setPinnedPoint(null);
       // ao abrir, escolhe a opção disponível por padrão
       if (!deliveryEnabled && pickupEnabled) setOrderType("pickup");
       else if (deliveryEnabled) setOrderType("delivery");
