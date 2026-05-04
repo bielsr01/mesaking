@@ -127,21 +127,22 @@ export function PdvDialog({
     setSubmitting(true);
     try {
       const phoneDigits = unmaskPhone(customerPhone);
+      const orderPayload: any = {
+        restaurant_id: restaurantId,
+        order_type: "pdv",
+        status: "delivered",
+        customer_name: customerName.trim() || "Cliente Balcão",
+        customer_phone: phoneDigits || "0000000000",
+        payment_method: payment,
+        subtotal,
+        discount: discountValue,
+        service_fee: serviceFee,
+        delivery_fee: 0,
+        total,
+      };
       const { data: order, error } = await supabase
         .from("orders")
-        .insert({
-          restaurant_id: restaurantId,
-          order_type: "pdv" as const,
-          status: "delivered",
-          customer_name: customerName.trim() || "Cliente Balcão",
-          customer_phone: phoneDigits || "0000000000",
-          payment_method: payment,
-          subtotal,
-          discount: discountValue,
-          service_fee: serviceFee,
-          delivery_fee: 0,
-          total,
-        })
+        .insert(orderPayload)
         .select("id, order_number")
         .single();
       if (error || !order) throw error || new Error("Falha ao criar pedido");
