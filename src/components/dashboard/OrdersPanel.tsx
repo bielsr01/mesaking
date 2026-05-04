@@ -335,13 +335,14 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
         <div className="grid gap-4 lg:grid-cols-2">
           {filtered.map((o) => {
             const isPickup = o.order_type === "pickup";
+            const isPdv = o.order_type === "pdv";
             const next = getNextStatus(o.status, o.order_type);
             return (
             <Card key={o.id} className="shadow-soft">
               <CardContent className="pt-5 space-y-3">
                 {/* Tipo do pedido — destaque no topo */}
-                <div className={`-mt-2 -mx-1 px-3 py-1.5 rounded-md flex items-center gap-2 text-xs font-semibold ${isPickup ? "bg-accent/20 text-accent-foreground border border-accent/40" : "bg-primary/10 text-primary border border-primary/20"}`}>
-                  {isPickup ? <Store className="w-3.5 h-3.5" /> : <Bike className="w-3.5 h-3.5" />}
+                <div className={`-mt-2 -mx-1 px-3 py-1.5 rounded-md flex items-center gap-2 text-xs font-semibold ${isPdv ? "bg-success/15 text-success border border-success/30" : isPickup ? "bg-accent/20 text-accent-foreground border border-accent/40" : "bg-primary/10 text-primary border border-primary/20"}`}>
+                  {isPdv ? <Store className="w-3.5 h-3.5" /> : isPickup ? <Store className="w-3.5 h-3.5" /> : <Bike className="w-3.5 h-3.5" />}
                   {orderTypeLabel[o.order_type] ?? "Delivery"}
                 </div>
 
