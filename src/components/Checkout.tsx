@@ -506,7 +506,7 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-full sm:max-w-2xl w-screen h-[100dvh] sm:h-[100dvh] max-h-[100dvh] sm:rounded-none p-6 overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-3 pr-10">
             <DialogTitle>Finalizar pedido</DialogTitle>
             <span
               className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${
@@ -755,10 +755,12 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
 
           {/* Navegação */}
           <div className="flex gap-2 pt-2 border-t">
-            <Button type="button" variant="outline" onClick={goBack} disabled={busy}>
-              <ArrowLeft className="w-4 h-4 mr-1" />
-              {step === 1 ? "Carrinho" : "Voltar"}
-            </Button>
+            {step > 1 && (
+              <Button type="button" variant="outline" onClick={goBack} disabled={busy}>
+                <ArrowLeft className="w-4 h-4 mr-1" />
+                Voltar
+              </Button>
+            )}
             {step < 3 ? (
               <Button type="button" className="flex-1" onClick={goNext}>
                 Avançar <ArrowRight className="w-4 h-4 ml-1" />
