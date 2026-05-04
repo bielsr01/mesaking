@@ -868,7 +868,7 @@ function Step2Address(props: {
       )}
 
       <Dialog open={editing} onOpenChange={setEditing}>
-        <DialogContent className="p-0 gap-0 flex flex-col overflow-hidden max-w-full w-screen h-[100dvh] sm:max-w-full rounded-none">
+        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="p-0 gap-0 flex flex-col overflow-hidden max-w-full w-screen h-[100dvh] sm:max-w-full rounded-none">
           <DialogHeader className="shrink-0 px-6 py-4 border-b">
             <DialogTitle>Cadastre seu endereço</DialogTitle>
           </DialogHeader>
