@@ -299,11 +299,15 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Tabs value={channel} onValueChange={(v) => { setChannel(v as "delivery" | "pdv"); setFilter(v === "pdv" ? "preparing" : "pending"); }}>
+        <Tabs value={channel} onValueChange={(v) => {
+          setChannel(v as "delivery" | "pdv");
+          setFilter(v === "pdv" ? "preparing" : "pending");
+          if (v === "delivery") setDeliveryBlink(false);
+        }}>
           <TabsList>
-            <TabsTrigger value="delivery" className="gap-2">
+            <TabsTrigger value="delivery" className={`gap-2 ${deliveryBlink ? "animate-pulse text-destructive ring-2 ring-destructive" : ""}`}>
               <Bike className="w-4 h-4" /> Delivery / Retirada
-              <Badge variant="secondary" className="h-5 min-w-5 px-1.5 text-xs">{deliveryCount}</Badge>
+              <Badge variant={deliveryBlink ? "destructive" : "secondary"} className="h-5 min-w-5 px-1.5 text-xs">{deliveryCount}</Badge>
             </TabsTrigger>
             <TabsTrigger value="pdv" className="gap-2">
               <Store className="w-4 h-4" /> PDV (Balcão)
