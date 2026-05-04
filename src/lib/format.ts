@@ -31,15 +31,25 @@ export const nextStatusPickup: Record<string, string | null> = {
   cancelled: null,
 };
 
+/** PDV: pedidos do balcão já entram finalizados, sem fluxo de status */
+export const nextStatusPdv: Record<string, string | null> = {
+  pending: null, accepted: null, preparing: null,
+  out_for_delivery: null, awaiting_pickup: null,
+  delivered: null, cancelled: null,
+};
+
 /** Compat: mantém a API antiga, default para delivery */
 export const nextStatus: Record<string, string | null> = nextStatusDelivery;
 
-export const getNextStatus = (status: string, orderType: "delivery" | "pickup" = "delivery") =>
-  (orderType === "pickup" ? nextStatusPickup : nextStatusDelivery)[status] ?? null;
+export const getNextStatus = (status: string, orderType: "delivery" | "pickup" | "pdv" = "delivery") => {
+  const map = orderType === "pdv" ? nextStatusPdv : orderType === "pickup" ? nextStatusPickup : nextStatusDelivery;
+  return map[status] ?? null;
+};
 
 export const orderTypeLabel: Record<string, string> = {
   delivery: "Delivery",
   pickup: "Retirada na loja",
+  pdv: "PDV (Balcão)",
 };
 
 export const paymentLabel: Record<string, string> = {
