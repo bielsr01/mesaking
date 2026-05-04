@@ -35,7 +35,7 @@ export async function fetchProducts(restaurantId: string): Promise<Product[]> {
   return (data ?? []) as Product[];
 }
 async function fetchProductGroupIds(productId: string): Promise<string[]> {
-  const { data } = await supabase.from("product_option_groups").select("group_id").eq("product_id", productId);
+  const { data } = await supabase.from("product_option_groups").select("group_id, sort_order").eq("product_id", productId).order("sort_order");
   return (data ?? []).map((r: any) => r.group_id);
 }
 
