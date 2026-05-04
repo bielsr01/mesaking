@@ -12,22 +12,28 @@ Deno.serve(async (req) => {
     if (!token) throw new Error("MAPBOX_TOKEN not configured");
 
     const body = await req.json().catch(() => ({}));
-    const { cep, street, number, neighborhood, city, state, lat: rLat, lng: rLng, q, proximity, city: searchCity, state: searchState } = body ?? {};
+    const { cep, street, number, neighborhood, city, state, lat: rLat, lng: rLng, q, proximity } = body ?? {};
+    const searchCity: string | undefined = body?.city;
+    const searchState: string | undefined = body?.state;
 
     // Search autocomplete (q -> lista de sugestões)
     if (typeof q === "string" && q.trim().length >= 3) {
+      const queryStr = searchCity
+        ? `${q.trim()}, ${searchCity}${searchState ? ` - ${searchState}` : ""}`
+        : q.trim();
       const url = new URL(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q.trim())}.json`,
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(queryStr)}.json`,
       );
       url.searchParams.set("access_token", token);
       url.searchParams.set("country", "br");
       url.searchParams.set("language", "pt");
-      url.searchParams.set("limit", "6");
+      url.searchParams.set("limit", "8");
       url.searchParams.set("autocomplete", "true");
       url.searchParams.set("types", "address,street,place,postcode,locality,neighborhood");
       if (proximity && typeof proximity.lat === "number" && typeof proximity.lng === "number") {
         url.searchParams.set("proximity", `${proximity.lng},${proximity.lat}`);
       }
+      console.log("search url", url.toString());
       const r = await fetch(url.toString());
       const data = await r.json();
       const features = (data?.features ?? []) as Array<any>;
