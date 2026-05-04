@@ -427,20 +427,27 @@ export default function RestaurantPublic() {
         })}
       </main>
 
-      {/* Floating cart */}
+      {/* Bottom cart bar — só aparece quando há itens */}
       <Sheet open={cartOpen} onOpenChange={setCartOpen}>
-        <SheetTrigger asChild>
-          <Button
-            className="fixed bottom-6 right-6 h-14 px-6 rounded-full shadow-elegant gap-3 z-30"
-            size="lg"
-            disabled={itemCount === 0}
-          >
-            <ShoppingCart className="w-5 h-5" />
-            <span>{itemCount} {itemCount === 1 ? "item" : "itens"}</span>
-            <span className="font-bold">{brl(cart.total)}</span>
-          </Button>
-        </SheetTrigger>
-        <SheetContent className="flex flex-col">
+        {itemCount > 0 && (
+          <div className="fixed bottom-0 inset-x-0 z-30 bg-background border-t shadow-elegant">
+            <div className="container py-3">
+              <SheetTrigger asChild>
+                <Button
+                  className="w-full h-14 rounded-xl gap-3 justify-between px-5 text-base"
+                  size="lg"
+                >
+                  <span className="flex items-center gap-3">
+                    <ShoppingCart className="w-5 h-5" />
+                    <span>{itemCount} {itemCount === 1 ? "item" : "itens"}</span>
+                  </span>
+                  <span className="font-bold">{brl(cart.total)}</span>
+                </Button>
+              </SheetTrigger>
+            </div>
+          </div>
+        )}
+        <SheetContent side="right" className="flex flex-col w-full sm:max-w-md p-6">
           <SheetHeader><SheetTitle>Seu pedido</SheetTitle></SheetHeader>
           <div className="flex-1 overflow-auto py-4 space-y-3">
             {cart.items.length === 0 && <p className="text-center text-muted-foreground py-8">Carrinho vazio</p>}
