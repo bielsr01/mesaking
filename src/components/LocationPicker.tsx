@@ -1,24 +1,62 @@
 import { useEffect, useRef, useState } from "react";
-import mapboxgl from "mapbox-gl";
-import "mapbox-gl/dist/mapbox-gl.css";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Loader2, MapPin, LocateFixed } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { reverseGeocode, ReverseGeocodeResult, GeoPoint } from "@/lib/delivery";
 
-let cachedToken: string | null = null;
-async function getMapboxToken(): Promise<string | null> {
-  if (cachedToken) return cachedToken;
+// HERE Maps JS SDK loader (carregado via CDN sob demanda)
+declare global { interface Window { H: any } }
+
+let cachedKey: string | null = null;
+async function getHereApiKey(): Promise<string | null> {
+  if (cachedKey) return cachedKey;
   try {
-    const { data, error } = await supabase.functions.invoke("mapbox-token");
+    const { data, error } = await supabase.functions.invoke("here-token");
     if (error) return null;
-    const t = (data as any)?.token as string | undefined;
-    if (t) cachedToken = t;
-    return t ?? null;
+    const k = (data as any)?.apiKey as string | undefined;
+    if (k) cachedKey = k;
+    return k ?? null;
   } catch {
     return null;
   }
+}
+
+let hereLoadPromise: Promise<void> | null = null;
+function loadHereMaps(): Promise<void> {
+  if (typeof window !== "undefined" && window.H?.Map) return Promise.resolve();
+  if (hereLoadPromise) return hereLoadPromise;
+  hereLoadPromise = new Promise((resolve, reject) => {
+    const urls = [
+      "https://js.api.here.com/v3/3.1/mapsjs-core.js",
+      "https://js.api.here.com/v3/3.1/mapsjs-service.js",
+      "https://js.api.here.com/v3/3.1/mapsjs-mapevents.js",
+      "https://js.api.here.com/v3/3.1/mapsjs-ui.js",
+    ];
+    const cssId = "here-maps-ui-css";
+    if (!document.getElementById(cssId)) {
+      const link = document.createElement("link");
+      link.id = cssId;
+      link.rel = "stylesheet";
+      link.href = "https://js.api.here.com/v3/3.1/mapsjs-ui.css";
+      document.head.appendChild(link);
+    }
+    const loadOne = (src: string) => new Promise<void>((res, rej) => {
+      if (document.querySelector(`script[src="${src}"]`)) return res();
+      const s = document.createElement("script");
+      s.src = src; s.async = false;
+      s.onload = () => res();
+      s.onerror = () => rej(new Error(`Failed to load ${src}`));
+      document.head.appendChild(s);
+    });
+    (async () => {
+      try {
+        for (const u of urls) await loadOne(u);
+        resolve();
+      } catch (e) { reject(e); }
+    })();
+  });
+  return hereLoadPromise;
 }
 
 function getCurrentPosition(): Promise<GeoPoint | null> {
@@ -44,14 +82,14 @@ export function LocationPicker({
   onConfirm: (result: ReverseGeocodeResult) => void;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const mapRef = useRef<any>(null);
   const [loading, setLoading] = useState(false);
   const [point, setPoint] = useState<GeoPoint | null>(initialPoint ?? null);
   const [info, setInfo] = useState<ReverseGeocodeResult | null>(null);
   const [resolving, setResolving] = useState(false);
   const [permissionError, setPermissionError] = useState(false);
 
-  // Debounce reverse geocode quando o pino se move
+  // Reverse geocode debounced
   useEffect(() => {
     if (!point || !open) return;
     setResolving(true);
@@ -71,20 +109,17 @@ export function LocationPicker({
       setLoading(true);
       setPermissionError(false);
 
-      const [token, geo] = await Promise.all([
-        getMapboxToken(),
+      const [apiKey, geo] = await Promise.all([
+        getHereApiKey(),
         initialPoint ? Promise.resolve(initialPoint) : getCurrentPosition(),
       ]);
 
       if (cancelled) return;
+      if (!apiKey) { setLoading(false); return; }
 
-      if (!token) {
-        setLoading(false);
-        return;
-      }
+      try { await loadHereMaps(); } catch { setLoading(false); return; }
+      if (cancelled) return;
 
-      // Se o usuário não autorizou geolocalização e não há ponto inicial,
-      // cai num centro genérico do Brasil
       const pt: GeoPoint = geo ?? { lat: -14.235, lng: -51.9253 };
       if (!geo && !initialPoint) setPermissionError(true);
       setPoint(pt);
@@ -92,47 +127,49 @@ export function LocationPicker({
 
       setTimeout(() => {
         if (!containerRef.current || cancelled) return;
-        if (mapRef.current) {
-          mapRef.current.remove();
-          mapRef.current = null;
-        }
-        mapboxgl.accessToken = token;
-        const map = new mapboxgl.Map({
-          container: containerRef.current,
-          style: "mapbox://styles/mapbox/streets-v12",
-          center: [pt.lng, pt.lat],
-          zoom: geo ? 18 : 4,
-        });
-        map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
-        map.on("move", () => {
+        const H = window.H;
+        const platform = new H.service.Platform({ apikey: apiKey });
+        const layers = platform.createDefaultLayers({ lg: "pt-BR" });
+        const map = new H.Map(
+          containerRef.current,
+          layers.vector.normal.map,
+          { center: { lat: pt.lat, lng: pt.lng }, zoom: geo ? 17 : 4, pixelRatio: window.devicePixelRatio || 1 },
+        );
+        const behavior = new H.mapevents.Behavior(new H.mapevents.MapEvents(map));
+        H.ui.UI.createDefault(map, layers, "pt-BR");
+        // Atualiza ponto quando o usuário arrasta
+        map.addEventListener("mapviewchangeend", () => {
           const c = map.getCenter();
           setPoint({ lat: c.lat, lng: c.lng });
         });
-        mapRef.current = map;
-        setTimeout(() => map.resize(), 250);
+        const onResize = () => map.getViewPort().resize();
+        window.addEventListener("resize", onResize);
+        mapRef.current = { map, platform, behavior, onResize };
+        setTimeout(() => map.getViewPort().resize(), 250);
       }, 50);
     };
 
     init();
     return () => {
       cancelled = true;
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
+      const ref = mapRef.current;
+      if (ref?.map) {
+        try { window.removeEventListener("resize", ref.onResize); } catch { /* noop */ }
+        try { ref.map.dispose(); } catch { /* noop */ }
       }
+      mapRef.current = null;
       setInfo(null);
     };
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const recenterOnMe = async () => {
     const geo = await getCurrentPosition();
-    if (!geo) {
-      setPermissionError(true);
-      return;
-    }
+    if (!geo) { setPermissionError(true); return; }
     setPermissionError(false);
-    if (mapRef.current) {
-      mapRef.current.flyTo({ center: [geo.lng, geo.lat], zoom: 18 });
+    const ref = mapRef.current;
+    if (ref?.map) {
+      ref.map.setCenter({ lat: geo.lat, lng: geo.lng }, true);
+      ref.map.setZoom(17, true);
     }
   };
 
