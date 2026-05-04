@@ -447,8 +447,56 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
     return true;
   };
 
-  const goNext = () => {
-    if (step === 1 && !validateStep1()) return;
+  const [validatingPhone, setValidatingPhone] = useState(false);
+  const goNext = async () => {
+    if (step === 1) {
+      if (!validateStep1()) return;
+      // Revalida o telefone consultando histórico antes de avançar
+      try {
+        setValidatingPhone(true);
+        const digits = unmaskPhone(phone);
+        const phoneFmt = formatPhone(phone);
+        const variants = Array.from(new Set([phoneFmt, digits].filter(Boolean)));
+        const { data } = await supabase
+          .from("orders")
+          .select(
+            "address_cep,address_street,address_number,address_complement,address_neighborhood,address_city,address_state,address_notes,delivery_latitude,delivery_longitude,created_at",
+          )
+          .eq("restaurant_id", restaurant.id)
+          .in("customer_phone", variants)
+          .eq("order_type", "delivery")
+          .not("address_street", "is", null)
+          .order("created_at", { ascending: false })
+          .limit(15);
+        const seen = new Set<string>();
+        const out: PrevAddress[] = [];
+        for (const o of (data ?? []) as any[]) {
+          const street = (o.address_street ?? "").trim();
+          const number = (o.address_number ?? "").trim();
+          const city = (o.address_city ?? "").trim();
+          if (!street || !city) continue;
+          const key = [street, number, city].join("|").toLowerCase();
+          if (seen.has(key)) continue;
+          seen.add(key);
+          out.push({
+            cep: o.address_cep ?? "",
+            street,
+            number,
+            complement: o.address_complement ?? "",
+            neighborhood: o.address_neighborhood ?? "",
+            city,
+            state: o.address_state ?? "",
+            notes: o.address_notes ?? "",
+            lat: typeof o.delivery_latitude === "number" ? o.delivery_latitude : null,
+            lng: typeof o.delivery_longitude === "number" ? o.delivery_longitude : null,
+            last_used_at: o.created_at,
+          });
+          if (out.length >= 3) break;
+        }
+        setPrevAddresses(out);
+      } catch (_) { /* não bloqueia */ }
+      finally { setValidatingPhone(false); }
+    }
     if (step === 2 && !isPickup && !validateStep2()) return;
     if (isPickup && step === 1) { setStep(3); return; } // pula endereço
     setStep((s) => (Math.min(3, s + 1) as Step));
