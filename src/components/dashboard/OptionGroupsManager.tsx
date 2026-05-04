@@ -8,10 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, X, Link2 } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Link2, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 import { brl } from "@/lib/format";
 import { fetchProducts, menuKeys } from "./MenuManager";
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 export interface OptionGroup {
   id: string;
