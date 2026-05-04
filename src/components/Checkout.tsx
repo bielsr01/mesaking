@@ -773,11 +773,16 @@ function Step2Address(props: {
   calculating: boolean;
   pinnedPoint: GeoPoint | null;
   setPinnedPoint: (pt: GeoPoint | null) => void;
+  restaurantLat: number | null;
+  restaurantLng: number | null;
+  restaurantCity: string | null;
+  restaurantState: string | null;
 }) {
   const {
     cep, setCep, dontKnowCep, setDontKnowCep, addr, setAddr, lookupCep,
     fieldRefs, shakeKey, feeMode, fixedFee, hasZones, restaurantHasCoords,
     delivery, deliveryError, calculating, pinnedPoint, setPinnedPoint,
+    restaurantLat, restaurantLng, restaurantCity, restaurantState,
   } = props;
 
   const [editing, setEditing] = useState(false);
