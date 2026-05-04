@@ -38,8 +38,9 @@ export function AddressSearchDialog({
 
   useEffect(() => {
     if (!open) return;
-    if (q.trim().length < 3) {
+    if (q.trim().length < 2) {
       setSuggestions([]);
+      setLoading(false);
       return;
     }
     setLoading(true);
@@ -49,15 +50,24 @@ export function AddressSearchDialog({
         city: cityFilter,
         state: stateFilter,
       });
-      // Filtra no cliente também: prioriza endereços da mesma cidade do restaurante
-      const filtered = cityFilter
-        ? r.filter((s) => !s.city || s.city.toLowerCase() === cityFilter.toLowerCase())
-        : r;
-      setSuggestions(filtered.length ? filtered : r);
+      setSuggestions(r);
       setLoading(false);
-    }, 350);
+    }, 180);
     return () => clearTimeout(t);
   }, [q, open, proximity, cityFilter, stateFilter]);
+
+  const handlePick = async (s: AddressSuggestion) => {
+    // Se já tem lat/lng, usa direto (caso futuro). Senão resolve o placeId.
+    if (typeof s.lat === "number" && typeof s.lng === "number" && s.street) {
+      onPickSuggestion(s);
+      return;
+    }
+    setLoading(true);
+    const detailed = await resolvePlaceId(s.id);
+    setLoading(false);
+    if (detailed) onPickSuggestion(detailed);
+    else onPickSuggestion(s);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
