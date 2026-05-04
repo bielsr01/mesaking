@@ -73,6 +73,24 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
   const [payment, setPayment] = useState<"cash" | "pix" | "card_on_delivery">("cash");
   const [changeFor, setChangeFor] = useState("");
 
+  // Programa de fidelidade
+  const [loyaltyEnabled, setLoyaltyEnabled] = useState(false);
+  const [loyaltyPointsPerReal, setLoyaltyPointsPerReal] = useState(1);
+  const [loyaltyOptIn, setLoyaltyOptIn] = useState(false);
+
+  useEffect(() => {
+    if (!restaurant?.id) return;
+    (async () => {
+      const { data } = await (supabase as any)
+        .from("loyalty_settings")
+        .select("enabled, points_per_real")
+        .eq("restaurant_id", restaurant.id)
+        .maybeSingle();
+      setLoyaltyEnabled(!!data?.enabled);
+      setLoyaltyPointsPerReal(Number(data?.points_per_real ?? 1));
+    })();
+  }, [restaurant?.id]);
+
   // Cupom
   const [couponInput, setCouponInput] = useState("");
   const [coupon, setCoupon] = useState<any | null>(null);
@@ -338,6 +356,7 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
       delivery_fee: fee,
       total,
       coupon_code: coupon?.code ?? null,
+      loyalty_opt_in: loyaltyEnabled && loyaltyOptIn,
     };
 
     if (isPickup) {
@@ -422,11 +441,50 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
       } catch (_) {}
     }
 
+    // Programa de fidelidade — cria/atualiza membro e cria transação pendente
+    let earnedPoints = 0;
+    if (loyaltyEnabled && loyaltyOptIn) {
+      try {
+        const phoneFmt = formatPhone(phone);
+        earnedPoints = Math.floor(Number(total) * Number(loyaltyPointsPerReal || 0));
+        const sb = supabase as any;
+        const { data: existing } = await sb
+          .from("loyalty_members")
+          .select("id")
+          .eq("restaurant_id", restaurant.id)
+          .eq("phone", phoneFmt)
+          .maybeSingle();
+        let memberId = existing?.id as string | undefined;
+        if (!memberId) {
+          const { data: created } = await sb
+            .from("loyalty_members")
+            .insert({ restaurant_id: restaurant.id, name: name.trim(), phone: phoneFmt, points: 0 })
+            .select("id")
+            .single();
+          memberId = created?.id;
+        }
+        if (memberId && earnedPoints > 0) {
+          await sb.from("loyalty_transactions").insert({
+            restaurant_id: restaurant.id,
+            member_id: memberId,
+            order_id: order.id,
+            points: earnedPoints,
+            type: "earn",
+            status: "pending",
+          });
+        }
+      } catch (_) {}
+    }
+
     cart.clear();
     setBusy(false);
     onOpenChange(false);
     setActiveOrder(restaurant.id, order.public_token);
-    toast.success("Pedido enviado! Acompanhe o status no topo da tela.");
+    toast.success(
+      earnedPoints > 0
+        ? `Pedido enviado! Sua compra gerou ${earnedPoints} ponto(s) de fidelidade.`
+        : "Pedido enviado! Acompanhe o status no topo da tela."
+    );
   };
 
   // Indicador de progresso
@@ -599,6 +657,26 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
                   </>
                 )}
               </div>
+
+              {/* Programa de fidelidade */}
+              {loyaltyEnabled && (
+                <label className="flex items-start gap-3 rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 p-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={loyaltyOptIn}
+                    onChange={(e) => setLoyaltyOptIn(e.target.checked)}
+                    className="mt-1 h-4 w-4"
+                  />
+                  <div className="text-sm">
+                    <div className="font-semibold">Deseja pontuar no nosso programa de fidelidade?</div>
+                    <div className="text-xs text-muted-foreground">
+                      {loyaltyOptIn
+                        ? `Sua compra gerará ${Math.floor(Number(total) * Number(loyaltyPointsPerReal || 0))} ponto(s).`
+                        : `Marque para acumular pontos (${loyaltyPointsPerReal} ponto por R$ 1,00).`}
+                    </div>
+                  </div>
+                </label>
+              )}
 
               {/* Resumo do pedido */}
               <div className="border rounded-lg p-3 space-y-2">

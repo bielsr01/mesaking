@@ -39,9 +39,14 @@ const mainItems: { id: DashboardView; title: string; icon: any }[] = [
 
 const marketingItems: { id: DashboardView; title: string; icon: any }[] = [
   { id: "marketing:coupons", title: "Cupons de desconto", icon: Ticket },
-  { id: "marketing:loyalty", title: "Programa de fidelidade", icon: Award },
   { id: "marketing:bulk", title: "Envio em massa", icon: Send },
 ];
+
+const loyaltyItem: { id: DashboardView; title: string; icon: any } = {
+  id: "marketing:loyalty",
+  title: "Programa de fidelidade",
+  icon: Award,
+};
 
 const settingsItems: { id: DashboardView; title: string; icon: any }[] = [
   { id: "settings:order-config", title: "Configurações de Pedidos", icon: ClipboardList },
@@ -136,6 +141,18 @@ export function AppSidebar({
                   </CollapsibleContent>
                 </SidebarMenuItem>
               </Collapsible>
+
+              {/* Programa de fidelidade (item raiz, abaixo de Marketing) */}
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={active === loyaltyItem.id}
+                  onClick={() => onChange(loyaltyItem.id)}
+                  tooltip={loyaltyItem.title}
+                >
+                  <loyaltyItem.icon className="h-4 w-4" />
+                  <span>{loyaltyItem.title}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
 
               {/* Configurações */}
               <Collapsible open={settingsOpen || collapsed} onOpenChange={setSettingsOpen} asChild>
