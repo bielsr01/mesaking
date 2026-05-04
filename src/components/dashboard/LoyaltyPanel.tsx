@@ -11,8 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { brl, formatPhone } from "@/lib/format";
-import { Plus, Check, Trash2, Award } from "lucide-react";
+import { brl, formatPhone, orderStatusLabel } from "@/lib/format";
+import { Plus, Check, Trash2, Award, RefreshCw } from "lucide-react";
 
 const sb = supabase as any;
 
@@ -143,8 +143,20 @@ export function LoyaltyPanel({ restaurantId }: { restaurantId: string }) {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between gap-2">
         <CardTitle className="flex items-center gap-2"><Award className="w-5 h-5" />Programa de fidelidade</CardTitle>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            qc.invalidateQueries({ queryKey: ["loyalty-settings", restaurantId] });
+            qc.invalidateQueries({ queryKey: ["loyalty-members", restaurantId] });
+            qc.invalidateQueries({ queryKey: ["loyalty-tx", restaurantId] });
+            toast.success("Atualizado");
+          }}
+        >
+          <RefreshCw className="w-4 h-4 mr-1" />Atualizar
+        </Button>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="settings">
@@ -233,7 +245,7 @@ export function LoyaltyPanel({ restaurantId }: { restaurantId: string }) {
                       </TableCell>
                       <TableCell>
                         <Badge variant={t.orders?.status === "delivered" || t.orders?.status === "completed" ? "default" : "secondary"}>
-                          {t.orders?.status ?? "—"}
+                          {t.orders?.status ? (orderStatusLabel[t.orders.status] ?? t.orders.status) : "—"}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">{t.orders ? brl(Number(t.orders.total)) : "—"}</TableCell>
