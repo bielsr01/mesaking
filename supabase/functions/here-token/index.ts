@@ -5,8 +5,8 @@ const corsHeaders = {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  const token = Deno.env.get("MAPBOX_TOKEN") ?? "";
-  return new Response(JSON.stringify({ token }), {
+  const apiKey = Deno.env.get("HERE_API_KEY") ?? "";
+  return new Response(JSON.stringify({ apiKey }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 });
