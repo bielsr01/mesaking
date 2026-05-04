@@ -109,11 +109,6 @@ export function LocationPicker({
           </div>
         </div>
         <div className="shrink-0 border-t bg-background px-6 py-3 space-y-2">
-          {point && (
-            <div className="text-xs text-muted-foreground tabular-nums text-center">
-              {point.lat.toFixed(6)}, {point.lng.toFixed(6)}
-            </div>
-          )}
           <Button
             type="button"
             className="w-full"
