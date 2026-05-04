@@ -108,6 +108,23 @@ Deno.serve(async (req) => {
         return cityA - cityB || stateA - stateB;
       });
 
+      // Enriquecer bairro via Nominatim (OSM) quando o Mapbox não retornar
+      const enrichWithOSM = async (s: any) => {
+        if (s.neighborhood || typeof s.lat !== "number" || typeof s.lng !== "number") return s;
+        try {
+          const url = `https://nominatim.openstreetmap.org/reverse?lat=${s.lat}&lon=${s.lng}&format=json&addressdetails=1&accept-language=pt-BR`;
+          const r = await fetch(url, { headers: { "User-Agent": "lovable-geocode/1.0" } });
+          if (!r.ok) return s;
+          const data = await r.json();
+          const addr = data?.address ?? {};
+          const neigh = addr.suburb || addr.neighbourhood || addr.hamlet || addr.quarter || addr.city_district || "";
+          if (neigh) s.neighborhood = neigh;
+          if (!s.cep && addr.postcode) s.cep = addr.postcode;
+        } catch (_) { /* ignora */ }
+        return s;
+      };
+      await Promise.all(suggestions.slice(0, 6).map(enrichWithOSM));
+
       if (!suggestions.length && proximity && typeof proximity.lat === "number" && typeof proximity.lng === "number") {
         suggestions.push({
           id: `manual-${Date.now()}`,
