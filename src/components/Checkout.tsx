@@ -694,7 +694,7 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
           <span className="text-xl font-semibold text-foreground">Pedido enviado</span>
         </div>
       ),
-      { duration: 3000 },
+      { duration: 5000 },
     );
   };
 
