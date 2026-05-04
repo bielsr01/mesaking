@@ -932,12 +932,10 @@ function Step2Address(props: {
                 if (!addr.neighborhood) { props.flagInvalid("neighborhood"); return; }
                 if (!addr.city) { props.flagInvalid("city"); return; }
                 if (addr.state.length !== 2) { props.flagInvalid("state"); return; }
-                setPinnedPoint(null);
                 setEditing(false);
-                setPickingMap(true);
               }}
             >
-              Cadastrar endereço
+              Confirmar endereço
             </Button>
           </div>
         </DialogContent>
