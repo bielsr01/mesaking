@@ -124,9 +124,18 @@ export function LocationPicker({
       setPermissionError(false);
       setInfo(null);
 
+      const validInitial =
+        initialPoint &&
+        typeof initialPoint.lat === "number" &&
+        typeof initialPoint.lng === "number" &&
+        isFinite(initialPoint.lat) &&
+        isFinite(initialPoint.lng)
+          ? initialPoint
+          : null;
+
       const [apiKey, geo] = await Promise.all([
         getGoogleApiKey(),
-        initialPoint ? Promise.resolve(initialPoint) : getCurrentPosition(),
+        validInitial ? Promise.resolve(validInitial) : getCurrentPosition(),
       ]);
 
       if (cancelled) return;
@@ -144,7 +153,7 @@ export function LocationPicker({
       if (cancelled) return;
 
       const pt: GeoPoint = geo ?? { lat: -14.235, lng: -51.9253 };
-      if (!geo && !initialPoint) setPermissionError(true);
+      if (!geo && !validInitial) setPermissionError(true);
       setPoint(pt);
 
       // Espera 2 frames + container ter tamanho real (corrige mapa em branco no mobile)
@@ -161,7 +170,7 @@ export function LocationPicker({
       const google = window.google;
       const map = new google.maps.Map(container, {
         center: { lat: pt.lat, lng: pt.lng },
-        zoom: geo || initialPoint ? 17 : 4,
+        zoom: geo || validInitial ? 17 : 4,
         disableDefaultUI: true,
         zoomControl: true,
         gestureHandling: "greedy",

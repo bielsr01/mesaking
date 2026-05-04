@@ -100,17 +100,24 @@ Deno.serve(async (req) => {
 
     // ---------- AUTOCOMPLETE (Places API New) - rápido, sem detalhes ----------
     if (typeof q === "string" && q.trim().length >= 2) {
+      // Acrescenta cidade/UF ao input para priorizar resultados na cidade do restaurante
+      const cityHint = [city, state].filter(Boolean).join(" ");
+      const input = cityHint && !q.toLowerCase().includes(String(city).toLowerCase())
+        ? `${q.trim()}, ${cityHint}`
+        : q.trim();
+
       const reqBody: any = {
-        input: q.trim(),
+        input,
         languageCode: "pt-BR",
         regionCode: "BR",
         includedRegionCodes: ["br"],
       };
       if (proximity && typeof proximity.lat === "number" && typeof proximity.lng === "number") {
-        reqBody.locationBias = {
+        // locationRestriction força resultados dentro do raio (cidade do restaurante)
+        reqBody.locationRestriction = {
           circle: {
             center: { latitude: proximity.lat, longitude: proximity.lng },
-            radius: 50000,
+            radius: 30000,
           },
         };
       }
