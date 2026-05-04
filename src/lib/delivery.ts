@@ -51,9 +51,9 @@ export async function reverseGeocode(pt: GeoPoint): Promise<ReverseGeocodeResult
 
 export type AddressSuggestion = ReverseGeocodeResult & { id: string };
 
-export async function searchAddresses(q: string, proximity?: GeoPoint): Promise<AddressSuggestion[]> {
+export async function searchAddresses(q: string, opts?: { proximity?: GeoPoint; city?: string; state?: string }): Promise<AddressSuggestion[]> {
   try {
-    const { data, error } = await supabase.functions.invoke("geocode", { body: { q, proximity } });
+    const { data, error } = await supabase.functions.invoke("geocode", { body: { q, proximity: opts?.proximity, city: opts?.city, state: opts?.state } });
     if (error || !data) return [];
     return ((data as any).suggestions ?? []) as AddressSuggestion[];
   } catch {

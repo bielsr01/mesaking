@@ -608,6 +608,10 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
               calculating={calculating}
               pinnedPoint={pinnedPoint}
               setPinnedPoint={setPinnedPoint}
+              restaurantLat={restaurant.latitude ?? null}
+              restaurantLng={restaurant.longitude ?? null}
+              restaurantCity={restaurant.address_city ?? null}
+              restaurantState={restaurant.address_state ?? null}
             />
           )}
 
@@ -769,11 +773,16 @@ function Step2Address(props: {
   calculating: boolean;
   pinnedPoint: GeoPoint | null;
   setPinnedPoint: (pt: GeoPoint | null) => void;
+  restaurantLat: number | null;
+  restaurantLng: number | null;
+  restaurantCity: string | null;
+  restaurantState: string | null;
 }) {
   const {
     cep, setCep, dontKnowCep, setDontKnowCep, addr, setAddr, lookupCep,
     fieldRefs, shakeKey, feeMode, fixedFee, hasZones, restaurantHasCoords,
     delivery, deliveryError, calculating, pinnedPoint, setPinnedPoint,
+    restaurantLat, restaurantLng, restaurantCity, restaurantState,
   } = props;
 
   const [editing, setEditing] = useState(false);
@@ -932,12 +941,10 @@ function Step2Address(props: {
                 if (!addr.neighborhood) { props.flagInvalid("neighborhood"); return; }
                 if (!addr.city) { props.flagInvalid("city"); return; }
                 if (addr.state.length !== 2) { props.flagInvalid("state"); return; }
-                setPinnedPoint(null);
                 setEditing(false);
-                setPickingMap(true);
               }}
             >
-              Cadastrar endereço
+              Confirmar endereço
             </Button>
           </div>
         </DialogContent>
@@ -946,10 +953,11 @@ function Step2Address(props: {
       <AddressSearchDialog
         open={searching}
         onOpenChange={setSearching}
-        proximity={pinnedPoint}
+        proximity={pinnedPoint ?? (restaurantLat != null && restaurantLng != null ? { lat: restaurantLat, lng: restaurantLng } : undefined)}
+        cityFilter={restaurantCity ?? undefined}
+        stateFilter={restaurantState ?? undefined}
         onPickSuggestion={(s) => {
           setSearching(false);
-          // Pré-preenche com a sugestão
           setAddr({
             ...addr,
             street: s.street || addr.street,
