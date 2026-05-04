@@ -284,7 +284,7 @@ export default function RestaurantPublic() {
             <img
               src={restaurant.cover_url}
               alt={`Capa ${restaurant.name}`}
-              className="absolute inset-0 w-full h-full object-cover"
+              className="absolute inset-0 w-full h-full object-cover object-center"
             />
           )}
           {/* Badge aberto/fechado sobre a capa */}
