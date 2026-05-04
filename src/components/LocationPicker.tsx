@@ -109,6 +109,13 @@ export function LocationPicker({
   const [resolving, setResolving] = useState(false);
   const [permissionError, setPermissionError] = useState(false);
 
+  useEffect(() => {
+    if (!open) {
+      setLoading(false);
+      setResolving(false);
+    }
+  }, [open]);
+
   // Reverse geocode debounced sempre que o ponto mudar
   useEffect(() => {
     if (!point || !open) return;
@@ -120,7 +127,7 @@ export function LocationPicker({
       setInfo(r);
       setResolving(false);
     }, 300);
-    return () => { cancelled = true; clearTimeout(t); };
+    return () => { cancelled = true; clearTimeout(t); setResolving(false); };
   }, [point, open]);
 
   useEffect(() => {
@@ -140,6 +147,8 @@ export function LocationPicker({
         isFinite(initialPoint.lng)
           ? initialPoint
           : null;
+      initialPointRef.current = validInitial;
+      manuallyMovedRef.current = false;
 
       const [apiKey, geo] = await Promise.all([
         getGoogleApiKey(),
@@ -197,11 +206,15 @@ export function LocationPicker({
           return next;
         });
       });
+      map.addListener("dragstart", () => {
+        manuallyMovedRef.current = true;
+      });
 
       mapRef.current = { map };
 
       // Garante o redraw quando o dialog termina a animação
       setTimeout(() => {
+        if (cancelled) return;
         google.maps.event.trigger(map, "resize");
         map.setCenter({ lat: pt.lat, lng: pt.lng });
       }, 250);
