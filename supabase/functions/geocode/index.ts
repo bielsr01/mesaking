@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
       );
       url.searchParams.set("access_token", token);
       url.searchParams.set("language", "pt");
-      url.searchParams.set("limit", "5");
+      // Sem limit: reverse default retorna a melhor feature com context completo
       const r = await fetch(url.toString());
       const data = await r.json();
       console.log("reverse mapbox status", r.status, "body", JSON.stringify(data).slice(0, 500));
