@@ -17,6 +17,7 @@ import { OrderConfigSettings } from "@/components/dashboard/OrderConfigSettings"
 import { PrintSettingsCard } from "@/components/dashboard/PrintSettings";
 import { CustomersPanel } from "@/components/dashboard/CustomersPanel";
 import { CouponsPanel } from "@/components/dashboard/CouponsPanel";
+import { IntegrationsPanel } from "@/components/dashboard/IntegrationsPanel";
 import { LoyaltyPanel } from "@/components/dashboard/LoyaltyPanel";
 import { StoreOpenToggle } from "@/components/dashboard/StoreOpenToggle";
 import { AppSidebar, DashboardView } from "@/components/dashboard/AppSidebar";
@@ -237,7 +238,11 @@ export default function ManagerDashboard() {
                 <PrintSettingsCard restaurantId={restaurant.id} />
               </LazyView>
             )}
-            {view === "settings:integrations" && <LazyView viewKey={view} variant="form"><EmptyState title="Integrações" /></LazyView>}
+            {view === "settings:integrations" && (
+              <LazyView viewKey={view} variant="form">
+                <IntegrationsPanel restaurantId={restaurant.id} />
+              </LazyView>
+            )}
           </main>
         </div>
       </div>
