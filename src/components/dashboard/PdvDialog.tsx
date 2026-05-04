@@ -121,12 +121,14 @@ export function PdvDialog({
   // Discount / service fee
   const [discountType, setDiscountType] = useState<"value" | "percent">("value");
   const [discountValue, setDiscountValue] = useState<number>(0);
-  const [serviceFee, setServiceFee] = useState<number>(0);
+  const [serviceFeeType, setServiceFeeType] = useState<"value" | "percent">("percent");
+  const [serviceFeeValue, setServiceFeeValue] = useState<number>(0);
   const [discountOpen, setDiscountOpen] = useState(false);
   const [feeOpen, setFeeOpen] = useState(false);
   const [tmpDiscType, setTmpDiscType] = useState<"value" | "percent">("value");
   const [tmpDiscInput, setTmpDiscInput] = useState("");
-  const [tmpFeeInput, setTmpFeeInput] = useState("");
+  const [tmpFeeType, setTmpFeeType] = useState<"value" | "percent">("percent");
+  const [tmpFeeInput, setTmpFeeInput] = useState("10");
 
   const [payment, setPayment] = useState<PaymentMethod>("cash");
   const [submitting, setSubmitting] = useState(false);
