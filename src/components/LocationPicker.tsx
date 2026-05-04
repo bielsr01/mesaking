@@ -341,7 +341,7 @@ export function LocationPicker({
             type="button"
             size="icon"
             variant="secondary"
-            className="absolute bottom-4 right-4 z-[600] shadow-lg"
+            className="absolute bottom-4 left-4 z-[600] shadow-lg"
             onClick={recenterOnMe}
             title="Minha localização"
           >
