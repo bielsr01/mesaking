@@ -26,11 +26,13 @@ export function AddressSearchDialog({
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const reqSeqRef = useRef(0);
 
   useEffect(() => {
     if (!open) {
       setQ("");
       setSuggestions([]);
+      reqSeqRef.current++;
       return;
     }
     setTimeout(() => inputRef.current?.focus(), 100);
@@ -38,21 +40,26 @@ export function AddressSearchDialog({
 
   useEffect(() => {
     if (!open) return;
-    if (q.trim().length < 2) {
+    const query = q.trim();
+    if (query.length < 2) {
       setSuggestions([]);
       setLoading(false);
+      reqSeqRef.current++;
       return;
     }
     setLoading(true);
     const t = setTimeout(async () => {
-      const r = await searchAddresses(q, {
+      const mySeq = ++reqSeqRef.current;
+      const r = await searchAddresses(query, {
         proximity: proximity ?? undefined,
         city: cityFilter,
         state: stateFilter,
       });
+      // Descarta resposta obsoleta: só aplica se ainda for a busca mais recente
+      if (mySeq !== reqSeqRef.current) return;
       setSuggestions(r);
       setLoading(false);
-    }, 180);
+    }, 220);
     return () => clearTimeout(t);
   }, [q, open, proximity, cityFilter, stateFilter]);
 
