@@ -105,6 +105,97 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
   const [deliveryError, setDeliveryError] = useState<string | null>(null);
   const [calculating, setCalculating] = useState(false);
 
+  // Endereços anteriores deste telefone (até 3 distintos)
+  type PrevAddress = {
+    cep: string;
+    street: string;
+    number: string;
+    complement: string;
+    neighborhood: string;
+    city: string;
+    state: string;
+    notes: string;
+    lat: number | null;
+    lng: number | null;
+    last_used_at: string;
+  };
+  const [prevAddresses, setPrevAddresses] = useState<PrevAddress[]>([]);
+
+  // Busca endereços anteriores quando o telefone fica válido (10+ dígitos)
+  useEffect(() => {
+    if (!open) return;
+    const digits = unmaskPhone(phone);
+    if (digits.length < 10) {
+      setPrevAddresses([]);
+      return;
+    }
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      const phoneFmt = formatPhone(phone);
+      const variants = Array.from(new Set([phoneFmt, digits].filter(Boolean)));
+      const { data } = await supabase
+        .from("orders")
+        .select(
+          "address_cep,address_street,address_number,address_complement,address_neighborhood,address_city,address_state,address_notes,delivery_latitude,delivery_longitude,created_at",
+        )
+        .eq("restaurant_id", restaurant.id)
+        .in("customer_phone", variants)
+        .eq("order_type", "delivery")
+        .not("address_street", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(15);
+      if (cancelled) return;
+      const seen = new Set<string>();
+      const out: PrevAddress[] = [];
+      for (const o of (data ?? []) as any[]) {
+        const street = (o.address_street ?? "").trim();
+        const number = (o.address_number ?? "").trim();
+        const city = (o.address_city ?? "").trim();
+        if (!street || !city) continue;
+        const key = [street, number, city].join("|").toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push({
+          cep: o.address_cep ?? "",
+          street,
+          number,
+          complement: o.address_complement ?? "",
+          neighborhood: o.address_neighborhood ?? "",
+          city,
+          state: o.address_state ?? "",
+          notes: o.address_notes ?? "",
+          lat: typeof o.delivery_latitude === "number" ? o.delivery_latitude : null,
+          lng: typeof o.delivery_longitude === "number" ? o.delivery_longitude : null,
+          last_used_at: o.created_at,
+        });
+        if (out.length >= 3) break;
+      }
+      setPrevAddresses(out);
+    }, 350);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [open, phone, restaurant.id]);
+
+  const applyPrevAddress = (p: PrevAddress) => {
+    setAddr({
+      street: p.street,
+      number: p.number,
+      complement: p.complement,
+      neighborhood: p.neighborhood,
+      city: p.city,
+      state: p.state,
+      notes: p.notes,
+    });
+    if (p.cep) setCep(p.cep);
+    if (p.lat != null && p.lng != null && isFinite(p.lat) && isFinite(p.lng)) {
+      setPinnedPoint({ lat: p.lat, lng: p.lng });
+    } else {
+      setPinnedPoint(null);
+    }
+  };
+
   const zones = (restaurant.delivery_zones ?? []) as DeliveryZone[];
   const feeMode = (restaurant.delivery_fee_mode ?? "radius") as "fixed" | "radius";
   const fixedFee = Number(restaurant.delivery_fixed_fee ?? 0);
