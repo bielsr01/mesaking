@@ -16,6 +16,16 @@ export type GeocodeAddress = {
 
 
 
+export type ReverseGeocodeResult = GeoPoint & {
+  place_name?: string;
+  street?: string;
+  number?: string;
+  neighborhood?: string;
+  city?: string;
+  state?: string;
+  cep?: string;
+};
+
 export async function geocodeAddress(addr: GeocodeAddress): Promise<GeoPoint | null> {
   try {
     const { data, error } = await supabase.functions.invoke("geocode", { body: addr });
@@ -24,6 +34,16 @@ export async function geocodeAddress(addr: GeocodeAddress): Promise<GeoPoint | n
     const lng = Number((data as any).lng);
     if (!isFinite(lat) || !isFinite(lng)) return null;
     return { lat, lng };
+  } catch {
+    return null;
+  }
+}
+
+export async function reverseGeocode(pt: GeoPoint): Promise<ReverseGeocodeResult | null> {
+  try {
+    const { data, error } = await supabase.functions.invoke("geocode", { body: { lat: pt.lat, lng: pt.lng } });
+    if (error || !data) return null;
+    return data as ReverseGeocodeResult;
   } catch {
     return null;
   }
