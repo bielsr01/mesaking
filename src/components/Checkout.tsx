@@ -703,6 +703,8 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
               restaurantLng={restaurant.longitude ?? null}
               restaurantCity={restaurant.address_city ?? null}
               restaurantState={restaurant.address_state ?? null}
+              prevAddresses={prevAddresses}
+              applyPrevAddress={applyPrevAddress}
             />
           )}
 
