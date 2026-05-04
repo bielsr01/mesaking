@@ -442,10 +442,10 @@ export function PdvDialog({
               <Percent className="w-4 h-4" />
               Desconto{discountValue > 0 ? `: ${discountType === "percent" ? `${discountValue}%` : brl(discountValue)}` : ""}
             </Button>
-            <Button variant={serviceFee > 0 ? "secondary" : "outline"} size="sm" className="gap-2"
-              onClick={() => { setTmpFeeInput(serviceFee ? String(serviceFee) : ""); setFeeOpen(true); }}>
+            <Button variant={serviceFeeValue > 0 ? "secondary" : "outline"} size="sm" className="gap-2"
+              onClick={() => { setTmpFeeType(serviceFeeType); setTmpFeeInput(serviceFeeValue ? String(serviceFeeValue) : "10"); setFeeOpen(true); }}>
               <Tag className="w-4 h-4" />
-              Taxa de serviço{serviceFee > 0 ? `: ${brl(serviceFee)}` : ""}
+              Taxa de serviço{serviceFeeValue > 0 ? `: ${serviceFeeType === "percent" ? `${serviceFeeValue}%` : brl(serviceFeeValue)}` : ""}
             </Button>
           </div>
 
