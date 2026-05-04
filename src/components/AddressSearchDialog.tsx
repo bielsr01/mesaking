@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, MapPin, LocateFixed, Search } from "lucide-react";
-import { AddressSuggestion, GeoPoint, searchAddresses } from "@/lib/delivery";
+import { AddressSuggestion, GeoPoint, resolvePlaceId, searchAddresses } from "@/lib/delivery";
 
 export function AddressSearchDialog({
   open,
