@@ -30,42 +30,30 @@ async function loadGoogleMaps(apiKey: string): Promise<void> {
   if (typeof window !== "undefined" && window.google?.maps?.Map) return;
   if (window.__gmapsLoading) return window.__gmapsLoading;
   window.__gmapsLoading = new Promise((resolve, reject) => {
-    const timeout = window.setTimeout(() => reject(new Error("gmaps load timeout")), 12000);
-    const done = () => {
-      window.clearTimeout(timeout);
-      resolve();
-    };
     const existing = document.querySelector<HTMLScriptElement>('script[data-gmaps="1"]');
     if (existing) {
-      if (window.google?.maps || existing.dataset.loaded === "1") {
-        done();
+      if (window.google?.maps?.Map) {
+        resolve();
         return;
       }
-      existing.addEventListener("load", done);
+      existing.addEventListener("load", () => resolve());
       existing.addEventListener("error", () => reject(new Error("gmaps load failed")));
       return;
     }
     const s = document.createElement("script");
-    s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&language=pt-BR&region=BR&v=weekly&loading=async`;
+    // Sem `loading=async` para evitar deferimento que quebra o primeiro render no mobile.
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&language=pt-BR&region=BR&v=weekly`;
     s.async = true;
     s.defer = true;
     s.dataset.gmaps = "1";
-    s.onload = () => {
-      s.dataset.loaded = "1";
-      done();
-    };
+    s.onload = () => resolve();
     s.onerror = () => reject(new Error("gmaps load failed"));
     document.head.appendChild(s);
-  });
-  try {
-    await window.__gmapsLoading;
-  } catch (err) {
+  }).catch((err) => {
     window.__gmapsLoading = undefined;
     throw err;
-  }
-  if (window.google?.maps?.importLibrary) {
-    await window.google.maps.importLibrary("maps");
-  }
+  });
+  return window.__gmapsLoading;
 }
 
 function getCurrentPosition(): Promise<GeoPoint | null> {
@@ -76,28 +64,6 @@ function getCurrentPosition(): Promise<GeoPoint | null> {
       () => resolve(null),
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
     );
-  });
-}
-
-// Espera o container ter dimensões reais antes de inicializar o mapa.
-function waitForSize(el: HTMLElement, timeoutMs = 2000): Promise<void> {
-  return new Promise((resolve) => {
-    if (el.clientWidth > 0 && el.clientHeight > 0) return resolve();
-    const start = performance.now();
-    const ro = new ResizeObserver(() => {
-      if (el.clientWidth > 0 && el.clientHeight > 0) {
-        ro.disconnect();
-        resolve();
-      } else if (performance.now() - start > timeoutMs) {
-        ro.disconnect();
-        resolve();
-      }
-    });
-    ro.observe(el);
-    setTimeout(() => {
-      ro.disconnect();
-      resolve();
-    }, timeoutMs);
   });
 }
 
@@ -114,6 +80,8 @@ export function LocationPicker({
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
+  const myLocationMarkerRef = useRef<any>(null);
+  const myLocationWatchRef = useRef<number | null>(null);
   const initialPointRef = useRef<GeoPoint | null>(null);
   const manuallyMovedRef = useRef(false);
   const [loading, setLoading] = useState(false);
@@ -121,13 +89,6 @@ export function LocationPicker({
   const [info, setInfo] = useState<ReverseGeocodeResult | null>(null);
   const [resolving, setResolving] = useState(false);
   const [permissionError, setPermissionError] = useState(false);
-
-  useEffect(() => {
-    if (!open) {
-      setLoading(false);
-      setResolving(false);
-    }
-  }, [open]);
 
   // Reverse geocode debounced sempre que o ponto mudar
   useEffect(() => {
@@ -139,12 +100,53 @@ export function LocationPicker({
       if (cancelled) return;
       setInfo(r);
       setResolving(false);
-    }, 300);
-    return () => { cancelled = true; clearTimeout(t); setResolving(false); };
+    }, 350);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
   }, [point, open]);
 
+  // Atualiza o pontinho azul "minha localização" continuamente
+  const updateMyLocationMarker = useCallback((pos: GeoPoint) => {
+    const google = window.google;
+    const map = mapRef.current?.map;
+    if (!google || !map) return;
+    if (!myLocationMarkerRef.current) {
+      myLocationMarkerRef.current = new google.maps.Marker({
+        map,
+        position: pos,
+        clickable: false,
+        zIndex: 1,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 8,
+          fillColor: "#4285F4",
+          fillOpacity: 1,
+          strokeColor: "#ffffff",
+          strokeWeight: 2,
+        },
+      });
+    } else {
+      myLocationMarkerRef.current.setPosition(pos);
+    }
+  }, []);
+
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      // cleanup quando fecha
+      if (myLocationWatchRef.current != null && "geolocation" in navigator) {
+        navigator.geolocation.clearWatch(myLocationWatchRef.current);
+        myLocationWatchRef.current = null;
+      }
+      myLocationMarkerRef.current?.setMap?.(null);
+      myLocationMarkerRef.current = null;
+      mapRef.current = null;
+      setLoading(false);
+      setResolving(false);
+      return;
+    }
+
     let cancelled = false;
 
     const init = async () => {
@@ -163,11 +165,7 @@ export function LocationPicker({
       initialPointRef.current = validInitial;
       manuallyMovedRef.current = false;
 
-      const [apiKey, geo] = await Promise.all([
-        getGoogleApiKey(),
-        validInitial ? Promise.resolve(validInitial) : getCurrentPosition(),
-      ]);
-
+      const apiKey = await getGoogleApiKey();
       if (cancelled) return;
       if (!apiKey) {
         setLoading(false);
@@ -177,37 +175,46 @@ export function LocationPicker({
       try {
         await loadGoogleMaps(apiKey);
       } catch {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
         return;
       }
+      if (cancelled) return;
+
+      // Se não tem initialPoint, tenta geolocalizar
+      const geo = validInitial ?? (await getCurrentPosition());
       if (cancelled) return;
 
       const pt: GeoPoint = geo ?? { lat: -14.235, lng: -51.9253 };
-      if (!geo && !validInitial) setPermissionError(true);
+      if (!geo) setPermissionError(true);
       setPoint(pt);
 
-      // Espera 2 frames + container ter tamanho real (corrige mapa em branco no mobile)
-      await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
-      if (cancelled) return;
-      const container = containerRef.current;
-      if (!container) {
-        setLoading(false);
+      // Espera o container existir e ter tamanho
+      let tries = 0;
+      while (
+        !cancelled &&
+        (!containerRef.current ||
+          containerRef.current.clientWidth === 0 ||
+          containerRef.current.clientHeight === 0) &&
+        tries < 40
+      ) {
+        await new Promise((r) => setTimeout(r, 50));
+        tries++;
+      }
+      if (cancelled || !containerRef.current) {
+        if (!cancelled) setLoading(false);
         return;
       }
-      await waitForSize(container);
-      if (cancelled) return;
 
       const google = window.google;
-      const map = new google.maps.Map(container, {
+      const map = new google.maps.Map(containerRef.current, {
         center: { lat: pt.lat, lng: pt.lng },
-        zoom: geo || validInitial ? 17 : 4,
+        zoom: geo ? 17 : 4,
         disableDefaultUI: true,
         zoomControl: true,
         gestureHandling: "greedy",
         clickableIcons: false,
       });
 
-      // Atualiza ponto após cada arraste/zoom
       map.addListener("idle", () => {
         const c = map.getCenter();
         if (!c) return;
@@ -225,22 +232,41 @@ export function LocationPicker({
 
       mapRef.current = { map };
 
-      // Garante o redraw quando o dialog termina a animação
+      // Pontinho azul inicial se já temos geo
+      if (geo) updateMyLocationMarker(geo);
+
+      // Watch contínuo da localização para manter o pontinho azul atualizado
+      if ("geolocation" in navigator && myLocationWatchRef.current == null) {
+        try {
+          myLocationWatchRef.current = navigator.geolocation.watchPosition(
+            (pos) => {
+              updateMyLocationMarker({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+            },
+            () => {},
+            { enableHighAccuracy: true, maximumAge: 30000, timeout: 15000 },
+          );
+        } catch {
+          // ignora
+        }
+      }
+
+      // Força redraw após o dialog abrir totalmente
       setTimeout(() => {
-        if (cancelled) return;
-        google.maps.event.trigger(map, "resize");
-        map.setCenter({ lat: pt.lat, lng: pt.lng });
-      }, 250);
+        if (cancelled || !mapRef.current?.map) return;
+        google.maps.event.trigger(mapRef.current.map, "resize");
+        mapRef.current.map.setCenter({ lat: pt.lat, lng: pt.lng });
+      }, 300);
 
       setLoading(false);
     };
 
     init();
+
     return () => {
       cancelled = true;
-      mapRef.current = null;
     };
-  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const recenterOnMe = useCallback(async () => {
     const geo = await getCurrentPosition();
@@ -250,6 +276,7 @@ export function LocationPicker({
     }
     manuallyMovedRef.current = true;
     setPermissionError(false);
+    updateMyLocationMarker(geo);
     const ref = mapRef.current;
     if (ref?.map) {
       ref.map.setCenter({ lat: geo.lat, lng: geo.lng });
@@ -257,7 +284,7 @@ export function LocationPicker({
     } else {
       setPoint(geo);
     }
-  }, []);
+  }, [updateMyLocationMarker]);
 
   const summary = resolving
     ? null
@@ -266,7 +293,6 @@ export function LocationPicker({
       : info?.place_name ?? null;
 
   const handleConfirm = () => {
-    // Sempre usa o centro atual do mapa para a confirmação
     const map = mapRef.current?.map;
     let finalPoint = point;
     if (map) {
