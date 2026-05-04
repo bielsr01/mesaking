@@ -802,18 +802,16 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
 
               <div className="space-y-3">
                 <h3 className="font-semibold text-sm">Pagamento</h3>
-                <RadioGroup value={payment} onValueChange={(v) => setPayment(v as any)} className="space-y-2">
-                  {[
-                    { v: "cash", l: "Dinheiro" },
-                    { v: "pix", l: "Pix" },
-                    { v: "card_on_delivery", l: isPickup ? "Cartão na retirada" : "Cartão na entrega" },
-                  ].map((o) => (
-                    <label key={o.v} className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted">
-                      <RadioGroupItem value={o.v} />
-                      <span>{o.l}</span>
-                    </label>
-                  ))}
-                </RadioGroup>
+                <Select value={payment || undefined} onValueChange={(v) => setPayment(v as any)}>
+                  <SelectTrigger className="h-12">
+                    <SelectValue placeholder="Selecione a forma de pagamento" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">Dinheiro</SelectItem>
+                    <SelectItem value="pix">Pix</SelectItem>
+                    <SelectItem value="card_on_delivery">{isPickup ? "Cartão na retirada" : "Cartão na entrega"}</SelectItem>
+                  </SelectContent>
+                </Select>
                 {payment === "cash" && (
                   <div className="space-y-2"><Label>Troco para (opcional)</Label><Input value={changeFor} onChange={(e) => setChangeFor(e.target.value)} type="number" step="0.01" placeholder="Ex: 50.00" /></div>
                 )}
