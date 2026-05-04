@@ -12,7 +12,49 @@ Deno.serve(async (req) => {
     if (!token) throw new Error("MAPBOX_TOKEN not configured");
 
     const body = await req.json().catch(() => ({}));
-    const { cep, street, number, neighborhood, city, state } = body ?? {};
+    const { cep, street, number, neighborhood, city, state, lat: rLat, lng: rLng } = body ?? {};
+
+    // Reverse geocoding (lat/lng -> endereço)
+    if (typeof rLat === "number" && typeof rLng === "number") {
+      const url = new URL(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${rLng},${rLat}.json`,
+      );
+      url.searchParams.set("access_token", token);
+      url.searchParams.set("language", "pt");
+      url.searchParams.set("types", "address,street,place,neighborhood,postcode,locality");
+      url.searchParams.set("limit", "1");
+      const r = await fetch(url.toString());
+      const data = await r.json();
+      const features = (data?.features ?? []) as Array<any>;
+      const f = features[0];
+      const ctx: Record<string, string> = {};
+      let neigh = "";
+      let cityR = "";
+      let stateR = "";
+      let cepR = "";
+      const allCtx = [...(f?.context ?? [])];
+      for (const c of allCtx) {
+        const id = String(c.id ?? "");
+        if (id.startsWith("neighborhood")) neigh = c.text;
+        else if (id.startsWith("locality") && !neigh) neigh = c.text;
+        else if (id.startsWith("place")) cityR = c.text;
+        else if (id.startsWith("region")) stateR = (c.short_code ?? c.text ?? "").replace(/^BR-/, "");
+        else if (id.startsWith("postcode")) cepR = c.text;
+      }
+      const streetR = f?.text ?? "";
+      const numberR = f?.address ?? "";
+      return new Response(JSON.stringify({
+        lat: rLat,
+        lng: rLng,
+        place_name: f?.place_name ?? "",
+        street: streetR,
+        number: numberR,
+        neighborhood: neigh,
+        city: cityR,
+        state: stateR,
+        cep: cepR,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     const cleanCep = typeof cep === "string" ? cep.replace(/\D/g, "") : "";
 
