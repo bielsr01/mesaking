@@ -16,6 +16,7 @@ import { OrderConfigSettings } from "@/components/dashboard/OrderConfigSettings"
 import { PrintSettingsCard } from "@/components/dashboard/PrintSettings";
 import { CustomersPanel } from "@/components/dashboard/CustomersPanel";
 import { CouponsPanel } from "@/components/dashboard/CouponsPanel";
+import { LoyaltyPanel } from "@/components/dashboard/LoyaltyPanel";
 import { StoreOpenToggle } from "@/components/dashboard/StoreOpenToggle";
 import { AppSidebar, DashboardView } from "@/components/dashboard/AppSidebar";
 import { NotificationsBell } from "@/components/dashboard/NotificationsBell";
