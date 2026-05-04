@@ -990,17 +990,17 @@ function Step2Address(props: {
         onOpenChange={(o) => { setPickingMap(o); if (!o) setForceGeolocate(false); }}
         initialPoint={forceGeolocate ? null : (mapInitialPoint ?? pinnedPoint)}
         onConfirm={(r) => {
-          // Endereço do mapa SEMPRE prevalece sobre o digitado/pesquisado quando o
-          // reverse-geocode retornou rua. O número fica preservado se já existia
-          // (a Google raramente devolve número exato no reverse).
+          // Endereço do mapa SEMPRE prevalece sobre o digitado/pesquisado. Se o
+          // cliente arrastou o pino, limpamos o número para ele digitar manualmente.
+          const numberFromMap = r.mapMoved ? "" : (addr.number || r.number || "");
           setPinnedPoint({ lat: r.lat, lng: r.lng });
           setAddr({
             ...addr,
-            street: r.street || addr.street || "",
-            neighborhood: r.neighborhood || addr.neighborhood || "",
-            city: r.city || addr.city || "",
-            state: r.state || addr.state || "",
-            number: addr.number || r.number || "",
+            street: r.street || (r.mapMoved ? "" : addr.street) || "",
+            neighborhood: r.neighborhood || (r.mapMoved ? "" : addr.neighborhood) || "",
+            city: r.city || (r.mapMoved ? "" : addr.city) || "",
+            state: r.state || (r.mapMoved ? "" : addr.state) || "",
+            number: numberFromMap,
           });
           if (r.cep) setCep(r.cep.replace(/\D/g, "").replace(/(\d{5})(\d{3})/, "$1-$2"));
           setEditing(true);
