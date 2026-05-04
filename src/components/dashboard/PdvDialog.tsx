@@ -105,7 +105,6 @@ export function PdvDialog({
     enabled: open, staleTime: 60_000,
   });
 
-  const [activeCat, setActiveCat] = useState<string | "all">("all");
   const [search, setSearch] = useState("");
   const [cart, setCart] = useState<CartLine[]>([]);
 
@@ -121,12 +120,14 @@ export function PdvDialog({
   // Discount / service fee
   const [discountType, setDiscountType] = useState<"value" | "percent">("value");
   const [discountValue, setDiscountValue] = useState<number>(0);
-  const [serviceFee, setServiceFee] = useState<number>(0);
+  const [serviceFeeType, setServiceFeeType] = useState<"value" | "percent">("percent");
+  const [serviceFeeValue, setServiceFeeValue] = useState<number>(0);
   const [discountOpen, setDiscountOpen] = useState(false);
   const [feeOpen, setFeeOpen] = useState(false);
   const [tmpDiscType, setTmpDiscType] = useState<"value" | "percent">("value");
   const [tmpDiscInput, setTmpDiscInput] = useState("");
-  const [tmpFeeInput, setTmpFeeInput] = useState("");
+  const [tmpFeeType, setTmpFeeType] = useState<"value" | "percent">("percent");
+  const [tmpFeeInput, setTmpFeeInput] = useState("10");
 
   const [payment, setPayment] = useState<PaymentMethod>("cash");
   const [submitting, setSubmitting] = useState(false);
@@ -150,7 +151,8 @@ export function PdvDialog({
         setLoyaltyOptIn(!!d.loyaltyOptIn);
         setDiscountType(d.discountType ?? "value");
         setDiscountValue(Number(d.discountValue) || 0);
-        setServiceFee(Number(d.serviceFee) || 0);
+        setServiceFeeType(d.serviceFeeType ?? "percent");
+        setServiceFeeValue(Number(d.serviceFeeValue) || 0);
         setPayment(d.payment ?? "cash");
       }
     } catch { /* noop */ }
@@ -159,17 +161,34 @@ export function PdvDialog({
   useEffect(() => {
     if (!open) return;
     try { localStorage.setItem(STORAGE_KEY(restaurantId), JSON.stringify({
-      cart, customerName, customerPhone, loyaltyOptIn, discountType, discountValue, serviceFee, payment,
+      cart, customerName, customerPhone, loyaltyOptIn, discountType, discountValue, serviceFeeType, serviceFeeValue, payment,
     })); } catch { /* noop */ }
-  }, [open, restaurantId, cart, customerName, customerPhone, loyaltyOptIn, discountType, discountValue, serviceFee, payment]);
+  }, [open, restaurantId, cart, customerName, customerPhone, loyaltyOptIn, discountType, discountValue, serviceFeeType, serviceFeeValue, payment]);
 
   const filteredProducts = useMemo(() => {
     const q = search.trim().toLowerCase();
     return products
       .filter((p) => p.is_active)
-      .filter((p) => (activeCat === "all" ? true : p.category_id === activeCat))
       .filter((p) => (q ? p.name.toLowerCase().includes(q) : true));
-  }, [products, activeCat, search]);
+  }, [products, search]);
+
+  // Group filtered products by category for unified scrolling list
+  const groupedByCategory = useMemo(() => {
+    const byCat = new Map<string, typeof products>();
+    filteredProducts.forEach((p) => {
+      const key = p.category_id ?? "__none__";
+      const arr = byCat.get(key) ?? [];
+      arr.push(p);
+      byCat.set(key, arr);
+    });
+    const ordered = categories
+      .filter((c) => c.is_active)
+      .map((c) => ({ id: c.id, name: c.name, products: byCat.get(c.id) ?? [] }))
+      .filter((g) => g.products.length > 0);
+    const orphan = byCat.get("__none__") ?? [];
+    if (orphan.length) ordered.push({ id: "__none__", name: "Sem categoria", products: orphan });
+    return ordered;
+  }, [filteredProducts, categories]);
 
   const startAdd = (p: typeof products[number]) => {
     const grs = groupsByProduct[p.id] ?? [];
@@ -218,12 +237,16 @@ export function PdvDialog({
     if (discountType === "percent") return Math.min(subtotal, subtotal * (discountValue / 100));
     return Math.min(subtotal, discountValue);
   })();
-  const total = Math.max(0, subtotal - discountApplied + serviceFee);
+  const baseAfterDiscount = Math.max(0, subtotal - discountApplied);
+  const serviceFeeApplied = serviceFeeType === "percent"
+    ? baseAfterDiscount * (serviceFeeValue / 100)
+    : serviceFeeValue;
+  const total = baseAfterDiscount + serviceFeeApplied;
 
   const reset = () => {
     setCart([]); setCustomerName(""); setCustomerPhone(""); setLoyaltyOptIn(false);
-    setDiscountValue(0); setServiceFee(0); setPayment("cash");
-    setActiveCat("all"); setSearch("");
+    setDiscountValue(0); setServiceFeeValue(0); setServiceFeeType("percent"); setPayment("cash");
+    setSearch("");
     try { localStorage.removeItem(STORAGE_KEY(restaurantId)); } catch { /* noop */ }
   };
 
@@ -270,13 +293,13 @@ export function PdvDialog({
       const orderPayload: any = {
         restaurant_id: restaurantId,
         order_type: "pdv",
-        status: "delivered",
+        status: "preparing",
         customer_name: customerName.trim() || "Cliente Balcão",
         customer_phone: phoneDigits || "0000000000",
         payment_method: payment,
         subtotal,
         discount: discountApplied,
-        service_fee: serviceFee,
+        service_fee: serviceFeeApplied,
         delivery_fee: 0,
         total,
         loyalty_opt_in: loyaltyOptIn,
@@ -418,41 +441,40 @@ export function PdvDialog({
               <Percent className="w-4 h-4" />
               Desconto{discountValue > 0 ? `: ${discountType === "percent" ? `${discountValue}%` : brl(discountValue)}` : ""}
             </Button>
-            <Button variant={serviceFee > 0 ? "secondary" : "outline"} size="sm" className="gap-2"
-              onClick={() => { setTmpFeeInput(serviceFee ? String(serviceFee) : ""); setFeeOpen(true); }}>
+            <Button variant={serviceFeeValue > 0 ? "secondary" : "outline"} size="sm" className="gap-2"
+              onClick={() => { setTmpFeeType(serviceFeeType); setTmpFeeInput(serviceFeeValue ? String(serviceFeeValue) : "10"); setFeeOpen(true); }}>
               <Tag className="w-4 h-4" />
-              Taxa de serviço{serviceFee > 0 ? `: ${brl(serviceFee)}` : ""}
+              Taxa de serviço{serviceFeeValue > 0 ? `: ${serviceFeeType === "percent" ? `${serviceFeeValue}%` : brl(serviceFeeValue)}` : ""}
             </Button>
           </div>
 
           <div className="flex-1 grid grid-cols-[200px_1fr_380px] min-h-0">
-            {/* Left: categories sidebar */}
+            {/* Left: categories sidebar (anchors) */}
             <div className="border-r bg-muted/20 flex flex-col min-h-0">
               <div className="p-2 border-b text-xs font-semibold text-muted-foreground uppercase tracking-wide">Categorias</div>
               <ScrollArea className="flex-1">
                 <div className="p-2 space-y-1">
-                  <button
-                    type="button"
-                    onClick={() => setActiveCat("all")}
-                    className={`w-full text-left px-3 py-2 rounded-md text-sm transition ${activeCat === "all" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
-                  >
-                    Todos os produtos
-                  </button>
-                  {categories.filter((c) => c.is_active).map((c) => (
+                  {groupedByCategory.length === 0 ? (
+                    <div className="text-xs text-muted-foreground px-2 py-3">Nenhuma categoria</div>
+                  ) : groupedByCategory.map((g) => (
                     <button
-                      key={c.id}
+                      key={g.id}
                       type="button"
-                      onClick={() => setActiveCat(c.id)}
-                      className={`w-full text-left px-3 py-2 rounded-md text-sm transition ${activeCat === c.id ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+                      onClick={() => {
+                        const el = document.getElementById(`pdv-cat-${g.id}`);
+                        el?.scrollIntoView({ behavior: "smooth", block: "start" });
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-md text-sm transition hover:bg-muted"
                     >
-                      {c.name}
+                      {g.name}
+                      <span className="ml-2 text-[10px] text-muted-foreground">({g.products.length})</span>
                     </button>
                   ))}
                 </div>
               </ScrollArea>
             </div>
 
-            {/* Middle: products */}
+            {/* Middle: products — single scroll grouped by category */}
             <div className="flex flex-col min-h-0 border-r">
               <div className="p-3 border-b shrink-0">
                 <div className="relative">
@@ -461,35 +483,44 @@ export function PdvDialog({
                 </div>
               </div>
               <ScrollArea className="flex-1">
-                <div className="p-3 grid gap-3 grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                  {filteredProducts.length === 0 ? (
-                    <div className="col-span-full text-sm text-muted-foreground text-center py-12">Nenhum produto encontrado.</div>
-                  ) : filteredProducts.map((p) => {
-                    const hasOpts = (groupsByProduct[p.id]?.length ?? 0) > 0;
-                    return (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => startAdd(p)}
-                        className="text-left rounded-lg border bg-card hover:border-primary hover:shadow-md transition overflow-hidden flex flex-col"
-                      >
-                        <div className="aspect-square bg-muted flex items-center justify-center overflow-hidden">
-                          {p.image_url ? (
-                            <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" loading="lazy" />
-                          ) : (
-                            <ImageIcon className="w-10 h-10 text-muted-foreground/40" />
-                          )}
-                        </div>
-                        <div className="p-2 flex flex-col gap-1 flex-1">
-                          <div className="font-medium text-sm line-clamp-2">{p.name}</div>
-                          <div className="flex items-center justify-between mt-auto">
-                            <div className="text-primary font-bold text-sm">{brl(Number(p.price))}</div>
-                            {hasOpts && <Badge variant="outline" className="text-[10px]">opções</Badge>}
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
+                <div className="p-3 space-y-6">
+                  {groupedByCategory.length === 0 ? (
+                    <div className="text-sm text-muted-foreground text-center py-12">Nenhum produto encontrado.</div>
+                  ) : groupedByCategory.map((g) => (
+                    <section key={g.id} id={`pdv-cat-${g.id}`} className="scroll-mt-2">
+                      <h3 className="text-sm font-bold uppercase tracking-wide text-foreground/80 mb-2 sticky top-0 bg-background/95 backdrop-blur py-1 z-10 border-b">
+                        {g.name}
+                      </h3>
+                      <div className="grid gap-3 grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                        {g.products.map((p) => {
+                          const hasOpts = (groupsByProduct[p.id]?.length ?? 0) > 0;
+                          return (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() => startAdd(p)}
+                              className="text-left rounded-lg border bg-card hover:border-primary hover:shadow-md transition overflow-hidden flex flex-col"
+                            >
+                              <div className="aspect-square bg-muted flex items-center justify-center overflow-hidden">
+                                {p.image_url ? (
+                                  <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" loading="lazy" />
+                                ) : (
+                                  <ImageIcon className="w-10 h-10 text-muted-foreground/40" />
+                                )}
+                              </div>
+                              <div className="p-2 flex flex-col gap-1 flex-1">
+                                <div className="font-medium text-sm line-clamp-2">{p.name}</div>
+                                <div className="flex items-center justify-between mt-auto">
+                                  <div className="text-primary font-bold text-sm">{brl(Number(p.price))}</div>
+                                  {hasOpts && <Badge variant="outline" className="text-[10px]">opções</Badge>}
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  ))}
                 </div>
               </ScrollArea>
             </div>
@@ -548,7 +579,7 @@ export function PdvDialog({
                 <div className="space-y-1 text-sm">
                   <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{brl(subtotal)}</span></div>
                   {discountApplied > 0 && (<div className="flex justify-between text-destructive"><span>Desconto</span><span>- {brl(discountApplied)}</span></div>)}
-                  {serviceFee > 0 && (<div className="flex justify-between"><span className="text-muted-foreground">Taxa de serviço</span><span>+ {brl(serviceFee)}</span></div>)}
+                  {serviceFeeApplied > 0 && (<div className="flex justify-between"><span className="text-muted-foreground">Taxa de serviço{serviceFeeType === "percent" ? ` (${serviceFeeValue}%)` : ""}</span><span>+ {brl(serviceFeeApplied)}</span></div>)}
                   <div className="flex justify-between text-lg font-bold pt-1 border-t"><span>Total</span><span>{brl(total)}</span></div>
                 </div>
 
@@ -633,14 +664,20 @@ export function PdvDialog({
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>Taxa de serviço</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <Label className="text-xs">Valor (R$)</Label>
-            <Input value={tmpFeeInput} onChange={(e) => setTmpFeeInput(e.target.value)} placeholder="0" inputMode="decimal" autoFocus />
+            <div className="flex gap-2">
+              <Button type="button" variant={tmpFeeType === "percent" ? "default" : "outline"} size="sm" className="flex-1" onClick={() => setTmpFeeType("percent")}>%</Button>
+              <Button type="button" variant={tmpFeeType === "value" ? "default" : "outline"} size="sm" className="flex-1" onClick={() => setTmpFeeType("value")}>R$</Button>
+            </div>
+            <Input value={tmpFeeInput} onChange={(e) => setTmpFeeInput(e.target.value)} placeholder={tmpFeeType === "percent" ? "10" : "0,00"} inputMode="decimal" autoFocus />
+            {tmpFeeType === "percent" && (
+              <p className="text-xs text-muted-foreground">Sugerido: 10% sobre o subtotal (já preenchido). Clique em Aplicar para confirmar.</p>
+            )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setServiceFee(0); setFeeOpen(false); }}>Remover</Button>
+            <Button variant="outline" onClick={() => { setServiceFeeValue(0); setFeeOpen(false); }}>Remover</Button>
             <Button onClick={() => {
               const n = Number(String(tmpFeeInput).replace(",", ".")) || 0;
-              setServiceFee(n); setFeeOpen(false);
+              setServiceFeeType(tmpFeeType); setServiceFeeValue(n); setFeeOpen(false);
             }}>Aplicar</Button>
           </DialogFooter>
         </DialogContent>

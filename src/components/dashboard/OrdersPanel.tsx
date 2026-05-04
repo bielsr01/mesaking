@@ -191,12 +191,18 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   useEffect(() => {
     const ch = supabase
       .channel(`orders-${restaurantId}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` }, () => {
-        setFilter("pending"); // auto-switch to new orders tab
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` }, (payload) => {
+        const row = payload.new as Order;
+        if (row?.order_type === "pdv") {
+          setChannel("pdv");
+          setFilter("preparing");
+        } else {
+          setChannel("delivery");
+          setFilter("pending");
+        }
         qc.invalidateQueries({ queryKey: ordersKey(restaurantId) });
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` }, (payload) => {
-        // Apply update straight from the payload — instant, no refetch needed
         const row = payload.new as Order;
         qc.setQueryData<{ orders: Order[]; items: Record<string, Item[]> }>(ordersKey(restaurantId), (prev) => {
           if (!prev) return prev;
@@ -280,15 +286,15 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const deliveryCount = orders.filter((o) => o.order_type !== "pdv").length;
   const pdvCount = orders.filter((o) => o.order_type === "pdv").length;
 
-  // For PDV channel, only show "all" filter (orders are already finalized)
+  // PDV: em preparo + entregues
   const visibleFilters = channel === "pdv"
-    ? FILTERS.filter((f) => ["all", "delivered"].includes(f.value))
+    ? FILTERS.filter((f) => ["preparing", "delivered", "all"].includes(f.value))
     : FILTERS;
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Tabs value={channel} onValueChange={(v) => { setChannel(v as "delivery" | "pdv"); setFilter(v === "pdv" ? "all" : "pending"); }}>
+        <Tabs value={channel} onValueChange={(v) => { setChannel(v as "delivery" | "pdv"); setFilter(v === "pdv" ? "preparing" : "pending"); }}>
           <TabsList>
             <TabsTrigger value="delivery" className="gap-2">
               <Bike className="w-4 h-4" /> Delivery / Retirada

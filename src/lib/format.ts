@@ -31,9 +31,10 @@ export const nextStatusPickup: Record<string, string | null> = {
   cancelled: null,
 };
 
-/** PDV: pedidos do balcão já entram finalizados, sem fluxo de status */
+/** PDV: balcão entra em preparo e depois é marcado como entregue */
 export const nextStatusPdv: Record<string, string | null> = {
-  pending: null, accepted: null, preparing: null,
+  pending: "preparing", accepted: "preparing",
+  preparing: "delivered",
   out_for_delivery: null, awaiting_pickup: null,
   delivered: null, cancelled: null,
 };
