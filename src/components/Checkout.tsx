@@ -953,9 +953,9 @@ function Step2Address(props: {
       <AddressSearchDialog
         open={searching}
         onOpenChange={setSearching}
-        proximity={pinnedPoint ?? (props.restaurantHasCoords ? { lat: (props as any).restaurantLat, lng: (props as any).restaurantLng } : null)}
-        cityFilter={(props as any).restaurantCity}
-        stateFilter={(props as any).restaurantState}
+        proximity={pinnedPoint ?? (restaurantLat != null && restaurantLng != null ? { lat: restaurantLat, lng: restaurantLng } : undefined)}
+        cityFilter={restaurantCity ?? undefined}
+        stateFilter={restaurantState ?? undefined}
         onPickSuggestion={(s) => {
           setSearching(false);
           setAddr({
