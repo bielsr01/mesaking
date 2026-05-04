@@ -24,6 +24,7 @@ Deno.serve(async (req) => {
       url.searchParams.set("limit", "5");
       const r = await fetch(url.toString());
       const data = await r.json();
+      console.log("reverse mapbox status", r.status, "body", JSON.stringify(data).slice(0, 500));
       const features = (data?.features ?? []) as Array<any>;
       // Prioriza address (rua + nº), depois street, depois qualquer
       const f =
