@@ -279,7 +279,7 @@ export default function RestaurantPublic() {
     <div className="min-h-screen pb-24">
       {/* Banner com foto de capa + logo central deslocada para baixo */}
       <header className="relative">
-        <div className="relative w-full aspect-[16/7] sm:aspect-[16/5] overflow-hidden bg-gradient-warm">
+        <div className="relative w-full aspect-[16/7] sm:aspect-auto sm:h-48 md:h-56 lg:h-64 overflow-hidden bg-gradient-warm">
           {restaurant.cover_url && (
             <img
               src={restaurant.cover_url}
