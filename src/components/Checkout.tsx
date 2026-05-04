@@ -446,7 +446,7 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
     if (loyaltyEnabled && loyaltyOptIn) {
       try {
         const phoneFmt = formatPhone(phone);
-        earnedPoints = Math.floor(Number(total) * Number(loyaltyPointsPerReal || 0));
+        earnedPoints = Math.floor(Number(subtotal) * Number(loyaltyPointsPerReal || 0));
         const sb = supabase as any;
         const { data: existing } = await sb
           .from("loyalty_members")
@@ -671,8 +671,8 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
                     <div className="font-semibold">Deseja pontuar no nosso programa de fidelidade?</div>
                     <div className="text-xs text-muted-foreground">
                       {loyaltyOptIn
-                        ? `Sua compra gerará ${Math.floor(Number(total) * Number(loyaltyPointsPerReal || 0))} ponto(s).`
-                        : `Marque para acumular pontos (${loyaltyPointsPerReal} ponto por R$ 1,00).`}
+                        ? `Sua compra gerará ${Math.floor(Number(subtotal) * Number(loyaltyPointsPerReal || 0))} ponto(s) (sem contar taxa de entrega).`
+                        : `Marque para acumular pontos (${loyaltyPointsPerReal} ponto por R$ 1,00 em produtos).`}
                     </div>
                   </div>
                 </label>
