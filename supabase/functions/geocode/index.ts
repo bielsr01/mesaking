@@ -137,8 +137,35 @@ Deno.serve(async (req) => {
         }),
       );
 
-      const suggestions = details
+      let suggestions = details
         .filter((d): d is AddrOut => !!d && typeof d.lat === "number" && typeof d.lng === "number");
+
+      // Se a Places API (New) ainda estiver bloqueada no projeto Google, usa Geocoding como fallback
+      // para não deixar a busca de endereço completamente vazia.
+      if (suggestions.length === 0) {
+        const fallbackQuery = [q.trim(), city && state ? `${city} - ${state}` : city, "Brasil"].filter(Boolean).join(", ");
+        const url = new URL(GEOCODE_BASE);
+        url.searchParams.set("address", fallbackQuery);
+        url.searchParams.set("language", "pt-BR");
+        url.searchParams.set("region", "br");
+        url.searchParams.set("components", "country:BR");
+        url.searchParams.set("key", apiKey);
+        const gr = await fetch(url.toString());
+        const gd = await gr.json();
+        if (gd?.status === "OK") {
+          suggestions = (gd?.results ?? []).slice(0, 5).map((item: any, idx: number) => {
+            const parsed = parseGoogleAddressComponents(item.address_components ?? [], item.formatted_address ?? "");
+            return {
+              id: item.place_id ?? `geocode-${idx}`,
+              lat: item.geometry?.location?.lat,
+              lng: item.geometry?.location?.lng,
+              ...parsed,
+            };
+          }).filter((d: AddrOut) => typeof d.lat === "number" && typeof d.lng === "number");
+        } else {
+          console.log("Google autocomplete fallback geocode", gd?.status, (gd?.error_message ?? "").slice(0, 200));
+        }
+      }
 
       return new Response(JSON.stringify({ suggestions }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
