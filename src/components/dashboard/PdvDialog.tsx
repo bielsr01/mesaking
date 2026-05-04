@@ -288,25 +288,26 @@ export function PdvDialog({
   const confirmOrder = async (alsoPrint: boolean) => {
     if (cart.length === 0) { toast.error("Adicione produtos ao pedido"); return; }
     setSubmitting(true);
+    const phoneDigits = unmaskPhone(customerPhone);
+    const trimmedName = customerName.trim() || "Cliente Balcão";
+    const orderPayload: any = {
+      restaurant_id: restaurantId,
+      order_type: "pdv",
+      status: "preparing",
+      customer_name: trimmedName,
+      customer_phone: phoneDigits || "0000000000",
+      payment_method: payment,
+      subtotal,
+      discount: discountApplied,
+      service_fee: serviceFeeApplied,
+      delivery_fee: 0,
+      total,
+      loyalty_opt_in: loyaltyOptIn,
+    };
     try {
-      const phoneDigits = unmaskPhone(customerPhone);
-      const orderPayload: any = {
-        restaurant_id: restaurantId,
-        order_type: "pdv",
-        status: "preparing",
-        customer_name: customerName.trim() || "Cliente Balcão",
-        customer_phone: phoneDigits || "0000000000",
-        payment_method: payment,
-        subtotal,
-        discount: discountApplied,
-        service_fee: serviceFeeApplied,
-        delivery_fee: 0,
-        total,
-        loyalty_opt_in: loyaltyOptIn,
-      };
       const { data: order, error } = await supabase
         .from("orders").insert(orderPayload)
-        .select("id, order_number, customer_name, customer_phone, payment_method, subtotal, total, created_at")
+        .select("id, order_number, customer_name, customer_phone, payment_method, subtotal, total, created_at, status, order_type")
         .single();
       if (error || !order) throw error || new Error("Falha ao criar pedido");
 
@@ -321,54 +322,72 @@ export function PdvDialog({
           ...(l.notes ? [`Obs: ${l.notes}`] : []),
         ].join("\n") || null,
       }));
-      const { error: itErr } = await supabase.from("order_items").insert(itemsPayload);
-      if (itErr) throw itErr;
 
-      // Loyalty (opcional)
-      if (loyaltyOptIn && loyaltySettings?.enabled && phoneDigits.length >= 10) {
-        try {
-          const sb = supabase as any;
-          const phoneFmt = formatPhone(customerPhone);
-          const { data: existing } = await sb.from("loyalty_members").select("id")
-            .eq("restaurant_id", restaurantId).eq("phone", phoneFmt).maybeSingle();
-          let memberId = existing?.id as string | undefined;
-          if (!memberId) {
-            const { data: created } = await sb.from("loyalty_members")
-              .insert({ restaurant_id: restaurantId, name: customerName.trim() || "Cliente", phone: phoneFmt, points: 0 })
-              .select("id").single();
-            memberId = created?.id;
-          }
-          const earned = Math.floor(subtotal * Number(loyaltySettings.points_per_real || 0));
-          if (memberId && earned > 0) {
-            await sb.from("loyalty_transactions").insert({
-              restaurant_id: restaurantId, member_id: memberId, order_id: order.id,
-              points: earned, type: "earn", status: "pending",
-            });
-          }
-        } catch { /* noop */ }
-      }
+      // Optimistic cache update — UI shows the order instantly
+      const optimisticItems = itemsPayload.map((it, ix) => ({
+        ...it,
+        id: `tmp-${order.id}-${ix}`,
+        created_at: new Date().toISOString(),
+      }));
+      qc.setQueryData<any>(ordersKey(restaurantId), (prev: any) => {
+        if (!prev) return prev;
+        return {
+          orders: [{ ...orderPayload, ...order }, ...prev.orders.filter((o: any) => o.id !== order.id)],
+          items: { ...prev.items, [order.id]: optimisticItems },
+        };
+      });
 
-      // Customer auto-save
-      if (phoneDigits.length >= 10) {
-        try {
-          await supabase.rpc("upsert_customer_on_order" as any, {
-            _restaurant_id: restaurantId,
-            _name: customerName.trim() || "Cliente Balcão",
-            _phone: formatPhone(customerPhone),
-          });
-        } catch { /* noop */ }
-      }
-
+      // Close immediately — feedback rápido
       toast.success(`Pedido #${order.order_number} finalizado`);
-      qc.invalidateQueries({ queryKey: ordersKey(restaurantId) });
-
       if (alsoPrint) printTicket(order, itemsPayload);
-
       reset();
       onOpenChange(false);
+      setSubmitting(false);
+
+      // Background: persist items + loyalty + customer; sem bloquear o usuário
+      (async () => {
+        const { error: itErr } = await supabase.from("order_items").insert(itemsPayload);
+        if (itErr) {
+          toast.error("Erro ao salvar itens do pedido");
+          qc.invalidateQueries({ queryKey: ordersKey(restaurantId) });
+          return;
+        }
+
+        if (loyaltyOptIn && loyaltySettings?.enabled && phoneDigits.length >= 10) {
+          try {
+            const sb = supabase as any;
+            const phoneFmt = formatPhone(customerPhone);
+            const { data: existing } = await sb.from("loyalty_members").select("id")
+              .eq("restaurant_id", restaurantId).eq("phone", phoneFmt).maybeSingle();
+            let memberId = existing?.id as string | undefined;
+            if (!memberId) {
+              const { data: created } = await sb.from("loyalty_members")
+                .insert({ restaurant_id: restaurantId, name: trimmedName, phone: phoneFmt, points: 0 })
+                .select("id").single();
+              memberId = created?.id;
+            }
+            const earned = Math.floor(subtotal * Number(loyaltySettings.points_per_real || 0));
+            if (memberId && earned > 0) {
+              await sb.from("loyalty_transactions").insert({
+                restaurant_id: restaurantId, member_id: memberId, order_id: order.id,
+                points: earned, type: "earn", status: "pending",
+              });
+            }
+          } catch { /* noop */ }
+        }
+
+        if (phoneDigits.length >= 10) {
+          try {
+            await supabase.rpc("upsert_customer_on_order" as any, {
+              _restaurant_id: restaurantId,
+              _name: trimmedName,
+              _phone: formatPhone(customerPhone),
+            });
+          } catch { /* noop */ }
+        }
+      })();
     } catch (e: any) {
       toast.error(e.message || "Erro ao finalizar venda");
-    } finally {
       setSubmitting(false);
     }
   };
