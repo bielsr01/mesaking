@@ -310,19 +310,31 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
     restaurant.address_cep,
   ].filter(Boolean).join(" • ");
 
+  // Refs e estado de shake para feedback visual sem toasts
+  const fieldRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [shakeKey, setShakeKey] = useState<string | null>(null);
+  const flagInvalid = (key: string) => {
+    const el = fieldRefs.current[key];
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    setShakeKey(key);
+    setTimeout(() => setShakeKey((k) => (k === key ? null : k)), 600);
+  };
+
   // ---------- Validação por etapa ----------
   const validateStep1 = () => {
-    if (name.trim().length < 2) { toast.error("Informe seu nome"); return false; }
-    if (unmaskPhone(phone).length < 10) { toast.error("Telefone inválido"); return false; }
+    if (name.trim().length < 2) { flagInvalid("name"); return false; }
+    if (unmaskPhone(phone).length < 10) { flagInvalid("phone"); return false; }
     return true;
   };
   const validateStep2 = () => {
     if (isPickup) return true;
-    if (!/^\d{5}-?\d{3}$/.test(cep)) { toast.error("CEP inválido"); return false; }
-    if (!addr.street || !addr.number || !addr.neighborhood || !addr.city || addr.state.length !== 2) {
-      toast.error("Preencha o endereço completo"); return false;
-    }
-    if (hasZones && !delivery) { toast.error(deliveryError || "Aguarde o cálculo da taxa de entrega."); return false; }
+    if (!/^\d{5}-?\d{3}$/.test(cep)) { flagInvalid("cep"); return false; }
+    if (!addr.street) { flagInvalid("street"); return false; }
+    if (!addr.number) { flagInvalid("number"); return false; }
+    if (!addr.neighborhood) { flagInvalid("neighborhood"); return false; }
+    if (!addr.city) { flagInvalid("city"); return false; }
+    if (addr.state.length !== 2) { flagInvalid("state"); return false; }
+    if (hasZones && !delivery) { flagInvalid("delivery"); return false; }
     return true;
   };
 
