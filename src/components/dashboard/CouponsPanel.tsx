@@ -81,6 +81,7 @@ export function CouponsPanel({ restaurantId }: { restaurantId: string }) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Partial<Coupon> | null>(null);
   const [toDelete, setToDelete] = useState<Coupon | null>(null);
+  const [showMetrics, setShowMetrics] = useState(false);
 
   const { data: coupons, isLoading } = useQuery({
     queryKey: ["coupons", restaurantId],
