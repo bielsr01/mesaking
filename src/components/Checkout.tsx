@@ -69,6 +69,7 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
   const [cep, setCep] = useState("");
   const [dontKnowCep, setDontKnowCep] = useState(false);
   const [addr, setAddr] = useState({ street: "", number: "", complement: "", neighborhood: "", city: "", state: "", notes: "" });
+  const [pinnedPoint, setPinnedPoint] = useState<GeoPoint | null>(null);
 
   // Etapa 3 — pagamento
   const [payment, setPayment] = useState<"cash" | "pix" | "card_on_delivery">("cash");
