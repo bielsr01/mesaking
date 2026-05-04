@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { DeliveryZone, GeoPoint, findDeliveryFee, geocodeAddress, haversineKm } from "@/lib/delivery";
 import { Loader2, MapPin, Bike, Store, ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { LocationPicker } from "@/components/LocationPicker";
+import { AddressSearchDialog } from "@/components/AddressSearchDialog";
 
 // ---------- Helpers de CPF ----------
 const onlyDigits = (v: string) => v.replace(/\D/g, "");
