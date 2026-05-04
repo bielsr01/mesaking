@@ -603,6 +603,8 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
               delivery={delivery}
               deliveryError={deliveryError}
               calculating={calculating}
+              pinnedPoint={pinnedPoint}
+              setPinnedPoint={setPinnedPoint}
             />
           )}
 
