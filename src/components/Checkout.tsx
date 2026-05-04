@@ -943,24 +943,49 @@ function Step2Address(props: {
         </DialogContent>
       </Dialog>
 
+      <AddressSearchDialog
+        open={searching}
+        onOpenChange={setSearching}
+        proximity={pinnedPoint}
+        onPickSuggestion={(s) => {
+          setSearching(false);
+          // Pré-preenche com a sugestão
+          setAddr({
+            ...addr,
+            street: s.street || addr.street,
+            neighborhood: s.neighborhood || addr.neighborhood,
+            city: s.city || addr.city,
+            state: s.state || addr.state,
+            number: s.number || addr.number || "",
+          });
+          if (s.cep) setCep(s.cep.replace(/\D/g, "").replace(/(\d{5})(\d{3})/, "$1-$2"));
+          setMapInitialPoint({ lat: s.lat, lng: s.lng });
+          setForceGeolocate(false);
+          setPickingMap(true);
+        }}
+        onUseCurrentLocation={() => {
+          setSearching(false);
+          setMapInitialPoint(null);
+          setForceGeolocate(true);
+          setPickingMap(true);
+        }}
+      />
+
       <LocationPicker
         open={pickingMap}
-        onOpenChange={setPickingMap}
-        initialPoint={pinnedPoint}
+        onOpenChange={(o) => { setPickingMap(o); if (!o) setForceGeolocate(false); }}
+        initialPoint={forceGeolocate ? null : (mapInitialPoint ?? pinnedPoint)}
         onConfirm={(r) => {
           setPinnedPoint({ lat: r.lat, lng: r.lng });
-          // Pré-preenche o formulário com o que conseguimos do mapa
           setAddr({
             ...addr,
             street: r.street || addr.street,
             neighborhood: r.neighborhood || addr.neighborhood,
             city: r.city || addr.city,
             state: r.state || addr.state,
-            // mantém número (cliente digita) — pré-preenche se Mapbox retornou
             number: addr.number || r.number || "",
           });
           if (r.cep) setCep(r.cep.replace(/\D/g, "").replace(/(\d{5})(\d{3})/, "$1-$2"));
-          // Abre o formulário para o cliente digitar o número
           setEditing(true);
         }}
       />
