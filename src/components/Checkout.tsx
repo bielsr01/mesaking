@@ -587,7 +587,7 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
             <div className="space-y-3">
               <h3 className="font-semibold text-sm">Endereço de entrega</h3>
               <div className="grid grid-cols-3 gap-3">
-                <div ref={(el) => { fieldRefs.current["cep"] = el; }} style={{ scrollMarginTop: 80 }} className={`space-y-2 col-span-2 ${shakeKey === "cep" ? "animate-shake" : ""}`}>
+                <div ref={(el) => { fieldRefs.current["cep"] = el; }} style={{ scrollMarginTop: 80 }} className={`space-y-2 col-span-1 ${shakeKey === "cep" ? "animate-shake" : ""}`}>
                   <Label className={shakeKey === "cep" ? "text-destructive" : ""}>CEP</Label>
                   <Input
                     value={cep}
@@ -595,11 +595,11 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
                     onBlur={(e) => !dontKnowCep && lookupCep(e.target.value)}
                     placeholder="00000-000"
                     disabled={dontKnowCep}
-                    className={shakeKey === "cep" ? "border-destructive" : ""}
+                    className={`w-32 ${shakeKey === "cep" ? "border-destructive" : ""}`}
                     required={!dontKnowCep}
                   />
                 </div>
-                <div className="col-span-1 flex items-end">
+                <div className="col-span-2 flex items-end">
                   <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
                     <input
                       type="checkbox"
