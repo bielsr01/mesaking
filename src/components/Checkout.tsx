@@ -73,6 +73,24 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
   const [payment, setPayment] = useState<"cash" | "pix" | "card_on_delivery">("cash");
   const [changeFor, setChangeFor] = useState("");
 
+  // Programa de fidelidade
+  const [loyaltyEnabled, setLoyaltyEnabled] = useState(false);
+  const [loyaltyPointsPerReal, setLoyaltyPointsPerReal] = useState(1);
+  const [loyaltyOptIn, setLoyaltyOptIn] = useState(false);
+
+  useEffect(() => {
+    if (!restaurant?.id) return;
+    (async () => {
+      const { data } = await (supabase as any)
+        .from("loyalty_settings")
+        .select("enabled, points_per_real")
+        .eq("restaurant_id", restaurant.id)
+        .maybeSingle();
+      setLoyaltyEnabled(!!data?.enabled);
+      setLoyaltyPointsPerReal(Number(data?.points_per_real ?? 1));
+    })();
+  }, [restaurant?.id]);
+
   // Cupom
   const [couponInput, setCouponInput] = useState("");
   const [coupon, setCoupon] = useState<any | null>(null);
