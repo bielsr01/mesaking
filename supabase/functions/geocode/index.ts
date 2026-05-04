@@ -190,8 +190,26 @@ Deno.serve(async (req) => {
         else if (id.startsWith("region") && !stateR) stateR = (c.short_code ?? c.text ?? "").replace(/^BR-/i, "").toUpperCase();
         else if (id.startsWith("postcode") && !cepR) cepR = c.text;
       }
-      const streetR = f?.text ?? "";
-      const numberR = f?.address ?? "";
+      let streetR = f?.text ?? "";
+      let numberR = f?.address ?? "";
+
+      // Fallback Nominatim (OSM) — completa bairro, rua, cidade quando Mapbox falhar
+      if (!neigh || !streetR || !cityR) {
+        try {
+          const nUrl = `https://nominatim.openstreetmap.org/reverse?lat=${rLat}&lon=${rLng}&format=json&addressdetails=1&accept-language=pt-BR`;
+          const nr = await fetch(nUrl, { headers: { "User-Agent": "lovable-geocode/1.0" } });
+          if (nr.ok) {
+            const nd = await nr.json();
+            const a = nd?.address ?? {};
+            if (!neigh) neigh = a.suburb || a.neighbourhood || a.hamlet || a.quarter || a.city_district || "";
+            if (!streetR) streetR = a.road || a.pedestrian || "";
+            if (!numberR && a.house_number) numberR = a.house_number;
+            if (!cityR) cityR = a.city || a.town || a.village || "";
+            if (!stateR && a["ISO3166-2-lvl4"]) stateR = String(a["ISO3166-2-lvl4"]).replace(/^BR-/i, "").toUpperCase();
+            if (!cepR && a.postcode) cepR = a.postcode;
+          }
+        } catch (_) { /* ignora */ }
+      }
       return new Response(JSON.stringify({
         lat: rLat,
         lng: rLng,
