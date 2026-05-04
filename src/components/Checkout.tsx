@@ -329,7 +329,7 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
   };
   const validateStep2 = () => {
     if (isPickup) return true;
-    if (!/^\d{5}-?\d{3}$/.test(cep)) { flagInvalid("cep"); return false; }
+    if (!dontKnowCep && !/^\d{5}-?\d{3}$/.test(cep)) { flagInvalid("cep"); return false; }
     if (!addr.street) { flagInvalid("street"); return false; }
     if (!addr.number) { flagInvalid("number"); return false; }
     if (!addr.neighborhood) { flagInvalid("neighborhood"); return false; }
