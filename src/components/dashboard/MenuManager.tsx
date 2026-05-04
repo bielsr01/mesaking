@@ -362,3 +362,96 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
     </div>
   );
 }
+
+function CategoryGroup({
+  title, products, restaurantId, qc, onEdit, onToggle, onRemove,
+}: {
+  title: string;
+  products: Product[];
+  restaurantId: string;
+  qc: ReturnType<typeof useQueryClient>;
+  onEdit: (p: Product) => void;
+  onToggle: (p: Product) => void;
+  onRemove: (p: Product) => void;
+}) {
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const ids = products.map((p) => p.id);
+
+  const handleDragEnd = async (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const oldIdx = ids.indexOf(String(active.id));
+    const newIdx = ids.indexOf(String(over.id));
+    if (oldIdx < 0 || newIdx < 0) return;
+    const reordered = arrayMove(products, oldIdx, newIdx);
+
+    // Optimistic update on the full list
+    qc.setQueryData<Product[]>(menuKeys.products(restaurantId), (prev) => {
+      if (!prev) return prev;
+      const others = prev.filter((p) => !ids.includes(p.id));
+      const updated = reordered.map((p, i) => ({ ...p, sort_order: i }));
+      return [...others, ...updated];
+    });
+
+    // Persist
+    await Promise.all(
+      reordered.map((p, i) =>
+        supabase.from("products").update({ sort_order: i }).eq("id", p.id)
+      )
+    );
+    qc.invalidateQueries({ queryKey: menuKeys.products(restaurantId) });
+  };
+
+  return (
+    <div className="space-y-2">
+      <h3 className="text-sm font-semibold uppercase text-muted-foreground tracking-wide px-1">{title}</h3>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+          <div className="space-y-2">
+            {products.map((p) => (
+              <SortableProductCard key={p.id} product={p} onEdit={onEdit} onToggle={onToggle} onRemove={onRemove} />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
+    </div>
+  );
+}
+
+function SortableProductCard({
+  product: p, onEdit, onToggle, onRemove,
+}: {
+  product: Product;
+  onEdit: (p: Product) => void;
+  onToggle: (p: Product) => void;
+  onRemove: (p: Product) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: p.id });
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
+  return (
+    <Card ref={setNodeRef} style={style} className={!p.is_active ? "opacity-60" : ""}>
+      <CardContent className="p-3 flex gap-3 items-center">
+        <button
+          type="button"
+          className="touch-none cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-1"
+          {...attributes}
+          {...listeners}
+          aria-label="Arrastar para reordenar"
+        >
+          <GripVertical className="w-5 h-5" />
+        </button>
+        <div className="w-16 h-16 rounded-lg bg-muted overflow-hidden grid place-items-center shrink-0">
+          {p.image_url ? <img src={p.image_url} alt={p.name} loading="lazy" className="w-full h-full object-cover" /> : <ImageIcon className="w-6 h-6 text-muted-foreground" />}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="font-medium">{p.name}</div>
+          {p.description && <div className="text-xs text-muted-foreground line-clamp-1">{p.description}</div>}
+          <div className="text-sm font-semibold text-primary mt-0.5">{brl(p.price)}</div>
+        </div>
+        <Switch checked={p.is_active} onCheckedChange={() => onToggle(p)} />
+        <Button size="icon" variant="ghost" onClick={() => onEdit(p)}><Pencil className="w-4 h-4" /></Button>
+        <Button size="icon" variant="ghost" onClick={() => onRemove(p)}><Trash2 className="w-4 h-4" /></Button>
+      </CardContent>
+    </Card>
+  );
+}
