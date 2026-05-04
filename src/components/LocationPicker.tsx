@@ -170,7 +170,7 @@ export function LocationPicker({
       const google = window.google;
       const map = new google.maps.Map(container, {
         center: { lat: pt.lat, lng: pt.lng },
-        zoom: geo || initialPoint ? 17 : 4,
+        zoom: geo || validInitial ? 17 : 4,
         disableDefaultUI: true,
         zoomControl: true,
         gestureHandling: "greedy",
