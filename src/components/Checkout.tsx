@@ -211,6 +211,9 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
     if (orderType === "pickup" && !pickupEnabled && deliveryEnabled) setOrderType("delivery");
   }, [deliveryEnabled, pickupEnabled, orderType]);
 
+  // Chave de cache do cliente (nome+telefone) por restaurante
+  const customerCacheKey = `checkout:lastCustomer:${restaurant.id}`;
+
   // Reset ao reabrir
   useEffect(() => {
     if (open) {
@@ -223,8 +226,18 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
       // ao abrir, escolhe a opção disponível por padrão
       if (!deliveryEnabled && pickupEnabled) setOrderType("pickup");
       else if (deliveryEnabled) setOrderType("delivery");
+
+      // Pré-preenche nome/telefone com cache do último pedido neste restaurante
+      try {
+        const raw = localStorage.getItem(customerCacheKey);
+        if (raw) {
+          const cached = JSON.parse(raw) as { name?: string; phone?: string };
+          if (cached?.name) setName((prev) => (prev?.trim() ? prev : cached.name!));
+          if (cached?.phone) setPhone((prev) => (prev?.trim() ? prev : cached.phone!));
+        }
+      } catch (_) { /* ignore */ }
     }
-  }, [open, deliveryEnabled, pickupEnabled]);
+  }, [open, deliveryEnabled, pickupEnabled, customerCacheKey]);
 
   // Se for pickup, não mostra etapa de endereço
   const totalSteps = isPickup ? 2 : 3;
