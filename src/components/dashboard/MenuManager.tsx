@@ -243,19 +243,11 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
                   {groups.length === 0 ? (
                     <p className="text-xs text-muted-foreground">Nenhum grupo criado. Crie um para oferecer sabores, adicionais, etc.</p>
                   ) : (
-                    <div className="space-y-1.5 max-h-48 overflow-y-auto border rounded-md p-2">
-                      {groups.map((g) => (
-                        <label key={g.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted px-2 py-1 rounded">
-                          <input
-                            type="checkbox"
-                            checked={selectedGroupIds.includes(g.id)}
-                            onChange={(e) => setSelectedGroupIds((prev) => e.target.checked ? [...prev, g.id] : prev.filter((x) => x !== g.id))}
-                          />
-                          <span className="flex-1">{g.name}</span>
-                          <span className="text-xs text-muted-foreground">mín {g.min_select} · máx {g.max_select}</span>
-                        </label>
-                      ))}
-                    </div>
+                    <SelectedGroupsSorter
+                      allGroups={groups}
+                      selectedIds={selectedGroupIds}
+                      onChange={setSelectedGroupIds}
+                    />
                   )}
                 </div>
 
