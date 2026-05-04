@@ -1,11 +1,16 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Loader2, MapPin, LocateFixed } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { reverseGeocode, ReverseGeocodeResult, GeoPoint } from "@/lib/delivery";
 
-declare global { interface Window { google: any; __gmapsLoading?: Promise<void> } }
+declare global {
+  interface Window {
+    google: any;
+    __gmapsLoading?: Promise<void>;
+  }
+}
 
 let cachedKey: string | null = null;
 async function getGoogleApiKey(): Promise<string | null> {
@@ -22,7 +27,7 @@ async function getGoogleApiKey(): Promise<string | null> {
 }
 
 async function loadGoogleMaps(apiKey: string): Promise<void> {
-  if (typeof window !== "undefined" && window.google?.maps?.Map) return Promise.resolve();
+  if (typeof window !== "undefined" && window.google?.maps?.Map) return;
   if (window.__gmapsLoading) return window.__gmapsLoading;
   window.__gmapsLoading = new Promise((resolve, reject) => {
     const existing = document.querySelector<HTMLScriptElement>('script[data-gmaps="1"]');
@@ -57,6 +62,28 @@ function getCurrentPosition(): Promise<GeoPoint | null> {
   });
 }
 
+// Espera o container ter dimensões reais antes de inicializar o mapa.
+function waitForSize(el: HTMLElement, timeoutMs = 2000): Promise<void> {
+  return new Promise((resolve) => {
+    if (el.clientWidth > 0 && el.clientHeight > 0) return resolve();
+    const start = performance.now();
+    const ro = new ResizeObserver(() => {
+      if (el.clientWidth > 0 && el.clientHeight > 0) {
+        ro.disconnect();
+        resolve();
+      } else if (performance.now() - start > timeoutMs) {
+        ro.disconnect();
+        resolve();
+      }
+    });
+    ro.observe(el);
+    setTimeout(() => {
+      ro.disconnect();
+      resolve();
+    }, timeoutMs);
+  });
+}
+
 export function LocationPicker({
   open,
   onOpenChange,
@@ -76,7 +103,7 @@ export function LocationPicker({
   const [resolving, setResolving] = useState(false);
   const [permissionError, setPermissionError] = useState(false);
 
-  // Reverse geocode debounced
+  // Reverse geocode debounced sempre que o ponto mudar
   useEffect(() => {
     if (!point || !open) return;
     setResolving(true);
@@ -84,7 +111,7 @@ export function LocationPicker({
       const r = await reverseGeocode(point);
       setInfo(r);
       setResolving(false);
-    }, 400);
+    }, 350);
     return () => clearTimeout(t);
   }, [point, open]);
 
@@ -95,6 +122,7 @@ export function LocationPicker({
     const init = async () => {
       setLoading(true);
       setPermissionError(false);
+      setInfo(null);
 
       const [apiKey, geo] = await Promise.all([
         getGoogleApiKey(),
@@ -102,65 +130,118 @@ export function LocationPicker({
       ]);
 
       if (cancelled) return;
-      if (!apiKey) { setLoading(false); return; }
+      if (!apiKey) {
+        setLoading(false);
+        return;
+      }
 
-      try { await loadGoogleMaps(apiKey); } catch { setLoading(false); return; }
+      try {
+        await loadGoogleMaps(apiKey);
+      } catch {
+        setLoading(false);
+        return;
+      }
       if (cancelled) return;
 
       const pt: GeoPoint = geo ?? { lat: -14.235, lng: -51.9253 };
       if (!geo && !initialPoint) setPermissionError(true);
       setPoint(pt);
-      setLoading(false);
 
+      // Espera 2 frames + container ter tamanho real (corrige mapa em branco no mobile)
+      await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+      if (cancelled) return;
+      const container = containerRef.current;
+      if (!container) {
+        setLoading(false);
+        return;
+      }
+      await waitForSize(container);
+      if (cancelled) return;
+
+      const google = window.google;
+      const map = new google.maps.Map(container, {
+        center: { lat: pt.lat, lng: pt.lng },
+        zoom: geo || initialPoint ? 17 : 4,
+        disableDefaultUI: true,
+        zoomControl: true,
+        gestureHandling: "greedy",
+        clickableIcons: false,
+      });
+
+      // Atualiza ponto após cada arraste/zoom
+      map.addListener("idle", () => {
+        const c = map.getCenter();
+        if (!c) return;
+        const next = { lat: c.lat(), lng: c.lng() };
+        setPoint((prev) => {
+          if (prev && Math.abs(prev.lat - next.lat) < 1e-7 && Math.abs(prev.lng - next.lng) < 1e-7) {
+            return prev;
+          }
+          return next;
+        });
+      });
+
+      mapRef.current = { map };
+
+      // Garante o redraw quando o dialog termina a animação
       setTimeout(() => {
-        if (!containerRef.current || cancelled) return;
-        const google = window.google;
-        const map = new google.maps.Map(containerRef.current, {
-          center: { lat: pt.lat, lng: pt.lng },
-          zoom: geo ? 17 : 4,
-          disableDefaultUI: true,
-          zoomControl: true,
-          gestureHandling: "greedy",
-          clickableIcons: false,
-        });
-        // Atualiza ponto quando o usuário arrasta
-        map.addListener("idle", () => {
-          const c = map.getCenter();
-          if (!c) return;
-          setPoint({ lat: c.lat(), lng: c.lng() });
-        });
-        mapRef.current = { map };
-      }, 50);
+        google.maps.event.trigger(map, "resize");
+        map.setCenter({ lat: pt.lat, lng: pt.lng });
+      }, 250);
+
+      setLoading(false);
     };
 
     init();
     return () => {
       cancelled = true;
       mapRef.current = null;
-      setInfo(null);
     };
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const recenterOnMe = async () => {
+  const recenterOnMe = useCallback(async () => {
     const geo = await getCurrentPosition();
-    if (!geo) { setPermissionError(true); return; }
+    if (!geo) {
+      setPermissionError(true);
+      return;
+    }
     setPermissionError(false);
     const ref = mapRef.current;
     if (ref?.map) {
       ref.map.setCenter({ lat: geo.lat, lng: geo.lng });
       ref.map.setZoom(17);
+    } else {
+      setPoint(geo);
     }
-  };
+  }, []);
 
-  const summary = info?.street
-    ? `${info.street}${info.number ? `, ${info.number}` : ""}${info.neighborhood ? ` — ${info.neighborhood}` : ""}`
-    : info?.place_name ?? "Movimente o mapa para ajustar o pino";
+  const summary = resolving
+    ? null
+    : info?.street
+      ? `${info.street}${info.number ? `, ${info.number}` : ""}${info.neighborhood ? ` — ${info.neighborhood}` : ""}`
+      : info?.place_name ?? null;
+
+  const handleConfirm = () => {
+    // Sempre usa o centro atual do mapa para a confirmação
+    const map = mapRef.current?.map;
+    let finalPoint = point;
+    if (map) {
+      const c = map.getCenter();
+      if (c) finalPoint = { lat: c.lat(), lng: c.lng() };
+    }
+    if (!finalPoint) return;
+    const result: ReverseGeocodeResult = { ...(info ?? {}), lat: finalPoint.lat, lng: finalPoint.lng };
+    onConfirm(result);
+    onOpenChange(false);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="p-0 gap-0 flex flex-col overflow-hidden max-w-full w-screen h-[100dvh] sm:max-w-full rounded-none">
         <DialogHeader className="shrink-0 px-6 py-4 border-b">
-          <DialogTitle className="flex items-center gap-2"><MapPin className="w-5 h-5" /> Confirme sua localização</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <MapPin className="w-5 h-5" /> Confirme sua localização
+          </DialogTitle>
           <DialogDescription>Arraste o mapa para posicionar o pino na porta da sua casa.</DialogDescription>
         </DialogHeader>
         <div className="flex-1 relative bg-muted">
@@ -171,7 +252,10 @@ export function LocationPicker({
           )}
           <div ref={containerRef} className="absolute inset-0" />
           <div className="pointer-events-none absolute left-1/2 top-1/2 z-[500] -translate-x-1/2 -translate-y-full">
-            <MapPin className="w-10 h-10 text-primary drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] fill-primary/30" strokeWidth={2.5} />
+            <MapPin
+              className="w-10 h-10 text-primary drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] fill-primary/30"
+              strokeWidth={2.5}
+            />
           </div>
           <Button
             type="button"
@@ -189,26 +273,22 @@ export function LocationPicker({
             <MapPin className="w-4 h-4 mt-0.5 text-primary shrink-0" />
             <div className="flex-1 min-w-0">
               {resolving ? (
-                <span className="text-muted-foreground inline-flex items-center gap-2"><Loader2 className="w-3 h-3 animate-spin" /> Buscando endereço...</span>
-              ) : (
+                <span className="text-muted-foreground inline-flex items-center gap-2">
+                  <Loader2 className="w-3 h-3 animate-spin" /> Buscando endereço...
+                </span>
+              ) : summary ? (
                 <span className="font-medium break-words">{summary}</span>
+              ) : (
+                <span className="text-muted-foreground">Movimente o mapa para ajustar o pino.</span>
               )}
               {permissionError && (
-                <p className="text-xs text-muted-foreground mt-0.5">Não conseguimos sua localização — arraste o mapa manualmente.</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Não conseguimos sua localização — arraste o mapa manualmente.
+                </p>
               )}
             </div>
           </div>
-          <Button
-            type="button"
-            className="w-full"
-            disabled={!point || resolving}
-            onClick={() => {
-              if (!point) return;
-              const result: ReverseGeocodeResult = info ?? { lat: point.lat, lng: point.lng };
-              onConfirm({ ...result, lat: point.lat, lng: point.lng });
-              onOpenChange(false);
-            }}
-          >
+          <Button type="button" className="w-full" disabled={!point || resolving} onClick={handleConfirm}>
             Confirmar localização
           </Button>
         </div>

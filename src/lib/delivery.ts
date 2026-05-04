@@ -1,4 +1,4 @@
-// Geocoding via HERE Maps (edge function geocode) e cálculo Haversine.
+// Geocoding via Google Maps (edge function `geocode`) e cálculo Haversine.
 import { supabase } from "@/integrations/supabase/client";
 
 export type DeliveryZone = { radius_km: number; fee: number };
@@ -13,8 +13,6 @@ export type GeocodeAddress = {
   city?: string;
   state?: string;
 };
-
-
 
 export type ReverseGeocodeResult = GeoPoint & {
   place_name?: string;
@@ -51,9 +49,14 @@ export async function reverseGeocode(pt: GeoPoint): Promise<ReverseGeocodeResult
 
 export type AddressSuggestion = ReverseGeocodeResult & { id: string };
 
-export async function searchAddresses(q: string, opts?: { proximity?: GeoPoint; city?: string; state?: string }): Promise<AddressSuggestion[]> {
+export async function searchAddresses(
+  q: string,
+  opts?: { proximity?: GeoPoint; city?: string; state?: string },
+): Promise<AddressSuggestion[]> {
   try {
-    const { data, error } = await supabase.functions.invoke("geocode", { body: { q, proximity: opts?.proximity, city: opts?.city, state: opts?.state } });
+    const { data, error } = await supabase.functions.invoke("geocode", {
+      body: { q, proximity: opts?.proximity, city: opts?.city, state: opts?.state },
+    });
     if (error || !data) return [];
     return ((data as any).suggestions ?? []) as AddressSuggestion[];
   } catch {
@@ -73,11 +76,7 @@ export function haversineKm(a: GeoPoint, b: GeoPoint): number {
 }
 
 /**
- * Encontra a taxa de entrega para uma distância. As zonas representam o RAIO MÁXIMO.
- * Ex: zonas = [{radius_km:5, fee:7}, {radius_km:10, fee:12}]
- *     - distância 3km  -> R$7  (cabe na zona de 5km)
- *     - distância 7km  -> R$12 (cabe na zona de 10km)
- *     - distância 12km -> null (fora de área)
+ * Encontra a taxa de entrega para uma distância. Zonas representam o RAIO MÁXIMO.
  */
 export function findDeliveryFee(distanceKm: number, zones: DeliveryZone[]): { fee: number; zone: DeliveryZone } | null {
   const sorted = [...zones].filter((z) => z.radius_km > 0).sort((a, b) => a.radius_km - b.radius_km);
