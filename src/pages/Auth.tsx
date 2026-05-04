@@ -23,17 +23,17 @@ const signUpSchema = signInSchema.extend({
 export default function Auth() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const { user, isMasterAdmin, isManager, loading } = useAuth();
+  const { user, isMasterAdmin, isManager, loading, rolesLoading } = useAuth();
   const [tab, setTab] = useState(params.get("mode") === "signup" ? "signup" : "signin");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!loading && user) {
+    if (!loading && !rolesLoading && user) {
       if (isMasterAdmin) navigate("/admin", { replace: true });
       else if (isManager) navigate("/dashboard", { replace: true });
       else navigate("/", { replace: true });
     }
-  }, [user, isMasterAdmin, isManager, loading, navigate]);
+  }, [user, isMasterAdmin, isManager, loading, rolesLoading, navigate]);
 
   const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
