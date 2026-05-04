@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { brl, formatPhone, unmaskPhone } from "@/lib/format";
 import { toast } from "sonner";
 import { DeliveryZone, GeoPoint, findDeliveryFee, geocodeAddress, haversineKm } from "@/lib/delivery";
@@ -74,7 +75,7 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
   const [pinnedPoint, setPinnedPoint] = useState<GeoPoint | null>(null);
 
   // Etapa 3 — pagamento
-  const [payment, setPayment] = useState<"cash" | "pix" | "card_on_delivery">("cash");
+  const [payment, setPayment] = useState<"" | "cash" | "pix" | "card_on_delivery">("");
   const [changeFor, setChangeFor] = useState("");
 
   // Programa de fidelidade
@@ -223,6 +224,8 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
       setCouponInput("");
       setCouponError(null);
       setPinnedPoint(null);
+      setPayment("");
+      setChangeFor("");
       // ao abrir, escolhe a opção disponível por padrão
       if (!deliveryEnabled && pickupEnabled) setOrderType("pickup");
       else if (deliveryEnabled) setOrderType("delivery");
@@ -522,6 +525,7 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
     if (cart.items.length === 0) return toast.error("Carrinho vazio");
     if (!validateStep1()) { setStep(1); return; }
     if (!isPickup && !validateStep2()) { setStep(2); return; }
+    if (!payment) { toast.error("Selecione a forma de pagamento"); return; }
 
     setBusy(true);
 
@@ -801,18 +805,16 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
 
               <div className="space-y-3">
                 <h3 className="font-semibold text-sm">Pagamento</h3>
-                <RadioGroup value={payment} onValueChange={(v) => setPayment(v as any)} className="space-y-2">
-                  {[
-                    { v: "cash", l: "Dinheiro" },
-                    { v: "pix", l: "Pix" },
-                    { v: "card_on_delivery", l: isPickup ? "Cartão na retirada" : "Cartão na entrega" },
-                  ].map((o) => (
-                    <label key={o.v} className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted">
-                      <RadioGroupItem value={o.v} />
-                      <span>{o.l}</span>
-                    </label>
-                  ))}
-                </RadioGroup>
+                <Select value={payment || undefined} onValueChange={(v) => setPayment(v as any)}>
+                  <SelectTrigger className="h-12">
+                    <SelectValue placeholder="Selecione a forma de pagamento" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">Dinheiro</SelectItem>
+                    <SelectItem value="pix">Pix</SelectItem>
+                    <SelectItem value="card_on_delivery">{isPickup ? "Cartão na retirada" : "Cartão na entrega"}</SelectItem>
+                  </SelectContent>
+                </Select>
                 {payment === "cash" && (
                   <div className="space-y-2"><Label>Troco para (opcional)</Label><Input value={changeFor} onChange={(e) => setChangeFor(e.target.value)} type="number" step="0.01" placeholder="Ex: 50.00" /></div>
                 )}
