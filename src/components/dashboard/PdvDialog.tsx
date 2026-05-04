@@ -580,7 +580,7 @@ export function PdvDialog({
                 <div className="space-y-1 text-sm">
                   <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{brl(subtotal)}</span></div>
                   {discountApplied > 0 && (<div className="flex justify-between text-destructive"><span>Desconto</span><span>- {brl(discountApplied)}</span></div>)}
-                  {serviceFee > 0 && (<div className="flex justify-between"><span className="text-muted-foreground">Taxa de serviço</span><span>+ {brl(serviceFee)}</span></div>)}
+                  {serviceFeeApplied > 0 && (<div className="flex justify-between"><span className="text-muted-foreground">Taxa de serviço{serviceFeeType === "percent" ? ` (${serviceFeeValue}%)` : ""}</span><span>+ {brl(serviceFeeApplied)}</span></div>)}
                   <div className="flex justify-between text-lg font-bold pt-1 border-t"><span>Total</span><span>{brl(total)}</span></div>
                 </div>
 
