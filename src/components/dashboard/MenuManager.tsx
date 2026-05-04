@@ -286,14 +286,15 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
               </>
             ) : categories.length === 0 ? (
               <div className="text-sm text-muted-foreground p-2">Crie sua primeira categoria.</div>
-            ) : categories.map((c) => (
-              <div key={c.id} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted">
-                <span className={`flex-1 text-sm ${!c.is_active && "text-muted-foreground line-through"}`}>{c.name}</span>
-                <Switch checked={c.is_active} onCheckedChange={() => toggleCat(c)} />
-                <Button size="icon" variant="ghost" onClick={() => { setEditingCat(c); setCatOpen(true); }}><Pencil className="w-3.5 h-3.5" /></Button>
-                <Button size="icon" variant="ghost" onClick={() => removeCat(c)}><Trash2 className="w-3.5 h-3.5" /></Button>
-              </div>
-            ))}
+            ) : (
+              <SortableCategoriesList
+                categories={categories}
+                restaurantId={restaurantId}
+                onToggle={toggleCat}
+                onEdit={(c) => { setEditingCat(c); setCatOpen(true); }}
+                onRemove={removeCat}
+              />
+            )}
           </CardContent>
         </Card>
 
