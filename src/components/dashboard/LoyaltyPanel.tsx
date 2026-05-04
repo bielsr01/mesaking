@@ -318,18 +318,97 @@ export function LoyaltyPanel({ restaurantId }: { restaurantId: string }) {
 
         <Dialog open={memberDialog} onOpenChange={setMemberDialog}>
           <DialogContent>
-            <DialogHeader><DialogTitle>Novo cadastro</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>{editingMember ? "Editar cadastro" : "Novo cadastro"}</DialogTitle></DialogHeader>
             <div className="space-y-3">
               <div className="space-y-1"><Label>Nome</Label><Input value={newName} onChange={(e) => setNewName(e.target.value)} /></div>
               <div className="space-y-1"><Label>Telefone</Label><Input value={newPhone} onChange={(e) => setNewPhone(formatPhone(e.target.value))} placeholder="(11) 99999-9999" /></div>
+              <div className="space-y-1"><Label>Pontos</Label><Input type="number" min="0" step="1" value={newPoints} onChange={(e) => setNewPoints(e.target.value)} /></div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setMemberDialog(false)}>Cancelar</Button>
-              <Button onClick={createMember}>Cadastrar</Button>
+              <Button onClick={saveMember}>{editingMember ? "Salvar" : "Cadastrar"}</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <MemberHistoryDialog
+          member={historyMember}
+          restaurantId={restaurantId}
+          onClose={() => setHistoryMember(null)}
+        />
       </CardContent>
     </Card>
   );
 }
+
+function MemberHistoryDialog({
+  member, restaurantId, onClose,
+}: { member: Member | null; restaurantId: string; onClose: () => void }) {
+  const historyQ = useQuery({
+    queryKey: ["loyalty-history", member?.id],
+    enabled: !!member,
+    queryFn: async (): Promise<Tx[]> => {
+      const { data } = await sb
+        .from("loyalty_transactions")
+        .select("*")
+        .eq("restaurant_id", restaurantId)
+        .eq("member_id", member!.id)
+        .order("created_at", { ascending: false });
+      const txs = (data ?? []) as Tx[];
+      const orderIds = txs.map((t) => t.order_id).filter(Boolean) as string[];
+      if (orderIds.length) {
+        const { data: orders } = await sb
+          .from("orders")
+          .select("id, order_number, status, total, created_at")
+          .in("id", orderIds);
+        const map = new Map<string, any>((orders ?? []).map((o: any) => [o.id, o]));
+        txs.forEach((t) => { if (t.order_id) t.orders = map.get(t.order_id) as any; });
+      }
+      return txs;
+    },
+  });
+
+  return (
+    <Dialog open={!!member} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Histórico — {member?.name}</DialogTitle>
+        </DialogHeader>
+        <div className="border rounded-lg max-h-[60vh] overflow-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Data</TableHead>
+                <TableHead>Pedido</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Pontos</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {(historyQ.data ?? []).map((t) => (
+                <TableRow key={t.id}>
+                  <TableCell className="text-xs">
+                    {t.status === "credited" && t.credited_at
+                      ? new Date(t.credited_at).toLocaleString("pt-BR")
+                      : new Date(t.created_at).toLocaleString("pt-BR")}
+                  </TableCell>
+                  <TableCell className="font-mono">{t.orders?.order_number ? `#${t.orders.order_number}` : "—"}</TableCell>
+                  <TableCell>
+                    <Badge variant={t.status === "credited" ? "default" : "secondary"}>
+                      {t.status === "credited" ? "Creditado" : "Pendente"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right font-bold">{t.points}</TableCell>
+                </TableRow>
+              ))}
+              {(historyQ.data ?? []).length === 0 && (
+                <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Sem histórico</TableCell></TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
