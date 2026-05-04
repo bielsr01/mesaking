@@ -347,7 +347,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
       ) : filtered.length === 0 ? (
         <Card><CardContent className="py-12 text-center text-muted-foreground">Nenhum pedido nesta categoria.</CardContent></Card>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className={channel === "pdv" ? "flex flex-col gap-3" : "grid gap-4 lg:grid-cols-2"}>
           {filtered.map((o) => {
             const isPickup = o.order_type === "pickup";
             const isPdv = o.order_type === "pdv";
