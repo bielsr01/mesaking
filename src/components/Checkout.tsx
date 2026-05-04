@@ -750,8 +750,8 @@ function Step2Address(props: {
   setDontKnowCep: (v: boolean) => void;
   addr: AddrShape;
   setAddr: (a: AddrShape) => void;
-  lookupCep: (raw: string) => Promise<void>;
-  fieldRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
+  lookupCep: (raw: string) => Promise<unknown>;
+  fieldRefs: MutableRefObject<Record<string, HTMLDivElement | null>>;
   shakeKey: string | null;
   flagInvalid: (k: string) => void;
   feeMode: "fixed" | "radius";
@@ -771,12 +771,6 @@ function Step2Address(props: {
   const [editing, setEditing] = useState(false);
 
   const hasAddress = !!(addr.street && addr.number && addr.neighborhood && addr.city && addr.state);
-
-  // Abre o popup automaticamente se ainda não tem endereço cadastrado
-  useEffect(() => {
-    if (!hasAddress) setEditing(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const summaryLine = [
     addr.street && `${addr.street}${addr.number ? `, ${addr.number}` : ""}`,
@@ -815,8 +809,8 @@ function Step2Address(props: {
       )}
 
       {feeMode === "fixed" && (
-        <div className="text-sm rounded-lg p-3 flex items-start gap-2 bg-success/10 text-success-foreground border border-success/30">
-          <MapPin className="w-4 h-4 mt-0.5" />
+        <div className="text-sm rounded-lg p-3 flex items-start gap-2 bg-success/20 text-foreground border border-success/50">
+          <MapPin className="w-4 h-4 mt-0.5 text-success" />
           <div className="flex-1">
             Taxa de entrega: <strong>{brl(fixedFee)}</strong> (valor fixo)
           </div>
@@ -826,7 +820,7 @@ function Step2Address(props: {
         <div
           ref={(el) => { fieldRefs.current["delivery"] = el; }}
           style={{ scrollMarginTop: 80 }}
-          className={`text-sm rounded-lg p-3 flex items-start gap-2 ${shakeKey === "delivery" ? "animate-shake" : ""} ${deliveryError ? "bg-destructive/10 text-destructive" : delivery ? "bg-success/10 text-success-foreground border border-success/30" : "bg-muted"}`}
+          className={`text-sm rounded-lg p-3 flex items-start gap-2 ${shakeKey === "delivery" ? "animate-shake" : ""} ${deliveryError ? "bg-destructive/10 text-destructive" : delivery ? "bg-success/20 text-foreground border border-success/50" : "bg-muted"}`}
         >
           {calculating ? <Loader2 className="w-4 h-4 animate-spin mt-0.5" /> : <MapPin className="w-4 h-4 mt-0.5" />}
           <div className="flex-1">
