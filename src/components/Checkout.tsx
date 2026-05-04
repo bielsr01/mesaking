@@ -451,6 +451,17 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
   const goNext = async () => {
     if (step === 1) {
       if (!validateStep1()) return;
+      // Limpa qualquer endereço previamente preenchido (de pedido anterior na mesma sessão)
+      // para forçar a tela de sugestões a aparecer como se a página tivesse sido recarregada
+      if (!isPickup) {
+        setAddr({ street: "", number: "", complement: "", neighborhood: "", city: "", state: "", notes: "" });
+        setCep("");
+        setDontKnowCep(false);
+        setPinnedPoint(null);
+        setDelivery(null);
+        setDeliveryError(null);
+        setPrevAddresses([]);
+      }
       // Revalida o telefone consultando histórico antes de avançar
       try {
         setValidatingPhone(true);
