@@ -658,6 +658,26 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
                 )}
               </div>
 
+              {/* Programa de fidelidade */}
+              {loyaltyEnabled && (
+                <label className="flex items-start gap-3 rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 p-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={loyaltyOptIn}
+                    onChange={(e) => setLoyaltyOptIn(e.target.checked)}
+                    className="mt-1 h-4 w-4"
+                  />
+                  <div className="text-sm">
+                    <div className="font-semibold">Deseja pontuar no nosso programa de fidelidade?</div>
+                    <div className="text-xs text-muted-foreground">
+                      {loyaltyOptIn
+                        ? `Sua compra gerará ${Math.floor(Number(total) * Number(loyaltyPointsPerReal || 0))} ponto(s).`
+                        : `Marque para acumular pontos (${loyaltyPointsPerReal} ponto por R$ 1,00).`}
+                    </div>
+                  </div>
+                </label>
+              )}
+
               {/* Resumo do pedido */}
               <div className="border rounded-lg p-3 space-y-2">
                 <h3 className="font-semibold text-sm">Resumo do pedido</h3>
