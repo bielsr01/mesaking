@@ -944,10 +944,11 @@ function Step2Address(props: {
       <AddressSearchDialog
         open={searching}
         onOpenChange={setSearching}
-        proximity={pinnedPoint}
+        proximity={pinnedPoint ?? (props.restaurantHasCoords ? { lat: (props as any).restaurantLat, lng: (props as any).restaurantLng } : null)}
+        cityFilter={(props as any).restaurantCity}
+        stateFilter={(props as any).restaurantState}
         onPickSuggestion={(s) => {
           setSearching(false);
-          // Pré-preenche com a sugestão
           setAddr({
             ...addr,
             street: s.street || addr.street,
