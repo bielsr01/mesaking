@@ -363,7 +363,12 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                   <Badge className={statusColor(o.status)}>{orderStatusLabel[o.status]}</Badge>
                 </div>
 
-                {isPickup ? (
+                {isPdv ? (
+                  <div className="text-sm flex gap-2 bg-success/10 rounded-md p-2">
+                    <Store className="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground" />
+                    <div className="text-muted-foreground italic">Venda PDV — atendimento no balcão.</div>
+                  </div>
+                ) : isPickup ? (
                   <div className="text-sm flex gap-2 bg-accent/10 rounded-md p-2">
                     <Store className="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground" />
                     <div className="text-muted-foreground italic">Retirada na loja — cliente irá buscar.</div>
