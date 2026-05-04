@@ -4,6 +4,7 @@ import "leaflet/dist/leaflet.css";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Loader2, MapPin } from "lucide-react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { geocodeAddress, GeocodeAddress, GeoPoint } from "@/lib/delivery";
 
 // Fix Leaflet default marker icon paths (Vite/bundler workaround)
@@ -58,22 +59,20 @@ export function LocationPicker({
           mapRef.current.remove();
           mapRef.current = null;
         }
-        const map = L.map(containerRef.current).setView([pt!.lat, pt!.lng], 17);
+        const map = L.map(containerRef.current, { zoomControl: true }).setView([pt!.lat, pt!.lng], 17);
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
           attribution: "© OpenStreetMap",
           maxZoom: 19,
         }).addTo(map);
-        const marker = L.marker([pt!.lat, pt!.lng], { draggable: true }).addTo(map);
-        marker.on("dragend", () => {
-          const ll = marker.getLatLng();
-          setPoint({ lat: ll.lat, lng: ll.lng });
+        map.on("move", () => {
+          const c = map.getCenter();
+          setPoint({ lat: c.lat, lng: c.lng });
         });
-        map.on("click", (e: L.LeafletMouseEvent) => {
-          marker.setLatLng(e.latlng);
-          setPoint({ lat: e.latlng.lat, lng: e.latlng.lng });
+        map.on("moveend", () => {
+          const c = map.getCenter();
+          setPoint({ lat: c.lat, lng: c.lng });
         });
         mapRef.current = map;
-        markerRef.current = marker;
         // Fix size after dialog animation
         setTimeout(() => map.invalidateSize(), 250);
       }, 50);
@@ -104,6 +103,10 @@ export function LocationPicker({
             </div>
           )}
           <div ref={containerRef} className="absolute inset-0" />
+          {/* Pino fixo no centro */}
+          <div className="pointer-events-none absolute left-1/2 top-1/2 z-[500] -translate-x-1/2 -translate-y-full">
+            <MapPin className="w-10 h-10 text-primary drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] fill-primary/30" strokeWidth={2.5} />
+          </div>
         </div>
         <div className="shrink-0 border-t bg-background px-6 py-3 space-y-2">
           {point && (
