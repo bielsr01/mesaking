@@ -106,7 +106,6 @@ export function PdvDialog({
   });
 
   const [search, setSearch] = useState("");
-  const [search, setSearch] = useState("");
   const [cart, setCart] = useState<CartLine[]>([]);
 
   // Customer
