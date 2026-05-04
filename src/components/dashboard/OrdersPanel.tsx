@@ -37,6 +37,8 @@ interface Order {
   status: "accepted" | "awaiting_pickup" | "cancelled" | "delivered" | "out_for_delivery" | "pending" | "preparing";
   order_type: "delivery" | "pickup";
   created_at: string;
+  delivery_latitude: number | null;
+  delivery_longitude: number | null;
 }
 
 interface Item {
