@@ -584,92 +584,25 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
 
           {/* ETAPA 2 — Endereço (só delivery) */}
           {step === 2 && !isPickup && (
-            <div className="space-y-3">
-              <h3 className="font-semibold text-sm">Endereço de entrega</h3>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="col-span-3 flex items-end gap-3 flex-wrap">
-                  <div ref={(el) => { fieldRefs.current["cep"] = el; }} style={{ scrollMarginTop: 80 }} className={`space-y-2 ${shakeKey === "cep" ? "animate-shake" : ""}`}>
-                    <Label className={shakeKey === "cep" ? "text-destructive" : ""}>CEP</Label>
-                    <Input
-                      value={cep}
-                      onChange={(e) => {
-                        const d = e.target.value.replace(/\D/g, "").slice(0, 8);
-                        const masked = d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d;
-                        setCep(masked);
-                      }}
-                      onBlur={(e) => !dontKnowCep && lookupCep(e.target.value)}
-                      placeholder="00000-000"
-                      disabled={dontKnowCep}
-                      inputMode="numeric"
-                      maxLength={9}
-                      className={`w-[8rem] px-3 text-center ${shakeKey === "cep" ? "border-destructive" : ""}`}
-                      required={!dontKnowCep}
-                    />
-                  </div>
-                  <label className="flex items-center gap-2 text-sm cursor-pointer select-none h-10">
-                    <input
-                      type="checkbox"
-                      checked={dontKnowCep}
-                      onChange={(e) => {
-                        setDontKnowCep(e.target.checked);
-                        if (e.target.checked) setCep("");
-                      }}
-                      className="h-4 w-4"
-                    />
-                    Não sei meu CEP
-                  </label>
-                </div>
-                <div ref={(el) => { fieldRefs.current["street"] = el; }} style={{ scrollMarginTop: 80 }} className={`space-y-2 col-span-3 ${shakeKey === "street" ? "animate-shake" : ""}`}>
-                  <Label className={shakeKey === "street" ? "text-destructive" : ""}>Rua</Label>
-                  <Input value={addr.street} onChange={(e) => setAddr({ ...addr, street: e.target.value })} className={shakeKey === "street" ? "border-destructive" : ""} required />
-                </div>
-                <div ref={(el) => { fieldRefs.current["number"] = el; }} style={{ scrollMarginTop: 80 }} className={`space-y-2 ${shakeKey === "number" ? "animate-shake" : ""}`}>
-                  <Label className={shakeKey === "number" ? "text-destructive" : ""}>Número</Label>
-                  <Input value={addr.number} onChange={(e) => setAddr({ ...addr, number: e.target.value })} className={shakeKey === "number" ? "border-destructive" : ""} required />
-                </div>
-                <div className="space-y-2 col-span-2"><Label>Complemento</Label><Input value={addr.complement} onChange={(e) => setAddr({ ...addr, complement: e.target.value })} placeholder="Apto, bloco..." /></div>
-                <div ref={(el) => { fieldRefs.current["neighborhood"] = el; }} style={{ scrollMarginTop: 80 }} className={`space-y-2 col-span-2 ${shakeKey === "neighborhood" ? "animate-shake" : ""}`}>
-                  <Label className={shakeKey === "neighborhood" ? "text-destructive" : ""}>Bairro</Label>
-                  <Input value={addr.neighborhood} onChange={(e) => setAddr({ ...addr, neighborhood: e.target.value })} className={shakeKey === "neighborhood" ? "border-destructive" : ""} required />
-                </div>
-                <div ref={(el) => { fieldRefs.current["city"] = el; }} style={{ scrollMarginTop: 80 }} className={`space-y-2 col-span-2 ${shakeKey === "city" ? "animate-shake" : ""}`}>
-                  <Label className={shakeKey === "city" ? "text-destructive" : ""}>Cidade</Label>
-                  <Input value={addr.city} onChange={(e) => setAddr({ ...addr, city: e.target.value })} className={shakeKey === "city" ? "border-destructive" : ""} required />
-                </div>
-                <div ref={(el) => { fieldRefs.current["state"] = el; }} style={{ scrollMarginTop: 80 }} className={`space-y-2 ${shakeKey === "state" ? "animate-shake" : ""}`}>
-                  <Label className={shakeKey === "state" ? "text-destructive" : ""}>UF</Label>
-                  <Input maxLength={2} value={addr.state} onChange={(e) => setAddr({ ...addr, state: e.target.value.toUpperCase() })} className={shakeKey === "state" ? "border-destructive" : ""} required />
-                </div>
-              </div>
-              <div className="space-y-2"><Label>Observação do endereço</Label><Textarea value={addr.notes} onChange={(e) => setAddr({ ...addr, notes: e.target.value })} rows={2} placeholder="Ponto de referência, instruções..." /></div>
-
-              {feeMode === "fixed" && (
-                <div className="text-sm rounded-lg p-3 flex items-start gap-2 bg-success/10 text-success-foreground border border-success/30">
-                  <MapPin className="w-4 h-4 mt-0.5" />
-                  <div className="flex-1">
-                    Taxa de entrega: <strong>{brl(fixedFee)}</strong> (valor fixo)
-                  </div>
-                </div>
-              )}
-              {feeMode !== "fixed" && hasZones && restaurantHasCoords && (
-                <div
-                  ref={(el) => { fieldRefs.current["delivery"] = el; }}
-                  style={{ scrollMarginTop: 80 }}
-                  className={`text-sm rounded-lg p-3 flex items-start gap-2 ${shakeKey === "delivery" ? "animate-shake" : ""} ${deliveryError ? "bg-destructive/10 text-destructive" : delivery ? "bg-success/10 text-success-foreground border border-success/30" : "bg-muted"}`}
-                >
-                  {calculating ? <Loader2 className="w-4 h-4 animate-spin mt-0.5" /> : <MapPin className="w-4 h-4 mt-0.5" />}
-                  <div className="flex-1">
-                    {calculating && <span>Calculando taxa de entrega...</span>}
-                    {!calculating && delivery && <span>Distância: {delivery.km.toFixed(1)} km — taxa <strong>{brl(delivery.fee)}</strong></span>}
-                    {!calculating && !delivery && deliveryError && <span>{deliveryError}</span>}
-                    {!calculating && !delivery && !deliveryError && <span>Preencha o endereço para calcular a taxa de entrega.</span>}
-                  </div>
-                </div>
-              )}
-              {feeMode !== "fixed" && !hasZones && (
-                <p className="text-xs text-muted-foreground">Sem taxa de entrega configurada pela loja.</p>
-              )}
-            </div>
+            <Step2Address
+              cep={cep}
+              setCep={setCep}
+              dontKnowCep={dontKnowCep}
+              setDontKnowCep={setDontKnowCep}
+              addr={addr}
+              setAddr={setAddr}
+              lookupCep={lookupCep}
+              fieldRefs={fieldRefs}
+              shakeKey={shakeKey}
+              flagInvalid={flagInvalid}
+              feeMode={feeMode}
+              fixedFee={fixedFee}
+              hasZones={hasZones}
+              restaurantHasCoords={restaurantHasCoords}
+              delivery={delivery}
+              deliveryError={deliveryError}
+              calculating={calculating}
+            />
           )}
 
           {/* ETAPA 3 — Pagamento + Resumo */}
@@ -806,3 +739,191 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
     </Dialog>
   );
 }
+
+// ---------- Sub-componente: Etapa 2 — Endereço ----------
+type AddrShape = { street: string; number: string; complement: string; neighborhood: string; city: string; state: string; notes: string };
+
+function Step2Address(props: {
+  cep: string;
+  setCep: (v: string) => void;
+  dontKnowCep: boolean;
+  setDontKnowCep: (v: boolean) => void;
+  addr: AddrShape;
+  setAddr: (a: AddrShape) => void;
+  lookupCep: (raw: string) => Promise<void>;
+  fieldRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
+  shakeKey: string | null;
+  flagInvalid: (k: string) => void;
+  feeMode: "fixed" | "radius";
+  fixedFee: number;
+  hasZones: boolean;
+  restaurantHasCoords: boolean;
+  delivery: { fee: number; km: number; pt: GeoPoint } | null;
+  deliveryError: string | null;
+  calculating: boolean;
+}) {
+  const {
+    cep, setCep, dontKnowCep, setDontKnowCep, addr, setAddr, lookupCep,
+    fieldRefs, shakeKey, feeMode, fixedFee, hasZones, restaurantHasCoords,
+    delivery, deliveryError, calculating,
+  } = props;
+
+  const [editing, setEditing] = useState(false);
+
+  const hasAddress = !!(addr.street && addr.number && addr.neighborhood && addr.city && addr.state);
+
+  // Abre o popup automaticamente se ainda não tem endereço cadastrado
+  useEffect(() => {
+    if (!hasAddress) setEditing(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const summaryLine = [
+    addr.street && `${addr.street}${addr.number ? `, ${addr.number}` : ""}`,
+    addr.complement,
+    addr.neighborhood,
+    addr.city && addr.state ? `${addr.city}/${addr.state}` : addr.city,
+    cep,
+  ].filter(Boolean).join(" • ");
+
+  return (
+    <div className="space-y-3">
+      <h3 className="font-semibold text-sm">Endereço de entrega</h3>
+
+      {hasAddress ? (
+        <div className="border rounded-lg p-4 space-y-3">
+          <div className="flex items-start gap-3">
+            <MapPin className="w-5 h-5 mt-0.5 text-primary shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium break-words">{summaryLine}</p>
+              {addr.notes && (
+                <p className="text-xs text-muted-foreground mt-1 break-words">
+                  <span className="font-semibold">Observação:</span> {addr.notes}
+                </p>
+              )}
+            </div>
+          </div>
+          <Button type="button" variant="outline" size="sm" onClick={() => setEditing(true)} className="w-full">
+            Editar endereço
+          </Button>
+        </div>
+      ) : (
+        <Button type="button" variant="outline" onClick={() => setEditing(true)} className="w-full justify-start gap-2 h-12">
+          <MapPin className="w-4 h-4" />
+          Cadastre seu endereço
+        </Button>
+      )}
+
+      {feeMode === "fixed" && (
+        <div className="text-sm rounded-lg p-3 flex items-start gap-2 bg-success/10 text-success-foreground border border-success/30">
+          <MapPin className="w-4 h-4 mt-0.5" />
+          <div className="flex-1">
+            Taxa de entrega: <strong>{brl(fixedFee)}</strong> (valor fixo)
+          </div>
+        </div>
+      )}
+      {feeMode !== "fixed" && hasZones && restaurantHasCoords && (
+        <div
+          ref={(el) => { fieldRefs.current["delivery"] = el; }}
+          style={{ scrollMarginTop: 80 }}
+          className={`text-sm rounded-lg p-3 flex items-start gap-2 ${shakeKey === "delivery" ? "animate-shake" : ""} ${deliveryError ? "bg-destructive/10 text-destructive" : delivery ? "bg-success/10 text-success-foreground border border-success/30" : "bg-muted"}`}
+        >
+          {calculating ? <Loader2 className="w-4 h-4 animate-spin mt-0.5" /> : <MapPin className="w-4 h-4 mt-0.5" />}
+          <div className="flex-1">
+            {calculating && <span>Calculando taxa de entrega...</span>}
+            {!calculating && delivery && <span>Distância: {delivery.km.toFixed(1)} km — taxa <strong>{brl(delivery.fee)}</strong></span>}
+            {!calculating && !delivery && deliveryError && <span>{deliveryError}</span>}
+            {!calculating && !delivery && !deliveryError && <span>Preencha o endereço para calcular a taxa de entrega.</span>}
+          </div>
+        </div>
+      )}
+      {feeMode !== "fixed" && !hasZones && (
+        <p className="text-xs text-muted-foreground">Sem taxa de entrega configurada pela loja.</p>
+      )}
+
+      <Dialog open={editing} onOpenChange={setEditing}>
+        <DialogContent className="p-0 gap-0 flex flex-col overflow-hidden max-w-full w-screen h-[100dvh] sm:max-w-full rounded-none">
+          <DialogHeader className="shrink-0 px-6 py-4 border-b">
+            <DialogTitle>Cadastre seu endereço</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+            <div className="grid grid-cols-3 gap-3">
+              <div className="col-span-3 flex items-end gap-3 flex-wrap">
+                <div ref={(el) => { fieldRefs.current["cep"] = el; }} style={{ scrollMarginTop: 80 }} className={`space-y-2 ${shakeKey === "cep" ? "animate-shake" : ""}`}>
+                  <Label className={shakeKey === "cep" ? "text-destructive" : ""}>CEP</Label>
+                  <Input
+                    value={cep}
+                    onChange={(e) => {
+                      const d = e.target.value.replace(/\D/g, "").slice(0, 8);
+                      const masked = d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d;
+                      setCep(masked);
+                    }}
+                    onBlur={(e) => !dontKnowCep && lookupCep(e.target.value)}
+                    placeholder="00000-000"
+                    disabled={dontKnowCep}
+                    inputMode="numeric"
+                    maxLength={9}
+                    className={`w-[8rem] px-3 text-center ${shakeKey === "cep" ? "border-destructive" : ""}`}
+                    required={!dontKnowCep}
+                  />
+                </div>
+                <label className="flex items-center gap-2 text-sm cursor-pointer select-none h-10">
+                  <input
+                    type="checkbox"
+                    checked={dontKnowCep}
+                    onChange={(e) => {
+                      setDontKnowCep(e.target.checked);
+                      if (e.target.checked) setCep("");
+                    }}
+                    className="h-4 w-4"
+                  />
+                  Não sei meu CEP
+                </label>
+              </div>
+              <div ref={(el) => { fieldRefs.current["street"] = el; }} style={{ scrollMarginTop: 80 }} className={`space-y-2 col-span-3 ${shakeKey === "street" ? "animate-shake" : ""}`}>
+                <Label className={shakeKey === "street" ? "text-destructive" : ""}>Rua</Label>
+                <Input value={addr.street} onChange={(e) => setAddr({ ...addr, street: e.target.value })} className={shakeKey === "street" ? "border-destructive" : ""} required />
+              </div>
+              <div ref={(el) => { fieldRefs.current["number"] = el; }} style={{ scrollMarginTop: 80 }} className={`space-y-2 ${shakeKey === "number" ? "animate-shake" : ""}`}>
+                <Label className={shakeKey === "number" ? "text-destructive" : ""}>Número</Label>
+                <Input value={addr.number} onChange={(e) => setAddr({ ...addr, number: e.target.value })} className={shakeKey === "number" ? "border-destructive" : ""} required />
+              </div>
+              <div className="space-y-2 col-span-2"><Label>Complemento</Label><Input value={addr.complement} onChange={(e) => setAddr({ ...addr, complement: e.target.value })} placeholder="Apto, bloco..." /></div>
+              <div ref={(el) => { fieldRefs.current["neighborhood"] = el; }} style={{ scrollMarginTop: 80 }} className={`space-y-2 col-span-2 ${shakeKey === "neighborhood" ? "animate-shake" : ""}`}>
+                <Label className={shakeKey === "neighborhood" ? "text-destructive" : ""}>Bairro</Label>
+                <Input value={addr.neighborhood} onChange={(e) => setAddr({ ...addr, neighborhood: e.target.value })} className={shakeKey === "neighborhood" ? "border-destructive" : ""} required />
+              </div>
+              <div ref={(el) => { fieldRefs.current["city"] = el; }} style={{ scrollMarginTop: 80 }} className={`space-y-2 col-span-2 ${shakeKey === "city" ? "animate-shake" : ""}`}>
+                <Label className={shakeKey === "city" ? "text-destructive" : ""}>Cidade</Label>
+                <Input value={addr.city} onChange={(e) => setAddr({ ...addr, city: e.target.value })} className={shakeKey === "city" ? "border-destructive" : ""} required />
+              </div>
+              <div ref={(el) => { fieldRefs.current["state"] = el; }} style={{ scrollMarginTop: 80 }} className={`space-y-2 ${shakeKey === "state" ? "animate-shake" : ""}`}>
+                <Label className={shakeKey === "state" ? "text-destructive" : ""}>UF</Label>
+                <Input maxLength={2} value={addr.state} onChange={(e) => setAddr({ ...addr, state: e.target.value.toUpperCase() })} className={shakeKey === "state" ? "border-destructive" : ""} required />
+              </div>
+            </div>
+            <div className="space-y-2"><Label>Observação do endereço</Label><Textarea value={addr.notes} onChange={(e) => setAddr({ ...addr, notes: e.target.value })} rows={2} placeholder="Ponto de referência, instruções..." /></div>
+          </div>
+          <div className="shrink-0 border-t bg-background px-6 py-3">
+            <Button
+              type="button"
+              className="w-full"
+              onClick={() => {
+                if (!dontKnowCep && !/^\d{5}-?\d{3}$/.test(cep)) { props.flagInvalid("cep"); return; }
+                if (!addr.street) { props.flagInvalid("street"); return; }
+                if (!addr.number) { props.flagInvalid("number"); return; }
+                if (!addr.neighborhood) { props.flagInvalid("neighborhood"); return; }
+                if (!addr.city) { props.flagInvalid("city"); return; }
+                if (addr.state.length !== 2) { props.flagInvalid("state"); return; }
+                setEditing(false);
+              }}
+            >
+              Cadastrar endereço
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
