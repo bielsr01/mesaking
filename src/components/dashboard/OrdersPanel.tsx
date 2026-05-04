@@ -280,9 +280,9 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const deliveryCount = orders.filter((o) => o.order_type !== "pdv").length;
   const pdvCount = orders.filter((o) => o.order_type === "pdv").length;
 
-  // For PDV channel, only show "all" filter (orders are already finalized)
+  // PDV: em preparo + entregues
   const visibleFilters = channel === "pdv"
-    ? FILTERS.filter((f) => ["all", "delivered"].includes(f.value))
+    ? FILTERS.filter((f) => ["preparing", "delivered", "all"].includes(f.value))
     : FILTERS;
 
   return (
