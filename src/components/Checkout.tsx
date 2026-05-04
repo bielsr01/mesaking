@@ -898,8 +898,8 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
               </Button>
             )}
             {step < 3 ? (
-              <Button type="button" className="flex-1" onClick={goNext}>
-                Avançar <ArrowRight className="w-4 h-4 ml-1" />
+              <Button type="button" className="flex-1" onClick={goNext} disabled={validatingPhone}>
+                {validatingPhone ? (<><Loader2 className="w-4 h-4 mr-1 animate-spin" />Validando...</>) : (<>Avançar <ArrowRight className="w-4 h-4 ml-1" /></>)}
               </Button>
             ) : (
               <Button type="button" className="flex-1" size="lg" onClick={submit} disabled={busy || (!isPickup && (calculating || (hasZones && !delivery)))}>
