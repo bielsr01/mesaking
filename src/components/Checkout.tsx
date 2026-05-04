@@ -1003,6 +1003,7 @@ function Step2Address(props: {
             number: numberFromMap,
           });
           if (r.cep) setCep(r.cep.replace(/\D/g, "").replace(/(\d{5})(\d{3})/, "$1-$2"));
+          if (r.mapMoved) props.flagInvalid("number");
           setEditing(true);
         }}
       />
