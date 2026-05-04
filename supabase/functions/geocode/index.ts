@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
     if (!token) throw new Error("MAPBOX_TOKEN not configured");
 
     const body = await req.json().catch(() => ({}));
-    const { cep, street, number, neighborhood, city, state, lat: rLat, lng: rLng, q, proximity } = body ?? {};
+    const { cep, street, number, neighborhood, city, state, lat: rLat, lng: rLng, q, proximity, city: searchCity, state: searchState } = body ?? {};
 
     // Search autocomplete (q -> lista de sugestões)
     if (typeof q === "string" && q.trim().length >= 3) {
