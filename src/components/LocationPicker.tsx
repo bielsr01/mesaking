@@ -32,6 +32,10 @@ async function loadGoogleMaps(apiKey: string): Promise<void> {
   window.__gmapsLoading = new Promise((resolve, reject) => {
     const existing = document.querySelector<HTMLScriptElement>('script[data-gmaps="1"]');
     if (existing) {
+      if (window.google?.maps) {
+        resolve();
+        return;
+      }
       existing.addEventListener("load", () => resolve());
       existing.addEventListener("error", () => reject(new Error("gmaps load failed")));
       return;
@@ -97,6 +101,8 @@ export function LocationPicker({
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
+  const initialPointRef = useRef<GeoPoint | null>(null);
+  const manuallyMovedRef = useRef(false);
   const [loading, setLoading] = useState(false);
   const [point, setPoint] = useState<GeoPoint | null>(initialPoint ?? null);
   const [info, setInfo] = useState<ReverseGeocodeResult | null>(null);
@@ -106,13 +112,15 @@ export function LocationPicker({
   // Reverse geocode debounced sempre que o ponto mudar
   useEffect(() => {
     if (!point || !open) return;
+    let cancelled = false;
     setResolving(true);
     const t = setTimeout(async () => {
       const r = await reverseGeocode(point);
+      if (cancelled) return;
       setInfo(r);
       setResolving(false);
-    }, 350);
-    return () => clearTimeout(t);
+    }, 300);
+    return () => { cancelled = true; clearTimeout(t); };
   }, [point, open]);
 
   useEffect(() => {
