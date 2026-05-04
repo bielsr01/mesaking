@@ -1,8 +1,8 @@
-// Edge function: autocomplete + geocoding usando Google Maps Platform.
-// APIs usadas (server-side, via GOOGLE_MAPS_SERVER_KEY):
-//   - Places API (New) /v1/places:autocomplete    -> sugestões
-//   - Places API (New) /v1/places/{id}             -> detalhes (lat/lng + components)
-//   - Geocoding API    /maps/api/geocode/json      -> reverse + geocode estruturado
+// Edge function de endereços usando Google Maps Platform.
+// APIs (server-side, via GOOGLE_MAPS_SERVER_KEY):
+//   - Places API (New)  POST /v1/places:autocomplete       -> sugestões
+//   - Places API (New)  GET  /v1/places/{id}                -> detalhes (lat/lng + components)
+//   - Geocoding API     GET  /maps/api/geocode/json         -> reverse + geocode estruturado
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -27,27 +27,24 @@ type AddrOut = {
   cep: string;
 };
 
-function parseGoogleAddressComponents(components: any[] = [], formatted = ""): Omit<AddrOut, "id" | "lat" | "lng"> {
+// Geocoding API (clássica): address_components com long_name/short_name
+function parseGoogleComponents(components: any[] = [], formatted = ""): Omit<AddrOut, "id" | "lat" | "lng"> {
   const get = (type: string, short = false) => {
     const c = components.find((x: any) => (x.types || []).includes(type));
     if (!c) return "";
-    return short ? (c.short_name ?? c.shortText ?? "") : (c.long_name ?? c.longText ?? "");
+    return short ? (c.short_name ?? "") : (c.long_name ?? "");
   };
   const street = get("route");
   const number = get("street_number");
   const neighborhood =
-    get("sublocality_level_1") || get("sublocality") || get("political") || get("neighborhood") || "";
-  const city =
-    get("administrative_area_level_2") ||
-    get("locality") ||
-    get("administrative_area_level_3") ||
-    "";
+    get("sublocality_level_1") || get("sublocality") || get("neighborhood") || get("political") || "";
+  const city = get("administrative_area_level_2") || get("locality") || "";
   const state = get("administrative_area_level_1", true).replace(/^BR-/i, "").toUpperCase();
   const cep = digitsOnly(get("postal_code"));
   return { place_name: formatted, street, number, neighborhood, city, state, cep };
 }
 
-// Places API (New) usa addressComponents com longText/shortText/types
+// Places API (New): addressComponents com longText/shortText/types
 function parsePlacesNewComponents(components: any[] = [], formatted = ""): Omit<AddrOut, "id" | "lat" | "lng"> {
   const get = (type: string, short = false) => {
     const c = components.find((x: any) => (x.types || []).includes(type));
@@ -58,11 +55,7 @@ function parsePlacesNewComponents(components: any[] = [], formatted = ""): Omit<
   const number = get("street_number");
   const neighborhood =
     get("sublocality_level_1") || get("sublocality") || get("neighborhood") || get("political") || "";
-  const city =
-    get("administrative_area_level_2") ||
-    get("locality") ||
-    get("administrative_area_level_3") ||
-    "";
+  const city = get("administrative_area_level_2") || get("locality") || "";
   const state = get("administrative_area_level_1", true).replace(/^BR-/i, "").toUpperCase();
   const cep = digitsOnly(get("postal_code"));
   return { place_name: formatted, street, number, neighborhood, city, state, cep };
@@ -86,7 +79,7 @@ Deno.serve(async (req) => {
         regionCode: "BR",
         includedRegionCodes: ["br"],
       };
-      if (proximity && typeof proximity.lat === "number") {
+      if (proximity && typeof proximity.lat === "number" && typeof proximity.lng === "number") {
         reqBody.locationBias = {
           circle: {
             center: { latitude: proximity.lat, longitude: proximity.lng },
@@ -97,17 +90,13 @@ Deno.serve(async (req) => {
 
       const r = await fetch(`${PLACES_BASE}/places:autocomplete`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Goog-Api-Key": apiKey,
-        },
+        headers: { "Content-Type": "application/json", "X-Goog-Api-Key": apiKey },
         body: JSON.stringify(reqBody),
       });
       const data = await r.json();
-      if (!r.ok) console.log("Google autocomplete", r.status, JSON.stringify(data).slice(0, 500));
+      if (!r.ok) console.log("places:autocomplete", r.status, JSON.stringify(data).slice(0, 400));
 
       const preds: any[] = data?.suggestions ?? [];
-      // Cada sugestão precisa ser resolvida pra lat/lng via Place Details (paralelizado).
       const detailFields = "id,formattedAddress,location,addressComponents";
       const details = await Promise.all(
         preds.slice(0, 8).map(async (s) => {
@@ -115,13 +104,13 @@ Deno.serve(async (req) => {
           if (!placeId) return null;
           try {
             const dr = await fetch(`${PLACES_BASE}/places/${placeId}`, {
-              headers: {
-                "X-Goog-Api-Key": apiKey,
-                "X-Goog-FieldMask": detailFields,
-              },
+              headers: { "X-Goog-Api-Key": apiKey, "X-Goog-FieldMask": detailFields },
             });
             const dd = await dr.json();
-            if (!dr.ok) return null;
+            if (!dr.ok) {
+              console.log("places.details", dr.status, JSON.stringify(dd).slice(0, 300));
+              return null;
+            }
             const loc = dd?.location;
             const parsed = parsePlacesNewComponents(dd?.addressComponents ?? [], dd?.formattedAddress ?? "");
             const out: AddrOut = {
@@ -137,35 +126,9 @@ Deno.serve(async (req) => {
         }),
       );
 
-      let suggestions = details
-        .filter((d): d is AddrOut => !!d && typeof d.lat === "number" && typeof d.lng === "number");
-
-      // Se a Places API (New) ainda estiver bloqueada no projeto Google, usa Geocoding como fallback
-      // para não deixar a busca de endereço completamente vazia.
-      if (suggestions.length === 0) {
-        const fallbackQuery = [q.trim(), city && state ? `${city} - ${state}` : city, "Brasil"].filter(Boolean).join(", ");
-        const url = new URL(GEOCODE_BASE);
-        url.searchParams.set("address", fallbackQuery);
-        url.searchParams.set("language", "pt-BR");
-        url.searchParams.set("region", "br");
-        url.searchParams.set("components", "country:BR");
-        url.searchParams.set("key", apiKey);
-        const gr = await fetch(url.toString());
-        const gd = await gr.json();
-        if (gd?.status === "OK") {
-          suggestions = (gd?.results ?? []).slice(0, 5).map((item: any, idx: number) => {
-            const parsed = parseGoogleAddressComponents(item.address_components ?? [], item.formatted_address ?? "");
-            return {
-              id: item.place_id ?? `geocode-${idx}`,
-              lat: item.geometry?.location?.lat,
-              lng: item.geometry?.location?.lng,
-              ...parsed,
-            };
-          }).filter((d: AddrOut) => typeof d.lat === "number" && typeof d.lng === "number");
-        } else {
-          console.log("Google autocomplete fallback geocode", gd?.status, (gd?.error_message ?? "").slice(0, 200));
-        }
-      }
+      const suggestions = details.filter(
+        (d): d is AddrOut => !!d && typeof d.lat === "number" && typeof d.lng === "number",
+      );
 
       return new Response(JSON.stringify({ suggestions }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -181,14 +144,16 @@ Deno.serve(async (req) => {
       url.searchParams.set("key", apiKey);
       const r = await fetch(url.toString());
       const data = await r.json();
-      if (data?.status !== "OK") console.log("Google revgeocode", data?.status, (data?.error_message ?? "").slice(0, 200));
+      if (data?.status !== "OK") {
+        console.log("revgeocode", data?.status, (data?.error_message ?? "").slice(0, 200));
+      }
       const item = (data?.results ?? [])[0];
       if (!item) {
         return new Response(JSON.stringify({ lat: rLat, lng: rLng }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const parsed = parseGoogleAddressComponents(item.address_components ?? [], item.formatted_address ?? "");
+      const parsed = parseGoogleComponents(item.address_components ?? [], item.formatted_address ?? "");
       return new Response(JSON.stringify({ ...parsed, lat: rLat, lng: rLng }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -214,17 +179,13 @@ Deno.serve(async (req) => {
       const r = await fetch(url.toString());
       const data = await r.json();
       if (data?.status !== "OK") {
-        console.log("Google geocode", data?.status, (data?.error_message ?? "").slice(0, 200));
+        console.log("geocode", data?.status, (data?.error_message ?? "").slice(0, 200));
         return null;
       }
       const item = (data?.results ?? [])[0];
       if (!item?.geometry?.location) return null;
-      const parsed = parseGoogleAddressComponents(item.address_components ?? [], item.formatted_address ?? "");
-      return {
-        lat: item.geometry.location.lat,
-        lng: item.geometry.location.lng,
-        ...parsed,
-      };
+      const parsed = parseGoogleComponents(item.address_components ?? [], item.formatted_address ?? "");
+      return { lat: item.geometry.location.lat, lng: item.geometry.location.lng, ...parsed };
     };
 
     if (qualified) {
