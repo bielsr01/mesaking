@@ -75,21 +75,44 @@ export function LoyaltyPanel({ restaurantId }: { restaurantId: string }) {
   });
 
   const [memberDialog, setMemberDialog] = useState(false);
+  const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [newName, setNewName] = useState("");
   const [newPhone, setNewPhone] = useState("");
+  const [newPoints, setNewPoints] = useState("0");
+  const [search, setSearch] = useState("");
+  const [historyMember, setHistoryMember] = useState<Member | null>(null);
 
-  const createMember = async () => {
+  const openCreate = () => {
+    setEditingMember(null);
+    setNewName(""); setNewPhone(""); setNewPoints("0");
+    setMemberDialog(true);
+  };
+  const openEdit = (m: Member) => {
+    setEditingMember(m);
+    setNewName(m.name); setNewPhone(m.phone); setNewPoints(String(m.points));
+    setMemberDialog(true);
+  };
+
+  const saveMember = async () => {
     if (!newName.trim() || !newPhone.trim()) return toast.error("Preencha nome e telefone");
-    const { error } = await sb.from("loyalty_members").insert({
-      restaurant_id: restaurantId,
-      name: newName.trim(),
-      phone: formatPhone(newPhone),
-      points: 0,
-    });
-    if (error) return toast.error(error.message);
-    toast.success("Cliente cadastrado");
+    const points = Math.floor(Number(newPoints) || 0);
+    if (editingMember) {
+      const { error } = await sb.from("loyalty_members")
+        .update({ name: newName.trim(), phone: formatPhone(newPhone), points })
+        .eq("id", editingMember.id);
+      if (error) return toast.error(error.message);
+      toast.success("Cadastro atualizado");
+    } else {
+      const { error } = await sb.from("loyalty_members").insert({
+        restaurant_id: restaurantId,
+        name: newName.trim(),
+        phone: formatPhone(newPhone),
+        points,
+      });
+      if (error) return toast.error(error.message);
+      toast.success("Cliente cadastrado");
+    }
     setMemberDialog(false);
-    setNewName(""); setNewPhone("");
     qc.invalidateQueries({ queryKey: ["loyalty-members", restaurantId] });
   };
 
