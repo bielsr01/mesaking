@@ -153,7 +153,7 @@ export function LocationPicker({
       if (cancelled) return;
 
       const pt: GeoPoint = geo ?? { lat: -14.235, lng: -51.9253 };
-      if (!geo && !initialPoint) setPermissionError(true);
+      if (!geo && !validInitial) setPermissionError(true);
       setPoint(pt);
 
       // Espera 2 frames + container ter tamanho real (corrige mapa em branco no mobile)
