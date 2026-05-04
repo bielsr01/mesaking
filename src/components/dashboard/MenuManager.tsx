@@ -443,3 +443,84 @@ function SortableProductCard({
     </Card>
   );
 }
+
+function SelectedGroupsSorter({
+  allGroups, selectedIds, onChange,
+}: {
+  allGroups: OptionGroup[];
+  selectedIds: string[];
+  onChange: (ids: string[]) => void;
+}) {
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const groupById = new Map(allGroups.map((g) => [g.id, g]));
+  const selected = selectedIds.map((id) => groupById.get(id)).filter(Boolean) as OptionGroup[];
+  const unselected = allGroups.filter((g) => !selectedIds.includes(g.id));
+
+  const handleDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const oldIdx = selectedIds.indexOf(String(active.id));
+    const newIdx = selectedIds.indexOf(String(over.id));
+    if (oldIdx < 0 || newIdx < 0) return;
+    onChange(arrayMove(selectedIds, oldIdx, newIdx));
+  };
+
+  const toggle = (id: string, checked: boolean) => {
+    if (checked) onChange([...selectedIds, id]);
+    else onChange(selectedIds.filter((x) => x !== id));
+  };
+
+  return (
+    <div className="space-y-2 max-h-64 overflow-y-auto border rounded-md p-2">
+      {selected.length > 0 && (
+        <div className="space-y-1">
+          <div className="text-[10px] uppercase font-semibold text-muted-foreground px-1">
+            Selecionados (arraste para ordenar)
+          </div>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={selectedIds} strategy={verticalListSortingStrategy}>
+              {selected.map((g) => (
+                <SortableSelectedGroup key={g.id} group={g} onRemove={() => toggle(g.id, false)} />
+              ))}
+            </SortableContext>
+          </DndContext>
+        </div>
+      )}
+      {unselected.length > 0 && (
+        <div className="space-y-1 pt-1 border-t">
+          <div className="text-[10px] uppercase font-semibold text-muted-foreground px-1">Disponíveis</div>
+          {unselected.map((g) => (
+            <label key={g.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted px-2 py-1 rounded">
+              <input type="checkbox" checked={false} onChange={(e) => toggle(g.id, e.target.checked)} />
+              <span className="flex-1">{g.name}</span>
+              <span className="text-xs text-muted-foreground">mín {g.min_select} · máx {g.max_select}</span>
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SortableSelectedGroup({ group: g, onRemove }: { group: OptionGroup; onRemove: () => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: g.id });
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center gap-2 text-sm bg-muted/50 px-2 py-1 rounded">
+      <button
+        type="button"
+        className="touch-none cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
+        {...attributes}
+        {...listeners}
+        aria-label="Arrastar"
+      >
+        <GripVertical className="w-4 h-4" />
+      </button>
+      <span className="flex-1">{g.name}</span>
+      <span className="text-xs text-muted-foreground">mín {g.min_select} · máx {g.max_select}</span>
+      <Button type="button" size="icon" variant="ghost" className="h-6 w-6" onClick={onRemove}>
+        <Trash2 className="w-3.5 h-3.5" />
+      </Button>
+    </div>
+  );
+}
