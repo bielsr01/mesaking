@@ -108,6 +108,23 @@ Deno.serve(async (req) => {
         return cityA - cityB || stateA - stateB;
       });
 
+      // Enriquecer bairro via Nominatim (OSM) quando o Mapbox não retornar
+      const enrichWithOSM = async (s: any) => {
+        if (s.neighborhood || typeof s.lat !== "number" || typeof s.lng !== "number") return s;
+        try {
+          const url = `https://nominatim.openstreetmap.org/reverse?lat=${s.lat}&lon=${s.lng}&format=json&addressdetails=1&accept-language=pt-BR`;
+          const r = await fetch(url, { headers: { "User-Agent": "lovable-geocode/1.0" } });
+          if (!r.ok) return s;
+          const data = await r.json();
+          const addr = data?.address ?? {};
+          const neigh = addr.suburb || addr.neighbourhood || addr.hamlet || addr.quarter || addr.city_district || "";
+          if (neigh) s.neighborhood = neigh;
+          if (!s.cep && addr.postcode) s.cep = addr.postcode;
+        } catch (_) { /* ignora */ }
+        return s;
+      };
+      await Promise.all(suggestions.slice(0, 6).map(enrichWithOSM));
+
       if (!suggestions.length && proximity && typeof proximity.lat === "number" && typeof proximity.lng === "number") {
         suggestions.push({
           id: `manual-${Date.now()}`,
@@ -173,8 +190,26 @@ Deno.serve(async (req) => {
         else if (id.startsWith("region") && !stateR) stateR = (c.short_code ?? c.text ?? "").replace(/^BR-/i, "").toUpperCase();
         else if (id.startsWith("postcode") && !cepR) cepR = c.text;
       }
-      const streetR = f?.text ?? "";
-      const numberR = f?.address ?? "";
+      let streetR = f?.text ?? "";
+      let numberR = f?.address ?? "";
+
+      // Fallback Nominatim (OSM) — completa bairro, rua, cidade quando Mapbox falhar
+      if (!neigh || !streetR || !cityR) {
+        try {
+          const nUrl = `https://nominatim.openstreetmap.org/reverse?lat=${rLat}&lon=${rLng}&format=json&addressdetails=1&accept-language=pt-BR`;
+          const nr = await fetch(nUrl, { headers: { "User-Agent": "lovable-geocode/1.0" } });
+          if (nr.ok) {
+            const nd = await nr.json();
+            const a = nd?.address ?? {};
+            if (!neigh) neigh = a.suburb || a.neighbourhood || a.hamlet || a.quarter || a.city_district || "";
+            if (!streetR) streetR = a.road || a.pedestrian || "";
+            if (!numberR && a.house_number) numberR = a.house_number;
+            if (!cityR) cityR = a.city || a.town || a.village || "";
+            if (!stateR && a["ISO3166-2-lvl4"]) stateR = String(a["ISO3166-2-lvl4"]).replace(/^BR-/i, "").toUpperCase();
+            if (!cepR && a.postcode) cepR = a.postcode;
+          }
+        } catch (_) { /* ignora */ }
+      }
       return new Response(JSON.stringify({
         lat: rLat,
         lng: rLng,
