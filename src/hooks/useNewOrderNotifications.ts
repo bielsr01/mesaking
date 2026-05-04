@@ -44,6 +44,9 @@ export function useNewOrderNotifications(restaurantId: string | undefined, isOnO
           // Refresh the orders cache so OrdersPanel picks it up immediately when opened
           qc.invalidateQueries({ queryKey: ordersKey(restaurantId) });
 
+          // PDV orders are created in the dashboard itself — never notify/pulse
+          if (row?.order_type === "pdv") return;
+
           // Auto-accept new orders if configured
           try {
             const { data: rest } = await supabase
