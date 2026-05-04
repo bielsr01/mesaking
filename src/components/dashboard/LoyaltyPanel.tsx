@@ -208,9 +208,20 @@ export function LoyaltyPanel({ restaurantId }: { restaurantId: string }) {
 
           {/* Members */}
           <TabsContent value="members" className="space-y-4 pt-4">
-            <div className="flex justify-between items-center">
-              <div className="text-sm text-muted-foreground">{membersQ.data?.length ?? 0} cadastrados</div>
-              <Button onClick={() => setMemberDialog(true)}><Plus className="w-4 h-4 mr-1" />Novo cadastro</Button>
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+              <div className="relative w-full sm:max-w-xs">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  className="pl-9"
+                  placeholder="Buscar por nome ou telefone"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-sm text-muted-foreground">{membersQ.data?.length ?? 0} cadastrados</div>
+                <Button onClick={openCreate}><Plus className="w-4 h-4 mr-1" />Novo cadastro</Button>
+              </div>
             </div>
             <div className="border rounded-lg">
               <Table>
@@ -219,25 +230,40 @@ export function LoyaltyPanel({ restaurantId }: { restaurantId: string }) {
                     <TableHead>Nome</TableHead>
                     <TableHead>Telefone</TableHead>
                     <TableHead className="text-right">Pontos disponíveis</TableHead>
-                    <TableHead className="w-20"></TableHead>
+                    <TableHead className="w-40 text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(membersQ.data ?? []).map((m) => (
-                    <TableRow key={m.id}>
-                      <TableCell className="font-medium">{m.name}</TableCell>
-                      <TableCell>{m.phone}</TableCell>
-                      <TableCell className="text-right">
-                        <Badge variant="secondary" className="font-bold">{m.points}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="icon" onClick={() => deleteMember(m.id)}><Trash2 className="w-4 h-4" /></Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {(membersQ.data ?? []).length === 0 && (
-                    <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Nenhum cliente cadastrado</TableCell></TableRow>
-                  )}
+                  {(() => {
+                    const q = search.trim().toLowerCase();
+                    const digits = q.replace(/\D/g, "");
+                    const list = (membersQ.data ?? []).filter((m) => {
+                      if (!q) return true;
+                      const phoneDigits = (m.phone || "").replace(/\D/g, "");
+                      return m.name.toLowerCase().includes(q) || (digits && phoneDigits.includes(digits));
+                    });
+                    if (list.length === 0) {
+                      return (
+                        <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Nenhum cliente encontrado</TableCell></TableRow>
+                      );
+                    }
+                    return list.map((m) => (
+                      <TableRow key={m.id}>
+                        <TableCell className="font-medium">{m.name}</TableCell>
+                        <TableCell>{m.phone}</TableCell>
+                        <TableCell className="text-right">
+                          <Badge variant="secondary" className="font-bold">{m.points}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button variant="ghost" size="icon" title="Histórico" onClick={() => setHistoryMember(m)}><History className="w-4 h-4" /></Button>
+                            <Button variant="ghost" size="icon" title="Editar" onClick={() => openEdit(m)}><Pencil className="w-4 h-4" /></Button>
+                            <Button variant="ghost" size="icon" title="Excluir" onClick={() => deleteMember(m.id)}><Trash2 className="w-4 h-4" /></Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ));
+                  })()}
                 </TableBody>
               </Table>
             </div>
