@@ -870,12 +870,23 @@ function Step2Address(props: {
   restaurantLng: number | null;
   restaurantCity: string | null;
   restaurantState: string | null;
+  prevAddresses: Array<{
+    cep: string; street: string; number: string; complement: string;
+    neighborhood: string; city: string; state: string; notes: string;
+    lat: number | null; lng: number | null; last_used_at: string;
+  }>;
+  applyPrevAddress: (p: {
+    cep: string; street: string; number: string; complement: string;
+    neighborhood: string; city: string; state: string; notes: string;
+    lat: number | null; lng: number | null; last_used_at: string;
+  }) => void;
 }) {
   const {
     cep, setCep, dontKnowCep, setDontKnowCep, addr, setAddr, lookupCep,
     fieldRefs, shakeKey, feeMode, fixedFee, hasZones, restaurantHasCoords,
     delivery, deliveryError, calculating, pinnedPoint, setPinnedPoint,
     restaurantLat, restaurantLng, restaurantCity, restaurantState,
+    prevAddresses, applyPrevAddress,
   } = props;
 
   const [editing, setEditing] = useState(false);
