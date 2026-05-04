@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/hooks/useCart";
@@ -310,19 +310,31 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
     restaurant.address_cep,
   ].filter(Boolean).join(" • ");
 
+  // Refs e estado de shake para feedback visual sem toasts
+  const fieldRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [shakeKey, setShakeKey] = useState<string | null>(null);
+  const flagInvalid = (key: string) => {
+    const el = fieldRefs.current[key];
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    setShakeKey(key);
+    setTimeout(() => setShakeKey((k) => (k === key ? null : k)), 600);
+  };
+
   // ---------- Validação por etapa ----------
   const validateStep1 = () => {
-    if (name.trim().length < 2) { toast.error("Informe seu nome"); return false; }
-    if (unmaskPhone(phone).length < 10) { toast.error("Telefone inválido"); return false; }
+    if (name.trim().length < 2) { flagInvalid("name"); return false; }
+    if (unmaskPhone(phone).length < 10) { flagInvalid("phone"); return false; }
     return true;
   };
   const validateStep2 = () => {
     if (isPickup) return true;
-    if (!/^\d{5}-?\d{3}$/.test(cep)) { toast.error("CEP inválido"); return false; }
-    if (!addr.street || !addr.number || !addr.neighborhood || !addr.city || addr.state.length !== 2) {
-      toast.error("Preencha o endereço completo"); return false;
-    }
-    if (hasZones && !delivery) { toast.error(deliveryError || "Aguarde o cálculo da taxa de entrega."); return false; }
+    if (!/^\d{5}-?\d{3}$/.test(cep)) { flagInvalid("cep"); return false; }
+    if (!addr.street) { flagInvalid("street"); return false; }
+    if (!addr.number) { flagInvalid("number"); return false; }
+    if (!addr.neighborhood) { flagInvalid("neighborhood"); return false; }
+    if (!addr.city) { flagInvalid("city"); return false; }
+    if (addr.state.length !== 2) { flagInvalid("state"); return false; }
+    if (hasZones && !delivery) { flagInvalid("delivery"); return false; }
     return true;
   };
 
@@ -550,9 +562,22 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
           {/* ETAPA 1 — Dados do cliente */}
           {step === 1 && (
             <div className="space-y-3">
-              <div className="space-y-2"><Label>Nome completo</Label><Input value={name} onChange={(e) => setName(e.target.value)} required /></div>
-              <div className="space-y-2"><Label>Telefone</Label><Input value={phone} onChange={(e) => setPhone(formatPhone(e.target.value))} placeholder="(11) 99999-0000" inputMode="tel" required /></div>
-              
+              <div
+                ref={(el) => { fieldRefs.current["name"] = el; }}
+                style={{ scrollMarginTop: 80 }}
+                className={`space-y-2 ${shakeKey === "name" ? "animate-shake" : ""}`}
+              >
+                <Label className={shakeKey === "name" ? "text-destructive" : ""}>Nome completo</Label>
+                <Input value={name} onChange={(e) => setName(e.target.value)} className={shakeKey === "name" ? "border-destructive" : ""} required />
+              </div>
+              <div
+                ref={(el) => { fieldRefs.current["phone"] = el; }}
+                style={{ scrollMarginTop: 80 }}
+                className={`space-y-2 ${shakeKey === "phone" ? "animate-shake" : ""}`}
+              >
+                <Label className={shakeKey === "phone" ? "text-destructive" : ""}>Telefone</Label>
+                <Input value={phone} onChange={(e) => setPhone(formatPhone(e.target.value))} placeholder="(11) 99999-0000" inputMode="tel" className={shakeKey === "phone" ? "border-destructive" : ""} required />
+              </div>
             </div>
           )}
 
@@ -561,16 +586,31 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
             <div className="space-y-3">
               <h3 className="font-semibold text-sm">Endereço de entrega</h3>
               <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-2 col-span-1">
-                  <Label>CEP</Label>
-                  <Input value={cep} onChange={(e) => setCep(e.target.value)} onBlur={(e) => lookupCep(e.target.value)} placeholder="00000-000" required />
+                <div ref={(el) => { fieldRefs.current["cep"] = el; }} style={{ scrollMarginTop: 80 }} className={`space-y-2 col-span-1 ${shakeKey === "cep" ? "animate-shake" : ""}`}>
+                  <Label className={shakeKey === "cep" ? "text-destructive" : ""}>CEP</Label>
+                  <Input value={cep} onChange={(e) => setCep(e.target.value)} onBlur={(e) => lookupCep(e.target.value)} placeholder="00000-000" className={shakeKey === "cep" ? "border-destructive" : ""} required />
                 </div>
-                <div className="space-y-2 col-span-2"><Label>Rua</Label><Input value={addr.street} onChange={(e) => setAddr({ ...addr, street: e.target.value })} required /></div>
-                <div className="space-y-2"><Label>Número</Label><Input value={addr.number} onChange={(e) => setAddr({ ...addr, number: e.target.value })} required /></div>
+                <div ref={(el) => { fieldRefs.current["street"] = el; }} style={{ scrollMarginTop: 80 }} className={`space-y-2 col-span-2 ${shakeKey === "street" ? "animate-shake" : ""}`}>
+                  <Label className={shakeKey === "street" ? "text-destructive" : ""}>Rua</Label>
+                  <Input value={addr.street} onChange={(e) => setAddr({ ...addr, street: e.target.value })} className={shakeKey === "street" ? "border-destructive" : ""} required />
+                </div>
+                <div ref={(el) => { fieldRefs.current["number"] = el; }} style={{ scrollMarginTop: 80 }} className={`space-y-2 ${shakeKey === "number" ? "animate-shake" : ""}`}>
+                  <Label className={shakeKey === "number" ? "text-destructive" : ""}>Número</Label>
+                  <Input value={addr.number} onChange={(e) => setAddr({ ...addr, number: e.target.value })} className={shakeKey === "number" ? "border-destructive" : ""} required />
+                </div>
                 <div className="space-y-2 col-span-2"><Label>Complemento</Label><Input value={addr.complement} onChange={(e) => setAddr({ ...addr, complement: e.target.value })} placeholder="Apto, bloco..." /></div>
-                <div className="space-y-2 col-span-2"><Label>Bairro</Label><Input value={addr.neighborhood} onChange={(e) => setAddr({ ...addr, neighborhood: e.target.value })} required /></div>
-                <div className="space-y-2 col-span-2"><Label>Cidade</Label><Input value={addr.city} onChange={(e) => setAddr({ ...addr, city: e.target.value })} required /></div>
-                <div className="space-y-2"><Label>UF</Label><Input maxLength={2} value={addr.state} onChange={(e) => setAddr({ ...addr, state: e.target.value.toUpperCase() })} required /></div>
+                <div ref={(el) => { fieldRefs.current["neighborhood"] = el; }} style={{ scrollMarginTop: 80 }} className={`space-y-2 col-span-2 ${shakeKey === "neighborhood" ? "animate-shake" : ""}`}>
+                  <Label className={shakeKey === "neighborhood" ? "text-destructive" : ""}>Bairro</Label>
+                  <Input value={addr.neighborhood} onChange={(e) => setAddr({ ...addr, neighborhood: e.target.value })} className={shakeKey === "neighborhood" ? "border-destructive" : ""} required />
+                </div>
+                <div ref={(el) => { fieldRefs.current["city"] = el; }} style={{ scrollMarginTop: 80 }} className={`space-y-2 col-span-2 ${shakeKey === "city" ? "animate-shake" : ""}`}>
+                  <Label className={shakeKey === "city" ? "text-destructive" : ""}>Cidade</Label>
+                  <Input value={addr.city} onChange={(e) => setAddr({ ...addr, city: e.target.value })} className={shakeKey === "city" ? "border-destructive" : ""} required />
+                </div>
+                <div ref={(el) => { fieldRefs.current["state"] = el; }} style={{ scrollMarginTop: 80 }} className={`space-y-2 ${shakeKey === "state" ? "animate-shake" : ""}`}>
+                  <Label className={shakeKey === "state" ? "text-destructive" : ""}>UF</Label>
+                  <Input maxLength={2} value={addr.state} onChange={(e) => setAddr({ ...addr, state: e.target.value.toUpperCase() })} className={shakeKey === "state" ? "border-destructive" : ""} required />
+                </div>
               </div>
               <div className="space-y-2"><Label>Observação do endereço</Label><Textarea value={addr.notes} onChange={(e) => setAddr({ ...addr, notes: e.target.value })} rows={2} placeholder="Ponto de referência, instruções..." /></div>
 
@@ -583,7 +623,11 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
                 </div>
               )}
               {feeMode !== "fixed" && hasZones && restaurantHasCoords && (
-                <div className={`text-sm rounded-lg p-3 flex items-start gap-2 ${deliveryError ? "bg-destructive/10 text-destructive" : delivery ? "bg-success/10 text-success-foreground border border-success/30" : "bg-muted"}`}>
+                <div
+                  ref={(el) => { fieldRefs.current["delivery"] = el; }}
+                  style={{ scrollMarginTop: 80 }}
+                  className={`text-sm rounded-lg p-3 flex items-start gap-2 ${shakeKey === "delivery" ? "animate-shake" : ""} ${deliveryError ? "bg-destructive/10 text-destructive" : delivery ? "bg-success/10 text-success-foreground border border-success/30" : "bg-muted"}`}
+                >
                   {calculating ? <Loader2 className="w-4 h-4 animate-spin mt-0.5" /> : <MapPin className="w-4 h-4 mt-0.5" />}
                   <div className="flex-1">
                     {calculating && <span>Calculando taxa de entrega...</span>}
