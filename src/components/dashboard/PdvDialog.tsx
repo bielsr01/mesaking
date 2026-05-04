@@ -450,33 +450,32 @@ export function PdvDialog({
           </div>
 
           <div className="flex-1 grid grid-cols-[200px_1fr_380px] min-h-0">
-            {/* Left: categories sidebar */}
+            {/* Left: categories sidebar (anchors) */}
             <div className="border-r bg-muted/20 flex flex-col min-h-0">
               <div className="p-2 border-b text-xs font-semibold text-muted-foreground uppercase tracking-wide">Categorias</div>
               <ScrollArea className="flex-1">
                 <div className="p-2 space-y-1">
-                  <button
-                    type="button"
-                    onClick={() => setActiveCat("all")}
-                    className={`w-full text-left px-3 py-2 rounded-md text-sm transition ${activeCat === "all" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
-                  >
-                    Todos os produtos
-                  </button>
-                  {categories.filter((c) => c.is_active).map((c) => (
+                  {groupedByCategory.length === 0 ? (
+                    <div className="text-xs text-muted-foreground px-2 py-3">Nenhuma categoria</div>
+                  ) : groupedByCategory.map((g) => (
                     <button
-                      key={c.id}
+                      key={g.id}
                       type="button"
-                      onClick={() => setActiveCat(c.id)}
-                      className={`w-full text-left px-3 py-2 rounded-md text-sm transition ${activeCat === c.id ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+                      onClick={() => {
+                        const el = document.getElementById(`pdv-cat-${g.id}`);
+                        el?.scrollIntoView({ behavior: "smooth", block: "start" });
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-md text-sm transition hover:bg-muted"
                     >
-                      {c.name}
+                      {g.name}
+                      <span className="ml-2 text-[10px] text-muted-foreground">({g.products.length})</span>
                     </button>
                   ))}
                 </div>
               </ScrollArea>
             </div>
 
-            {/* Middle: products */}
+            {/* Middle: products — single scroll grouped by category */}
             <div className="flex flex-col min-h-0 border-r">
               <div className="p-3 border-b shrink-0">
                 <div className="relative">
@@ -485,35 +484,44 @@ export function PdvDialog({
                 </div>
               </div>
               <ScrollArea className="flex-1">
-                <div className="p-3 grid gap-3 grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                  {filteredProducts.length === 0 ? (
-                    <div className="col-span-full text-sm text-muted-foreground text-center py-12">Nenhum produto encontrado.</div>
-                  ) : filteredProducts.map((p) => {
-                    const hasOpts = (groupsByProduct[p.id]?.length ?? 0) > 0;
-                    return (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => startAdd(p)}
-                        className="text-left rounded-lg border bg-card hover:border-primary hover:shadow-md transition overflow-hidden flex flex-col"
-                      >
-                        <div className="aspect-square bg-muted flex items-center justify-center overflow-hidden">
-                          {p.image_url ? (
-                            <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" loading="lazy" />
-                          ) : (
-                            <ImageIcon className="w-10 h-10 text-muted-foreground/40" />
-                          )}
-                        </div>
-                        <div className="p-2 flex flex-col gap-1 flex-1">
-                          <div className="font-medium text-sm line-clamp-2">{p.name}</div>
-                          <div className="flex items-center justify-between mt-auto">
-                            <div className="text-primary font-bold text-sm">{brl(Number(p.price))}</div>
-                            {hasOpts && <Badge variant="outline" className="text-[10px]">opções</Badge>}
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
+                <div className="p-3 space-y-6">
+                  {groupedByCategory.length === 0 ? (
+                    <div className="text-sm text-muted-foreground text-center py-12">Nenhum produto encontrado.</div>
+                  ) : groupedByCategory.map((g) => (
+                    <section key={g.id} id={`pdv-cat-${g.id}`} className="scroll-mt-2">
+                      <h3 className="text-sm font-bold uppercase tracking-wide text-foreground/80 mb-2 sticky top-0 bg-background/95 backdrop-blur py-1 z-10 border-b">
+                        {g.name}
+                      </h3>
+                      <div className="grid gap-3 grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                        {g.products.map((p) => {
+                          const hasOpts = (groupsByProduct[p.id]?.length ?? 0) > 0;
+                          return (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() => startAdd(p)}
+                              className="text-left rounded-lg border bg-card hover:border-primary hover:shadow-md transition overflow-hidden flex flex-col"
+                            >
+                              <div className="aspect-square bg-muted flex items-center justify-center overflow-hidden">
+                                {p.image_url ? (
+                                  <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" loading="lazy" />
+                                ) : (
+                                  <ImageIcon className="w-10 h-10 text-muted-foreground/40" />
+                                )}
+                              </div>
+                              <div className="p-2 flex flex-col gap-1 flex-1">
+                                <div className="font-medium text-sm line-clamp-2">{p.name}</div>
+                                <div className="flex items-center justify-between mt-auto">
+                                  <div className="text-primary font-bold text-sm">{brl(Number(p.price))}</div>
+                                  {hasOpts && <Badge variant="outline" className="text-[10px]">opções</Badge>}
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  ))}
                 </div>
               </ScrollArea>
             </div>
