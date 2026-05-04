@@ -69,10 +69,37 @@ Deno.serve(async (req) => {
     if (!apiKey) throw new Error("GOOGLE_MAPS_SERVER_KEY not configured");
 
     const body = await req.json().catch(() => ({}));
-    const { cep, street, number, neighborhood, city, state, lat: rLat, lng: rLng, q, proximity } = body ?? {};
+    const { cep, street, number, neighborhood, city, state, lat: rLat, lng: rLng, q, proximity, placeId } = body ?? {};
 
-    // ---------- AUTOCOMPLETE (Places API New) ----------
-    if (typeof q === "string" && q.trim().length >= 3) {
+    // ---------- PLACE DETAILS (resolver 1 placeId em lat/lng + components) ----------
+    if (typeof placeId === "string" && placeId.length > 0) {
+      const detailFields = "id,formattedAddress,location,addressComponents";
+      const dr = await fetch(`${PLACES_BASE}/places/${placeId}`, {
+        headers: { "X-Goog-Api-Key": apiKey, "X-Goog-FieldMask": detailFields },
+      });
+      const dd = await dr.json();
+      if (!dr.ok) {
+        console.log("places.details", dr.status, JSON.stringify(dd).slice(0, 300));
+        return new Response(JSON.stringify({ error: "place_details_failed" }), {
+          status: 502,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const loc = dd?.location;
+      const parsed = parsePlacesNewComponents(dd?.addressComponents ?? [], dd?.formattedAddress ?? "");
+      return new Response(
+        JSON.stringify({
+          id: placeId,
+          lat: typeof loc?.latitude === "number" ? loc.latitude : undefined,
+          lng: typeof loc?.longitude === "number" ? loc.longitude : undefined,
+          ...parsed,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // ---------- AUTOCOMPLETE (Places API New) - rápido, sem detalhes ----------
+    if (typeof q === "string" && q.trim().length >= 2) {
       const reqBody: any = {
         input: q.trim(),
         languageCode: "pt-BR",
@@ -97,38 +124,28 @@ Deno.serve(async (req) => {
       if (!r.ok) console.log("places:autocomplete", r.status, JSON.stringify(data).slice(0, 400));
 
       const preds: any[] = data?.suggestions ?? [];
-      const detailFields = "id,formattedAddress,location,addressComponents";
-      const details = await Promise.all(
-        preds.slice(0, 8).map(async (s) => {
-          const placeId = s?.placePrediction?.placeId;
-          if (!placeId) return null;
-          try {
-            const dr = await fetch(`${PLACES_BASE}/places/${placeId}`, {
-              headers: { "X-Goog-Api-Key": apiKey, "X-Goog-FieldMask": detailFields },
-            });
-            const dd = await dr.json();
-            if (!dr.ok) {
-              console.log("places.details", dr.status, JSON.stringify(dd).slice(0, 300));
-              return null;
-            }
-            const loc = dd?.location;
-            const parsed = parsePlacesNewComponents(dd?.addressComponents ?? [], dd?.formattedAddress ?? "");
-            const out: AddrOut = {
-              id: placeId,
-              lat: typeof loc?.latitude === "number" ? loc.latitude : undefined,
-              lng: typeof loc?.longitude === "number" ? loc.longitude : undefined,
-              ...parsed,
-            };
-            return out;
-          } catch {
-            return null;
-          }
-        }),
-      );
-
-      const suggestions = details.filter(
-        (d): d is AddrOut => !!d && typeof d.lat === "number" && typeof d.lng === "number",
-      );
+      const suggestions = preds
+        .map((s) => {
+          const p = s?.placePrediction;
+          if (!p?.placeId) return null;
+          const main = p?.structuredFormat?.mainText?.text ?? "";
+          const secondary = p?.structuredFormat?.secondaryText?.text ?? "";
+          const full = p?.text?.text ?? [main, secondary].filter(Boolean).join(", ");
+          return {
+            id: p.placeId,
+            place_name: full,
+            main_text: main,
+            secondary_text: secondary,
+            street: "",
+            number: "",
+            neighborhood: "",
+            city: "",
+            state: "",
+            cep: "",
+          };
+        })
+        .filter(Boolean)
+        .slice(0, 8);
 
       return new Response(JSON.stringify({ suggestions }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
