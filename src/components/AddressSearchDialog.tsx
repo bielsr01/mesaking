@@ -112,9 +112,9 @@ export function AddressSearchDialog({
               Nenhum endereço encontrado.
             </div>
           )}
-          {!loading && q.trim().length < 3 && (
+          {!loading && q.trim().length < 2 && (
             <div className="px-6 py-6 text-sm text-muted-foreground">
-              Digite ao menos 3 caracteres para buscar.
+              Digite ao menos 2 caracteres para buscar.
             </div>
           )}
           <ul className="divide-y">
@@ -123,17 +123,18 @@ export function AddressSearchDialog({
                 <button
                   type="button"
                   className="w-full text-left px-6 py-3 hover:bg-muted/60 flex items-start gap-3"
-                  onClick={() => onPickSuggestion(s)}
+                  onClick={() => handlePick(s)}
                 >
                   <MapPin className="w-4 h-4 mt-0.5 text-primary shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium break-words">
-                      {s.street ? `${s.street}${s.number ? `, ${s.number}` : ""}` : s.place_name}
+                      {s.main_text || (s.street ? `${s.street}${s.number ? `, ${s.number}` : ""}` : s.place_name)}
                     </p>
                     <p className="text-xs text-muted-foreground break-words">
-                      {[s.neighborhood, s.city && s.state ? `${s.city}/${s.state}` : s.city, s.cep]
-                        .filter(Boolean)
-                        .join(" • ")}
+                      {s.secondary_text ||
+                        [s.neighborhood, s.city && s.state ? `${s.city}/${s.state}` : s.city, s.cep]
+                          .filter(Boolean)
+                          .join(" • ")}
                     </p>
                   </div>
                 </button>
