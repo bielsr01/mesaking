@@ -75,7 +75,7 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
   const [pinnedPoint, setPinnedPoint] = useState<GeoPoint | null>(null);
 
   // Etapa 3 — pagamento
-  const [payment, setPayment] = useState<"cash" | "pix" | "card_on_delivery">("cash");
+  const [payment, setPayment] = useState<"" | "cash" | "pix" | "card_on_delivery">("");
   const [changeFor, setChangeFor] = useState("");
 
   // Programa de fidelidade
