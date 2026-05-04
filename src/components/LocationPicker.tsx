@@ -22,7 +22,7 @@ async function getGoogleApiKey(): Promise<string | null> {
 }
 
 async function loadGoogleMaps(apiKey: string): Promise<void> {
-  if (typeof window !== "undefined" && window.google?.maps) return Promise.resolve();
+  if (typeof window !== "undefined" && window.google?.maps?.Map) return Promise.resolve();
   if (window.__gmapsLoading) return window.__gmapsLoading;
   window.__gmapsLoading = new Promise((resolve, reject) => {
     const existing = document.querySelector<HTMLScriptElement>('script[data-gmaps="1"]');
