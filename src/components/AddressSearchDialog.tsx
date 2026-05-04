@@ -9,12 +9,16 @@ export function AddressSearchDialog({
   open,
   onOpenChange,
   proximity,
+  cityFilter,
+  stateFilter,
   onPickSuggestion,
   onUseCurrentLocation,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   proximity?: GeoPoint | null;
+  cityFilter?: string;
+  stateFilter?: string;
   onPickSuggestion: (s: AddressSuggestion) => void;
   onUseCurrentLocation: () => void;
 }) {
@@ -40,19 +44,29 @@ export function AddressSearchDialog({
     }
     setLoading(true);
     const t = setTimeout(async () => {
-      const r = await searchAddresses(q, proximity ?? undefined);
-      setSuggestions(r);
+      const r = await searchAddresses(q, {
+        proximity: proximity ?? undefined,
+        city: cityFilter,
+        state: stateFilter,
+      });
+      // Filtra no cliente também: prioriza endereços da mesma cidade do restaurante
+      const filtered = cityFilter
+        ? r.filter((s) => !s.city || s.city.toLowerCase() === cityFilter.toLowerCase())
+        : r;
+      setSuggestions(filtered.length ? filtered : r);
       setLoading(false);
     }, 350);
     return () => clearTimeout(t);
-  }, [q, open, proximity]);
+  }, [q, open, proximity, cityFilter, stateFilter]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="p-0 gap-0 flex flex-col overflow-hidden max-w-full w-screen h-[100dvh] sm:max-w-lg sm:h-auto sm:max-h-[80vh] sm:rounded-lg rounded-none">
         <DialogHeader className="shrink-0 px-6 py-4 border-b">
           <DialogTitle className="flex items-center gap-2"><MapPin className="w-5 h-5" /> Cadastre seu endereço</DialogTitle>
-          <DialogDescription>Digite sua rua e número ou use sua localização atual.</DialogDescription>
+          <DialogDescription>
+            {cityFilter ? `Buscando em ${cityFilter}${stateFilter ? `/${stateFilter}` : ""}.` : "Digite sua rua e número ou use sua localização atual."}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="shrink-0 px-6 py-3 border-b space-y-3">
