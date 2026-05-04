@@ -608,6 +608,10 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
               calculating={calculating}
               pinnedPoint={pinnedPoint}
               setPinnedPoint={setPinnedPoint}
+              restaurantLat={restaurant.latitude ?? null}
+              restaurantLng={restaurant.longitude ?? null}
+              restaurantCity={restaurant.address_city ?? null}
+              restaurantState={restaurant.address_state ?? null}
             />
           )}
 
