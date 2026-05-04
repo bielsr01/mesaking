@@ -672,11 +672,14 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
     setBusy(false);
     onOpenChange(false);
     setActiveOrder(restaurant.id, order.public_token);
-    toast.success(
-      earnedPoints > 0
-        ? `Pedido enviado! Sua compra gerou ${earnedPoints} ponto(s) de fidelidade.`
-        : "Pedido enviado! Acompanhe o status no topo da tela."
-    );
+    // Rola para o topo da página com animação suave
+    try {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (_) { window.scrollTo(0, 0); }
+    toast.success("Pedido enviado", {
+      duration: 3000,
+      className: "animate-scale-in",
+    });
   };
 
   // Indicador de progresso
