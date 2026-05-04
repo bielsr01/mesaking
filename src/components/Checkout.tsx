@@ -942,9 +942,23 @@ function Step2Address(props: {
       <LocationPicker
         open={pickingMap}
         onOpenChange={setPickingMap}
-        address={{ cep, street: addr.street, number: addr.number, neighborhood: addr.neighborhood, city: addr.city, state: addr.state }}
         initialPoint={pinnedPoint}
-        onConfirm={(pt) => setPinnedPoint(pt)}
+        onConfirm={(r) => {
+          setPinnedPoint({ lat: r.lat, lng: r.lng });
+          // Pré-preenche o formulário com o que conseguimos do mapa
+          setAddr({
+            ...addr,
+            street: r.street || addr.street,
+            neighborhood: r.neighborhood || addr.neighborhood,
+            city: r.city || addr.city,
+            state: r.state || addr.state,
+            // mantém número (cliente digita) — pré-preenche se Mapbox retornou
+            number: addr.number || r.number || "",
+          });
+          if (r.cep) setCep(r.cep.replace(/\D/g, "").replace(/(\d{5})(\d{3})/, "$1-$2"));
+          // Abre o formulário para o cliente digitar o número
+          setEditing(true);
+        }}
       />
     </div>
   );
