@@ -824,7 +824,7 @@ function Step2Address(props: {
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={() => setEditing(true)}>
+            <Button type="button" variant="outline" size="sm" onClick={() => setSearching(true)}>
               Editar endereço
             </Button>
             <Button type="button" variant="outline" size="sm" onClick={() => { setMapInitialPoint(pinnedPoint); setPickingMap(true); }}>
