@@ -14,14 +14,7 @@ export type GeocodeAddress = {
   state?: string;
 };
 
-type NominatimResult = {
-  lat: string;
-  lon: string;
-  osm_type?: string;
-  class?: string;
-  type?: string;
-  address?: { house_number?: string; road?: string };
-};
+
 
 export async function geocodeAddress(addr: GeocodeAddress): Promise<GeoPoint | null> {
   try {
