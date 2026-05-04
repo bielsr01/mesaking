@@ -152,7 +152,8 @@ export function PdvDialog({
         setLoyaltyOptIn(!!d.loyaltyOptIn);
         setDiscountType(d.discountType ?? "value");
         setDiscountValue(Number(d.discountValue) || 0);
-        setServiceFee(Number(d.serviceFee) || 0);
+        setServiceFeeType(d.serviceFeeType ?? "percent");
+        setServiceFeeValue(Number(d.serviceFeeValue) || 0);
         setPayment(d.payment ?? "cash");
       }
     } catch { /* noop */ }
@@ -161,17 +162,34 @@ export function PdvDialog({
   useEffect(() => {
     if (!open) return;
     try { localStorage.setItem(STORAGE_KEY(restaurantId), JSON.stringify({
-      cart, customerName, customerPhone, loyaltyOptIn, discountType, discountValue, serviceFee, payment,
+      cart, customerName, customerPhone, loyaltyOptIn, discountType, discountValue, serviceFeeType, serviceFeeValue, payment,
     })); } catch { /* noop */ }
-  }, [open, restaurantId, cart, customerName, customerPhone, loyaltyOptIn, discountType, discountValue, serviceFee, payment]);
+  }, [open, restaurantId, cart, customerName, customerPhone, loyaltyOptIn, discountType, discountValue, serviceFeeType, serviceFeeValue, payment]);
 
   const filteredProducts = useMemo(() => {
     const q = search.trim().toLowerCase();
     return products
       .filter((p) => p.is_active)
-      .filter((p) => (activeCat === "all" ? true : p.category_id === activeCat))
       .filter((p) => (q ? p.name.toLowerCase().includes(q) : true));
-  }, [products, activeCat, search]);
+  }, [products, search]);
+
+  // Group filtered products by category for unified scrolling list
+  const groupedByCategory = useMemo(() => {
+    const byCat = new Map<string, typeof products>();
+    filteredProducts.forEach((p) => {
+      const key = p.category_id ?? "__none__";
+      const arr = byCat.get(key) ?? [];
+      arr.push(p);
+      byCat.set(key, arr);
+    });
+    const ordered = categories
+      .filter((c) => c.is_active)
+      .map((c) => ({ id: c.id, name: c.name, products: byCat.get(c.id) ?? [] }))
+      .filter((g) => g.products.length > 0);
+    const orphan = byCat.get("__none__") ?? [];
+    if (orphan.length) ordered.push({ id: "__none__", name: "Sem categoria", products: orphan });
+    return ordered;
+  }, [filteredProducts, categories]);
 
   const startAdd = (p: typeof products[number]) => {
     const grs = groupsByProduct[p.id] ?? [];
@@ -220,12 +238,16 @@ export function PdvDialog({
     if (discountType === "percent") return Math.min(subtotal, subtotal * (discountValue / 100));
     return Math.min(subtotal, discountValue);
   })();
-  const total = Math.max(0, subtotal - discountApplied + serviceFee);
+  const baseAfterDiscount = Math.max(0, subtotal - discountApplied);
+  const serviceFeeApplied = serviceFeeType === "percent"
+    ? baseAfterDiscount * (serviceFeeValue / 100)
+    : serviceFeeValue;
+  const total = baseAfterDiscount + serviceFeeApplied;
 
   const reset = () => {
     setCart([]); setCustomerName(""); setCustomerPhone(""); setLoyaltyOptIn(false);
-    setDiscountValue(0); setServiceFee(0); setPayment("cash");
-    setActiveCat("all"); setSearch("");
+    setDiscountValue(0); setServiceFeeValue(0); setServiceFeeType("percent"); setPayment("cash");
+    setSearch("");
     try { localStorage.removeItem(STORAGE_KEY(restaurantId)); } catch { /* noop */ }
   };
 
