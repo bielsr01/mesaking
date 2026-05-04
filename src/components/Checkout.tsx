@@ -984,16 +984,17 @@ function Step2Address(props: {
         onOpenChange={(o) => { setPickingMap(o); if (!o) setForceGeolocate(false); }}
         initialPoint={forceGeolocate ? null : (mapInitialPoint ?? pinnedPoint)}
         onConfirm={(r) => {
+          // Salva apenas a coordenada do pino. Só preenche campos vazios — não sobrescreve o que o cliente digitou.
           setPinnedPoint({ lat: r.lat, lng: r.lng });
           setAddr({
             ...addr,
-            street: r.street || addr.street,
-            neighborhood: r.neighborhood || addr.neighborhood,
-            city: r.city || addr.city,
-            state: r.state || addr.state,
+            street: addr.street || r.street || "",
+            neighborhood: addr.neighborhood || r.neighborhood || "",
+            city: addr.city || r.city || "",
+            state: addr.state || r.state || "",
             number: addr.number || r.number || "",
           });
-          if (r.cep) setCep(r.cep.replace(/\D/g, "").replace(/(\d{5})(\d{3})/, "$1-$2"));
+          if (!cep && r.cep) setCep(r.cep.replace(/\D/g, "").replace(/(\d{5})(\d{3})/, "$1-$2"));
           setEditing(true);
         }}
       />
