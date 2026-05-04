@@ -511,11 +511,17 @@ export default function RestaurantPublic() {
 
                 {productGroups.map((g) => {
                   const cur = selectedOpts[g.id] ?? [];
+                  const shaking = shakeGroupId === g.id;
                   return (
-                    <div key={g.id} className="space-y-2 border-t pt-3">
-                      <div className="flex items-center justify-between">
-                        <Label className="font-semibold">{g.name}</Label>
-                        <span className="text-xs text-muted-foreground">
+                    <div
+                      key={g.id}
+                      ref={(el) => { groupRefs.current[g.id] = el; }}
+                      style={{ scrollMarginTop: 80 }}
+                      className="space-y-2 border-t pt-3"
+                    >
+                      <div className={`flex items-center justify-between ${shaking ? "animate-shake" : ""}`}>
+                        <Label className={`font-semibold ${shaking ? "text-destructive" : ""}`}>{g.name}</Label>
+                        <span className={`text-xs ${shaking ? "text-destructive font-semibold" : "text-muted-foreground"}`}>
                           {g.min_select > 0 ? `Obrigatório · ` : "Opcional · "}
                           {g.max_select === 1 ? "escolha 1" : `até ${g.max_select}`}
                         </span>
