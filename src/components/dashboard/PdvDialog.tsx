@@ -105,7 +105,7 @@ export function PdvDialog({
     enabled: open, staleTime: 60_000,
   });
 
-  const [activeCat, setActiveCat] = useState<string | "all">("all");
+  const [search, setSearch] = useState("");
   const [search, setSearch] = useState("");
   const [cart, setCart] = useState<CartLine[]>([]);
 
