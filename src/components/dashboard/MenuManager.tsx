@@ -28,7 +28,7 @@ export async function fetchCategories(restaurantId: string): Promise<Category[]>
   return (data ?? []) as Category[];
 }
 export async function fetchProducts(restaurantId: string): Promise<Product[]> {
-  const { data } = await supabase.from("products").select("*").eq("restaurant_id", restaurantId).order("created_at");
+  const { data } = await supabase.from("products").select("*").eq("restaurant_id", restaurantId).order("sort_order").order("created_at");
   return (data ?? []) as Product[];
 }
 async function fetchProductGroupIds(productId: string): Promise<string[]> {
