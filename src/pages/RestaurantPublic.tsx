@@ -46,7 +46,7 @@ export default function RestaurantPublic() {
   const loadMenu = async (rid: string) => {
     const [catsRes, prodsRes, linksRes, groupsRes, itemsRes] = await Promise.all([
       supabase.from("categories").select("*").eq("restaurant_id", rid).eq("is_active", true).order("sort_order"),
-      supabase.from("products").select("*").eq("restaurant_id", rid).eq("is_active", true).order("created_at"),
+      supabase.from("products").select("*").eq("restaurant_id", rid).eq("is_active", true).order("sort_order").order("created_at"),
       supabase.from("product_option_groups").select("product_id, group_id, sort_order"),
       supabase.from("option_groups").select("id, name, min_select, max_select, sort_order, is_active, restaurant_id").eq("restaurant_id", rid).eq("is_active", true),
       supabase.from("option_items").select("id, group_id, name, extra_price, sort_order, is_active, option_groups!inner(restaurant_id)").eq("option_groups.restaurant_id", rid).eq("is_active", true).order("sort_order"),
