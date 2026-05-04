@@ -676,10 +676,26 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
     try {
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (_) { window.scrollTo(0, 0); }
-    toast.success("Pedido enviado", {
-      duration: 3000,
-      className: "animate-scale-in",
-    });
+    toast.custom(
+      () => (
+        <div className="flex items-center gap-4 rounded-xl border bg-background px-6 py-5 shadow-elegant">
+          <svg viewBox="0 0 64 64" className="animated-check w-12 h-12 shrink-0" fill="none">
+            <circle
+              className="check-circle"
+              cx="32" cy="32" r="28"
+              stroke="hsl(var(--success))" strokeWidth="4" strokeLinecap="round"
+            />
+            <path
+              className="check-mark"
+              d="M20 33 l9 9 l16 -18"
+              stroke="hsl(var(--success))" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"
+            />
+          </svg>
+          <span className="text-xl font-semibold text-foreground">Pedido enviado</span>
+        </div>
+      ),
+      { duration: 3000 },
+    );
   };
 
   // Indicador de progresso

@@ -108,4 +108,23 @@
   .bg-gradient-warm { background: var(--gradient-warm); }
   .shadow-soft { box-shadow: var(--shadow-soft); }
   .shadow-elegant { box-shadow: var(--shadow-elegant); }
+
+  /* Animated check (draws circle then check mark) */
+  @keyframes draw-stroke { to { stroke-dashoffset: 0; } }
+  @keyframes pop-in {
+    0%   { transform: scale(0.6); opacity: 0; }
+    60%  { transform: scale(1.08); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .animated-check { animation: pop-in 0.35s ease-out both; }
+  .animated-check .check-circle {
+    stroke-dasharray: 170;
+    stroke-dashoffset: 170;
+    animation: draw-stroke 0.5s ease-out 0.05s forwards;
+  }
+  .animated-check .check-mark {
+    stroke-dasharray: 60;
+    stroke-dashoffset: 60;
+    animation: draw-stroke 0.35s ease-out 0.4s forwards;
+  }
 }
