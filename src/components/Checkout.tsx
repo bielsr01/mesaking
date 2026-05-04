@@ -821,7 +821,7 @@ function Step2Address(props: {
           </div>
         </div>
       ) : (
-        <Button type="button" variant="outline" onClick={() => setEditing(true)} className="w-full justify-start gap-2 h-12">
+        <Button type="button" variant="outline" onClick={() => setPickingMap(true)} className="w-full justify-start gap-2 h-12">
           <MapPin className="w-4 h-4" />
           Cadastre seu endereço
         </Button>
