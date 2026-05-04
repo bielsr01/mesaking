@@ -587,20 +587,26 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
             <div className="space-y-3">
               <h3 className="font-semibold text-sm">Endereço de entrega</h3>
               <div className="grid grid-cols-3 gap-3">
-                <div ref={(el) => { fieldRefs.current["cep"] = el; }} style={{ scrollMarginTop: 80 }} className={`space-y-2 col-span-1 ${shakeKey === "cep" ? "animate-shake" : ""}`}>
-                  <Label className={shakeKey === "cep" ? "text-destructive" : ""}>CEP</Label>
-                  <Input
-                    value={cep}
-                    onChange={(e) => setCep(e.target.value)}
-                    onBlur={(e) => !dontKnowCep && lookupCep(e.target.value)}
-                    placeholder="00000-000"
-                    disabled={dontKnowCep}
-                    className={`w-32 ${shakeKey === "cep" ? "border-destructive" : ""}`}
-                    required={!dontKnowCep}
-                  />
-                </div>
-                <div className="col-span-2 flex items-end">
-                  <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                <div className="col-span-3 flex items-end gap-3 flex-wrap">
+                  <div ref={(el) => { fieldRefs.current["cep"] = el; }} style={{ scrollMarginTop: 80 }} className={`space-y-2 ${shakeKey === "cep" ? "animate-shake" : ""}`}>
+                    <Label className={shakeKey === "cep" ? "text-destructive" : ""}>CEP</Label>
+                    <Input
+                      value={cep}
+                      onChange={(e) => {
+                        const d = e.target.value.replace(/\D/g, "").slice(0, 8);
+                        const masked = d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d;
+                        setCep(masked);
+                      }}
+                      onBlur={(e) => !dontKnowCep && lookupCep(e.target.value)}
+                      placeholder="00000-000"
+                      disabled={dontKnowCep}
+                      inputMode="numeric"
+                      maxLength={9}
+                      className={`w-[7.5rem] ${shakeKey === "cep" ? "border-destructive" : ""}`}
+                      required={!dontKnowCep}
+                    />
+                  </div>
+                  <label className="flex items-center gap-2 text-sm cursor-pointer select-none h-10">
                     <input
                       type="checkbox"
                       checked={dontKnowCep}
