@@ -602,7 +602,7 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
                       disabled={dontKnowCep}
                       inputMode="numeric"
                       maxLength={9}
-                      className={`w-[7.5rem] ${shakeKey === "cep" ? "border-destructive" : ""}`}
+                      className={`w-[6.5rem] px-2 ${shakeKey === "cep" ? "border-destructive" : ""}`}
                       required={!dontKnowCep}
                     />
                   </div>
