@@ -818,14 +818,14 @@ function Step2Address(props: {
             <Button type="button" variant="outline" size="sm" onClick={() => setEditing(true)}>
               Editar endereço
             </Button>
-            <Button type="button" variant="outline" size="sm" onClick={() => setPickingMap(true)}>
+            <Button type="button" variant="outline" size="sm" onClick={() => { setMapInitialPoint(pinnedPoint); setPickingMap(true); }}>
               <MapPin className="w-4 h-4 mr-1" />
               {pinnedPoint ? "Reajustar pino" : "Pinar no mapa"}
             </Button>
           </div>
         </div>
       ) : (
-        <Button type="button" variant="outline" onClick={() => setPickingMap(true)} className="w-full justify-start gap-2 h-12">
+        <Button type="button" variant="outline" onClick={() => setSearching(true)} className="w-full justify-start gap-2 h-12">
           <MapPin className="w-4 h-4" />
           Cadastre seu endereço
         </Button>
