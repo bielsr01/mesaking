@@ -62,18 +62,20 @@ export default function RestaurantPublic() {
       itemsByGroup.set(it.group_id, arr);
     });
     const idx: Record<string, OptionGroup[]> = {};
+    const linkOrder: Record<string, Record<string, number>> = {};
     ((linksRes.data ?? []) as any[]).forEach((l) => {
       const g = groupById.get(l.group_id);
       if (!g) return; // group inactive or not in this restaurant
       const og: OptionGroup = {
-        id: g.id, name: g.name, min_select: g.min_select, max_select: g.max_select, sort_order: g.sort_order,
+        id: g.id, name: g.name, min_select: g.min_select, max_select: g.max_select, sort_order: l.sort_order ?? 0,
         items: (itemsByGroup.get(g.id) ?? []).map((it) => ({ id: it.id, name: it.name, extra_price: Number(it.extra_price) })),
       };
       const arr = idx[l.product_id] ?? [];
       arr.push(og);
       idx[l.product_id] = arr;
+      (linkOrder[l.product_id] ??= {})[g.id] = l.sort_order ?? 0;
     });
-    Object.keys(idx).forEach((pid) => idx[pid].sort((a, b) => a.sort_order - b.sort_order));
+    Object.keys(idx).forEach((pid) => idx[pid].sort((a, b) => (linkOrder[pid]?.[a.id] ?? 0) - (linkOrder[pid]?.[b.id] ?? 0)));
     return { cats, prods, idx };
   };
 
