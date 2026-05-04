@@ -4,7 +4,7 @@ import "leaflet/dist/leaflet.css";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Loader2, MapPin } from "lucide-react";
-import { renderToStaticMarkup } from "react-dom/server";
+
 import { geocodeAddress, GeocodeAddress, GeoPoint } from "@/lib/delivery";
 
 // Fix Leaflet default marker icon paths (Vite/bundler workaround)
