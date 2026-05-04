@@ -9,6 +9,7 @@ interface AuthContextValue {
   session: Session | null;
   roles: AppRole[];
   loading: boolean;
+  rolesLoading: boolean;
   isMasterAdmin: boolean;
   isManager: boolean;
   signOut: () => Promise<void>;
@@ -22,10 +23,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
+  const [rolesLoading, setRolesLoading] = useState(false);
 
   const loadRoles = async (userId: string) => {
-    const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
-    setRoles((data?.map((r) => r.role) as AppRole[]) ?? []);
+    setRolesLoading(true);
+    try {
+      const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+      setRoles((data?.map((r) => r.role) as AppRole[]) ?? []);
+    } finally {
+      setRolesLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -33,17 +40,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(newSession);
       setUser(newSession?.user ?? null);
       if (newSession?.user) {
+        setRolesLoading(true);
         setTimeout(() => loadRoles(newSession.user.id), 0);
       } else {
         setRoles([]);
+        setRolesLoading(false);
       }
     });
 
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
       setUser(s?.user ?? null);
-      if (s?.user) loadRoles(s.user.id).finally(() => setLoading(false));
-      else setLoading(false);
+      if (s?.user) {
+        setRolesLoading(true);
+        loadRoles(s.user.id).finally(() => setLoading(false));
+      } else {
+        setLoading(false);
+      }
     });
 
     return () => sub.subscription.unsubscribe();
@@ -65,6 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         session,
         roles,
         loading,
+        rolesLoading,
         isMasterAdmin: roles.includes("master_admin"),
         isManager: roles.includes("manager"),
         signOut,

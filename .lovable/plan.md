@@ -1,99 +1,43 @@
+## Problema
 
-# SaaS Restaurantes — MVP Enxuto (Fase 1)
+Ao logar, o redirecionamento usa `isMasterAdmin` / `isManager`, mas esses valores dependem da tabela `user_roles`, que é carregada **assincronamente** depois que `user` é definido. Resultado:
 
-Vamos começar com um MVP focado: cadastro multi-tenant, cardápio, checkout do cliente final com ViaCEP, gestão de pedidos em tempo real e painéis básicos para Master Admin e Manager. PDV, promoções/cupons, dashboard com gráficos e raio de entrega ficam para fases seguintes.
+1. `signIn` dispara `onAuthStateChange` → `user` é setado imediatamente, `roles` ainda é `[]`.
+2. O `useEffect` em `Auth.tsx` roda com `user` presente mas `isMasterAdmin=false` e `isManager=false` → cai no `else` e navega para `/`.
+3. `Index.tsx` vê `user` sem roles → redireciona de volta para `/auth`.
+4. Quando os roles finalmente chegam, o redirecionamento correto acontece — mas nesse meio tempo o usuário pode ver tela errada, ou em alguns casos ficar parado em `/`.
 
-## Identidade visual
+O `RequireRole` tem o mesmo risco: durante a janela em que `loading=false` mas roles ainda não chegaram (ex.: trocar de conta sem reload), ele redireciona indevidamente para `/`.
 
-- Tema claro, paleta quente "food" mas sóbria.
-- Primária: laranja-âmbar (energia/apetite). Acentos: verde para "aberto/entregue", vermelho para "fechado/cancelado".
-- Tipografia: Inter (UI) + Manrope (títulos). Cantos arredondados médios, sombras suaves, cards limpos.
-- Tudo via design system (tokens HSL no `index.css` + `tailwind.config.ts`), nada hardcoded.
+## Solução
 
-## Backend (Lovable Cloud)
+Introduzir uma flag explícita `rolesLoading` no `AuthContext` e usá-la em todos os pontos de redirecionamento.
 
-Tabelas principais com RLS:
+### 1. `src/contexts/AuthContext.tsx`
 
-- `profiles` — vinculado a `auth.users` (nome, telefone).
-- `user_roles` — papéis `master_admin`, `manager`, `customer` (tabela separada + função `has_role` SECURITY DEFINER).
-- `restaurants` — nome, slug, logo, horário, status (aberto/fechado), `owner_id`.
-- `restaurant_members` — vincula manager(s) a um restaurante.
-- `categories` — por restaurante, ordem, ativo.
-- `products` — categoria, nome, descrição, preço, foto, ativo.
-- `orders` — restaurante, cliente (nome/telefone/endereço completo), tipo (`delivery` por enquanto), status, total, método de pagamento (string), `created_at`, token público de rastreio.
-- `order_items` — pedido, produto (snapshot de nome/preço), qtd, observação.
+- Adicionar estado `rolesLoading: boolean` (inicial `false`).
+- Em `loadRoles`: setar `rolesLoading=true` antes do fetch e `false` no `finally`.
+- No `onAuthStateChange`: quando há novo user, setar `rolesLoading=true` imediatamente (antes do `setTimeout`) para evitar a janela onde `user` existe mas roles ainda são as antigas/vazias. Quando `newSession` é null, limpar roles e garantir `rolesLoading=false`.
+- Expor `rolesLoading` no value do contexto.
 
-Status do pedido: `pending → accepted → preparing → out_for_delivery → delivered` + `cancelled`.
+### 2. `src/pages/Auth.tsx`
 
-Realtime do Supabase ativado em `orders` e `order_items` — sem polling.
+- Importar `rolesLoading` do `useAuth`.
+- No `useEffect` de redirect, só executar quando `!loading && !rolesLoading && user`.
+- Manter prioridade: `master_admin` → `/admin`, `manager` → `/dashboard`, senão `/` (cliente comum, mas isso não deve acontecer com contas de painel).
 
-Storage: bucket `menu-images` para fotos de produto e logos.
+### 3. `src/pages/Index.tsx`
 
-## 1. Autenticação e níveis de acesso
+- Importar `rolesLoading`. Enquanto `loading || rolesLoading`, mostrar tela "Carregando..." (mesma UX já existente).
+- Só decidir destino depois que roles carregarem.
 
-- **Apenas email/senha** (sem Google nem outros provedores sociais).
-- Cliente final faz checkout **sem login** (pedido identificado por telefone + token de rastreio na URL).
-- Manager faz login → vai para painel do seu restaurante.
-- Master Admin → painel global.
-- Página `/auth` única com tabs Entrar / Criar conta, redirecionamento por role após login.
+### 4. `src/components/RequireRole.tsx`
 
-## 2. Painel Master Admin (`/admin`)
+- Tratar `rolesLoading` igual a `loading`: enquanto qualquer um for true, mostrar "Carregando...". Só então avaliar `isMasterAdmin` / `isManager` e redirecionar.
 
-- Lista de restaurantes cadastrados (criar, editar status, ver dono).
-- Tela de criação de restaurante + cadastro/atribuição de manager por email.
-- KPIs simples: nº de restaurantes, pedidos hoje na rede, faturamento total do dia (sem gráficos avançados nesta fase).
+## Resultado
 
-## 3. Painel Manager (`/dashboard`)
-
-Sidebar com seções:
-
-- **Visão geral**: cards com pedidos de hoje, faturamento do dia, ticket médio.
-- **Pedidos** (ver seção 4).
-- **Cardápio**: CRUD de categorias e produtos com upload de imagem e toggle ativo/inativo.
-- **Configurações da loja**: nome, logo, horário de funcionamento (por dia da semana), botão grande "Aberto/Fechado".
-
-## 4. Pedidos em tempo real
-
-- Lista de pedidos com filtro por status, atualização instantânea via Supabase Realtime.
-- Card de pedido mostra itens, cliente, endereço, total.
-- Botões para avançar status no fluxo. Som/notificação visual ao chegar pedido novo.
-- Aba única "Delivery" nesta fase (a aba PDV entra na Fase 2).
-
-## 5. Cardápio público + Checkout (`/r/:slug`)
-
-- Página do restaurante: header com logo + status aberto/fechado, lista de categorias e produtos com foto, descrição e preço.
-- Clique no produto → modal com qtd e observação → adiciona ao carrinho.
-- Carrinho lateral (drawer) com totais.
-- Checkout em etapa única:
-  - Nome, telefone.
-  - **CEP** com busca automática via ViaCEP → preenche rua/bairro/cidade/UF.
-  - Número, complemento, observação do endereço.
-  - Método de pagamento (Dinheiro / Pix / Cartão na entrega) + campo "troco para".
-- Validação com Zod. Bloqueia checkout se loja fechada.
-- Ao confirmar, gera pedido e redireciona para rastreamento.
-
-## 6. Rastreamento do pedido (`/pedido/:token`)
-
-- Página pública acessada por token único.
-- Stepper visual com os status, atualizado em tempo real.
-- Resumo do pedido, endereço e total.
-
-## Detalhes técnicos
-
-- Stack: React + Vite + Tailwind + shadcn/ui + react-router + TanStack Query + Zod + react-hook-form.
-- Lovable Cloud (Supabase) para auth (apenas email/senha), DB, storage e realtime.
-- Roles em tabela separada com função `has_role` SECURITY DEFINER (evita recursão de RLS e escalonamento de privilégio).
-- RLS em todas as tabelas: managers só veem dados do próprio restaurante; cliente final lê pedido só pelo token; master admin vê tudo via `has_role`.
-- Realtime via `supabase.channel().on('postgres_changes', ...)`.
-- ViaCEP chamado direto do front (`https://viacep.com.br/ws/{cep}/json/`), sem secrets.
-- Imagens via Supabase Storage com URLs públicas.
-
-## Fora do escopo desta fase (entram nas próximas)
-
-- PDV presencial.
-- Promoções/cupons de delivery.
-- Raio de entrega + cálculo de frete por distância.
-- Dashboard com gráficos somando PDV + Delivery.
-- Logs do sistema para o Master Admin.
-
-Após aprovar este MVP, evoluímos em incrementos: Fase 2 = PDV + frete por raio; Fase 3 = promoções + dashboard com gráficos; Fase 4 = logs e refinamentos.
+- Login com conta admin → fica em `/auth` mostrando "Entrando..."/spinner até roles carregarem → vai direto para `/admin`.
+- Login com conta manager → vai direto para `/dashboard`.
+- Acesso cruzado (admin tentando `/dashboard` ou manager tentando `/admin`) continua bloqueado pelo `RequireRole`, agora sem o falso-negativo da janela de carregamento.
+- Nenhuma mudança de banco, RLS ou edge function.
