@@ -1,4 +1,4 @@
-// Geocoding via Mapbox (edge function geocode) e cálculo Haversine.
+// Geocoding via HERE Maps (edge function geocode) e cálculo Haversine.
 import { supabase } from "@/integrations/supabase/client";
 
 export type DeliveryZone = { radius_km: number; fee: number };
