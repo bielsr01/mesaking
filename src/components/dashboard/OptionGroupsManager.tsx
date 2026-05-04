@@ -115,36 +115,17 @@ export function OptionGroupsManager({ restaurantId }: { restaurantId: string }) 
         <><Skeleton className="h-24 w-full" /><Skeleton className="h-24 w-full" /></>
       ) : groups.length === 0 ? (
         <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">Nenhum grupo criado ainda.</CardContent></Card>
-      ) : groups.map((g) => {
-        const groupItems = items.filter((i) => i.group_id === g.id);
-        return (
-          <Card key={g.id} className={!g.is_active ? "opacity-60" : ""}>
-            <CardContent className="p-3 space-y-2">
-              <div className="flex items-center gap-2">
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium">{g.name}</div>
-                  <div className="text-xs text-muted-foreground">
-                    Mín {g.min_select} · Máx {g.max_select} · {groupItems.length} {groupItems.length === 1 ? "item" : "itens"}
-                  </div>
-                </div>
-                <Switch checked={g.is_active} onCheckedChange={() => toggleGroup(g)} />
-                <Button size="icon" variant="ghost" title="Vincular produtos" onClick={() => setLinkingGroup(g)}><Link2 className="w-4 h-4" /></Button>
-                <Button size="icon" variant="ghost" onClick={() => openEdit(g)}><Pencil className="w-4 h-4" /></Button>
-                <Button size="icon" variant="ghost" onClick={() => removeGroup(g)}><Trash2 className="w-4 h-4" /></Button>
-              </div>
-              {groupItems.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {groupItems.map((i) => (
-                    <span key={i.id} className="text-xs px-2 py-1 bg-muted rounded">
-                      {i.name}{Number(i.extra_price) > 0 ? ` +${brl(Number(i.extra_price))}` : ""}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        );
-      })}
+      ) : (
+        <SortableGroupsList
+          groups={groups}
+          items={items}
+          restaurantId={restaurantId}
+          onEdit={openEdit}
+          onRemove={removeGroup}
+          onToggle={toggleGroup}
+          onLink={setLinkingGroup}
+        />
+      )}
 
       <GroupDialog
         open={open}
