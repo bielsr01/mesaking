@@ -21,7 +21,7 @@ async function getGoogleApiKey(): Promise<string | null> {
   }
 }
 
-function loadGoogleMaps(apiKey: string): Promise<void> {
+async function loadGoogleMaps(apiKey: string): Promise<void> {
   if (typeof window !== "undefined" && window.google?.maps) return Promise.resolve();
   if (window.__gmapsLoading) return window.__gmapsLoading;
   window.__gmapsLoading = new Promise((resolve, reject) => {
@@ -32,7 +32,7 @@ function loadGoogleMaps(apiKey: string): Promise<void> {
       return;
     }
     const s = document.createElement("script");
-    s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=places&language=pt-BR&region=BR&loading=async`;
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&language=pt-BR&region=BR&v=weekly&loading=async`;
     s.async = true;
     s.defer = true;
     s.dataset.gmaps = "1";
@@ -40,7 +40,10 @@ function loadGoogleMaps(apiKey: string): Promise<void> {
     s.onerror = () => reject(new Error("gmaps load failed"));
     document.head.appendChild(s);
   });
-  return window.__gmapsLoading;
+  await window.__gmapsLoading;
+  if (window.google?.maps?.importLibrary) {
+    await window.google.maps.importLibrary("maps");
+  }
 }
 
 function getCurrentPosition(): Promise<GeoPoint | null> {
