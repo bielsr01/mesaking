@@ -421,6 +421,8 @@ export type Database = {
           delivery_latitude: number | null
           delivery_longitude: number | null
           discount: number
+          external_order_id: string | null
+          external_source: string | null
           id: string
           loyalty_opt_in: boolean
           order_number: number
@@ -453,6 +455,8 @@ export type Database = {
           delivery_latitude?: number | null
           delivery_longitude?: number | null
           discount?: number
+          external_order_id?: string | null
+          external_source?: string | null
           id?: string
           loyalty_opt_in?: boolean
           order_number: number
@@ -485,6 +489,8 @@ export type Database = {
           delivery_latitude?: number | null
           delivery_longitude?: number | null
           discount?: number
+          external_order_id?: string | null
+          external_source?: string | null
           id?: string
           loyalty_opt_in?: boolean
           order_number?: number
@@ -621,6 +627,53 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      quero_integrations: {
+        Row: {
+          api_url: string
+          auth_token: string
+          created_at: string
+          enabled: boolean
+          id: string
+          last_status: string | null
+          last_sync_at: string | null
+          place_id: string
+          restaurant_id: string
+          updated_at: string
+        }
+        Insert: {
+          api_url?: string
+          auth_token: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          last_status?: string | null
+          last_sync_at?: string | null
+          place_id: string
+          restaurant_id: string
+          updated_at?: string
+        }
+        Update: {
+          api_url?: string
+          auth_token?: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          last_status?: string | null
+          last_sync_at?: string | null
+          place_id?: string
+          restaurant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quero_integrations_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: true
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       restaurant_members: {
         Row: {
