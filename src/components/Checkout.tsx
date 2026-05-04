@@ -505,10 +505,10 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-full sm:max-w-2xl w-screen h-[100dvh] sm:h-[100dvh] max-h-[100dvh] sm:rounded-none p-6 overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
-        <DialogHeader>
+      <DialogContent className="max-w-full sm:max-w-2xl w-screen h-[100dvh] sm:h-[100dvh] max-h-[100dvh] sm:rounded-none p-0 gap-0 flex flex-col overflow-hidden" onOpenAutoFocus={(e) => e.preventDefault()}>
+        <DialogHeader className="px-6 pt-6 pb-3 border-b shrink-0 text-left">
           <div className="flex items-center justify-between gap-3 pr-10">
-            <DialogTitle>Finalizar pedido</DialogTitle>
+            <DialogTitle className="text-left">Finalizar pedido</DialogTitle>
             <span
               className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${
                 isPickup
@@ -525,10 +525,10 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
               <div key={i} className={`h-1.5 flex-1 rounded-full transition-colors ${i + 1 <= stepIndex ? "bg-primary" : "bg-muted"}`} />
             ))}
           </div>
-          <p className="text-xs text-muted-foreground mt-1">Etapa {stepIndex} de {totalSteps} — {stepLabel}</p>
+          <p className="text-xs text-muted-foreground mt-1 text-left">Etapa {stepIndex} de {totalSteps} — {stepLabel}</p>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
           {/* Tipo do pedido — visível só na etapa 1, e só se houver mais de uma opção */}
           {step === 1 && (deliveryEnabled && pickupEnabled) && (
             <div className="space-y-2">
@@ -754,8 +754,10 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
             </div>
           )}
 
-          {/* Navegação */}
-          <div className="flex gap-2 pt-2 border-t">
+        </div>
+
+        {/* Navegação fixa no final */}
+        <div className="shrink-0 border-t bg-background px-6 py-3 flex gap-2">
             {step > 1 && (
               <Button type="button" variant="outline" onClick={goBack} disabled={busy}>
                 <ArrowLeft className="w-4 h-4 mr-1" />
@@ -771,7 +773,6 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
                 {busy ? "Enviando..." : (<><Check className="w-4 h-4 mr-1" />Enviar pedido</>)}
               </Button>
             )}
-          </div>
         </div>
       </DialogContent>
     </Dialog>
