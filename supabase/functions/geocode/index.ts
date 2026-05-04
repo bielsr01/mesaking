@@ -4,6 +4,45 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const digitsOnly = (value?: string) => (value ?? "").replace(/\D/g, "");
+
+const normalizeText = (value?: string) =>
+  (value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+
+async function fetchViaCepByCep(cep?: string) {
+  const clean = digitsOnly(cep);
+  if (clean.length !== 8) return null;
+  try {
+    const r = await fetch(`https://viacep.com.br/ws/${clean}/json/`);
+    if (!r.ok) return null;
+    const data = await r.json();
+    if (data?.erro) return null;
+    return data as any;
+  } catch (_) {
+    return null;
+  }
+}
+
+async function searchViaCepByStreet(state?: string, city?: string, street?: string) {
+  const uf = (state ?? "").trim().slice(0, 2).toUpperCase();
+  const localidade = (city ?? "").trim();
+  const logradouro = (street ?? "").trim();
+  if (uf.length !== 2 || localidade.length < 3 || logradouro.length < 3) return [] as any[];
+  try {
+    const url = `https://viacep.com.br/ws/${encodeURIComponent(uf)}/${encodeURIComponent(localidade)}/${encodeURIComponent(logradouro)}/json/`;
+    const r = await fetch(url);
+    if (!r.ok) return [];
+    const data = await r.json();
+    return Array.isArray(data) ? data : [];
+  } catch (_) {
+    return [];
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
