@@ -806,13 +806,13 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
               <div className="space-y-3">
                 <h3 className="font-semibold text-sm">Pagamento</h3>
                 <Select value={payment || undefined} onValueChange={(v) => setPayment(v as any)}>
-                  <SelectTrigger className="h-12">
+                  <SelectTrigger className="h-14 text-base">
                     <SelectValue placeholder="Selecione a forma de pagamento" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="cash">Dinheiro</SelectItem>
-                    <SelectItem value="pix">Pix</SelectItem>
-                    <SelectItem value="card_on_delivery">{isPickup ? "Cartão na retirada" : "Cartão na entrega"}</SelectItem>
+                    <SelectItem value="cash" className="py-4 text-base">Dinheiro</SelectItem>
+                    <SelectItem value="pix" className="py-4 text-base">Pix</SelectItem>
+                    <SelectItem value="card_on_delivery" className="py-4 text-base">{isPickup ? "Cartão na retirada" : "Cartão na entrega"}</SelectItem>
                   </SelectContent>
                 </Select>
                 {payment === "cash" && (
