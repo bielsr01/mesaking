@@ -525,7 +525,7 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
     if (cart.items.length === 0) return toast.error("Carrinho vazio");
     if (!validateStep1()) { setStep(1); return; }
     if (!isPickup && !validateStep2()) { setStep(2); return; }
-    if (!payment) { toast.error("Selecione a forma de pagamento"); return; }
+    if (!payment) { flagInvalid("payment"); return; }
 
     setBusy(true);
 
@@ -806,10 +806,10 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
                 </div>
               )}
 
-              <div className="space-y-3">
-                <h3 className="font-semibold text-sm">Pagamento</h3>
+              <div className={`space-y-3 ${shakeKey === "payment" ? "animate-shake" : ""}`}>
+                <h3 className={`font-semibold text-sm ${shakeKey === "payment" ? "text-destructive" : ""}`}>Pagamento</h3>
                 <Select value={payment || undefined} onValueChange={(v) => setPayment(v as any)}>
-                  <SelectTrigger className="h-14 text-base">
+                  <SelectTrigger className={`h-14 text-base ${shakeKey === "payment" ? "border-destructive" : ""}`}>
                     <SelectValue placeholder="Selecione a forma de pagamento" />
                   </SelectTrigger>
                   <SelectContent>
