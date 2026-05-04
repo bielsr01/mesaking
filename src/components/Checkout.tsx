@@ -13,6 +13,7 @@ import { brl, formatPhone, unmaskPhone } from "@/lib/format";
 import { toast } from "sonner";
 import { DeliveryZone, GeoPoint, findDeliveryFee, geocodeAddress, haversineKm } from "@/lib/delivery";
 import { Loader2, MapPin, Bike, Store, ArrowLeft, ArrowRight, Check } from "lucide-react";
+import { LocationPicker } from "@/components/LocationPicker";
 
 // ---------- Helpers de CPF ----------
 const onlyDigits = (v: string) => v.replace(/\D/g, "");
@@ -69,6 +70,7 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
   const [cep, setCep] = useState("");
   const [dontKnowCep, setDontKnowCep] = useState(false);
   const [addr, setAddr] = useState({ street: "", number: "", complement: "", neighborhood: "", city: "", state: "", notes: "" });
+  const [pinnedPoint, setPinnedPoint] = useState<GeoPoint | null>(null);
 
   // Etapa 3 — pagamento
   const [payment, setPayment] = useState<"cash" | "pix" | "card_on_delivery">("cash");
@@ -125,6 +127,7 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
       setCoupon(null);
       setCouponInput("");
       setCouponError(null);
+      setPinnedPoint(null);
       // ao abrir, escolhe a opção disponível por padrão
       if (!deliveryEnabled && pickupEnabled) setOrderType("pickup");
       else if (deliveryEnabled) setOrderType("delivery");
@@ -391,8 +394,8 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
       payload.address_state = addr.state;
       payload.address_notes = addr.notes || null;
       payload.delivery_distance_km = feeMode === "fixed" ? null : (delivery?.km ?? null);
-      payload.delivery_latitude = feeMode === "fixed" ? null : (delivery?.pt.lat ?? null);
-      payload.delivery_longitude = feeMode === "fixed" ? null : (delivery?.pt.lng ?? null);
+      payload.delivery_latitude = pinnedPoint?.lat ?? (feeMode === "fixed" ? null : (delivery?.pt.lat ?? null));
+      payload.delivery_longitude = pinnedPoint?.lng ?? (feeMode === "fixed" ? null : (delivery?.pt.lng ?? null));
     }
 
     // Remove customer_cpf se a coluna não existir (failsafe)
@@ -602,6 +605,8 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
               delivery={delivery}
               deliveryError={deliveryError}
               calculating={calculating}
+              pinnedPoint={pinnedPoint}
+              setPinnedPoint={setPinnedPoint}
             />
           )}
 
@@ -761,14 +766,17 @@ function Step2Address(props: {
   delivery: { fee: number; km: number; pt: GeoPoint } | null;
   deliveryError: string | null;
   calculating: boolean;
+  pinnedPoint: GeoPoint | null;
+  setPinnedPoint: (pt: GeoPoint | null) => void;
 }) {
   const {
     cep, setCep, dontKnowCep, setDontKnowCep, addr, setAddr, lookupCep,
     fieldRefs, shakeKey, feeMode, fixedFee, hasZones, restaurantHasCoords,
-    delivery, deliveryError, calculating,
+    delivery, deliveryError, calculating, pinnedPoint, setPinnedPoint,
   } = props;
 
   const [editing, setEditing] = useState(false);
+  const [pickingMap, setPickingMap] = useState(false);
 
   const hasAddress = !!(addr.street && addr.number && addr.neighborhood && addr.city && addr.state);
 
@@ -795,11 +803,22 @@ function Step2Address(props: {
                   <span className="font-semibold">Observação:</span> {addr.notes}
                 </p>
               )}
+              {pinnedPoint && (
+                <p className="text-xs text-success mt-1 flex items-center gap-1">
+                  <Check className="w-3 h-3" /> Localização confirmada no mapa
+                </p>
+              )}
             </div>
           </div>
-          <Button type="button" variant="outline" size="sm" onClick={() => setEditing(true)} className="w-full">
-            Editar endereço
-          </Button>
+          <div className="grid grid-cols-2 gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={() => setEditing(true)}>
+              Editar endereço
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => setPickingMap(true)}>
+              <MapPin className="w-4 h-4 mr-1" />
+              {pinnedPoint ? "Reajustar pino" : "Pinar no mapa"}
+            </Button>
+          </div>
         </div>
       ) : (
         <Button type="button" variant="outline" onClick={() => setEditing(true)} className="w-full justify-start gap-2 h-12">
@@ -909,7 +928,9 @@ function Step2Address(props: {
                 if (!addr.neighborhood) { props.flagInvalid("neighborhood"); return; }
                 if (!addr.city) { props.flagInvalid("city"); return; }
                 if (addr.state.length !== 2) { props.flagInvalid("state"); return; }
+                setPinnedPoint(null);
                 setEditing(false);
+                setPickingMap(true);
               }}
             >
               Cadastrar endereço
@@ -917,6 +938,14 @@ function Step2Address(props: {
           </div>
         </DialogContent>
       </Dialog>
+
+      <LocationPicker
+        open={pickingMap}
+        onOpenChange={setPickingMap}
+        address={{ cep, street: addr.street, number: addr.number, neighborhood: addr.neighborhood, city: addr.city, state: addr.state }}
+        initialPoint={pinnedPoint}
+        onConfirm={(pt) => setPinnedPoint(pt)}
+      />
     </div>
   );
 }

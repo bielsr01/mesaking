@@ -37,6 +37,8 @@ interface Order {
   status: "accepted" | "awaiting_pickup" | "cancelled" | "delivered" | "out_for_delivery" | "pending" | "preparing";
   order_type: "delivery" | "pickup";
   created_at: string;
+  delivery_latitude: number | null;
+  delivery_longitude: number | null;
 }
 
 interface Item {
@@ -330,10 +332,21 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                 ) : (
                   <div className="text-sm flex gap-2">
                     <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground" />
-                    <div>
+                    <div className="min-w-0">
                       {o.address_street}, {o.address_number} {o.address_complement && `- ${o.address_complement}`}<br />
                       <span className="text-muted-foreground">{o.address_neighborhood} • {o.address_city}</span>
                       {o.address_notes && <div className="text-xs italic text-muted-foreground mt-0.5">"{o.address_notes}"</div>}
+                      {o.delivery_latitude != null && o.delivery_longitude != null && (
+                        <a
+                          href={`https://www.google.com/maps?q=${o.delivery_latitude},${o.delivery_longitude}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs text-primary hover:underline mt-1 inline-flex items-center gap-1 tabular-nums"
+                        >
+                          <MapPin className="w-3 h-3" />
+                          {o.delivery_latitude.toFixed(6)}, {o.delivery_longitude.toFixed(6)} — abrir no mapa
+                        </a>
+                      )}
                     </div>
                   </div>
                 )}
