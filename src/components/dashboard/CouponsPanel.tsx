@@ -13,7 +13,8 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Pencil, Trash2, Plus, Ticket } from "lucide-react";
+import { Pencil, Trash2, Plus, Ticket, BarChart3 } from "lucide-react";
+import { CouponMetrics } from "./CouponMetrics";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -80,6 +81,7 @@ export function CouponsPanel({ restaurantId }: { restaurantId: string }) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Partial<Coupon> | null>(null);
   const [toDelete, setToDelete] = useState<Coupon | null>(null);
+  const [showMetrics, setShowMetrics] = useState(false);
 
   const { data: coupons, isLoading } = useQuery({
     queryKey: ["coupons", restaurantId],
@@ -154,6 +156,10 @@ export function CouponsPanel({ restaurantId }: { restaurantId: string }) {
 
   const formatDiscount = (c: Coupon) => c.discount_type === "percent" ? `${Number(c.discount_value)}%` : brl(Number(c.discount_value));
 
+  if (showMetrics) {
+    return <CouponMetrics restaurantId={restaurantId} onBack={() => setShowMetrics(false)} />;
+  }
+
   return (
     <>
       <Card>
@@ -162,7 +168,10 @@ export function CouponsPanel({ restaurantId }: { restaurantId: string }) {
             <CardTitle className="flex items-center gap-2"><Ticket className="w-5 h-5" /> Cupons de desconto</CardTitle>
             <CardDescription>Crie cupons para o pedido todo ou para itens específicos.</CardDescription>
           </div>
-          <Button onClick={openNew} className="gap-2"><Plus className="w-4 h-4" /> Novo cupom</Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowMetrics(true)} className="gap-2"><BarChart3 className="w-4 h-4" /> Métricas</Button>
+            <Button onClick={openNew} className="gap-2"><Plus className="w-4 h-4" /> Novo cupom</Button>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
