@@ -441,11 +441,50 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
       } catch (_) {}
     }
 
+    // Programa de fidelidade — cria/atualiza membro e cria transação pendente
+    let earnedPoints = 0;
+    if (loyaltyEnabled && loyaltyOptIn) {
+      try {
+        const phoneFmt = formatPhone(phone);
+        earnedPoints = Math.floor(Number(total) * Number(loyaltyPointsPerReal || 0));
+        const sb = supabase as any;
+        const { data: existing } = await sb
+          .from("loyalty_members")
+          .select("id")
+          .eq("restaurant_id", restaurant.id)
+          .eq("phone", phoneFmt)
+          .maybeSingle();
+        let memberId = existing?.id as string | undefined;
+        if (!memberId) {
+          const { data: created } = await sb
+            .from("loyalty_members")
+            .insert({ restaurant_id: restaurant.id, name: name.trim(), phone: phoneFmt, points: 0 })
+            .select("id")
+            .single();
+          memberId = created?.id;
+        }
+        if (memberId && earnedPoints > 0) {
+          await sb.from("loyalty_transactions").insert({
+            restaurant_id: restaurant.id,
+            member_id: memberId,
+            order_id: order.id,
+            points: earnedPoints,
+            type: "earn",
+            status: "pending",
+          });
+        }
+      } catch (_) {}
+    }
+
     cart.clear();
     setBusy(false);
     onOpenChange(false);
     setActiveOrder(restaurant.id, order.public_token);
-    toast.success("Pedido enviado! Acompanhe o status no topo da tela.");
+    toast.success(
+      earnedPoints > 0
+        ? `Pedido enviado! Sua compra gerou ${earnedPoints} ponto(s) de fidelidade.`
+        : "Pedido enviado! Acompanhe o status no topo da tela."
+    );
   };
 
   // Indicador de progresso
