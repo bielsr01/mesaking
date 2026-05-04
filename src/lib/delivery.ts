@@ -47,7 +47,11 @@ export async function reverseGeocode(pt: GeoPoint): Promise<ReverseGeocodeResult
   }
 }
 
-export type AddressSuggestion = ReverseGeocodeResult & { id: string };
+export type AddressSuggestion = ReverseGeocodeResult & {
+  id: string;
+  main_text?: string;
+  secondary_text?: string;
+};
 
 export async function searchAddresses(
   q: string,
@@ -61,6 +65,18 @@ export async function searchAddresses(
     return ((data as any).suggestions ?? []) as AddressSuggestion[];
   } catch {
     return [];
+  }
+}
+
+export async function resolvePlaceId(placeId: string): Promise<AddressSuggestion | null> {
+  try {
+    const { data, error } = await supabase.functions.invoke("geocode", { body: { placeId } });
+    if (error || !data) return null;
+    const d = data as any;
+    if (typeof d.lat !== "number" || typeof d.lng !== "number") return null;
+    return d as AddressSuggestion;
+  } catch {
+    return null;
   }
 }
 

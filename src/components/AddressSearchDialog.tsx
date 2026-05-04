@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, MapPin, LocateFixed, Search } from "lucide-react";
-import { AddressSuggestion, GeoPoint, searchAddresses } from "@/lib/delivery";
+import { AddressSuggestion, GeoPoint, resolvePlaceId, searchAddresses } from "@/lib/delivery";
 
 export function AddressSearchDialog({
   open,
@@ -38,8 +38,9 @@ export function AddressSearchDialog({
 
   useEffect(() => {
     if (!open) return;
-    if (q.trim().length < 3) {
+    if (q.trim().length < 2) {
       setSuggestions([]);
+      setLoading(false);
       return;
     }
     setLoading(true);
@@ -49,15 +50,24 @@ export function AddressSearchDialog({
         city: cityFilter,
         state: stateFilter,
       });
-      // Filtra no cliente também: prioriza endereços da mesma cidade do restaurante
-      const filtered = cityFilter
-        ? r.filter((s) => !s.city || s.city.toLowerCase() === cityFilter.toLowerCase())
-        : r;
-      setSuggestions(filtered.length ? filtered : r);
+      setSuggestions(r);
       setLoading(false);
-    }, 350);
+    }, 180);
     return () => clearTimeout(t);
   }, [q, open, proximity, cityFilter, stateFilter]);
+
+  const handlePick = async (s: AddressSuggestion) => {
+    // Se já tem lat/lng, usa direto (caso futuro). Senão resolve o placeId.
+    if (typeof s.lat === "number" && typeof s.lng === "number" && s.street) {
+      onPickSuggestion(s);
+      return;
+    }
+    setLoading(true);
+    const detailed = await resolvePlaceId(s.id);
+    setLoading(false);
+    if (detailed) onPickSuggestion(detailed);
+    else onPickSuggestion(s);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -102,9 +112,9 @@ export function AddressSearchDialog({
               Nenhum endereço encontrado.
             </div>
           )}
-          {!loading && q.trim().length < 3 && (
+          {!loading && q.trim().length < 2 && (
             <div className="px-6 py-6 text-sm text-muted-foreground">
-              Digite ao menos 3 caracteres para buscar.
+              Digite ao menos 2 caracteres para buscar.
             </div>
           )}
           <ul className="divide-y">
@@ -113,17 +123,18 @@ export function AddressSearchDialog({
                 <button
                   type="button"
                   className="w-full text-left px-6 py-3 hover:bg-muted/60 flex items-start gap-3"
-                  onClick={() => onPickSuggestion(s)}
+                  onClick={() => handlePick(s)}
                 >
                   <MapPin className="w-4 h-4 mt-0.5 text-primary shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium break-words">
-                      {s.street ? `${s.street}${s.number ? `, ${s.number}` : ""}` : s.place_name}
+                      {s.main_text || (s.street ? `${s.street}${s.number ? `, ${s.number}` : ""}` : s.place_name)}
                     </p>
                     <p className="text-xs text-muted-foreground break-words">
-                      {[s.neighborhood, s.city && s.state ? `${s.city}/${s.state}` : s.city, s.cep]
-                        .filter(Boolean)
-                        .join(" • ")}
+                      {s.secondary_text ||
+                        [s.neighborhood, s.city && s.state ? `${s.city}/${s.state}` : s.city, s.cep]
+                          .filter(Boolean)
+                          .join(" • ")}
                     </p>
                   </div>
                 </button>
