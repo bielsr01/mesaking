@@ -392,8 +392,8 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
       payload.address_state = addr.state;
       payload.address_notes = addr.notes || null;
       payload.delivery_distance_km = feeMode === "fixed" ? null : (delivery?.km ?? null);
-      payload.delivery_latitude = feeMode === "fixed" ? null : (delivery?.pt.lat ?? null);
-      payload.delivery_longitude = feeMode === "fixed" ? null : (delivery?.pt.lng ?? null);
+      payload.delivery_latitude = pinnedPoint?.lat ?? (feeMode === "fixed" ? null : (delivery?.pt.lat ?? null));
+      payload.delivery_longitude = pinnedPoint?.lng ?? (feeMode === "fixed" ? null : (delivery?.pt.lng ?? null));
     }
 
     // Remove customer_cpf se a coluna não existir (failsafe)
