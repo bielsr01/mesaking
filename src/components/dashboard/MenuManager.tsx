@@ -9,10 +9,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Image as ImageIcon } from "lucide-react";
+import { Plus, Pencil, Trash2, Image as ImageIcon, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 import { brl } from "@/lib/format";
 import { OptionGroupsManager, fetchGroups, optionKeys, OptionGroup } from "./OptionGroupsManager";
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface Category { id: string; name: string; sort_order: number; is_active: boolean; }
 interface Product { id: string; category_id: string | null; name: string; description: string | null; price: number; image_url: string | null; is_active: boolean; sort_order: number; }
