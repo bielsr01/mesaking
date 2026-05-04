@@ -129,33 +129,41 @@ Deno.serve(async (req) => {
 
     // Reverse geocoding (lat/lng -> endereço)
     if (typeof rLat === "number" && typeof rLng === "number") {
-      const url = new URL(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${rLng},${rLat}.json`,
-      );
-      url.searchParams.set("access_token", token);
-      url.searchParams.set("language", "pt");
-      // Sem limit: reverse default retorna a melhor feature com context completo
-      const r = await fetch(url.toString());
-      const data = await r.json();
-      console.log("reverse mapbox status", r.status, "body", JSON.stringify(data).slice(0, 500));
-      const features = (data?.features ?? []) as Array<any>;
-      // Prioriza address (rua + nº), depois street, depois qualquer
+      const fetchReverse = async (types?: string) => {
+        const url = new URL(
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${rLng},${rLat}.json`,
+        );
+        url.searchParams.set("access_token", token);
+        url.searchParams.set("language", "pt");
+        if (types) url.searchParams.set("types", types);
+        const r = await fetch(url.toString());
+        const data = await r.json();
+        if (!r.ok) console.log("reverse mapbox status", r.status, "body", JSON.stringify(data).slice(0, 500));
+        return (data?.features ?? []) as Array<any>;
+      };
+
+      // Busca em paralelo: endereço (rua+nº) e bairro/localidade
+      const [addrFeatures, neighFeatures] = await Promise.all([
+        fetchReverse(),
+        fetchReverse("neighborhood,locality,place,region,postcode"),
+      ]);
+      const features = [...addrFeatures, ...neighFeatures];
       const f =
-        features.find((x) => x.place_type?.includes("address")) ??
-        features.find((x) => x.place_type?.includes("street")) ??
-        features[0];
+        addrFeatures.find((x) => x.place_type?.includes("address")) ??
+        addrFeatures.find((x) => x.place_type?.includes("street")) ??
+        addrFeatures[0];
       let neigh = "";
       let cityR = "";
       let stateR = "";
       let cepR = "";
-      // Procura contexto em todas as features (algumas vezes vem só na primeira)
       const allCtx: any[] = [];
       for (const x of features) {
         if (Array.isArray(x?.context)) allCtx.push(...x.context);
-        if (x?.place_type?.[0] === "neighborhood" && !neigh) neigh = x.text;
-        if (x?.place_type?.[0] === "place" && !cityR) cityR = x.text;
-        if (x?.place_type?.[0] === "region" && !stateR) stateR = (x.properties?.short_code ?? x.text ?? "").replace(/^BR-/i, "").toUpperCase();
-        if (x?.place_type?.[0] === "postcode" && !cepR) cepR = x.text;
+        const pt = x?.place_type?.[0];
+        if ((pt === "neighborhood" || pt === "locality") && !neigh) neigh = x.text;
+        if (pt === "place" && !cityR) cityR = x.text;
+        if (pt === "region" && !stateR) stateR = (x.properties?.short_code ?? x.text ?? "").replace(/^BR-/i, "").toUpperCase();
+        if (pt === "postcode" && !cepR) cepR = x.text;
       }
       for (const c of allCtx) {
         const id = String(c.id ?? "");
