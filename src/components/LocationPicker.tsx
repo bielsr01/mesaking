@@ -30,13 +30,18 @@ async function loadGoogleMaps(apiKey: string): Promise<void> {
   if (typeof window !== "undefined" && window.google?.maps?.Map) return;
   if (window.__gmapsLoading) return window.__gmapsLoading;
   window.__gmapsLoading = new Promise((resolve, reject) => {
+    const timeout = window.setTimeout(() => reject(new Error("gmaps load timeout")), 12000);
+    const done = () => {
+      window.clearTimeout(timeout);
+      resolve();
+    };
     const existing = document.querySelector<HTMLScriptElement>('script[data-gmaps="1"]');
     if (existing) {
-      if (window.google?.maps) {
-        resolve();
+      if (window.google?.maps || existing.dataset.loaded === "1") {
+        done();
         return;
       }
-      existing.addEventListener("load", () => resolve());
+      existing.addEventListener("load", done);
       existing.addEventListener("error", () => reject(new Error("gmaps load failed")));
       return;
     }
@@ -45,7 +50,10 @@ async function loadGoogleMaps(apiKey: string): Promise<void> {
     s.async = true;
     s.defer = true;
     s.dataset.gmaps = "1";
-    s.onload = () => resolve();
+    s.onload = () => {
+      s.dataset.loaded = "1";
+      done();
+    };
     s.onerror = () => reject(new Error("gmaps load failed"));
     document.head.appendChild(s);
   });
@@ -235,6 +243,7 @@ export function LocationPicker({
       setPermissionError(true);
       return;
     }
+    manuallyMovedRef.current = true;
     setPermissionError(false);
     const ref = mapRef.current;
     if (ref?.map) {
