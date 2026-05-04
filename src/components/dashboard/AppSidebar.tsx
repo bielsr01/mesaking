@@ -39,9 +39,14 @@ const mainItems: { id: DashboardView; title: string; icon: any }[] = [
 
 const marketingItems: { id: DashboardView; title: string; icon: any }[] = [
   { id: "marketing:coupons", title: "Cupons de desconto", icon: Ticket },
-  { id: "marketing:loyalty", title: "Programa de fidelidade", icon: Award },
   { id: "marketing:bulk", title: "Envio em massa", icon: Send },
 ];
+
+const loyaltyItem: { id: DashboardView; title: string; icon: any } = {
+  id: "marketing:loyalty",
+  title: "Programa de fidelidade",
+  icon: Award,
+};
 
 const settingsItems: { id: DashboardView; title: string; icon: any }[] = [
   { id: "settings:order-config", title: "Configurações de Pedidos", icon: ClipboardList },
