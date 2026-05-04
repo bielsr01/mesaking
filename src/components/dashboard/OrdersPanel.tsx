@@ -191,12 +191,18 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   useEffect(() => {
     const ch = supabase
       .channel(`orders-${restaurantId}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` }, () => {
-        setFilter("pending"); // auto-switch to new orders tab
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` }, (payload) => {
+        const row = payload.new as Order;
+        if (row?.order_type === "pdv") {
+          setChannel("pdv");
+          setFilter("preparing");
+        } else {
+          setChannel("delivery");
+          setFilter("pending");
+        }
         qc.invalidateQueries({ queryKey: ordersKey(restaurantId) });
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` }, (payload) => {
-        // Apply update straight from the payload — instant, no refetch needed
         const row = payload.new as Order;
         qc.setQueryData<{ orders: Order[]; items: Record<string, Item[]> }>(ordersKey(restaurantId), (prev) => {
           if (!prev) return prev;
