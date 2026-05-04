@@ -589,9 +589,31 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
               <div className="grid grid-cols-3 gap-3">
                 <div ref={(el) => { fieldRefs.current["cep"] = el; }} style={{ scrollMarginTop: 80 }} className={`space-y-2 col-span-1 ${shakeKey === "cep" ? "animate-shake" : ""}`}>
                   <Label className={shakeKey === "cep" ? "text-destructive" : ""}>CEP</Label>
-                  <Input value={cep} onChange={(e) => setCep(e.target.value)} onBlur={(e) => lookupCep(e.target.value)} placeholder="00000-000" className={shakeKey === "cep" ? "border-destructive" : ""} required />
+                  <Input
+                    value={cep}
+                    onChange={(e) => setCep(e.target.value)}
+                    onBlur={(e) => !dontKnowCep && lookupCep(e.target.value)}
+                    placeholder="00000-000"
+                    disabled={dontKnowCep}
+                    className={shakeKey === "cep" ? "border-destructive" : ""}
+                    required={!dontKnowCep}
+                  />
                 </div>
-                <div ref={(el) => { fieldRefs.current["street"] = el; }} style={{ scrollMarginTop: 80 }} className={`space-y-2 col-span-2 ${shakeKey === "street" ? "animate-shake" : ""}`}>
+                <div className="col-span-2 flex items-end">
+                  <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={dontKnowCep}
+                      onChange={(e) => {
+                        setDontKnowCep(e.target.checked);
+                        if (e.target.checked) setCep("");
+                      }}
+                      className="h-4 w-4"
+                    />
+                    Não sei meu CEP
+                  </label>
+                </div>
+                <div ref={(el) => { fieldRefs.current["street"] = el; }} style={{ scrollMarginTop: 80 }} className={`space-y-2 col-span-3 ${shakeKey === "street" ? "animate-shake" : ""}`}>
                   <Label className={shakeKey === "street" ? "text-destructive" : ""}>Rua</Label>
                   <Input value={addr.street} onChange={(e) => setAddr({ ...addr, street: e.target.value })} className={shakeKey === "street" ? "border-destructive" : ""} required />
                 </div>
