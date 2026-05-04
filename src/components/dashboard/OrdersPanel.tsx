@@ -294,7 +294,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Tabs value={channel} onValueChange={(v) => { setChannel(v as "delivery" | "pdv"); setFilter(v === "pdv" ? "all" : "pending"); }}>
+        <Tabs value={channel} onValueChange={(v) => { setChannel(v as "delivery" | "pdv"); setFilter(v === "pdv" ? "preparing" : "pending"); }}>
           <TabsList>
             <TabsTrigger value="delivery" className="gap-2">
               <Bike className="w-4 h-4" /> Delivery / Retirada
