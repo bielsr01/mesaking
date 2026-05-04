@@ -29,7 +29,7 @@ async function getGoogleApiKey(): Promise<string | null> {
 async function loadGoogleMaps(apiKey: string): Promise<void> {
   if (typeof window !== "undefined" && window.google?.maps?.Map) return;
   if (window.__gmapsLoading) return window.__gmapsLoading;
-  window.__gmapsLoading = new Promise((resolve, reject) => {
+  const p = new Promise<void>((resolve, reject) => {
     const existing = document.querySelector<HTMLScriptElement>('script[data-gmaps="1"]');
     if (existing) {
       if (window.google?.maps?.Map) {
@@ -53,7 +53,8 @@ async function loadGoogleMaps(apiKey: string): Promise<void> {
     window.__gmapsLoading = undefined;
     throw err;
   });
-  return window.__gmapsLoading;
+  window.__gmapsLoading = p;
+  return p;
 }
 
 function getCurrentPosition(): Promise<GeoPoint | null> {
