@@ -57,12 +57,6 @@ Deno.serve(async (req) => {
 
     // Search autocomplete (q -> lista de sugestões)
     if (typeof q === "string" && q.trim().length >= 3) {
-      const normalize = (value?: string) =>
-        (value ?? "")
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "")
-          .trim()
-          .toLowerCase();
       const parseTypedAddress = (value: string) => {
         const clean = value.trim().replace(/\s+/g, " ");
         const commaNumber = clean.match(/^(.*?),\s*(\d+[\w\-/]*)\s*$/);
@@ -140,15 +134,26 @@ Deno.serve(async (req) => {
           cep: cepR,
         };
       }).sort((a, b) => {
-        const cityA = normalize(a.city) === normalize(searchCity) ? 0 : 1;
-        const cityB = normalize(b.city) === normalize(searchCity) ? 0 : 1;
-        const stateA = normalize(a.state) === normalize(searchState) ? 0 : 1;
-        const stateB = normalize(b.state) === normalize(searchState) ? 0 : 1;
+        const cityA = normalizeText(a.city) === normalizeText(searchCity) ? 0 : 1;
+        const cityB = normalizeText(b.city) === normalizeText(searchCity) ? 0 : 1;
+        const stateA = normalizeText(a.state) === normalizeText(searchState) ? 0 : 1;
+        const stateB = normalizeText(b.state) === normalizeText(searchState) ? 0 : 1;
         return cityA - cityB || stateA - stateB;
       });
 
-      // Enriquecer bairro via Nominatim (OSM) quando o Mapbox não retornar
+      // Enriquecer bairro via CEP/Viacep primeiro; é mais confiável no Brasil.
+      const viacepByStreet = await searchViaCepByStreet(searchState, searchCity, typed.street);
       const enrichWithOSM = async (s: any) => {
+        const cepData = await fetchViaCepByCep(s.cep);
+        const viaCepMatch = cepData ?? viacepByStreet.find((v) =>
+          normalizeText(v?.logradouro) === normalizeText(s.street || typed.street)
+        );
+        if (viaCepMatch) {
+          if (!s.neighborhood && viaCepMatch.bairro) s.neighborhood = viaCepMatch.bairro;
+          if (!s.cep && viaCepMatch.cep) s.cep = viaCepMatch.cep;
+          if (!s.city && viaCepMatch.localidade) s.city = viaCepMatch.localidade;
+          if (!s.state && viaCepMatch.uf) s.state = viaCepMatch.uf;
+        }
         if (s.neighborhood || typeof s.lat !== "number" || typeof s.lng !== "number") return s;
         try {
           const url = `https://nominatim.openstreetmap.org/reverse?lat=${s.lat}&lon=${s.lng}&format=json&addressdetails=1&accept-language=pt-BR`;
