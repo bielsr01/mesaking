@@ -778,6 +778,9 @@ function Step2Address(props: {
 
   const [editing, setEditing] = useState(false);
   const [pickingMap, setPickingMap] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [mapInitialPoint, setMapInitialPoint] = useState<GeoPoint | null>(null);
+  const [forceGeolocate, setForceGeolocate] = useState(false);
 
   const hasAddress = !!(addr.street && addr.number && addr.neighborhood && addr.city && addr.state);
 
