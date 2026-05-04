@@ -13,7 +13,8 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Pencil, Trash2, Plus, Ticket } from "lucide-react";
+import { Pencil, Trash2, Plus, Ticket, BarChart3 } from "lucide-react";
+import { CouponMetrics } from "./CouponMetrics";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
