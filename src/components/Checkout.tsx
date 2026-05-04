@@ -67,6 +67,7 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
 
   // Etapa 2 — endereço
   const [cep, setCep] = useState("");
+  const [dontKnowCep, setDontKnowCep] = useState(false);
   const [addr, setAddr] = useState({ street: "", number: "", complement: "", neighborhood: "", city: "", state: "", notes: "" });
 
   // Etapa 3 — pagamento
@@ -328,7 +329,7 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
   };
   const validateStep2 = () => {
     if (isPickup) return true;
-    if (!/^\d{5}-?\d{3}$/.test(cep)) { flagInvalid("cep"); return false; }
+    if (!dontKnowCep && !/^\d{5}-?\d{3}$/.test(cep)) { flagInvalid("cep"); return false; }
     if (!addr.street) { flagInvalid("street"); return false; }
     if (!addr.number) { flagInvalid("number"); return false; }
     if (!addr.neighborhood) { flagInvalid("neighborhood"); return false; }
@@ -504,10 +505,10 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-full sm:max-w-2xl w-screen h-[100dvh] sm:h-[100dvh] max-h-[100dvh] sm:rounded-none p-6 overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
-        <DialogHeader>
+      <DialogContent className="max-w-full sm:max-w-2xl w-screen h-[100dvh] sm:h-[100dvh] max-h-[100dvh] sm:rounded-none p-0 gap-0 flex flex-col overflow-hidden" onOpenAutoFocus={(e) => e.preventDefault()}>
+        <DialogHeader className="px-6 pt-6 pb-3 border-b shrink-0 text-left">
           <div className="flex items-center justify-between gap-3 pr-10">
-            <DialogTitle>Finalizar pedido</DialogTitle>
+            <DialogTitle className="text-left">Finalizar pedido</DialogTitle>
             <span
               className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${
                 isPickup
@@ -524,10 +525,10 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
               <div key={i} className={`h-1.5 flex-1 rounded-full transition-colors ${i + 1 <= stepIndex ? "bg-primary" : "bg-muted"}`} />
             ))}
           </div>
-          <p className="text-xs text-muted-foreground mt-1">Etapa {stepIndex} de {totalSteps} — {stepLabel}</p>
+          <p className="text-xs text-muted-foreground mt-1 text-left">Etapa {stepIndex} de {totalSteps} — {stepLabel}</p>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
           {/* Tipo do pedido — visível só na etapa 1, e só se houver mais de uma opção */}
           {step === 1 && (deliveryEnabled && pickupEnabled) && (
             <div className="space-y-2">
@@ -588,9 +589,31 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
               <div className="grid grid-cols-3 gap-3">
                 <div ref={(el) => { fieldRefs.current["cep"] = el; }} style={{ scrollMarginTop: 80 }} className={`space-y-2 col-span-1 ${shakeKey === "cep" ? "animate-shake" : ""}`}>
                   <Label className={shakeKey === "cep" ? "text-destructive" : ""}>CEP</Label>
-                  <Input value={cep} onChange={(e) => setCep(e.target.value)} onBlur={(e) => lookupCep(e.target.value)} placeholder="00000-000" className={shakeKey === "cep" ? "border-destructive" : ""} required />
+                  <Input
+                    value={cep}
+                    onChange={(e) => setCep(e.target.value)}
+                    onBlur={(e) => !dontKnowCep && lookupCep(e.target.value)}
+                    placeholder="00000-000"
+                    disabled={dontKnowCep}
+                    className={shakeKey === "cep" ? "border-destructive" : ""}
+                    required={!dontKnowCep}
+                  />
                 </div>
-                <div ref={(el) => { fieldRefs.current["street"] = el; }} style={{ scrollMarginTop: 80 }} className={`space-y-2 col-span-2 ${shakeKey === "street" ? "animate-shake" : ""}`}>
+                <div className="col-span-2 flex items-end">
+                  <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={dontKnowCep}
+                      onChange={(e) => {
+                        setDontKnowCep(e.target.checked);
+                        if (e.target.checked) setCep("");
+                      }}
+                      className="h-4 w-4"
+                    />
+                    Não sei meu CEP
+                  </label>
+                </div>
+                <div ref={(el) => { fieldRefs.current["street"] = el; }} style={{ scrollMarginTop: 80 }} className={`space-y-2 col-span-3 ${shakeKey === "street" ? "animate-shake" : ""}`}>
                   <Label className={shakeKey === "street" ? "text-destructive" : ""}>Rua</Label>
                   <Input value={addr.street} onChange={(e) => setAddr({ ...addr, street: e.target.value })} className={shakeKey === "street" ? "border-destructive" : ""} required />
                 </div>
@@ -753,8 +776,10 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
             </div>
           )}
 
-          {/* Navegação */}
-          <div className="flex gap-2 pt-2 border-t">
+        </div>
+
+        {/* Navegação fixa no final */}
+        <div className="shrink-0 border-t bg-background px-6 py-3 flex gap-2">
             {step > 1 && (
               <Button type="button" variant="outline" onClick={goBack} disabled={busy}>
                 <ArrowLeft className="w-4 h-4 mr-1" />
@@ -770,7 +795,6 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
                 {busy ? "Enviando..." : (<><Check className="w-4 h-4 mr-1" />Enviar pedido</>)}
               </Button>
             )}
-          </div>
         </div>
       </DialogContent>
     </Dialog>
