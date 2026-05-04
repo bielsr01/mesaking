@@ -250,7 +250,11 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     }
   };
 
-  const filtered = orders.filter((o) => {
+  const channelOrders = orders.filter((o) =>
+    channel === "pdv" ? o.order_type === "pdv" : o.order_type !== "pdv"
+  );
+
+  const filtered = channelOrders.filter((o) => {
     if (filter === "all") return true;
     if (filter === "active") return !["delivered", "cancelled"].includes(o.status);
     return o.status === filter;
@@ -264,20 +268,49 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   };
 
   const counts: Record<string, number> = {
-    pending: orders.filter((o) => o.status === "pending").length,
-    preparing: orders.filter((o) => o.status === "preparing").length,
-    out_for_delivery: orders.filter((o) => o.status === "out_for_delivery").length,
-    awaiting_pickup: orders.filter((o) => o.status === "awaiting_pickup").length,
-    delivered: orders.filter((o) => o.status === "delivered").length,
-    active: orders.filter((o) => !["delivered", "cancelled"].includes(o.status)).length,
-    all: orders.length,
+    pending: channelOrders.filter((o) => o.status === "pending").length,
+    preparing: channelOrders.filter((o) => o.status === "preparing").length,
+    out_for_delivery: channelOrders.filter((o) => o.status === "out_for_delivery").length,
+    awaiting_pickup: channelOrders.filter((o) => o.status === "awaiting_pickup").length,
+    delivered: channelOrders.filter((o) => o.status === "delivered").length,
+    active: channelOrders.filter((o) => !["delivered", "cancelled"].includes(o.status)).length,
+    all: channelOrders.length,
   };
+
+  const deliveryCount = orders.filter((o) => o.order_type !== "pdv").length;
+  const pdvCount = orders.filter((o) => o.order_type === "pdv").length;
+
+  // For PDV channel, only show "all" filter (orders are already finalized)
+  const visibleFilters = channel === "pdv"
+    ? FILTERS.filter((f) => ["all", "delivered"].includes(f.value))
+    : FILTERS;
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Tabs value={channel} onValueChange={(v) => { setChannel(v as "delivery" | "pdv"); setFilter(v === "pdv" ? "all" : "pending"); }}>
+          <TabsList>
+            <TabsTrigger value="delivery" className="gap-2">
+              <Bike className="w-4 h-4" /> Delivery / Retirada
+              <Badge variant="secondary" className="h-5 min-w-5 px-1.5 text-xs">{deliveryCount}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="pdv" className="gap-2">
+              <Store className="w-4 h-4" /> PDV (Balcão)
+              <Badge variant="secondary" className="h-5 min-w-5 px-1.5 text-xs">{pdvCount}</Badge>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        {channel === "pdv" && (
+          <Button onClick={() => setPdvOpen(true)} className="gap-2">
+            <Plus className="w-4 h-4" /> Novo pedido PDV
+          </Button>
+        )}
+      </div>
+
       <Tabs value={filter} onValueChange={setFilter}>
         <TabsList className="flex-wrap h-auto">
-          {FILTERS.map((f) => (
+          {visibleFilters.map((f) => (
             <TabsTrigger key={f.value} value={f.value} className="gap-2">
               {f.label}
               <Badge
