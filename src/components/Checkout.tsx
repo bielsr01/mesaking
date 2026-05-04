@@ -356,6 +356,7 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
       delivery_fee: fee,
       total,
       coupon_code: coupon?.code ?? null,
+      loyalty_opt_in: loyaltyEnabled && loyaltyOptIn,
     };
 
     if (isPickup) {
