@@ -5,14 +5,13 @@ import { Loader2, MapPin, LocateFixed } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { reverseGeocode, ReverseGeocodeResult, GeoPoint } from "@/lib/delivery";
 
-// HERE Maps JS SDK loader (carregado via CDN sob demanda)
-declare global { interface Window { H: any } }
+declare global { interface Window { google: any; __gmapsLoading?: Promise<void> } }
 
 let cachedKey: string | null = null;
-async function getHereApiKey(): Promise<string | null> {
+async function getGoogleApiKey(): Promise<string | null> {
   if (cachedKey) return cachedKey;
   try {
-    const { data, error } = await supabase.functions.invoke("here-token");
+    const { data, error } = await supabase.functions.invoke("maps-key");
     if (error) return null;
     const k = (data as any)?.apiKey as string | undefined;
     if (k) cachedKey = k;
@@ -22,41 +21,26 @@ async function getHereApiKey(): Promise<string | null> {
   }
 }
 
-let hereLoadPromise: Promise<void> | null = null;
-function loadHereMaps(): Promise<void> {
-  if (typeof window !== "undefined" && window.H?.Map) return Promise.resolve();
-  if (hereLoadPromise) return hereLoadPromise;
-  hereLoadPromise = new Promise((resolve, reject) => {
-    const urls = [
-      "https://js.api.here.com/v3/3.1/mapsjs-core.js",
-      "https://js.api.here.com/v3/3.1/mapsjs-service.js",
-      "https://js.api.here.com/v3/3.1/mapsjs-mapevents.js",
-      "https://js.api.here.com/v3/3.1/mapsjs-ui.js",
-    ];
-    const cssId = "here-maps-ui-css";
-    if (!document.getElementById(cssId)) {
-      const link = document.createElement("link");
-      link.id = cssId;
-      link.rel = "stylesheet";
-      link.href = "https://js.api.here.com/v3/3.1/mapsjs-ui.css";
-      document.head.appendChild(link);
+function loadGoogleMaps(apiKey: string): Promise<void> {
+  if (typeof window !== "undefined" && window.google?.maps) return Promise.resolve();
+  if (window.__gmapsLoading) return window.__gmapsLoading;
+  window.__gmapsLoading = new Promise((resolve, reject) => {
+    const existing = document.querySelector<HTMLScriptElement>('script[data-gmaps="1"]');
+    if (existing) {
+      existing.addEventListener("load", () => resolve());
+      existing.addEventListener("error", () => reject(new Error("gmaps load failed")));
+      return;
     }
-    const loadOne = (src: string) => new Promise<void>((res, rej) => {
-      if (document.querySelector(`script[src="${src}"]`)) return res();
-      const s = document.createElement("script");
-      s.src = src; s.async = false;
-      s.onload = () => res();
-      s.onerror = () => rej(new Error(`Failed to load ${src}`));
-      document.head.appendChild(s);
-    });
-    (async () => {
-      try {
-        for (const u of urls) await loadOne(u);
-        resolve();
-      } catch (e) { reject(e); }
-    })();
+    const s = document.createElement("script");
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=places&language=pt-BR&region=BR&loading=async`;
+    s.async = true;
+    s.defer = true;
+    s.dataset.gmaps = "1";
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error("gmaps load failed"));
+    document.head.appendChild(s);
   });
-  return hereLoadPromise;
+  return window.__gmapsLoading;
 }
 
 function getCurrentPosition(): Promise<GeoPoint | null> {
@@ -110,14 +94,14 @@ export function LocationPicker({
       setPermissionError(false);
 
       const [apiKey, geo] = await Promise.all([
-        getHereApiKey(),
+        getGoogleApiKey(),
         initialPoint ? Promise.resolve(initialPoint) : getCurrentPosition(),
       ]);
 
       if (cancelled) return;
       if (!apiKey) { setLoading(false); return; }
 
-      try { await loadHereMaps(); } catch { setLoading(false); return; }
+      try { await loadGoogleMaps(apiKey); } catch { setLoading(false); return; }
       if (cancelled) return;
 
       const pt: GeoPoint = geo ?? { lat: -14.235, lng: -51.9253 };
@@ -127,36 +111,28 @@ export function LocationPicker({
 
       setTimeout(() => {
         if (!containerRef.current || cancelled) return;
-        const H = window.H;
-        const platform = new H.service.Platform({ apikey: apiKey });
-        const layers = platform.createDefaultLayers({ lg: "pt-BR" });
-        const map = new H.Map(
-          containerRef.current,
-          layers.vector.normal.map,
-          { center: { lat: pt.lat, lng: pt.lng }, zoom: geo ? 17 : 4, pixelRatio: window.devicePixelRatio || 1 },
-        );
-        const behavior = new H.mapevents.Behavior(new H.mapevents.MapEvents(map));
-        H.ui.UI.createDefault(map, layers, "pt-BR");
-        // Atualiza ponto quando o usuário arrasta
-        map.addEventListener("mapviewchangeend", () => {
-          const c = map.getCenter();
-          setPoint({ lat: c.lat, lng: c.lng });
+        const google = window.google;
+        const map = new google.maps.Map(containerRef.current, {
+          center: { lat: pt.lat, lng: pt.lng },
+          zoom: geo ? 17 : 4,
+          disableDefaultUI: true,
+          zoomControl: true,
+          gestureHandling: "greedy",
+          clickableIcons: false,
         });
-        const onResize = () => map.getViewPort().resize();
-        window.addEventListener("resize", onResize);
-        mapRef.current = { map, platform, behavior, onResize };
-        setTimeout(() => map.getViewPort().resize(), 250);
+        // Atualiza ponto quando o usuário arrasta
+        map.addListener("idle", () => {
+          const c = map.getCenter();
+          if (!c) return;
+          setPoint({ lat: c.lat(), lng: c.lng() });
+        });
+        mapRef.current = { map };
       }, 50);
     };
 
     init();
     return () => {
       cancelled = true;
-      const ref = mapRef.current;
-      if (ref?.map) {
-        try { window.removeEventListener("resize", ref.onResize); } catch { /* noop */ }
-        try { ref.map.dispose(); } catch { /* noop */ }
-      }
       mapRef.current = null;
       setInfo(null);
     };
@@ -168,8 +144,8 @@ export function LocationPicker({
     setPermissionError(false);
     const ref = mapRef.current;
     if (ref?.map) {
-      ref.map.setCenter({ lat: geo.lat, lng: geo.lng }, true);
-      ref.map.setZoom(17, true);
+      ref.map.setCenter({ lat: geo.lat, lng: geo.lng });
+      ref.map.setZoom(17);
     }
   };
 
