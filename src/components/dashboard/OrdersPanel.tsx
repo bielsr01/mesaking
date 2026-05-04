@@ -480,6 +480,8 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
           </div>
         </DialogContent>
       </Dialog>
+
+      <PdvDialog open={pdvOpen} onOpenChange={setPdvOpen} restaurantId={restaurantId} />
     </div>
   );
 }
