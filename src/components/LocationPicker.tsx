@@ -57,7 +57,12 @@ async function loadGoogleMaps(apiKey: string): Promise<void> {
     s.onerror = () => reject(new Error("gmaps load failed"));
     document.head.appendChild(s);
   });
-  await window.__gmapsLoading;
+  try {
+    await window.__gmapsLoading;
+  } catch (err) {
+    window.__gmapsLoading = undefined;
+    throw err;
+  }
   if (window.google?.maps?.importLibrary) {
     await window.google.maps.importLibrary("maps");
   }
