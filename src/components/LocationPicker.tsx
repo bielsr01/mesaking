@@ -1,23 +1,26 @@
 import { useEffect, useRef, useState } from "react";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import mapboxgl from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Loader2, MapPin } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 import { geocodeAddress, GeocodeAddress, GeoPoint } from "@/lib/delivery";
 
-// Fix Leaflet default marker icon paths (Vite/bundler workaround)
-const DefaultIcon = L.icon({
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
-L.Marker.prototype.options.icon = DefaultIcon;
+let cachedToken: string | null = null;
+async function getMapboxToken(): Promise<string | null> {
+  if (cachedToken) return cachedToken;
+  try {
+    const { data, error } = await supabase.functions.invoke("mapbox-token");
+    if (error) return null;
+    const t = (data as any)?.token as string | undefined;
+    if (t) cachedToken = t;
+    return t ?? null;
+  } catch {
+    return null;
+  }
+}
 
 export function LocationPicker({
   open,
@@ -33,48 +36,51 @@ export function LocationPicker({
   onConfirm: (pt: GeoPoint) => void;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<L.Map | null>(null);
-  const markerRef = useRef<L.Marker | null>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
   const [loading, setLoading] = useState(false);
   const [point, setPoint] = useState<GeoPoint | null>(initialPoint ?? null);
 
-  // Init map when dialog opens
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
 
     const init = async () => {
       setLoading(true);
-      let pt: GeoPoint | null = initialPoint ?? null;
-      if (!pt) pt = await geocodeAddress(address);
-      if (!pt) pt = { lat: -14.235, lng: -51.9253 }; // Brasil centro como fallback
+      const [token, geocoded] = await Promise.all([
+        getMapboxToken(),
+        initialPoint ? Promise.resolve(initialPoint) : geocodeAddress(address),
+      ]);
       if (cancelled) return;
+
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
+      const pt: GeoPoint = geocoded ?? { lat: -14.235, lng: -51.9253 };
       setPoint(pt);
       setLoading(false);
 
-      // Wait next tick for container to mount
       setTimeout(() => {
         if (!containerRef.current || cancelled) return;
         if (mapRef.current) {
           mapRef.current.remove();
           mapRef.current = null;
         }
-        const map = L.map(containerRef.current, { zoomControl: true }).setView([pt!.lat, pt!.lng], 17);
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          attribution: "© OpenStreetMap",
-          maxZoom: 19,
-        }).addTo(map);
+        mapboxgl.accessToken = token;
+        const map = new mapboxgl.Map({
+          container: containerRef.current,
+          style: "mapbox://styles/mapbox/streets-v12",
+          center: [pt.lng, pt.lat],
+          zoom: 17,
+        });
+        map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
         map.on("move", () => {
           const c = map.getCenter();
           setPoint({ lat: c.lat, lng: c.lng });
         });
-        map.on("moveend", () => {
-          const c = map.getCenter();
-          setPoint({ lat: c.lat, lng: c.lng });
-        });
         mapRef.current = map;
-        // Fix size after dialog animation
-        setTimeout(() => map.invalidateSize(), 250);
+        setTimeout(() => map.resize(), 250);
       }, 50);
     };
 
@@ -84,7 +90,6 @@ export function LocationPicker({
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
-        markerRef.current = null;
       }
     };
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -94,7 +99,7 @@ export function LocationPicker({
       <DialogContent className="p-0 gap-0 flex flex-col overflow-hidden max-w-full w-screen h-[100dvh] sm:max-w-full rounded-none">
         <DialogHeader className="shrink-0 px-6 py-4 border-b">
           <DialogTitle className="flex items-center gap-2"><MapPin className="w-5 h-5" /> Confirme o local exato</DialogTitle>
-          <DialogDescription>Arraste o pino ou toque no mapa para marcar a porta da sua casa.</DialogDescription>
+          <DialogDescription>Arraste o mapa para posicionar o pino na porta da sua casa.</DialogDescription>
         </DialogHeader>
         <div className="flex-1 relative bg-muted">
           {loading && (
