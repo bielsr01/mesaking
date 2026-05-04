@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
       const onlyAddresses = rawFeatures.filter((f) => Array.isArray(f?.place_type) && f.place_type.includes("address"));
 
       const seen = new Set<string>();
-      const suggestions = rawFeatures.filter((f) => {
+      const suggestions = onlyAddresses.filter((f) => {
         const id = String(f?.id ?? f?.place_name ?? "");
         if (!id || seen.has(id)) return false;
         seen.add(id);
