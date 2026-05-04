@@ -15,7 +15,7 @@ import { brl } from "@/lib/format";
 import { OptionGroupsManager, fetchGroups, optionKeys, OptionGroup } from "./OptionGroupsManager";
 
 interface Category { id: string; name: string; sort_order: number; is_active: boolean; }
-interface Product { id: string; category_id: string | null; name: string; description: string | null; price: number; image_url: string | null; is_active: boolean; }
+interface Product { id: string; category_id: string | null; name: string; description: string | null; price: number; image_url: string | null; is_active: boolean; sort_order: number; }
 
 export const menuKeys = {
   categories: (rid: string) => ["menu", rid, "categories"] as const,
