@@ -12,9 +12,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { brl, orderStatusLabel, getNextStatus, paymentLabel, formatPhone, orderTypeLabel } from "@/lib/format";
 import { toast } from "sonner";
-import { Bike, ChefHat, Clock, MapPin, Phone, Printer, Store, User, X } from "lucide-react";
+import { Bike, ChefHat, Clock, MapPin, Phone, Plus, Printer, Store, User, X } from "lucide-react";
 import { buildTicketHtml, TicketMode, TicketOptionCatalog, TicketRestaurant } from "@/lib/ticket";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { PdvDialog } from "./PdvDialog";
 
 interface Order {
   id: string;
@@ -35,7 +36,9 @@ interface Order {
   delivery_fee: number;
   total: number;
   status: "accepted" | "awaiting_pickup" | "cancelled" | "delivered" | "out_for_delivery" | "pending" | "preparing";
-  order_type: "delivery" | "pickup";
+  order_type: "delivery" | "pickup" | "pdv";
+  discount?: number | null;
+  service_fee?: number | null;
   created_at: string;
   delivery_latitude: number | null;
   delivery_longitude: number | null;
@@ -86,9 +89,11 @@ export async function fetchOrders(restaurantId: string): Promise<{ orders: Order
 
 export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const qc = useQueryClient();
+  const [channel, setChannel] = useState<"delivery" | "pdv">("delivery");
   const [filter, setFilter] = useState("pending");
   const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
   const [printTarget, setPrintTarget] = useState<Order | null>(null);
+  const [pdvOpen, setPdvOpen] = useState(false);
 
   const doPrint = (o: Order, mode: TicketMode) => {
     const html = buildTicketHtml(
@@ -245,7 +250,11 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     }
   };
 
-  const filtered = orders.filter((o) => {
+  const channelOrders = orders.filter((o) =>
+    channel === "pdv" ? o.order_type === "pdv" : o.order_type !== "pdv"
+  );
+
+  const filtered = channelOrders.filter((o) => {
     if (filter === "all") return true;
     if (filter === "active") return !["delivered", "cancelled"].includes(o.status);
     return o.status === filter;
@@ -259,20 +268,49 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   };
 
   const counts: Record<string, number> = {
-    pending: orders.filter((o) => o.status === "pending").length,
-    preparing: orders.filter((o) => o.status === "preparing").length,
-    out_for_delivery: orders.filter((o) => o.status === "out_for_delivery").length,
-    awaiting_pickup: orders.filter((o) => o.status === "awaiting_pickup").length,
-    delivered: orders.filter((o) => o.status === "delivered").length,
-    active: orders.filter((o) => !["delivered", "cancelled"].includes(o.status)).length,
-    all: orders.length,
+    pending: channelOrders.filter((o) => o.status === "pending").length,
+    preparing: channelOrders.filter((o) => o.status === "preparing").length,
+    out_for_delivery: channelOrders.filter((o) => o.status === "out_for_delivery").length,
+    awaiting_pickup: channelOrders.filter((o) => o.status === "awaiting_pickup").length,
+    delivered: channelOrders.filter((o) => o.status === "delivered").length,
+    active: channelOrders.filter((o) => !["delivered", "cancelled"].includes(o.status)).length,
+    all: channelOrders.length,
   };
+
+  const deliveryCount = orders.filter((o) => o.order_type !== "pdv").length;
+  const pdvCount = orders.filter((o) => o.order_type === "pdv").length;
+
+  // For PDV channel, only show "all" filter (orders are already finalized)
+  const visibleFilters = channel === "pdv"
+    ? FILTERS.filter((f) => ["all", "delivered"].includes(f.value))
+    : FILTERS;
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Tabs value={channel} onValueChange={(v) => { setChannel(v as "delivery" | "pdv"); setFilter(v === "pdv" ? "all" : "pending"); }}>
+          <TabsList>
+            <TabsTrigger value="delivery" className="gap-2">
+              <Bike className="w-4 h-4" /> Delivery / Retirada
+              <Badge variant="secondary" className="h-5 min-w-5 px-1.5 text-xs">{deliveryCount}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="pdv" className="gap-2">
+              <Store className="w-4 h-4" /> PDV (Balcão)
+              <Badge variant="secondary" className="h-5 min-w-5 px-1.5 text-xs">{pdvCount}</Badge>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        {channel === "pdv" && (
+          <Button onClick={() => setPdvOpen(true)} className="gap-2">
+            <Plus className="w-4 h-4" /> Novo pedido PDV
+          </Button>
+        )}
+      </div>
+
       <Tabs value={filter} onValueChange={setFilter}>
         <TabsList className="flex-wrap h-auto">
-          {FILTERS.map((f) => (
+          {visibleFilters.map((f) => (
             <TabsTrigger key={f.value} value={f.value} className="gap-2">
               {f.label}
               <Badge
@@ -297,13 +335,14 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
         <div className="grid gap-4 lg:grid-cols-2">
           {filtered.map((o) => {
             const isPickup = o.order_type === "pickup";
+            const isPdv = o.order_type === "pdv";
             const next = getNextStatus(o.status, o.order_type);
             return (
             <Card key={o.id} className="shadow-soft">
               <CardContent className="pt-5 space-y-3">
                 {/* Tipo do pedido — destaque no topo */}
-                <div className={`-mt-2 -mx-1 px-3 py-1.5 rounded-md flex items-center gap-2 text-xs font-semibold ${isPickup ? "bg-accent/20 text-accent-foreground border border-accent/40" : "bg-primary/10 text-primary border border-primary/20"}`}>
-                  {isPickup ? <Store className="w-3.5 h-3.5" /> : <Bike className="w-3.5 h-3.5" />}
+                <div className={`-mt-2 -mx-1 px-3 py-1.5 rounded-md flex items-center gap-2 text-xs font-semibold ${isPdv ? "bg-success/15 text-success border border-success/30" : isPickup ? "bg-accent/20 text-accent-foreground border border-accent/40" : "bg-primary/10 text-primary border border-primary/20"}`}>
+                  {isPdv ? <Store className="w-3.5 h-3.5" /> : isPickup ? <Store className="w-3.5 h-3.5" /> : <Bike className="w-3.5 h-3.5" />}
                   {orderTypeLabel[o.order_type] ?? "Delivery"}
                 </div>
 
@@ -324,7 +363,12 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                   <Badge className={statusColor(o.status)}>{orderStatusLabel[o.status]}</Badge>
                 </div>
 
-                {isPickup ? (
+                {isPdv ? (
+                  <div className="text-sm flex gap-2 bg-success/10 rounded-md p-2">
+                    <Store className="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground" />
+                    <div className="text-muted-foreground italic">Venda PDV — atendimento no balcão.</div>
+                  </div>
+                ) : isPickup ? (
                   <div className="text-sm flex gap-2 bg-accent/10 rounded-md p-2">
                     <Store className="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground" />
                     <div className="text-muted-foreground italic">Retirada na loja — cliente irá buscar.</div>
@@ -442,6 +486,8 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
           </div>
         </DialogContent>
       </Dialog>
+
+      <PdvDialog open={pdvOpen} onOpenChange={setPdvOpen} restaurantId={restaurantId} />
     </div>
   );
 }

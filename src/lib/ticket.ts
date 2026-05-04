@@ -11,7 +11,7 @@ export type TicketMode = "customer" | "kitchen";
 export interface TicketOrder {
   id: string;
   order_number: number;
-  order_type: "delivery" | "pickup";
+  order_type: "delivery" | "pickup" | "pdv";
   customer_name: string;
   customer_phone: string;
   address_street?: string | null;

@@ -420,6 +420,7 @@ export type Database = {
           delivery_fee: number
           delivery_latitude: number | null
           delivery_longitude: number | null
+          discount: number
           id: string
           loyalty_opt_in: boolean
           order_number: number
@@ -427,6 +428,7 @@ export type Database = {
           payment_method: Database["public"]["Enums"]["payment_method"]
           public_token: string
           restaurant_id: string
+          service_fee: number
           status: Database["public"]["Enums"]["order_status"]
           subtotal: number
           total: number
@@ -450,6 +452,7 @@ export type Database = {
           delivery_fee?: number
           delivery_latitude?: number | null
           delivery_longitude?: number | null
+          discount?: number
           id?: string
           loyalty_opt_in?: boolean
           order_number: number
@@ -457,6 +460,7 @@ export type Database = {
           payment_method: Database["public"]["Enums"]["payment_method"]
           public_token?: string
           restaurant_id: string
+          service_fee?: number
           status?: Database["public"]["Enums"]["order_status"]
           subtotal: number
           total: number
@@ -480,6 +484,7 @@ export type Database = {
           delivery_fee?: number
           delivery_latitude?: number | null
           delivery_longitude?: number | null
+          discount?: number
           id?: string
           loyalty_opt_in?: boolean
           order_number?: number
@@ -487,6 +492,7 @@ export type Database = {
           payment_method?: Database["public"]["Enums"]["payment_method"]
           public_token?: string
           restaurant_id?: string
+          service_fee?: number
           status?: Database["public"]["Enums"]["order_status"]
           subtotal?: number
           total?: number
@@ -826,7 +832,7 @@ export type Database = {
         | "delivered"
         | "cancelled"
         | "awaiting_pickup"
-      order_type: "delivery" | "pickup"
+      order_type: "delivery" | "pickup" | "pdv"
       payment_method: "cash" | "pix" | "card_on_delivery"
     }
     CompositeTypes: {
@@ -965,7 +971,7 @@ export const Constants = {
         "cancelled",
         "awaiting_pickup",
       ],
-      order_type: ["delivery", "pickup"],
+      order_type: ["delivery", "pickup", "pdv"],
       payment_method: ["cash", "pix", "card_on_delivery"],
     },
   },
