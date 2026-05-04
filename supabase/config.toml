@@ -3,5 +3,5 @@ project_id = "kcjrrnxsqdcgjqplgiku"
 [functions.geocode]
 verify_jwt = false
 
-[functions.mapbox-token]
+[functions.maps-key]
 verify_jwt = false
