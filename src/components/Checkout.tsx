@@ -67,6 +67,7 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
 
   // Etapa 2 — endereço
   const [cep, setCep] = useState("");
+  const [dontKnowCep, setDontKnowCep] = useState(false);
   const [addr, setAddr] = useState({ street: "", number: "", complement: "", neighborhood: "", city: "", state: "", notes: "" });
 
   // Etapa 3 — pagamento
