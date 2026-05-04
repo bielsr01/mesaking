@@ -30,9 +30,18 @@ async function loadGoogleMaps(apiKey: string): Promise<void> {
   if (typeof window !== "undefined" && window.google?.maps?.Map) return;
   if (window.__gmapsLoading) return window.__gmapsLoading;
   window.__gmapsLoading = new Promise((resolve, reject) => {
+    const timeout = window.setTimeout(() => reject(new Error("gmaps load timeout")), 12000);
+    const done = () => {
+      window.clearTimeout(timeout);
+      resolve();
+    };
     const existing = document.querySelector<HTMLScriptElement>('script[data-gmaps="1"]');
     if (existing) {
-      existing.addEventListener("load", () => resolve());
+      if (window.google?.maps || existing.dataset.loaded === "1") {
+        done();
+        return;
+      }
+      existing.addEventListener("load", done);
       existing.addEventListener("error", () => reject(new Error("gmaps load failed")));
       return;
     }
@@ -41,11 +50,19 @@ async function loadGoogleMaps(apiKey: string): Promise<void> {
     s.async = true;
     s.defer = true;
     s.dataset.gmaps = "1";
-    s.onload = () => resolve();
+    s.onload = () => {
+      s.dataset.loaded = "1";
+      done();
+    };
     s.onerror = () => reject(new Error("gmaps load failed"));
     document.head.appendChild(s);
   });
-  await window.__gmapsLoading;
+  try {
+    await window.__gmapsLoading;
+  } catch (err) {
+    window.__gmapsLoading = undefined;
+    throw err;
+  }
   if (window.google?.maps?.importLibrary) {
     await window.google.maps.importLibrary("maps");
   }
@@ -97,22 +114,33 @@ export function LocationPicker({
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
+  const initialPointRef = useRef<GeoPoint | null>(null);
+  const manuallyMovedRef = useRef(false);
   const [loading, setLoading] = useState(false);
   const [point, setPoint] = useState<GeoPoint | null>(initialPoint ?? null);
   const [info, setInfo] = useState<ReverseGeocodeResult | null>(null);
   const [resolving, setResolving] = useState(false);
   const [permissionError, setPermissionError] = useState(false);
 
+  useEffect(() => {
+    if (!open) {
+      setLoading(false);
+      setResolving(false);
+    }
+  }, [open]);
+
   // Reverse geocode debounced sempre que o ponto mudar
   useEffect(() => {
     if (!point || !open) return;
+    let cancelled = false;
     setResolving(true);
     const t = setTimeout(async () => {
       const r = await reverseGeocode(point);
+      if (cancelled) return;
       setInfo(r);
       setResolving(false);
-    }, 350);
-    return () => clearTimeout(t);
+    }, 300);
+    return () => { cancelled = true; clearTimeout(t); setResolving(false); };
   }, [point, open]);
 
   useEffect(() => {
@@ -132,6 +160,8 @@ export function LocationPicker({
         isFinite(initialPoint.lng)
           ? initialPoint
           : null;
+      initialPointRef.current = validInitial;
+      manuallyMovedRef.current = false;
 
       const [apiKey, geo] = await Promise.all([
         getGoogleApiKey(),
@@ -189,11 +219,15 @@ export function LocationPicker({
           return next;
         });
       });
+      map.addListener("dragstart", () => {
+        manuallyMovedRef.current = true;
+      });
 
       mapRef.current = { map };
 
       // Garante o redraw quando o dialog termina a animação
       setTimeout(() => {
+        if (cancelled) return;
         google.maps.event.trigger(map, "resize");
         map.setCenter({ lat: pt.lat, lng: pt.lng });
       }, 250);
@@ -214,6 +248,7 @@ export function LocationPicker({
       setPermissionError(true);
       return;
     }
+    manuallyMovedRef.current = true;
     setPermissionError(false);
     const ref = mapRef.current;
     if (ref?.map) {
@@ -239,7 +274,16 @@ export function LocationPicker({
       if (c) finalPoint = { lat: c.lat(), lng: c.lng() };
     }
     if (!finalPoint) return;
-    const result: ReverseGeocodeResult = { ...(info ?? {}), lat: finalPoint.lat, lng: finalPoint.lng };
+    const initial = initialPointRef.current;
+    const movedByDistance = initial
+      ? Math.abs(initial.lat - finalPoint.lat) > 0.00003 || Math.abs(initial.lng - finalPoint.lng) > 0.00003
+      : false;
+    const result: ReverseGeocodeResult = {
+      ...(info ?? {}),
+      lat: finalPoint.lat,
+      lng: finalPoint.lng,
+      mapMoved: manuallyMovedRef.current || movedByDistance,
+    };
     onConfirm(result);
     onOpenChange(false);
   };

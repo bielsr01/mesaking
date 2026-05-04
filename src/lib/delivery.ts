@@ -22,6 +22,7 @@ export type ReverseGeocodeResult = GeoPoint & {
   city?: string;
   state?: string;
   cep?: string;
+  mapMoved?: boolean;
 };
 
 export async function geocodeAddress(addr: GeocodeAddress): Promise<GeoPoint | null> {
