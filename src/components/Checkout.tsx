@@ -802,11 +802,22 @@ function Step2Address(props: {
                   <span className="font-semibold">Observação:</span> {addr.notes}
                 </p>
               )}
+              {pinnedPoint && (
+                <p className="text-xs text-success mt-1 flex items-center gap-1">
+                  <Check className="w-3 h-3" /> Localização confirmada no mapa
+                </p>
+              )}
             </div>
           </div>
-          <Button type="button" variant="outline" size="sm" onClick={() => setEditing(true)} className="w-full">
-            Editar endereço
-          </Button>
+          <div className="grid grid-cols-2 gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={() => setEditing(true)}>
+              Editar endereço
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => setPickingMap(true)}>
+              <MapPin className="w-4 h-4 mr-1" />
+              {pinnedPoint ? "Reajustar pino" : "Pinar no mapa"}
+            </Button>
+          </div>
         </div>
       ) : (
         <Button type="button" variant="outline" onClick={() => setEditing(true)} className="w-full justify-start gap-2 h-12">
