@@ -142,6 +142,18 @@ export function AppSidebar({
                 </SidebarMenuItem>
               </Collapsible>
 
+              {/* Programa de fidelidade (item raiz, abaixo de Marketing) */}
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={active === loyaltyItem.id}
+                  onClick={() => onChange(loyaltyItem.id)}
+                  tooltip={loyaltyItem.title}
+                >
+                  <loyaltyItem.icon className="h-4 w-4" />
+                  <span>{loyaltyItem.title}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
               {/* Configurações */}
               <Collapsible open={settingsOpen || collapsed} onOpenChange={setSettingsOpen} asChild>
                 <SidebarMenuItem>
