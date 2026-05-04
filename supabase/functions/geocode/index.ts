@@ -64,11 +64,12 @@ Deno.serve(async (req) => {
 
       const rawFeatures: Array<any> = [];
       for (const queryStr of candidateQueries) {
-        rawFeatures.push(...await fetchFeatures(queryStr, "address,place,postcode,locality,neighborhood"));
-        if (rawFeatures.length) break;
-        rawFeatures.push(...await fetchFeatures(queryStr));
+        // Apenas endereços (rua + nº). Evita sugerir cidade, bairro ou CEP soltos.
+        rawFeatures.push(...await fetchFeatures(queryStr, "address"));
         if (rawFeatures.length) break;
       }
+      // Filtra ainda no resultado para garantir que só endereços apareçam
+      const onlyAddresses = rawFeatures.filter((f) => Array.isArray(f?.place_type) && f.place_type.includes("address"));
 
       const seen = new Set<string>();
       const suggestions = rawFeatures.filter((f) => {
