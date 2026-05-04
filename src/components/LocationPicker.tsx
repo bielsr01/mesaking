@@ -124,9 +124,18 @@ export function LocationPicker({
       setPermissionError(false);
       setInfo(null);
 
+      const validInitial =
+        initialPoint &&
+        typeof initialPoint.lat === "number" &&
+        typeof initialPoint.lng === "number" &&
+        isFinite(initialPoint.lat) &&
+        isFinite(initialPoint.lng)
+          ? initialPoint
+          : null;
+
       const [apiKey, geo] = await Promise.all([
         getGoogleApiKey(),
-        initialPoint ? Promise.resolve(initialPoint) : getCurrentPosition(),
+        validInitial ? Promise.resolve(validInitial) : getCurrentPosition(),
       ]);
 
       if (cancelled) return;
