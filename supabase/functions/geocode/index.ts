@@ -12,7 +12,53 @@ Deno.serve(async (req) => {
     if (!token) throw new Error("MAPBOX_TOKEN not configured");
 
     const body = await req.json().catch(() => ({}));
-    const { cep, street, number, neighborhood, city, state, lat: rLat, lng: rLng } = body ?? {};
+    const { cep, street, number, neighborhood, city, state, lat: rLat, lng: rLng, q, proximity } = body ?? {};
+
+    // Search autocomplete (q -> lista de sugestões)
+    if (typeof q === "string" && q.trim().length >= 3) {
+      const url = new URL(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q.trim())}.json`,
+      );
+      url.searchParams.set("access_token", token);
+      url.searchParams.set("country", "br");
+      url.searchParams.set("language", "pt");
+      url.searchParams.set("limit", "6");
+      url.searchParams.set("autocomplete", "true");
+      url.searchParams.set("types", "address,street,place,postcode,locality,neighborhood");
+      if (proximity && typeof proximity.lat === "number" && typeof proximity.lng === "number") {
+        url.searchParams.set("proximity", `${proximity.lng},${proximity.lat}`);
+      }
+      const r = await fetch(url.toString());
+      const data = await r.json();
+      const features = (data?.features ?? []) as Array<any>;
+      const suggestions = features.map((f) => {
+        const ctx: any[] = Array.isArray(f.context) ? f.context : [];
+        let neigh = "", cityR = "", stateR = "", cepR = "";
+        for (const c of ctx) {
+          const id = String(c.id ?? "");
+          if (id.startsWith("neighborhood") && !neigh) neigh = c.text;
+          else if (id.startsWith("locality") && !neigh) neigh = c.text;
+          else if (id.startsWith("place") && !cityR) cityR = c.text;
+          else if (id.startsWith("region") && !stateR) stateR = (c.short_code ?? c.text ?? "").replace(/^BR-/i, "").toUpperCase();
+          else if (id.startsWith("postcode") && !cepR) cepR = c.text;
+        }
+        const [lng, lat] = f.center ?? [];
+        return {
+          id: f.id,
+          place_name: f.place_name,
+          lat, lng,
+          street: f.text ?? "",
+          number: f.address ?? "",
+          neighborhood: neigh,
+          city: cityR,
+          state: stateR,
+          cep: cepR,
+        };
+      });
+      return new Response(JSON.stringify({ suggestions }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Reverse geocoding (lat/lng -> endereço)
     if (typeof rLat === "number" && typeof rLng === "number") {

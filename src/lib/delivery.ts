@@ -49,6 +49,18 @@ export async function reverseGeocode(pt: GeoPoint): Promise<ReverseGeocodeResult
   }
 }
 
+export type AddressSuggestion = ReverseGeocodeResult & { id: string };
+
+export async function searchAddresses(q: string, proximity?: GeoPoint): Promise<AddressSuggestion[]> {
+  try {
+    const { data, error } = await supabase.functions.invoke("geocode", { body: { q, proximity } });
+    if (error || !data) return [];
+    return ((data as any).suggestions ?? []) as AddressSuggestion[];
+  } catch {
+    return [];
+  }
+}
+
 export function haversineKm(a: GeoPoint, b: GeoPoint): number {
   const R = 6371;
   const toRad = (d: number) => (d * Math.PI) / 180;
