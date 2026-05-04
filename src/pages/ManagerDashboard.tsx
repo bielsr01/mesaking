@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { ExternalLink, LogOut, ShoppingBag, DollarSign, TrendingUp, Construction } from "lucide-react";
+import { ExternalLink, LogOut, ShoppingBag, DollarSign, TrendingUp, Construction, RefreshCw } from "lucide-react";
 import { brl } from "@/lib/format";
+import { toast } from "sonner";
 import { OrdersPanel, fetchOrders, ordersKey } from "@/components/dashboard/OrdersPanel";
 import { MenuManager, fetchCategories, fetchProducts, menuKeys } from "@/components/dashboard/MenuManager";
 import { StoreSettings } from "@/components/dashboard/StoreSettings";
@@ -159,6 +160,17 @@ export default function ManagerDashboard() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  title="Atualizar tudo"
+                  onClick={async () => {
+                    await qc.invalidateQueries();
+                    toast.success("Sistema atualizado");
+                  }}
+                >
+                  <RefreshCw className="w-5 h-5" />
+                </Button>
                 <NotificationsBell
                   notifications={notifications}
                   unreadCount={unreadCount}
