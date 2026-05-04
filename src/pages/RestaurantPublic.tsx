@@ -210,6 +210,9 @@ export default function RestaurantPublic() {
     return sum;
   }, [productGroups, selectedOpts]);
 
+  const groupRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [shakeGroupId, setShakeGroupId] = useState<string | null>(null);
+
   const toggleOpt = (g: OptionGroup, itemId: string) => {
     setSelectedOpts((prev) => {
       const cur = prev[g.id] ?? [];
@@ -218,7 +221,9 @@ export default function RestaurantPublic() {
       }
       if (cur.includes(itemId)) return { ...prev, [g.id]: cur.filter((x) => x !== itemId) };
       if (cur.length >= g.max_select) {
-        toast.error(`Máximo ${g.max_select} em "${g.name}"`);
+        // Sinaliza limite com shake no próprio grupo
+        setShakeGroupId(g.id);
+        setTimeout(() => setShakeGroupId(null), 600);
         return prev;
       }
       return { ...prev, [g.id]: [...cur, itemId] };
@@ -230,7 +235,13 @@ export default function RestaurantPublic() {
     for (const g of productGroups) {
       const cnt = (selectedOpts[g.id] ?? []).length;
       if (cnt < g.min_select) {
-        return toast.error(`Escolha ao menos ${g.min_select} em "${g.name}"`);
+        const el = groupRefs.current[g.id];
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+        setShakeGroupId(g.id);
+        setTimeout(() => setShakeGroupId(null), 600);
+        return;
       }
     }
     const opts: CartItemOption[] = [];
