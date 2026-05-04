@@ -506,7 +506,7 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-full sm:max-w-2xl w-screen h-[100dvh] sm:h-[100dvh] max-h-[100dvh] sm:rounded-none p-6 overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-3 pr-10">
             <DialogTitle>Finalizar pedido</DialogTitle>
             <span
               className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${
