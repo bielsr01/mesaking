@@ -18,26 +18,65 @@ Deno.serve(async (req) => {
 
     // Search autocomplete (q -> lista de sugestões)
     if (typeof q === "string" && q.trim().length >= 3) {
-      const queryStr = searchCity
-        ? `${q.trim()}, ${searchCity}${searchState ? ` - ${searchState}` : ""}`
-        : q.trim();
-      const url = new URL(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(queryStr)}.json`,
-      );
-      url.searchParams.set("access_token", token);
-      url.searchParams.set("country", "br");
-      url.searchParams.set("language", "pt");
-      url.searchParams.set("limit", "8");
-      url.searchParams.set("autocomplete", "true");
-      url.searchParams.set("types", "address,street,place,postcode,locality,neighborhood");
-      if (proximity && typeof proximity.lat === "number" && typeof proximity.lng === "number") {
-        url.searchParams.set("proximity", `${proximity.lng},${proximity.lat}`);
+      const normalize = (value?: string) =>
+        (value ?? "")
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .trim()
+          .toLowerCase();
+      const parseTypedAddress = (value: string) => {
+        const clean = value.trim().replace(/\s+/g, " ");
+        const commaNumber = clean.match(/^(.*?),\s*(\d+[\w\-/]*)\s*$/);
+        if (commaNumber) return { street: commaNumber[1].trim(), number: commaNumber[2].trim() };
+        const endingNumber = clean.match(/^(.*?)\s+(\d+[\w\-/]*)\s*$/);
+        if (endingNumber) return { street: endingNumber[1].trim(), number: endingNumber[2].trim() };
+        return { street: clean, number: "" };
+      };
+      const typed = parseTypedAddress(q);
+      const citySuffix = searchCity ? `${searchCity}${searchState ? ` - ${searchState}` : ""}` : "";
+      const candidateQueries = Array.from(new Set([
+        citySuffix ? `${q.trim()}, ${citySuffix}` : q.trim(),
+        typed.number && citySuffix ? `${typed.number} ${typed.street}, ${citySuffix}` : "",
+        typed.street && citySuffix ? `${typed.street}, ${citySuffix}` : "",
+        q.trim(),
+      ].filter(Boolean)));
+
+      const fetchFeatures = async (queryStr: string, types?: string) => {
+        const url = new URL(
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(queryStr)}.json`,
+        );
+        url.searchParams.set("access_token", token);
+        url.searchParams.set("country", "br");
+        url.searchParams.set("language", "pt");
+        url.searchParams.set("limit", "8");
+        url.searchParams.set("autocomplete", "true");
+        // "street" não é um tipo válido neste endpoint e fazia a busca voltar vazia.
+        if (types) url.searchParams.set("types", types);
+        if (proximity && typeof proximity.lat === "number" && typeof proximity.lng === "number") {
+          url.searchParams.set("proximity", `${proximity.lng},${proximity.lat}`);
+        }
+        console.log("search url", url.toString());
+        const r = await fetch(url.toString());
+        const data = await r.json();
+        if (!r.ok) console.log("search mapbox status", r.status, "body", JSON.stringify(data).slice(0, 500));
+        return (data?.features ?? []) as Array<any>;
+      };
+
+      const rawFeatures: Array<any> = [];
+      for (const queryStr of candidateQueries) {
+        rawFeatures.push(...await fetchFeatures(queryStr, "address,place,postcode,locality,neighborhood"));
+        if (rawFeatures.length) break;
+        rawFeatures.push(...await fetchFeatures(queryStr));
+        if (rawFeatures.length) break;
       }
-      console.log("search url", url.toString());
-      const r = await fetch(url.toString());
-      const data = await r.json();
-      const features = (data?.features ?? []) as Array<any>;
-      const suggestions = features.map((f) => {
+
+      const seen = new Set<string>();
+      const suggestions = rawFeatures.filter((f) => {
+        const id = String(f?.id ?? f?.place_name ?? "");
+        if (!id || seen.has(id)) return false;
+        seen.add(id);
+        return true;
+      }).map((f) => {
         const ctx: any[] = Array.isArray(f.context) ? f.context : [];
         let neigh = "", cityR = "", stateR = "", cepR = "";
         for (const c of ctx) {
@@ -60,7 +99,28 @@ Deno.serve(async (req) => {
           state: stateR,
           cep: cepR,
         };
+      }).sort((a, b) => {
+        const cityA = normalize(a.city) === normalize(searchCity) ? 0 : 1;
+        const cityB = normalize(b.city) === normalize(searchCity) ? 0 : 1;
+        const stateA = normalize(a.state) === normalize(searchState) ? 0 : 1;
+        const stateB = normalize(b.state) === normalize(searchState) ? 0 : 1;
+        return cityA - cityB || stateA - stateB;
       });
+
+      if (!suggestions.length && proximity && typeof proximity.lat === "number" && typeof proximity.lng === "number") {
+        suggestions.push({
+          id: `manual-${Date.now()}`,
+          place_name: [q.trim(), citySuffix || undefined, "Brasil"].filter(Boolean).join(", "),
+          lat: proximity.lat,
+          lng: proximity.lng,
+          street: typed.street,
+          number: typed.number,
+          neighborhood: "",
+          city: searchCity ?? "",
+          state: searchState ?? "",
+          cep: "",
+        });
+      }
       return new Response(JSON.stringify({ suggestions }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
