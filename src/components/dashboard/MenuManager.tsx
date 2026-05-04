@@ -309,7 +309,7 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
           </CardContent>
         </Card>
 
-        <div className="space-y-3">
+        <div className="space-y-6">
           {isLoading ? (
             <>
               <Skeleton className="h-20 w-full" />
@@ -318,23 +318,41 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
             </>
           ) : products.length === 0 ? (
             <Card><CardContent className="py-12 text-center text-muted-foreground">Nenhum produto cadastrado.</CardContent></Card>
-          ) : products.map((p) => (
-            <Card key={p.id} className={!p.is_active ? "opacity-60" : ""}>
-              <CardContent className="p-3 flex gap-3 items-center">
-                <div className="w-16 h-16 rounded-lg bg-muted overflow-hidden grid place-items-center shrink-0">
-                  {p.image_url ? <img src={p.image_url} alt={p.name} loading="lazy" className="w-full h-full object-cover" /> : <ImageIcon className="w-6 h-6 text-muted-foreground" />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium">{p.name}</div>
-                  {p.description && <div className="text-xs text-muted-foreground line-clamp-1">{p.description}</div>}
-                  <div className="text-sm font-semibold text-primary mt-0.5">{brl(p.price)}</div>
-                </div>
-                <Switch checked={p.is_active} onCheckedChange={() => toggleProd(p)} />
-                <Button size="icon" variant="ghost" onClick={() => { setEditingProd(p); setProdOpen(true); }}><Pencil className="w-4 h-4" /></Button>
-                <Button size="icon" variant="ghost" onClick={() => removeProd(p)}><Trash2 className="w-4 h-4" /></Button>
-              </CardContent>
-            </Card>
-          ))}
+          ) : (
+            <>
+              {categories.map((cat) => {
+                const list = products.filter((p) => p.category_id === cat.id);
+                if (list.length === 0) return null;
+                return (
+                  <CategoryGroup
+                    key={cat.id}
+                    title={cat.name}
+                    products={list}
+                    restaurantId={restaurantId}
+                    qc={qc}
+                    onEdit={(p) => { setEditingProd(p); setProdOpen(true); }}
+                    onToggle={toggleProd}
+                    onRemove={removeProd}
+                  />
+                );
+              })}
+              {(() => {
+                const orphans = products.filter((p) => !p.category_id || !categories.find((c) => c.id === p.category_id));
+                if (orphans.length === 0) return null;
+                return (
+                  <CategoryGroup
+                    title="Sem categoria"
+                    products={orphans}
+                    restaurantId={restaurantId}
+                    qc={qc}
+                    onEdit={(p) => { setEditingProd(p); setProdOpen(true); }}
+                    onToggle={toggleProd}
+                    onRemove={removeProd}
+                  />
+                );
+              })()}
+            </>
+          )}
         </div>
       </div>
 
