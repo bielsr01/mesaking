@@ -967,8 +967,14 @@ function Step2Address(props: {
             number: s.number || addr.number || "",
           });
           if (s.cep) setCep(s.cep.replace(/\D/g, "").replace(/(\d{5})(\d{3})/, "$1-$2"));
-          setMapInitialPoint({ lat: s.lat, lng: s.lng });
-          setForceGeolocate(false);
+          // Só usa o ponto da sugestão se for um par lat/lng válido; senão cai no
+          // ponto já fixado ou na geolocalização do navegador.
+          const validPoint =
+            typeof s.lat === "number" && typeof s.lng === "number" && isFinite(s.lat) && isFinite(s.lng)
+              ? { lat: s.lat, lng: s.lng }
+              : null;
+          setMapInitialPoint(validPoint ?? pinnedPoint);
+          setForceGeolocate(!validPoint && !pinnedPoint);
           setPickingMap(true);
         }}
         onUseCurrentLocation={() => {
