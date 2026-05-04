@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { brl, formatPhone, orderStatusLabel } from "@/lib/format";
-import { Plus, Check, Trash2, Award, RefreshCw } from "lucide-react";
+import { Plus, Check, Trash2, Award, RefreshCw, Pencil, History, Search } from "lucide-react";
 
 const sb = supabase as any;
 
@@ -25,6 +25,7 @@ type Tx = {
   points: number;
   status: "pending" | "credited";
   created_at: string;
+  credited_at?: string | null;
   loyalty_members?: { name: string; phone: string };
   orders?: { order_number: number; status: string; total: number; created_at: string };
 };
@@ -75,21 +76,44 @@ export function LoyaltyPanel({ restaurantId }: { restaurantId: string }) {
   });
 
   const [memberDialog, setMemberDialog] = useState(false);
+  const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [newName, setNewName] = useState("");
   const [newPhone, setNewPhone] = useState("");
+  const [newPoints, setNewPoints] = useState("0");
+  const [search, setSearch] = useState("");
+  const [historyMember, setHistoryMember] = useState<Member | null>(null);
 
-  const createMember = async () => {
+  const openCreate = () => {
+    setEditingMember(null);
+    setNewName(""); setNewPhone(""); setNewPoints("0");
+    setMemberDialog(true);
+  };
+  const openEdit = (m: Member) => {
+    setEditingMember(m);
+    setNewName(m.name); setNewPhone(m.phone); setNewPoints(String(m.points));
+    setMemberDialog(true);
+  };
+
+  const saveMember = async () => {
     if (!newName.trim() || !newPhone.trim()) return toast.error("Preencha nome e telefone");
-    const { error } = await sb.from("loyalty_members").insert({
-      restaurant_id: restaurantId,
-      name: newName.trim(),
-      phone: formatPhone(newPhone),
-      points: 0,
-    });
-    if (error) return toast.error(error.message);
-    toast.success("Cliente cadastrado");
+    const points = Math.floor(Number(newPoints) || 0);
+    if (editingMember) {
+      const { error } = await sb.from("loyalty_members")
+        .update({ name: newName.trim(), phone: formatPhone(newPhone), points })
+        .eq("id", editingMember.id);
+      if (error) return toast.error(error.message);
+      toast.success("Cadastro atualizado");
+    } else {
+      const { error } = await sb.from("loyalty_members").insert({
+        restaurant_id: restaurantId,
+        name: newName.trim(),
+        phone: formatPhone(newPhone),
+        points,
+      });
+      if (error) return toast.error(error.message);
+      toast.success("Cliente cadastrado");
+    }
     setMemberDialog(false);
-    setNewName(""); setNewPhone("");
     qc.invalidateQueries({ queryKey: ["loyalty-members", restaurantId] });
   };
 
@@ -185,9 +209,20 @@ export function LoyaltyPanel({ restaurantId }: { restaurantId: string }) {
 
           {/* Members */}
           <TabsContent value="members" className="space-y-4 pt-4">
-            <div className="flex justify-between items-center">
-              <div className="text-sm text-muted-foreground">{membersQ.data?.length ?? 0} cadastrados</div>
-              <Button onClick={() => setMemberDialog(true)}><Plus className="w-4 h-4 mr-1" />Novo cadastro</Button>
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+              <div className="relative w-full sm:max-w-xs">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  className="pl-9"
+                  placeholder="Buscar por nome ou telefone"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-sm text-muted-foreground">{membersQ.data?.length ?? 0} cadastrados</div>
+                <Button onClick={openCreate}><Plus className="w-4 h-4 mr-1" />Novo cadastro</Button>
+              </div>
             </div>
             <div className="border rounded-lg">
               <Table>
@@ -196,25 +231,40 @@ export function LoyaltyPanel({ restaurantId }: { restaurantId: string }) {
                     <TableHead>Nome</TableHead>
                     <TableHead>Telefone</TableHead>
                     <TableHead className="text-right">Pontos disponíveis</TableHead>
-                    <TableHead className="w-20"></TableHead>
+                    <TableHead className="w-40 text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(membersQ.data ?? []).map((m) => (
-                    <TableRow key={m.id}>
-                      <TableCell className="font-medium">{m.name}</TableCell>
-                      <TableCell>{m.phone}</TableCell>
-                      <TableCell className="text-right">
-                        <Badge variant="secondary" className="font-bold">{m.points}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="icon" onClick={() => deleteMember(m.id)}><Trash2 className="w-4 h-4" /></Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {(membersQ.data ?? []).length === 0 && (
-                    <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Nenhum cliente cadastrado</TableCell></TableRow>
-                  )}
+                  {(() => {
+                    const q = search.trim().toLowerCase();
+                    const digits = q.replace(/\D/g, "");
+                    const list = (membersQ.data ?? []).filter((m) => {
+                      if (!q) return true;
+                      const phoneDigits = (m.phone || "").replace(/\D/g, "");
+                      return m.name.toLowerCase().includes(q) || (digits && phoneDigits.includes(digits));
+                    });
+                    if (list.length === 0) {
+                      return (
+                        <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Nenhum cliente encontrado</TableCell></TableRow>
+                      );
+                    }
+                    return list.map((m) => (
+                      <TableRow key={m.id}>
+                        <TableCell className="font-medium">{m.name}</TableCell>
+                        <TableCell>{m.phone}</TableCell>
+                        <TableCell className="text-right">
+                          <Badge variant="secondary" className="font-bold">{m.points}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button variant="ghost" size="icon" title="Histórico" onClick={() => setHistoryMember(m)}><History className="w-4 h-4" /></Button>
+                            <Button variant="ghost" size="icon" title="Editar" onClick={() => openEdit(m)}><Pencil className="w-4 h-4" /></Button>
+                            <Button variant="ghost" size="icon" title="Excluir" onClick={() => deleteMember(m.id)}><Trash2 className="w-4 h-4" /></Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ));
+                  })()}
                 </TableBody>
               </Table>
             </div>
@@ -269,18 +319,97 @@ export function LoyaltyPanel({ restaurantId }: { restaurantId: string }) {
 
         <Dialog open={memberDialog} onOpenChange={setMemberDialog}>
           <DialogContent>
-            <DialogHeader><DialogTitle>Novo cadastro</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>{editingMember ? "Editar cadastro" : "Novo cadastro"}</DialogTitle></DialogHeader>
             <div className="space-y-3">
               <div className="space-y-1"><Label>Nome</Label><Input value={newName} onChange={(e) => setNewName(e.target.value)} /></div>
               <div className="space-y-1"><Label>Telefone</Label><Input value={newPhone} onChange={(e) => setNewPhone(formatPhone(e.target.value))} placeholder="(11) 99999-9999" /></div>
+              <div className="space-y-1"><Label>Pontos</Label><Input type="number" min="0" step="1" value={newPoints} onChange={(e) => setNewPoints(e.target.value)} /></div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setMemberDialog(false)}>Cancelar</Button>
-              <Button onClick={createMember}>Cadastrar</Button>
+              <Button onClick={saveMember}>{editingMember ? "Salvar" : "Cadastrar"}</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <MemberHistoryDialog
+          member={historyMember}
+          restaurantId={restaurantId}
+          onClose={() => setHistoryMember(null)}
+        />
       </CardContent>
     </Card>
   );
 }
+
+function MemberHistoryDialog({
+  member, restaurantId, onClose,
+}: { member: Member | null; restaurantId: string; onClose: () => void }) {
+  const historyQ = useQuery({
+    queryKey: ["loyalty-history", member?.id],
+    enabled: !!member,
+    queryFn: async (): Promise<Tx[]> => {
+      const { data } = await sb
+        .from("loyalty_transactions")
+        .select("*")
+        .eq("restaurant_id", restaurantId)
+        .eq("member_id", member!.id)
+        .order("created_at", { ascending: false });
+      const txs = (data ?? []) as Tx[];
+      const orderIds = txs.map((t) => t.order_id).filter(Boolean) as string[];
+      if (orderIds.length) {
+        const { data: orders } = await sb
+          .from("orders")
+          .select("id, order_number, status, total, created_at")
+          .in("id", orderIds);
+        const map = new Map<string, any>((orders ?? []).map((o: any) => [o.id, o]));
+        txs.forEach((t) => { if (t.order_id) t.orders = map.get(t.order_id) as any; });
+      }
+      return txs;
+    },
+  });
+
+  return (
+    <Dialog open={!!member} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Histórico — {member?.name}</DialogTitle>
+        </DialogHeader>
+        <div className="border rounded-lg max-h-[60vh] overflow-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Data</TableHead>
+                <TableHead>Pedido</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Pontos</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {(historyQ.data ?? []).map((t) => (
+                <TableRow key={t.id}>
+                  <TableCell className="text-xs">
+                    {t.status === "credited" && t.credited_at
+                      ? new Date(t.credited_at).toLocaleString("pt-BR")
+                      : new Date(t.created_at).toLocaleString("pt-BR")}
+                  </TableCell>
+                  <TableCell className="font-mono">{t.orders?.order_number ? `#${t.orders.order_number}` : "—"}</TableCell>
+                  <TableCell>
+                    <Badge variant={t.status === "credited" ? "default" : "secondary"}>
+                      {t.status === "credited" ? "Creditado" : "Pendente"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right font-bold">{t.points}</TableCell>
+                </TableRow>
+              ))}
+              {(historyQ.data ?? []).length === 0 && (
+                <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Sem histórico</TableCell></TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
