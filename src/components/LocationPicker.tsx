@@ -260,7 +260,16 @@ export function LocationPicker({
       if (c) finalPoint = { lat: c.lat(), lng: c.lng() };
     }
     if (!finalPoint) return;
-    const result: ReverseGeocodeResult = { ...(info ?? {}), lat: finalPoint.lat, lng: finalPoint.lng };
+    const initial = initialPointRef.current;
+    const movedByDistance = initial
+      ? Math.abs(initial.lat - finalPoint.lat) > 0.00003 || Math.abs(initial.lng - finalPoint.lng) > 0.00003
+      : false;
+    const result: ReverseGeocodeResult = {
+      ...(info ?? {}),
+      lat: finalPoint.lat,
+      lng: finalPoint.lng,
+      mapMoved: manuallyMovedRef.current || movedByDistance,
+    };
     onConfirm(result);
     onOpenChange(false);
   };
