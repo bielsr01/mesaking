@@ -523,6 +523,7 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
     if (cart.items.length === 0) return toast.error("Carrinho vazio");
     if (!validateStep1()) { setStep(1); return; }
     if (!isPickup && !validateStep2()) { setStep(2); return; }
+    if (!payment) { toast.error("Selecione a forma de pagamento"); return; }
 
     setBusy(true);
 
