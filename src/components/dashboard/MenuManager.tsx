@@ -151,16 +151,12 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
       productId = data.id;
     }
 
-    // Sync product_option_groups
-    const { data: existing } = await supabase.from("product_option_groups").select("group_id").eq("product_id", productId);
-    const existingIds = (existing ?? []).map((r: any) => r.group_id);
-    const toAdd = selectedGroupIds.filter((id) => !existingIds.includes(id));
-    const toRemove = existingIds.filter((id) => !selectedGroupIds.includes(id));
-    if (toRemove.length) {
-      await supabase.from("product_option_groups").delete().eq("product_id", productId).in("group_id", toRemove);
-    }
-    if (toAdd.length) {
-      await supabase.from("product_option_groups").insert(toAdd.map((gid, idx) => ({ product_id: productId, group_id: gid, sort_order: idx })));
+    // Sync product_option_groups (preserve order)
+    await supabase.from("product_option_groups").delete().eq("product_id", productId);
+    if (selectedGroupIds.length) {
+      await supabase.from("product_option_groups").insert(
+        selectedGroupIds.map((gid, idx) => ({ product_id: productId, group_id: gid, sort_order: idx }))
+      );
     }
 
     toast.success("Produto salvo");
