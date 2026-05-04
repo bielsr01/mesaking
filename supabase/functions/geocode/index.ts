@@ -21,25 +21,35 @@ Deno.serve(async (req) => {
       );
       url.searchParams.set("access_token", token);
       url.searchParams.set("language", "pt");
-      url.searchParams.set("types", "address,street,place,neighborhood,postcode,locality");
-      url.searchParams.set("limit", "1");
+      url.searchParams.set("limit", "5");
       const r = await fetch(url.toString());
       const data = await r.json();
       const features = (data?.features ?? []) as Array<any>;
-      const f = features[0];
-      const ctx: Record<string, string> = {};
+      // Prioriza address (rua + nº), depois street, depois qualquer
+      const f =
+        features.find((x) => x.place_type?.includes("address")) ??
+        features.find((x) => x.place_type?.includes("street")) ??
+        features[0];
       let neigh = "";
       let cityR = "";
       let stateR = "";
       let cepR = "";
-      const allCtx = [...(f?.context ?? [])];
+      // Procura contexto em todas as features (algumas vezes vem só na primeira)
+      const allCtx: any[] = [];
+      for (const x of features) {
+        if (Array.isArray(x?.context)) allCtx.push(...x.context);
+        if (x?.place_type?.[0] === "neighborhood" && !neigh) neigh = x.text;
+        if (x?.place_type?.[0] === "place" && !cityR) cityR = x.text;
+        if (x?.place_type?.[0] === "region" && !stateR) stateR = (x.properties?.short_code ?? x.text ?? "").replace(/^BR-/i, "").toUpperCase();
+        if (x?.place_type?.[0] === "postcode" && !cepR) cepR = x.text;
+      }
       for (const c of allCtx) {
         const id = String(c.id ?? "");
-        if (id.startsWith("neighborhood")) neigh = c.text;
+        if (id.startsWith("neighborhood") && !neigh) neigh = c.text;
         else if (id.startsWith("locality") && !neigh) neigh = c.text;
-        else if (id.startsWith("place")) cityR = c.text;
-        else if (id.startsWith("region")) stateR = (c.short_code ?? c.text ?? "").replace(/^BR-/, "");
-        else if (id.startsWith("postcode")) cepR = c.text;
+        else if (id.startsWith("place") && !cityR) cityR = c.text;
+        else if (id.startsWith("region") && !stateR) stateR = (c.short_code ?? c.text ?? "").replace(/^BR-/i, "").toUpperCase();
+        else if (id.startsWith("postcode") && !cepR) cepR = c.text;
       }
       const streetR = f?.text ?? "";
       const numberR = f?.address ?? "";
