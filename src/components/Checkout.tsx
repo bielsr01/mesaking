@@ -937,6 +937,43 @@ function Step2Address(props: {
             </Button>
           </div>
         </div>
+      ) : prevAddresses.length > 0 ? (
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground">
+            {prevAddresses.length === 1 ? "Último endereço usado" : "Endereços usados anteriormente"}
+          </p>
+          <div className="space-y-2">
+            {prevAddresses.map((p, i) => {
+              const line = [
+                `${p.street}${p.number ? `, ${p.number}` : ""}`,
+                p.complement,
+                p.neighborhood,
+                p.city && p.state ? `${p.city}/${p.state}` : p.city,
+                p.cep,
+              ].filter(Boolean).join(" • ");
+              return (
+                <button
+                  key={`${p.street}-${p.number}-${i}`}
+                  type="button"
+                  onClick={() => applyPrevAddress(p)}
+                  className="w-full text-left border rounded-lg p-3 hover:bg-muted/60 transition-colors flex items-start gap-3"
+                >
+                  <MapPin className="w-5 h-5 mt-0.5 text-primary shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium break-words">{line}</p>
+                    {i === 0 && (
+                      <p className="text-xs text-muted-foreground mt-0.5">Último endereço usado</p>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          <Button type="button" variant="outline" onClick={() => setSearching(true)} className="w-full justify-start gap-2">
+            <MapPin className="w-4 h-4" />
+            Adicionar novo endereço
+          </Button>
+        </div>
       ) : (
         <Button type="button" variant="outline" onClick={() => setSearching(true)} className="w-full justify-start gap-2 h-12">
           <MapPin className="w-4 h-4" />
