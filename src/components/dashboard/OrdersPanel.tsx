@@ -12,9 +12,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { brl, orderStatusLabel, getNextStatus, paymentLabel, formatPhone, orderTypeLabel } from "@/lib/format";
 import { toast } from "sonner";
-import { Bike, ChefHat, Clock, MapPin, Phone, Printer, Store, User, X } from "lucide-react";
+import { Bike, ChefHat, Clock, MapPin, Phone, Plus, Printer, Store, User, X } from "lucide-react";
 import { buildTicketHtml, TicketMode, TicketOptionCatalog, TicketRestaurant } from "@/lib/ticket";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { PdvDialog } from "./PdvDialog";
 
 interface Order {
   id: string;
@@ -35,7 +36,9 @@ interface Order {
   delivery_fee: number;
   total: number;
   status: "accepted" | "awaiting_pickup" | "cancelled" | "delivered" | "out_for_delivery" | "pending" | "preparing";
-  order_type: "delivery" | "pickup";
+  order_type: "delivery" | "pickup" | "pdv";
+  discount?: number | null;
+  service_fee?: number | null;
   created_at: string;
   delivery_latitude: number | null;
   delivery_longitude: number | null;
@@ -86,9 +89,11 @@ export async function fetchOrders(restaurantId: string): Promise<{ orders: Order
 
 export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const qc = useQueryClient();
+  const [channel, setChannel] = useState<"delivery" | "pdv">("delivery");
   const [filter, setFilter] = useState("pending");
   const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
   const [printTarget, setPrintTarget] = useState<Order | null>(null);
+  const [pdvOpen, setPdvOpen] = useState(false);
 
   const doPrint = (o: Order, mode: TicketMode) => {
     const html = buildTicketHtml(
