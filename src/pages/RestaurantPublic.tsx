@@ -427,20 +427,27 @@ export default function RestaurantPublic() {
         })}
       </main>
 
-      {/* Floating cart */}
+      {/* Bottom cart bar — só aparece quando há itens */}
       <Sheet open={cartOpen} onOpenChange={setCartOpen}>
-        <SheetTrigger asChild>
-          <Button
-            className="fixed bottom-6 right-6 h-14 px-6 rounded-full shadow-elegant gap-3 z-30"
-            size="lg"
-            disabled={itemCount === 0}
-          >
-            <ShoppingCart className="w-5 h-5" />
-            <span>{itemCount} {itemCount === 1 ? "item" : "itens"}</span>
-            <span className="font-bold">{brl(cart.total)}</span>
-          </Button>
-        </SheetTrigger>
-        <SheetContent className="flex flex-col">
+        {itemCount > 0 && (
+          <div className="fixed bottom-0 inset-x-0 z-30 bg-background border-t shadow-elegant">
+            <div className="container py-3">
+              <SheetTrigger asChild>
+                <Button
+                  className="w-full h-14 rounded-xl gap-3 justify-between px-5 text-base"
+                  size="lg"
+                >
+                  <span className="flex items-center gap-3">
+                    <ShoppingCart className="w-5 h-5" />
+                    <span>{itemCount} {itemCount === 1 ? "item" : "itens"}</span>
+                  </span>
+                  <span className="font-bold">{brl(cart.total)}</span>
+                </Button>
+              </SheetTrigger>
+            </div>
+          </div>
+        )}
+        <SheetContent side="right" className="flex flex-col w-full sm:max-w-md p-6">
           <SheetHeader><SheetTitle>Seu pedido</SheetTitle></SheetHeader>
           <div className="flex-1 overflow-auto py-4 space-y-3">
             {cart.items.length === 0 && <p className="text-center text-muted-foreground py-8">Carrinho vazio</p>}
@@ -479,60 +486,65 @@ export default function RestaurantPublic() {
 
       {/* Product modal */}
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
+        <DialogContent
+          className="p-0 gap-0 max-w-lg w-full max-h-[100dvh] sm:max-h-[90vh] h-[100dvh] sm:h-auto sm:rounded-lg flex flex-col overflow-hidden"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
           {selected && (
             <>
-              <DialogHeader><DialogTitle>{selected.name}</DialogTitle></DialogHeader>
-              {selected.image_url && <img src={selected.image_url} alt={selected.name} className="w-full h-48 object-cover rounded-lg" />}
-              {selected.description && <p className="text-sm text-muted-foreground">{selected.description}</p>}
+              <div className="flex-1 overflow-y-auto p-6 space-y-3">
+                <DialogHeader><DialogTitle>{selected.name}</DialogTitle></DialogHeader>
+                {selected.image_url && <img src={selected.image_url} alt={selected.name} className="w-full h-48 object-cover rounded-lg" />}
+                {selected.description && <p className="text-sm text-muted-foreground">{selected.description}</p>}
 
 
-              {productGroups.map((g) => {
-                const cur = selectedOpts[g.id] ?? [];
-                return (
-                  <div key={g.id} className="space-y-2 border-t pt-3">
-                    <div className="flex items-center justify-between">
-                      <Label className="font-semibold">{g.name}</Label>
-                      <span className="text-xs text-muted-foreground">
-                        {g.min_select > 0 ? `Obrigatório · ` : "Opcional · "}
-                        {g.max_select === 1 ? "escolha 1" : `até ${g.max_select}`}
-                      </span>
+                {productGroups.map((g) => {
+                  const cur = selectedOpts[g.id] ?? [];
+                  return (
+                    <div key={g.id} className="space-y-2 border-t pt-3">
+                      <div className="flex items-center justify-between">
+                        <Label className="font-semibold">{g.name}</Label>
+                        <span className="text-xs text-muted-foreground">
+                          {g.min_select > 0 ? `Obrigatório · ` : "Opcional · "}
+                          {g.max_select === 1 ? "escolha 1" : `até ${g.max_select}`}
+                        </span>
+                      </div>
+                      <div className="space-y-1.5">
+                        {g.items.length === 0 && <p className="text-xs text-muted-foreground">Sem itens disponíveis.</p>}
+                        {g.items.map((it) => {
+                          const checked = cur.includes(it.id);
+                          return (
+                            <label key={it.id} className={`flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer hover:bg-muted ${checked ? "border-primary bg-accent/30" : ""}`}>
+                              <input
+                                type={g.max_select === 1 ? "radio" : "checkbox"}
+                                name={`grp-${g.id}`}
+                                checked={checked}
+                                onChange={() => toggleOpt(g, it.id)}
+                              />
+                              <span className="flex-1 text-sm">{it.name}</span>
+                              {it.extra_price > 0 && (
+                                <span className="text-sm font-semibold text-primary">+ {brl(it.extra_price)}</span>
+                              )}
+                            </label>
+                          );
+                        })}
+                      </div>
                     </div>
-                    <div className="space-y-1.5">
-                      {g.items.length === 0 && <p className="text-xs text-muted-foreground">Sem itens disponíveis.</p>}
-                      {g.items.map((it) => {
-                        const checked = cur.includes(it.id);
-                        return (
-                          <label key={it.id} className={`flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer hover:bg-muted ${checked ? "border-primary bg-accent/30" : ""}`}>
-                            <input
-                              type={g.max_select === 1 ? "radio" : "checkbox"}
-                              name={`grp-${g.id}`}
-                              checked={checked}
-                              onChange={() => toggleOpt(g, it.id)}
-                            />
-                            <span className="flex-1 text-sm">{it.name}</span>
-                            {it.extra_price > 0 && (
-                              <span className="text-sm font-semibold text-primary">+ {brl(it.extra_price)}</span>
-                            )}
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
 
-              <div className="space-y-2 border-t pt-3">
-                <Label>Observação (opcional)</Label>
-                <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Ex: sem cebola" rows={2} />
+                <div className="space-y-2 border-t pt-3">
+                  <Label>Observação (opcional)</Label>
+                  <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Ex: sem cebola" rows={2} />
+                </div>
               </div>
-              <div className="flex items-center justify-between pt-2">
+              <div className="border-t bg-background p-4 flex items-center gap-3">
                 <div className="flex items-center gap-2">
                   <Button size="icon" variant="outline" onClick={() => setQty(Math.max(1, qty - 1))}><Minus className="w-4 h-4" /></Button>
                   <span className="w-8 text-center font-bold">{qty}</span>
                   <Button size="icon" variant="outline" onClick={() => setQty(qty + 1)}><Plus className="w-4 h-4" /></Button>
                 </div>
-                <Button onClick={validateAndAdd} className="flex-1 ml-4">
+                <Button onClick={validateAndAdd} className="flex-1">
                   Adicionar • {brl(productUnitPrice * qty)}
                 </Button>
               </div>
