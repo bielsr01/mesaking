@@ -1,5 +1,5 @@
-// Geolocalização gratuita via Nominatim (OpenStreetMap) e cálculo Haversine.
-// Política de uso do Nominatim exige um User-Agent identificável; o navegador adiciona o seu próprio.
+// Geocoding via Mapbox (edge function geocode) e cálculo Haversine.
+import { supabase } from "@/integrations/supabase/client";
 
 export type DeliveryZone = { radius_km: number; fee: number };
 
@@ -13,8 +13,6 @@ export type GeocodeAddress = {
   city?: string;
   state?: string;
 };
-
-const NOMINATIM = "https://nominatim.openstreetmap.org/search";
 
 type NominatimResult = {
   lat: string;
