@@ -25,6 +25,7 @@ type Tx = {
   points: number;
   status: "pending" | "credited";
   created_at: string;
+  credited_at?: string | null;
   loyalty_members?: { name: string; phone: string };
   orders?: { order_number: number; status: string; total: number; created_at: string };
 };
