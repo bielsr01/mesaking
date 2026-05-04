@@ -105,7 +105,7 @@ export default function ManagerDashboard() {
       } catch { /* silent */ }
     };
     tick();
-    const id = setInterval(tick, 60_000);
+    const id = setInterval(tick, 30_000);
     return () => { cancelled = true; clearInterval(id); };
   }, [restaurant?.id]);
 
