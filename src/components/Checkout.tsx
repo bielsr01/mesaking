@@ -211,6 +211,9 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
     if (orderType === "pickup" && !pickupEnabled && deliveryEnabled) setOrderType("delivery");
   }, [deliveryEnabled, pickupEnabled, orderType]);
 
+  // Chave de cache do cliente (nome+telefone) por restaurante
+  const customerCacheKey = `checkout:lastCustomer:${restaurant.id}`;
+
   // Reset ao reabrir
   useEffect(() => {
     if (open) {
@@ -223,8 +226,18 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
       // ao abrir, escolhe a opção disponível por padrão
       if (!deliveryEnabled && pickupEnabled) setOrderType("pickup");
       else if (deliveryEnabled) setOrderType("delivery");
+
+      // Pré-preenche nome/telefone com cache do último pedido neste restaurante
+      try {
+        const raw = localStorage.getItem(customerCacheKey);
+        if (raw) {
+          const cached = JSON.parse(raw) as { name?: string; phone?: string };
+          if (cached?.name) setName((prev) => (prev?.trim() ? prev : cached.name!));
+          if (cached?.phone) setPhone((prev) => (prev?.trim() ? prev : cached.phone!));
+        }
+      } catch (_) { /* ignore */ }
     }
-  }, [open, deliveryEnabled, pickupEnabled]);
+  }, [open, deliveryEnabled, pickupEnabled, customerCacheKey]);
 
   // Se for pickup, não mostra etapa de endereço
   const totalSteps = isPickup ? 2 : 3;
@@ -434,8 +447,56 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
     return true;
   };
 
-  const goNext = () => {
-    if (step === 1 && !validateStep1()) return;
+  const [validatingPhone, setValidatingPhone] = useState(false);
+  const goNext = async () => {
+    if (step === 1) {
+      if (!validateStep1()) return;
+      // Revalida o telefone consultando histórico antes de avançar
+      try {
+        setValidatingPhone(true);
+        const digits = unmaskPhone(phone);
+        const phoneFmt = formatPhone(phone);
+        const variants = Array.from(new Set([phoneFmt, digits].filter(Boolean)));
+        const { data } = await supabase
+          .from("orders")
+          .select(
+            "address_cep,address_street,address_number,address_complement,address_neighborhood,address_city,address_state,address_notes,delivery_latitude,delivery_longitude,created_at",
+          )
+          .eq("restaurant_id", restaurant.id)
+          .in("customer_phone", variants)
+          .eq("order_type", "delivery")
+          .not("address_street", "is", null)
+          .order("created_at", { ascending: false })
+          .limit(15);
+        const seen = new Set<string>();
+        const out: PrevAddress[] = [];
+        for (const o of (data ?? []) as any[]) {
+          const street = (o.address_street ?? "").trim();
+          const number = (o.address_number ?? "").trim();
+          const city = (o.address_city ?? "").trim();
+          if (!street || !city) continue;
+          const key = [street, number, city].join("|").toLowerCase();
+          if (seen.has(key)) continue;
+          seen.add(key);
+          out.push({
+            cep: o.address_cep ?? "",
+            street,
+            number,
+            complement: o.address_complement ?? "",
+            neighborhood: o.address_neighborhood ?? "",
+            city,
+            state: o.address_state ?? "",
+            notes: o.address_notes ?? "",
+            lat: typeof o.delivery_latitude === "number" ? o.delivery_latitude : null,
+            lng: typeof o.delivery_longitude === "number" ? o.delivery_longitude : null,
+            last_used_at: o.created_at,
+          });
+          if (out.length >= 3) break;
+        }
+        setPrevAddresses(out);
+      } catch (_) { /* não bloqueia */ }
+      finally { setValidatingPhone(false); }
+    }
     if (step === 2 && !isPickup && !validateStep2()) return;
     if (isPickup && step === 1) { setStep(3); return; } // pula endereço
     setStep((s) => (Math.min(3, s + 1) as Step));
@@ -583,6 +644,14 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
         }
       } catch (_) {}
     }
+
+    // Salva nome+telefone em cache local para pré-preencher próximo pedido
+    try {
+      localStorage.setItem(
+        customerCacheKey,
+        JSON.stringify({ name: name.trim(), phone: formatPhone(phone) }),
+      );
+    } catch (_) { /* ignore */ }
 
     cart.clear();
     setBusy(false);
@@ -829,8 +898,8 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
               </Button>
             )}
             {step < 3 ? (
-              <Button type="button" className="flex-1" onClick={goNext}>
-                Avançar <ArrowRight className="w-4 h-4 ml-1" />
+              <Button type="button" className="flex-1" onClick={goNext} disabled={validatingPhone}>
+                {validatingPhone ? (<><Loader2 className="w-4 h-4 mr-1 animate-spin" />Validando...</>) : (<>Avançar <ArrowRight className="w-4 h-4 ml-1" /></>)}
               </Button>
             ) : (
               <Button type="button" className="flex-1" size="lg" onClick={submit} disabled={busy || (!isPickup && (calculating || (hasZones && !delivery)))}>
