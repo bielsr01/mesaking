@@ -198,8 +198,12 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
           setChannel("pdv");
           setFilter("preparing");
         } else {
-          setChannel("delivery");
-          setFilter("pending");
+          // Novo pedido delivery/retirada — pisca a aba se não estiver nela
+          setChannel((cur) => {
+            if (cur !== "delivery") setDeliveryBlink(true);
+            return cur;
+          });
+          setFilter((cur) => (cur === "pending" ? cur : cur));
         }
         qc.invalidateQueries({ queryKey: ordersKey(restaurantId) });
       })
