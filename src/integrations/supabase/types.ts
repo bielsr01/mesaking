@@ -181,6 +181,104 @@ export type Database = {
         }
         Relationships: []
       }
+      loyalty_members: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          phone: string
+          points: number
+          restaurant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          phone: string
+          points?: number
+          restaurant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          phone?: string
+          points?: number
+          restaurant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      loyalty_settings: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          points_per_real: number
+          restaurant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          points_per_real?: number
+          restaurant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          points_per_real?: number
+          restaurant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      loyalty_transactions: {
+        Row: {
+          created_at: string
+          credited_at: string | null
+          id: string
+          member_id: string
+          order_id: string | null
+          points: number
+          restaurant_id: string
+          status: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          credited_at?: string | null
+          id?: string
+          member_id: string
+          order_id?: string | null
+          points?: number
+          restaurant_id: string
+          status?: string
+          type?: string
+        }
+        Update: {
+          created_at?: string
+          credited_at?: string | null
+          id?: string
+          member_id?: string
+          order_id?: string | null
+          points?: number
+          restaurant_id?: string
+          status?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_transactions_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "loyalty_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       option_groups: {
         Row: {
           created_at: string
@@ -323,6 +421,7 @@ export type Database = {
           delivery_latitude: number | null
           delivery_longitude: number | null
           id: string
+          loyalty_opt_in: boolean
           order_number: number
           order_type: Database["public"]["Enums"]["order_type"]
           payment_method: Database["public"]["Enums"]["payment_method"]
@@ -352,6 +451,7 @@ export type Database = {
           delivery_latitude?: number | null
           delivery_longitude?: number | null
           id?: string
+          loyalty_opt_in?: boolean
           order_number: number
           order_type?: Database["public"]["Enums"]["order_type"]
           payment_method: Database["public"]["Enums"]["payment_method"]
@@ -381,6 +481,7 @@ export type Database = {
           delivery_latitude?: number | null
           delivery_longitude?: number | null
           id?: string
+          loyalty_opt_in?: boolean
           order_number?: number
           order_type?: Database["public"]["Enums"]["order_type"]
           payment_method?: Database["public"]["Enums"]["payment_method"]
@@ -684,6 +785,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      credit_loyalty_points: { Args: { _tx_id: string }; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
