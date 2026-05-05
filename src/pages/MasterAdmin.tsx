@@ -124,168 +124,176 @@ export default function MasterAdmin() {
     load();
   };
 
+  const titleMap: Record<AdminView, string> = {
+    restaurants: "Restaurantes",
+    "supply:catalog": "Catálogo de insumos",
+    "supply:orders": "Pedidos de insumos recebidos",
+  };
+
   return (
-    <div className="min-h-screen bg-muted/30">
-      <header className="bg-background border-b sticky top-0 z-30">
-        <div className="container h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 font-bold">
-            <div className="w-9 h-9 rounded-lg bg-gradient-primary flex items-center justify-center">
-              <ChefHat className="w-5 h-5 text-primary-foreground" />
-            </div>
-            MesaPro <Badge variant="secondary" className="ml-2">Admin</Badge>
-          </div>
-          <Button variant="ghost" size="sm" onClick={signOut}><LogOut className="w-4 h-4 mr-2" />Sair</Button>
-        </div>
-      </header>
-
-      <main className="container py-8 space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold">Painel da rede</h1>
-          <p className="text-muted-foreground">Gerencie todos os restaurantes da plataforma.</p>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card><CardContent className="pt-6 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-accent text-accent-foreground grid place-items-center"><Store className="w-6 h-6" /></div>
-            <div><div className="text-2xl font-bold">{restaurants.length}</div><div className="text-sm text-muted-foreground">Restaurantes</div></div>
-          </CardContent></Card>
-          <Card><CardContent className="pt-6 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-accent text-accent-foreground grid place-items-center"><ShoppingBag className="w-6 h-6" /></div>
-            <div><div className="text-2xl font-bold">{stats.orders}</div><div className="text-sm text-muted-foreground">Pedidos hoje</div></div>
-          </CardContent></Card>
-          <Card><CardContent className="pt-6 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-accent text-accent-foreground grid place-items-center"><DollarSign className="w-6 h-6" /></div>
-            <div><div className="text-2xl font-bold">{brl(stats.revenue)}</div><div className="text-sm text-muted-foreground">Faturamento hoje</div></div>
-          </CardContent></Card>
-        </div>
-
-        <Tabs defaultValue="restaurants" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="restaurants"><Store className="w-4 h-4 mr-2" />Restaurantes</TabsTrigger>
-            <TabsTrigger value="supply"><Package className="w-4 h-4 mr-2" />Pedido de Insumos</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="restaurants" className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold">Restaurantes</h2>
-              <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-                <DialogTrigger asChild>
-                  <Button><Plus className="w-4 h-4 mr-2" />Novo restaurante</Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Cadastrar restaurante</DialogTitle>
-                    <DialogDescription>Crie o restaurante e a conta de acesso do gerente.</DialogDescription>
-                  </DialogHeader>
-                  <form onSubmit={handleCreate} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-2 col-span-2">
-                        <Label>Nome do restaurante</Label>
-                        <Input name="name" value={name} onChange={(e) => { setName(e.target.value); setSlug(slugify(e.target.value)); }} required />
-                      </div>
-                      <div className="space-y-2 col-span-2">
-                        <Label>Slug (URL pública)</Label>
-                        <Input name="slug" value={slug} onChange={(e) => setSlug(slugify(e.target.value))} required />
-                        <p className="text-xs text-muted-foreground">/r/{slug || "seu-slug"}</p>
-                      </div>
-                      <div className="space-y-2 col-span-2 pt-2 border-t">
-                        <Label className="text-base">Acesso do gerente</Label>
-                      </div>
-                      <div className="space-y-2 col-span-2">
-                        <Label>Nome do gerente</Label>
-                        <Input name="manager_name" required />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Email (login)</Label>
-                        <Input name="manager_email" type="email" required />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Senha</Label>
-                        <Input name="manager_password" type="password" minLength={6} required />
-                      </div>
-                    </div>
-                    <DialogFooter>
-                      <Button type="submit" disabled={busy}>{busy ? "Criando..." : "Criar restaurante"}</Button>
-                    </DialogFooter>
-                  </form>
-                </DialogContent>
-              </Dialog>
-            </div>
-
-            <Card>
-              <CardContent className="p-0">
-                {restaurants.length === 0 ? (
-                  <div className="p-8 text-center text-muted-foreground">Nenhum restaurante cadastrado ainda.</div>
-                ) : (
-                  <div className="divide-y">
-                    {restaurants.map((r) => (
-                      <div key={r.id} className="p-4 flex items-center justify-between gap-4 flex-wrap">
-                        <div className="min-w-0">
-                          <div className="font-medium flex items-center gap-2">
-                            {r.name}
-                            {r.is_open ? <Badge className="bg-success text-success-foreground">Aberto</Badge> : <Badge variant="secondary">Fechado</Badge>}
-                          </div>
-                          <div className="text-sm text-muted-foreground">/r/{r.slug}</div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="flex items-center gap-2 px-2">
-                            <Switch checked={r.is_open} onCheckedChange={() => toggleOpen(r)} />
-                            <span className="text-xs text-muted-foreground">{r.is_open ? "Ativo" : "Inativo"}</span>
-                          </div>
-                          <Button asChild variant="outline" size="sm"><Link to={`/r/${r.slug}`} target="_blank"><ExternalLink className="w-4 h-4" /></Link></Button>
-                          <Button variant="outline" size="sm" onClick={() => setEditing(r)}><Pencil className="w-4 h-4" /></Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="outline" size="sm" className="text-destructive hover:text-destructive"><Trash2 className="w-4 h-4" /></Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Excluir {r.name}?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Isso apaga o restaurante, cardápio, pedidos, imagens e a conta do gerente. Ação irreversível.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDelete(r)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir tudo</AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      </div>
-                    ))}
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-muted/30">
+        <AdminSidebar active={view} onChange={setView} />
+        <SidebarInset className="flex-1 flex flex-col">
+          <header className="bg-background border-b sticky top-0 z-30">
+            <div className="h-16 px-4 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <SidebarTrigger />
+                <div className="flex items-center gap-2 font-bold">
+                  <div className="w-9 h-9 rounded-lg bg-gradient-primary flex items-center justify-center">
+                    <ChefHat className="w-5 h-5 text-primary-foreground" />
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="supply">
-            <SupplyAdminPanel />
-          </TabsContent>
-        </Tabs>
-      </main>
-
-      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Editar restaurante</DialogTitle></DialogHeader>
-          {editing && (
-            <form onSubmit={handleEdit} className="space-y-4">
-              <div className="space-y-2">
-                <Label>Nome</Label>
-                <Input name="name" defaultValue={editing.name} required />
+                  MesaPro <Badge variant="secondary" className="ml-2">Admin</Badge>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Slug</Label>
-                <Input name="slug" defaultValue={editing.slug} required />
-              </div>
-              <DialogFooter>
-                <Button type="submit" disabled={busy}>{busy ? "Salvando..." : "Salvar"}</Button>
-              </DialogFooter>
-            </form>
-          )}
-        </DialogContent>
-      </Dialog>
-    </div>
+              <Button variant="ghost" size="sm" onClick={signOut}><LogOut className="w-4 h-4 mr-2" />Sair</Button>
+            </div>
+          </header>
+
+          <main className="flex-1 p-6 space-y-6">
+            <div>
+              <h1 className="text-3xl font-bold">{titleMap[view]}</h1>
+              {view === "restaurants" && <p className="text-muted-foreground">Gerencie todos os restaurantes da plataforma.</p>}
+            </div>
+
+            {view === "restaurants" && (
+              <>
+                <div className="grid gap-4 md:grid-cols-3">
+                  <Card><CardContent className="pt-6 flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-accent text-accent-foreground grid place-items-center"><Store className="w-6 h-6" /></div>
+                    <div><div className="text-2xl font-bold">{restaurants.length}</div><div className="text-sm text-muted-foreground">Restaurantes</div></div>
+                  </CardContent></Card>
+                  <Card><CardContent className="pt-6 flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-accent text-accent-foreground grid place-items-center"><ShoppingBag className="w-6 h-6" /></div>
+                    <div><div className="text-2xl font-bold">{stats.orders}</div><div className="text-sm text-muted-foreground">Pedidos hoje</div></div>
+                  </CardContent></Card>
+                  <Card><CardContent className="pt-6 flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-accent text-accent-foreground grid place-items-center"><DollarSign className="w-6 h-6" /></div>
+                    <div><div className="text-2xl font-bold">{brl(stats.revenue)}</div><div className="text-sm text-muted-foreground">Faturamento hoje</div></div>
+                  </CardContent></Card>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-semibold">Restaurantes</h2>
+                  <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+                    <DialogTrigger asChild>
+                      <Button><Plus className="w-4 h-4 mr-2" />Novo restaurante</Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Cadastrar restaurante</DialogTitle>
+                        <DialogDescription>Crie o restaurante e a conta de acesso do gerente.</DialogDescription>
+                      </DialogHeader>
+                      <form onSubmit={handleCreate} className="space-y-4">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-2 col-span-2">
+                            <Label>Nome do restaurante</Label>
+                            <Input name="name" value={name} onChange={(e) => { setName(e.target.value); setSlug(slugify(e.target.value)); }} required />
+                          </div>
+                          <div className="space-y-2 col-span-2">
+                            <Label>Slug (URL pública)</Label>
+                            <Input name="slug" value={slug} onChange={(e) => setSlug(slugify(e.target.value))} required />
+                            <p className="text-xs text-muted-foreground">/r/{slug || "seu-slug"}</p>
+                          </div>
+                          <div className="space-y-2 col-span-2 pt-2 border-t">
+                            <Label className="text-base">Acesso do gerente</Label>
+                          </div>
+                          <div className="space-y-2 col-span-2">
+                            <Label>Nome do gerente</Label>
+                            <Input name="manager_name" required />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Email (login)</Label>
+                            <Input name="manager_email" type="email" required />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Senha</Label>
+                            <Input name="manager_password" type="password" minLength={6} required />
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <Button type="submit" disabled={busy}>{busy ? "Criando..." : "Criar restaurante"}</Button>
+                        </DialogFooter>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+
+                <Card>
+                  <CardContent className="p-0">
+                    {restaurants.length === 0 ? (
+                      <div className="p-8 text-center text-muted-foreground">Nenhum restaurante cadastrado ainda.</div>
+                    ) : (
+                      <div className="divide-y">
+                        {restaurants.map((r) => (
+                          <div key={r.id} className="p-4 flex items-center justify-between gap-4 flex-wrap">
+                            <div className="min-w-0">
+                              <div className="font-medium flex items-center gap-2">
+                                {r.name}
+                                {r.is_open ? <Badge className="bg-success text-success-foreground">Aberto</Badge> : <Badge variant="secondary">Fechado</Badge>}
+                              </div>
+                              <div className="text-sm text-muted-foreground">/r/{r.slug}</div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 px-2">
+                                <Switch checked={r.is_open} onCheckedChange={() => toggleOpen(r)} />
+                                <span className="text-xs text-muted-foreground">{r.is_open ? "Ativo" : "Inativo"}</span>
+                              </div>
+                              <Button asChild variant="outline" size="sm"><Link to={`/r/${r.slug}`} target="_blank"><ExternalLink className="w-4 h-4" /></Link></Button>
+                              <Button variant="outline" size="sm" onClick={() => setEditing(r)}><Pencil className="w-4 h-4" /></Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="outline" size="sm" className="text-destructive hover:text-destructive"><Trash2 className="w-4 h-4" /></Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Excluir {r.name}?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Isso apaga o restaurante, cardápio, pedidos, imagens e a conta do gerente. Ação irreversível.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDelete(r)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir tudo</AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </>
+            )}
+
+            {view === "supply:catalog" && <SupplyCatalogTab />}
+            {view === "supply:orders" && <SupplyOrdersTab />}
+          </main>
+        </SidebarInset>
+
+        <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Editar restaurante</DialogTitle></DialogHeader>
+            {editing && (
+              <form onSubmit={handleEdit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Nome</Label>
+                  <Input name="name" defaultValue={editing.name} required />
+                </div>
+                <div className="space-y-2">
+                  <Label>Slug</Label>
+                  <Input name="slug" defaultValue={editing.slug} required />
+                </div>
+                <DialogFooter>
+                  <Button type="submit" disabled={busy}>{busy ? "Salvando..." : "Salvar"}</Button>
+                </DialogFooter>
+              </form>
+            )}
+          </DialogContent>
+        </Dialog>
+      </div>
+    </SidebarProvider>
   );
 }
