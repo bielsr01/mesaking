@@ -622,16 +622,25 @@ export function PdvDialog({
               </ScrollArea>
 
               <div className="border-t p-3 space-y-3 shrink-0 bg-background">
-                <div>
+                <div className={paymentShake ? "animate-shake" : ""}>
                   <Label className="text-xs">Pagamento</Label>
-                  <Select value={payment} onValueChange={(v: PaymentMethod) => setPayment(v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="cash">Dinheiro</SelectItem>
-                      <SelectItem value="pix">Pix</SelectItem>
-                      <SelectItem value="card_on_delivery">Cartão</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className={`grid grid-cols-3 gap-2 mt-1 rounded-md ${paymentShake ? "ring-2 ring-destructive" : ""}`}>
+                    {([
+                      { v: "cash", label: "Dinheiro" },
+                      { v: "pix", label: "Pix" },
+                      { v: "card_on_delivery", label: "Cartão" },
+                    ] as { v: PaymentMethod; label: string }[]).map((opt) => (
+                      <Button
+                        key={opt.v}
+                        type="button"
+                        size="sm"
+                        variant={payment === opt.v ? "default" : "outline"}
+                        onClick={() => setPayment(opt.v)}
+                      >
+                        {opt.label}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
 
                 <Separator />
