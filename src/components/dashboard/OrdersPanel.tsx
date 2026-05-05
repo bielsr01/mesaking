@@ -90,7 +90,8 @@ export async function fetchOrders(restaurantId: string): Promise<{ orders: Order
 
 export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const qc = useQueryClient();
-  const [channel, setChannel] = useState<"delivery" | "pdv">("delivery");
+  const [channel, setChannel] = useState<"delivery" | "pdv" | "quero">("delivery");
+  const [queroBlink, setQueroBlink] = useState(false);
   const [filter, setFilter] = useState("pending");
   const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
   const [printTarget, setPrintTarget] = useState<Order | null>(null);
@@ -195,11 +196,15 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
       .channel(`orders-${restaurantId}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` }, (payload) => {
         const row = payload.new as Order;
-        if (row?.order_type === "pdv") {
+        if (row?.external_source === "quero") {
+          setChannel((cur) => {
+            if (cur !== "quero") setQueroBlink(true);
+            return cur;
+          });
+        } else if (row?.order_type === "pdv") {
           setChannel("pdv");
           setFilter("preparing");
         } else {
-          // Novo pedido delivery/retirada — pisca a aba se não estiver nela
           setChannel((cur) => {
             if (cur !== "delivery") setDeliveryBlink(true);
             return cur;
@@ -262,9 +267,11 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     }
   };
 
-  const channelOrders = orders.filter((o) =>
-    channel === "pdv" ? o.order_type === "pdv" : o.order_type !== "pdv"
-  );
+  const channelOrders = orders.filter((o) => {
+    if (channel === "quero") return o.external_source === "quero";
+    if (channel === "pdv") return o.order_type === "pdv" && o.external_source !== "quero";
+    return o.order_type !== "pdv" && o.external_source !== "quero";
+  });
 
   const filtered = channelOrders.filter((o) => {
     if (filter === "all") return true;
@@ -289,8 +296,9 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     all: channelOrders.length,
   };
 
-  const deliveryCount = orders.filter((o) => o.order_type !== "pdv").length;
-  const pdvCount = orders.filter((o) => o.order_type === "pdv").length;
+  const deliveryCount = orders.filter((o) => o.order_type !== "pdv" && o.external_source !== "quero").length;
+  const pdvCount = orders.filter((o) => o.order_type === "pdv" && o.external_source !== "quero").length;
+  const queroCount = orders.filter((o) => o.external_source === "quero").length;
 
   // PDV: em preparo + entregues
   const visibleFilters = channel === "pdv"
@@ -301,9 +309,11 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Tabs value={channel} onValueChange={(v) => {
-          setChannel(v as "delivery" | "pdv");
-          setFilter(v === "pdv" ? "preparing" : "pending");
-          if (v === "delivery") setDeliveryBlink(false);
+          const nv = v as "delivery" | "pdv" | "quero";
+          setChannel(nv);
+          setFilter(nv === "pdv" ? "preparing" : "pending");
+          if (nv === "delivery") setDeliveryBlink(false);
+          if (nv === "quero") setQueroBlink(false);
         }}>
           <TabsList>
             <TabsTrigger value="delivery" className={`gap-2 ${deliveryBlink ? "animate-pulse text-destructive ring-2 ring-destructive" : ""}`}>
@@ -313,6 +323,13 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
             <TabsTrigger value="pdv" className="gap-2">
               <Store className="w-4 h-4" /> PDV (Balcão)
               <Badge variant="secondary" className="h-5 min-w-5 px-1.5 text-xs">{pdvCount}</Badge>
+            </TabsTrigger>
+            <TabsTrigger
+              value="quero"
+              className={`gap-2 data-[state=active]:bg-purple-600 data-[state=active]:text-white ${queroBlink ? "animate-pulse ring-2 ring-purple-600 text-purple-700" : "text-purple-700"}`}
+            >
+              <Bike className="w-4 h-4" /> Quero Delivery
+              <Badge className="h-5 min-w-5 px-1.5 text-xs bg-purple-600 text-white hover:bg-purple-600">{queroCount}</Badge>
             </TabsTrigger>
           </TabsList>
         </Tabs>
