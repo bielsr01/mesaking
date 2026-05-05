@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Plus, Pencil, Trash2, Package, ShoppingBag, Truck, CheckCircle2, X, Store } from "lucide-react";
 import { toast } from "sonner";
 import { brl } from "@/lib/format";
+import { SupplyReportsDialog } from "./SupplyReportsDialog";
 
 type SupplyProduct = {
   id: string; name: string; description: string | null; unit: string;
@@ -121,6 +122,10 @@ export function SupplyOrdersTab() {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <h2 className="text-xl font-bold">Pedidos recebidos</h2>
+        <SupplyReportsDialog />
+      </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <StatMini label="Aguardando" value={counts.pending} />
         <StatMini label="Aceitos" value={counts.accepted} />
