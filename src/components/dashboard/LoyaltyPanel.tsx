@@ -141,7 +141,7 @@ export function LoyaltyPanel({ restaurantId }: { restaurantId: string }) {
       if (orderIds.length) {
         const { data: orders } = await sb
           .from("orders")
-          .select("id, order_number, status, total, created_at")
+          .select("id, order_number, status, total, created_at, order_type")
           .in("id", orderIds);
         const map = new Map<string, any>((orders ?? []).map((o: any) => [o.id, o]));
         txs.forEach((t) => { if (t.order_id) t.orders = map.get(t.order_id) as any; });
