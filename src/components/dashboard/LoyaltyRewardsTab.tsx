@@ -245,6 +245,12 @@ export function LoyaltyRewardsTab({ restaurantId }: { restaurantId: string }) {
           qc.invalidateQueries({ queryKey: ordersKey(restaurantId) });
         }}
       />
+
+      <RedeemHistoryDialog
+        restaurantId={restaurantId}
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+      />
     </div>
   );
 }
