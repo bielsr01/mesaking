@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { brl, formatPhone, orderStatusLabel } from "@/lib/format";
+import { brl, formatPhone, statusLabelFor } from "@/lib/format";
 import { Plus, Check, Trash2, Award, RefreshCw, Pencil, History, Search } from "lucide-react";
 
 const sb = supabase as any;
@@ -141,7 +141,7 @@ export function LoyaltyPanel({ restaurantId }: { restaurantId: string }) {
       if (orderIds.length) {
         const { data: orders } = await sb
           .from("orders")
-          .select("id, order_number, status, total, created_at")
+          .select("id, order_number, status, total, created_at, order_type")
           .in("id", orderIds);
         const map = new Map<string, any>((orders ?? []).map((o: any) => [o.id, o]));
         txs.forEach((t) => { if (t.order_id) t.orders = map.get(t.order_id) as any; });
@@ -295,7 +295,7 @@ export function LoyaltyPanel({ restaurantId }: { restaurantId: string }) {
                       </TableCell>
                       <TableCell>
                         <Badge variant={t.orders?.status === "delivered" || t.orders?.status === "completed" ? "default" : "secondary"}>
-                          {t.orders?.status ? (orderStatusLabel[t.orders.status] ?? t.orders.status) : "—"}
+                          {t.orders?.status ? statusLabelFor(t.orders.status, (t.orders as any).order_type) : "—"}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">{t.orders ? brl(Number(t.orders.total)) : "—"}</TableCell>
@@ -360,7 +360,7 @@ function MemberHistoryDialog({
       if (orderIds.length) {
         const { data: orders } = await sb
           .from("orders")
-          .select("id, order_number, status, total, created_at")
+          .select("id, order_number, status, total, created_at, order_type")
           .in("id", orderIds);
         const map = new Map<string, any>((orders ?? []).map((o: any) => [o.id, o]));
         txs.forEach((t) => { if (t.order_id) t.orders = map.get(t.order_id) as any; });
