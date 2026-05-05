@@ -27,6 +27,7 @@ import { useNewOrderNotifications } from "@/hooks/useNewOrderNotifications";
 import { SupplyOrderPanel } from "@/components/dashboard/SupplyOrderPanel";
 import { ExpensesPanel } from "@/components/dashboard/ExpensesPanel";
 import { OverviewPanel } from "@/components/dashboard/OverviewPanel";
+import { IfoodPanel } from "@/components/dashboard/IfoodPanel";
 import { ManualOverride, OpeningHours } from "@/lib/hours";
 
 interface Restaurant {
@@ -154,6 +155,7 @@ export default function ManagerDashboard() {
   const titleByView: Record<DashboardView, string> = {
     overview: "Visão geral",
     orders: "Pedidos",
+    ifood: "iFood",
     menu: "Cardápio",
     customers: "Clientes",
     "marketing:coupons": "Cupons de desconto",
@@ -234,6 +236,11 @@ export default function ManagerDashboard() {
             {view === "orders" && (
               <LazyView viewKey={view} variant="list">
                 <OrdersPanel restaurantId={restaurant.id} />
+              </LazyView>
+            )}
+            {view === "ifood" && (
+              <LazyView viewKey={view} variant="list">
+                <IfoodPanel restaurantId={restaurant.id} />
               </LazyView>
             )}
             {view === "menu" && (

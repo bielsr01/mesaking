@@ -49,7 +49,7 @@ import type { DateRange } from "react-day-picker";
 
 const sb = supabase as any;
 
-type SourceFilter = "all" | "web" | "pdv" | "quero";
+type SourceFilter = "all" | "web" | "pdv" | "quero" | "ifood";
 type Preset = "today" | "yesterday" | "7d" | "30d" | "month" | "lastmonth" | "custom";
 
 const presets: { id: Preset; label: string }[] = [
@@ -136,8 +136,41 @@ export function OverviewPanel({ restaurantId }: { restaurantId: string }) {
     staleTime: 60_000,
   });
 
+  const ifoodQ = useQuery({
+    queryKey: ["overview-ifood", restaurantId, prevRange.from.toISOString(), range.to.toISOString()],
+    queryFn: async () => {
+      const { data } = await sb
+        .from("ifood_sales")
+        .select("date_from, date_to, orders_count, gross_revenue, net_revenue, fees")
+        .eq("restaurant_id", restaurantId)
+        .lte("date_from", format(range.to, "yyyy-MM-dd"))
+        .gte("date_to", format(prevRange.from, "yyyy-MM-dd"));
+      return (data ?? []) as any[];
+    },
+    staleTime: 30_000,
+  });
+
+  // Aggregate iFood entries overlapping a date range
+  const sumIfood = (from: Date, to: Date) => {
+    const fromS = format(from, "yyyy-MM-dd");
+    const toS = format(to, "yyyy-MM-dd");
+    const rows = (ifoodQ.data ?? []).filter((r) => r.date_from <= toS && r.date_to >= fromS);
+    return rows.reduce(
+      (a, r) => ({
+        orders: a.orders + Number(r.orders_count || 0),
+        gross: a.gross + Number(r.gross_revenue || 0),
+        net: a.net + Number(r.net_revenue || 0),
+        fees: a.fees + Number(r.fees || 0),
+      }),
+      { orders: 0, gross: 0, net: 0, fees: 0 }
+    );
+  };
+  const ifoodCur = sumIfood(range.from, range.to);
+  const ifoodPrev = sumIfood(prevRange.from, prevRange.to);
+  const includeIfood = source === "all" || source === "ifood";
+
   const all = ordersQ.data ?? [];
-  const filteredAll = source === "all" ? all : all.filter((o) => classifySource(o) === source);
+  const filteredAll = source === "all" ? all : source === "ifood" ? [] : all.filter((o) => classifySource(o) === source);
   const inRange = (o: any) => {
     const d = new Date(o.created_at);
     return d >= range.from && d <= range.to;
@@ -150,21 +183,29 @@ export function OverviewPanel({ restaurantId }: { restaurantId: string }) {
   const prev = filteredAll.filter(inPrev);
 
   const sum = (arr: any[], k: string) => arr.reduce((s, o) => s + Number(o[k] || 0), 0);
-  const grossCur = sum(cur, "total");
-  const grossPrev = sum(prev, "total");
+  const baseGrossCur = sum(cur, "total");
+  const baseGrossPrev = sum(prev, "total");
+  const baseOrdersCur = cur.length;
+  const baseOrdersPrev = prev.length;
+
+  const grossCur = baseGrossCur + (includeIfood ? ifoodCur.gross : 0);
+  const grossPrev = baseGrossPrev + (includeIfood ? ifoodPrev.gross : 0);
+  const ordersCountCur = baseOrdersCur + (includeIfood ? ifoodCur.orders : 0);
+  const ordersCountPrev = baseOrdersPrev + (includeIfood ? ifoodPrev.orders : 0);
+
   const subtotalCur = sum(cur, "subtotal");
   const discountCur = sum(cur, "discount");
   const deliveryFeeCur = sum(cur, "delivery_fee");
-  const serviceFeeCur = sum(cur, "service_fee");
-  const netCur = grossCur - discountCur; // líquido após descontos
-  const ticketCur = cur.length ? grossCur / cur.length : 0;
-  const ticketPrev = prev.length ? grossPrev / prev.length : 0;
+  const serviceFeeCur = sum(cur, "service_fee") + (includeIfood ? ifoodCur.fees : 0);
+  const netCur = grossCur - discountCur - (includeIfood ? ifoodCur.fees : 0);
+  const ticketCur = ordersCountCur ? grossCur / ordersCountCur : 0;
+  const ticketPrev = ordersCountPrev ? grossPrev / ordersCountPrev : 0;
 
   const couponOrders = cur.filter((o) => o.coupon_code);
   const couponImpactPct = grossCur ? (sum(couponOrders, "total") / grossCur) * 100 : 0;
 
   // growth
-  const ordersGrowth = prev.length ? ((cur.length - prev.length) / prev.length) * 100 : 0;
+  const ordersGrowth = ordersCountPrev ? ((ordersCountCur - ordersCountPrev) / ordersCountPrev) * 100 : 0;
   const revenueGrowth = grossPrev ? ((grossCur - grossPrev) / grossPrev) * 100 : 0;
   const ticketGrowth = ticketPrev ? ((ticketCur - ticketPrev) / ticketPrev) * 100 : 0;
 
@@ -306,17 +347,18 @@ export function OverviewPanel({ restaurantId }: { restaurantId: string }) {
 
       {/* Source filter */}
       <Tabs value={source} onValueChange={(v) => setSource(v as SourceFilter)}>
-        <TabsList className="grid grid-cols-4 w-full max-w-2xl">
-          <TabsTrigger value="all">Todos os pedidos</TabsTrigger>
+        <TabsList className="grid grid-cols-5 w-full max-w-3xl">
+          <TabsTrigger value="all">Todos</TabsTrigger>
           <TabsTrigger value="pdv">PDV</TabsTrigger>
           <TabsTrigger value="web">Web</TabsTrigger>
           <TabsTrigger value="quero">Quero Delivery</TabsTrigger>
+          <TabsTrigger value="ifood">iFood</TabsTrigger>
         </TabsList>
       </Tabs>
 
       {/* KPI grid */}
       <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-        <Kpi icon={ShoppingBag} label="Pedidos" value={cur.length.toString()} delta={ordersGrowth} />
+        <Kpi icon={ShoppingBag} label="Pedidos" value={ordersCountCur.toString()} delta={ordersGrowth} sub={includeIfood && ifoodCur.orders > 0 ? `Inclui ${ifoodCur.orders} iFood` : undefined} />
         <Kpi icon={DollarSign} label="Faturamento bruto" value={brl(grossCur)} delta={revenueGrowth} />
         <Kpi icon={Receipt} label="Faturamento líquido" value={brl(netCur)} sub={`Descontos ${brl(discountCur)}`} />
         <Kpi icon={TrendingUp} label="Ticket médio" value={brl(ticketCur)} delta={ticketGrowth} />
