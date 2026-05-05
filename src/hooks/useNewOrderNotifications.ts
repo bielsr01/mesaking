@@ -9,6 +9,7 @@ export type NotificationItem = {
   orderNumber?: number | null;
   customerName?: string | null;
   total?: number | null;
+  source?: string | null;
   createdAt: number;
   read: boolean;
 };
@@ -71,8 +72,9 @@ export function useNewOrderNotifications(restaurantId: string | undefined, isOnO
               orderNumber: row.order_number,
               customerName: row.customer_name,
               total: row.total ? Number(row.total) : null,
+              source: row.external_source ?? null,
               createdAt: Date.now(),
-              read: isOnOrdersTab, // already on orders tab? mark as read
+              read: isOnOrdersTab,
             },
             ...prev,
           ].slice(0, 30));
