@@ -11,6 +11,16 @@ const corsHeaders = {
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
+function normalizePhone(raw: unknown): string {
+  const digits = String(raw ?? "").replace(/\D/g, "");
+  // Remove country code 55 if present and resulting number has 10 or 11 digits (BR)
+  let n = digits;
+  if (n.startsWith("55") && (n.length === 12 || n.length === 13)) n = n.slice(2);
+  if (n.length === 11) return `(${n.slice(0,2)}) ${n.slice(2,7)}-${n.slice(7)}`;
+  if (n.length === 10) return `(${n.slice(0,2)}) ${n.slice(2,6)}-${n.slice(6)}`;
+  return n;
+}
+
 function authHeader(token: string) {
   const t = token.trim();
   if (/^basic\s/i.test(t) || /^bearer\s/i.test(t)) return t;
@@ -140,7 +150,7 @@ Deno.serve(async (req) => {
       const path = endpointByStatus[newStatus];
       if (!path) return json({ ok: true, skipped: true });
 
-      const r = await fetch(`${baseUrl}${path}`, { method: "POST", headers });
+      const r = await fetch(`${baseUrl}${path}?placeId=${encodeURIComponent(cfgPlaceId)}`, { method: "POST", headers });
       const txt = await r.text();
       if (!r.ok) {
         return json({ ok: false, status: r.status, message: txt.slice(0, 400) }, 200);
@@ -196,7 +206,7 @@ Deno.serve(async (req) => {
           .insert({
             restaurant_id: restaurantId,
             customer_name: detail?.customer?.name || "Cliente Quero",
-            customer_phone: detail?.customer?.phone?.number || "",
+            customer_phone: normalizePhone(detail?.customer?.phone?.number),
             order_type: isDelivery ? "delivery" : "pickup",
             payment_method: mapPayment(pmMethod),
             change_for: changeFor ?? null,
