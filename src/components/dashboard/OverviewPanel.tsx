@@ -183,21 +183,29 @@ export function OverviewPanel({ restaurantId }: { restaurantId: string }) {
   const prev = filteredAll.filter(inPrev);
 
   const sum = (arr: any[], k: string) => arr.reduce((s, o) => s + Number(o[k] || 0), 0);
-  const grossCur = sum(cur, "total");
-  const grossPrev = sum(prev, "total");
+  const baseGrossCur = sum(cur, "total");
+  const baseGrossPrev = sum(prev, "total");
+  const baseOrdersCur = cur.length;
+  const baseOrdersPrev = prev.length;
+
+  const grossCur = baseGrossCur + (includeIfood ? ifoodCur.gross : 0);
+  const grossPrev = baseGrossPrev + (includeIfood ? ifoodPrev.gross : 0);
+  const ordersCountCur = baseOrdersCur + (includeIfood ? ifoodCur.orders : 0);
+  const ordersCountPrev = baseOrdersPrev + (includeIfood ? ifoodPrev.orders : 0);
+
   const subtotalCur = sum(cur, "subtotal");
   const discountCur = sum(cur, "discount");
   const deliveryFeeCur = sum(cur, "delivery_fee");
-  const serviceFeeCur = sum(cur, "service_fee");
-  const netCur = grossCur - discountCur; // líquido após descontos
-  const ticketCur = cur.length ? grossCur / cur.length : 0;
-  const ticketPrev = prev.length ? grossPrev / prev.length : 0;
+  const serviceFeeCur = sum(cur, "service_fee") + (includeIfood ? ifoodCur.fees : 0);
+  const netCur = grossCur - discountCur - (includeIfood ? ifoodCur.fees : 0);
+  const ticketCur = ordersCountCur ? grossCur / ordersCountCur : 0;
+  const ticketPrev = ordersCountPrev ? grossPrev / ordersCountPrev : 0;
 
   const couponOrders = cur.filter((o) => o.coupon_code);
   const couponImpactPct = grossCur ? (sum(couponOrders, "total") / grossCur) * 100 : 0;
 
   // growth
-  const ordersGrowth = prev.length ? ((cur.length - prev.length) / prev.length) * 100 : 0;
+  const ordersGrowth = ordersCountPrev ? ((ordersCountCur - ordersCountPrev) / ordersCountPrev) * 100 : 0;
   const revenueGrowth = grossPrev ? ((grossCur - grossPrev) / grossPrev) * 100 : 0;
   const ticketGrowth = ticketPrev ? ((ticketCur - ticketPrev) / ticketPrev) * 100 : 0;
 
