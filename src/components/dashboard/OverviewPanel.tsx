@@ -584,6 +584,7 @@ export function OverviewPanel({ restaurantId }: { restaurantId: string }) {
           </CardContent>
         </Card>
       </div>
+      </div>
     </div>
   );
 }
