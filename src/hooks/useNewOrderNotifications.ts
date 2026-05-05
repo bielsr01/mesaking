@@ -9,6 +9,7 @@ export type NotificationItem = {
   orderNumber?: number | null;
   customerName?: string | null;
   total?: number | null;
+  source?: string | null;
   createdAt: number;
   read: boolean;
 };
