@@ -358,8 +358,8 @@ export function SupplyOrderPanel({ restaurantId }: { restaurantId: string }) {
                   <div className="flex items-center justify-between gap-2">
                     {STEPS.map((step, idx) => {
                       const reached = idx <= active;
-                      const isCurrent = idx === active && !isFinished;
-                      const isDone = reached && !isCurrent;
+                      const isPendingStep = idx === 0 && o.status === "pending";
+                      const isDone = reached && !isPendingStep;
                       return (
                         <div key={step.key} className="flex items-center flex-1 last:flex-none">
                           <div className="flex items-center gap-2">
