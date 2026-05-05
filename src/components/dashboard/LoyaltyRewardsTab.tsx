@@ -745,3 +745,83 @@ function RedeemWizard({
     </Dialog>
   );
 }
+
+// ===================================================================
+// Redeem History Dialog
+// ===================================================================
+function RedeemHistoryDialog({
+  restaurantId, open, onOpenChange,
+}: { restaurantId: string; open: boolean; onOpenChange: (v: boolean) => void }) {
+  const historyQ = useQuery({
+    queryKey: ["loyalty-redeem-history", restaurantId],
+    enabled: open,
+    queryFn: async () => {
+      const { data } = await sb
+        .from("loyalty_transactions")
+        .select("id, member_id, order_id, points, created_at, loyalty_members(name, phone)")
+        .eq("restaurant_id", restaurantId)
+        .eq("type", "redeem")
+        .order("created_at", { ascending: false })
+        .limit(200);
+      const txs = (data ?? []) as any[];
+      const orderIds = txs.map((t) => t.order_id).filter(Boolean) as string[];
+      let ordersMap = new Map<string, any>();
+      if (orderIds.length) {
+        const { data: orders } = await supabase
+          .from("orders")
+          .select("id, order_number, order_type, status, total, delivery_fee")
+          .in("id", orderIds);
+        ordersMap = new Map((orders ?? []).map((o: any) => [o.id, o]));
+      }
+      return txs.map((t) => ({ ...t, order: t.order_id ? ordersMap.get(t.order_id) : null }));
+    },
+  });
+
+  const list = historyQ.data ?? [];
+  const totalPoints = list.reduce((s, t: any) => s + Math.abs(Number(t.points || 0)), 0);
+
+  const modeLabel = (ot?: string) => ot === "delivery" ? "Delivery" : ot === "pickup" ? "Retirada" : ot === "pdv" ? "Balcão" : "—";
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2"><History className="w-5 h-5" />Histórico de resgates</DialogTitle>
+          <DialogDescription>{list.length} resgate(s) — {totalPoints} pontos resgatados no total</DialogDescription>
+        </DialogHeader>
+        <div className="border rounded-lg">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Data</TableHead>
+                <TableHead>Cliente</TableHead>
+                <TableHead>Pedido</TableHead>
+                <TableHead>Modalidade</TableHead>
+                <TableHead className="text-right">Pontos</TableHead>
+                <TableHead className="text-right">Taxa entrega</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {list.map((t: any) => (
+                <TableRow key={t.id}>
+                  <TableCell className="text-xs">{new Date(t.created_at).toLocaleString("pt-BR")}</TableCell>
+                  <TableCell>
+                    <div className="font-medium">{t.loyalty_members?.name ?? "—"}</div>
+                    <div className="text-xs text-muted-foreground">{t.loyalty_members?.phone ?? ""}</div>
+                  </TableCell>
+                  <TableCell className="font-mono">{t.order?.order_number ? `#${t.order.order_number}` : "—"}</TableCell>
+                  <TableCell><Badge variant="outline">{modeLabel(t.order?.order_type)}</Badge></TableCell>
+                  <TableCell className="text-right font-bold text-destructive">{t.points}</TableCell>
+                  <TableCell className="text-right">{t.order?.delivery_fee ? brl(Number(t.order.delivery_fee)) : "—"}</TableCell>
+                </TableRow>
+              ))}
+              {list.length === 0 && (
+                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhum resgate realizado ainda</TableCell></TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
