@@ -134,21 +134,6 @@ export function SupplyOrdersTab() {
         <StatMini label="Faturamento" value={brl(revenue)} />
       </div>
 
-      <Tabs value={filter} onValueChange={(v) => setFilter(v as any)}>
-        <TabsList className="flex-wrap h-auto">
-          {STATUS_FILTERS.map(f => (
-            <TabsTrigger key={f.value} value={f.value} className="gap-2">
-              {f.label}
-              <Badge
-                variant={f.value === "pending" && counts[f.value] > 0 ? "destructive" : "secondary"}
-                className="h-5 min-w-5 px-1.5 text-xs"
-              >
-                {counts[f.value] ?? 0}
-              </Badge>
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
 
       {filtered.length === 0 ? (
         <Card><CardContent className="py-12 text-center text-muted-foreground">Nenhum pedido nesta categoria.</CardContent></Card>
