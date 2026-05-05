@@ -201,6 +201,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
             if (cur !== "quero") setQueroBlink(true);
             return cur;
           });
+          setFilter("pending");
         } else if (row?.order_type === "pdv") {
           setChannel("pdv");
           setFilter("preparing");
