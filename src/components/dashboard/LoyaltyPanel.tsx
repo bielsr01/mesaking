@@ -34,6 +34,7 @@ type Tx = {
 
 export function LoyaltyPanel({ restaurantId }: { restaurantId: string }) {
   const qc = useQueryClient();
+  const [metricsOpen, setMetricsOpen] = useState(false);
 
   // ---- Settings ----
   const settingsQ = useQuery({
