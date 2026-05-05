@@ -350,6 +350,8 @@ export function LoyaltyPanel({ restaurantId }: { restaurantId: string }) {
           restaurantId={restaurantId}
           onClose={() => setHistoryMember(null)}
         />
+
+        <LoyaltyMetricsDialog open={metricsOpen} onOpenChange={setMetricsOpen} restaurantId={restaurantId} />
       </CardContent>
     </Card>
   );
