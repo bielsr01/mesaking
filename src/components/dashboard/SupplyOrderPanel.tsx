@@ -6,9 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Minus, Plus, ShoppingCart, Trash2, Package } from "lucide-react";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { Minus, Plus, ArrowLeft, Package } from "lucide-react";
 import { toast } from "sonner";
+import { useState as useStateAlias } from "react";
 import { brl } from "@/lib/format";
 
 type SupplyProduct = {
