@@ -42,13 +42,13 @@ export function SupplyAdminPanel() {
         <TabsTrigger value="orders"><ShoppingBag className="w-4 h-4 mr-2" />Pedidos recebidos</TabsTrigger>
         <TabsTrigger value="catalog"><Package className="w-4 h-4 mr-2" />Catálogo de insumos</TabsTrigger>
       </TabsList>
-      <TabsContent value="orders"><OrdersTab /></TabsContent>
-      <TabsContent value="catalog"><CatalogTab /></TabsContent>
+      <TabsContent value="orders"><SupplyOrdersTab /></TabsContent>
+      <TabsContent value="catalog"><SupplyCatalogTab /></TabsContent>
     </Tabs>
   );
 }
 
-function OrdersTab() {
+export function SupplyOrdersTab() {
   const qc = useQueryClient();
   const { data: orders = [] } = useQuery({
     queryKey: ["admin_supply_orders"],
