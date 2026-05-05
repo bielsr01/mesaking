@@ -357,7 +357,7 @@ export function OverviewPanel({ restaurantId }: { restaurantId: string }) {
 
       {/* KPI grid */}
       <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-        <Kpi icon={ShoppingBag} label="Pedidos" value={cur.length.toString()} delta={ordersGrowth} />
+        <Kpi icon={ShoppingBag} label="Pedidos" value={ordersCountCur.toString()} delta={ordersGrowth} sub={includeIfood && ifoodCur.orders > 0 ? `Inclui ${ifoodCur.orders} iFood` : undefined} />
         <Kpi icon={DollarSign} label="Faturamento bruto" value={brl(grossCur)} delta={revenueGrowth} />
         <Kpi icon={Receipt} label="Faturamento líquido" value={brl(netCur)} sub={`Descontos ${brl(discountCur)}`} />
         <Kpi icon={TrendingUp} label="Ticket médio" value={brl(ticketCur)} delta={ticketGrowth} />
