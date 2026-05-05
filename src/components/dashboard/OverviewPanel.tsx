@@ -347,11 +347,12 @@ export function OverviewPanel({ restaurantId }: { restaurantId: string }) {
 
       {/* Source filter */}
       <Tabs value={source} onValueChange={(v) => setSource(v as SourceFilter)}>
-        <TabsList className="grid grid-cols-4 w-full max-w-2xl">
-          <TabsTrigger value="all">Todos os pedidos</TabsTrigger>
+        <TabsList className="grid grid-cols-5 w-full max-w-3xl">
+          <TabsTrigger value="all">Todos</TabsTrigger>
           <TabsTrigger value="pdv">PDV</TabsTrigger>
           <TabsTrigger value="web">Web</TabsTrigger>
           <TabsTrigger value="quero">Quero Delivery</TabsTrigger>
+          <TabsTrigger value="ifood">iFood</TabsTrigger>
         </TabsList>
       </Tabs>
 
