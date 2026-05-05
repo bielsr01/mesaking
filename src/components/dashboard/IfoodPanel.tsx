@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,28 +7,36 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CalendarIcon, Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { brl } from "@/lib/format";
-import { format } from "date-fns";
+import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import type { DateRange } from "react-day-picker";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 
 const sb = supabase as any;
 
+const MONTHS = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+];
+
 export function IfoodPanel({ restaurantId }: { restaurantId: string }) {
   const qc = useQueryClient();
+  const now = new Date();
   const [open, setOpen] = useState(false);
-  const [range, setRange] = useState<DateRange | undefined>({ from: new Date(), to: new Date() });
-  const [orders, setOrders] = useState("");
-  const [gross, setGross] = useState("");
-  const [fees, setFees] = useState("");
+  const [month, setMonth] = useState<number>(now.getMonth());
+  const [year, setYear] = useState<number>(now.getFullYear());
+  const [sales, setSales] = useState("");
+  const [net, setNet] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+
+  const years = useMemo(() => {
+    const y = now.getFullYear();
+    return [y - 2, y - 1, y, y + 1];
+  }, []);
 
   const list = useQuery({
     queryKey: ["ifood-sales", restaurantId],
@@ -38,27 +46,38 @@ export function IfoodPanel({ restaurantId }: { restaurantId: string }) {
     },
   });
 
-  const reset = () => { setRange({ from: new Date(), to: new Date() }); setOrders(""); setGross(""); setFees(""); setNotes(""); };
+  const reset = () => {
+    setMonth(now.getMonth()); setYear(now.getFullYear());
+    setSales(""); setNet(""); setNotes("");
+  };
+
+  const salesNum = Number(sales || 0);
+  const netNum = Number(net || 0);
+  const feesNum = Math.max(0, salesNum - netNum);
 
   const save = async () => {
-    if (!range?.from) return toast.error("Selecione a data");
-    const g = Number(gross || 0);
-    const f = Number(fees || 0);
-    if (g <= 0) return toast.error("Informe o faturamento bruto");
+    if (salesNum <= 0) return toast.error("Informe o valor das vendas");
+    if (netNum <= 0) return toast.error("Informe o total faturamento");
+    if (netNum > salesNum) return toast.error("Faturamento não pode ser maior que vendas");
+
+    const ref = new Date(year, month, 1);
+    const from = startOfMonth(ref);
+    const to = endOfMonth(ref);
+
     setSaving(true);
     const { error } = await sb.from("ifood_sales").insert({
       restaurant_id: restaurantId,
-      date_from: format(range.from, "yyyy-MM-dd"),
-      date_to: format(range.to ?? range.from, "yyyy-MM-dd"),
-      orders_count: Number(orders || 0),
-      gross_revenue: g,
-      fees: f,
-      net_revenue: g - f,
+      date_from: format(from, "yyyy-MM-dd"),
+      date_to: format(to, "yyyy-MM-dd"),
+      orders_count: 0,
+      gross_revenue: salesNum,
+      fees: feesNum,
+      net_revenue: netNum,
       notes: notes || null,
     });
     setSaving(false);
     if (error) return toast.error(error.message);
-    toast.success("Venda iFood registrada");
+    toast.success("Mês iFood registrado");
     qc.invalidateQueries({ queryKey: ["ifood-sales", restaurantId] });
     qc.invalidateQueries({ queryKey: ["overview-ifood", restaurantId] });
     reset();
@@ -74,40 +93,59 @@ export function IfoodPanel({ restaurantId }: { restaurantId: string }) {
   };
 
   const totals = (list.data ?? []).reduce(
-    (a, r) => ({ orders: a.orders + (r.orders_count || 0), gross: a.gross + Number(r.gross_revenue || 0), net: a.net + Number(r.net_revenue || 0), fees: a.fees + Number(r.fees || 0) }),
-    { orders: 0, gross: 0, net: 0, fees: 0 }
+    (a, r) => ({
+      sales: a.sales + Number(r.gross_revenue || 0),
+      net: a.net + Number(r.net_revenue || 0),
+      fees: a.fees + Number(r.fees || 0),
+    }),
+    { sales: 0, net: 0, fees: 0 }
   );
 
   return (
     <div className="space-y-4 animate-fade-in">
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
-          <Button size="lg" className="w-full h-20 text-lg gap-2"><Plus className="w-6 h-6" />Registrar vendas manualmente por iFood</Button>
+          <Button size="lg" className="w-full h-20 text-lg gap-2"><Plus className="w-6 h-6" />Registrar mês de vendas iFood</Button>
         </DialogTrigger>
         <DialogContent>
-          <DialogHeader><DialogTitle>Registrar vendas iFood</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Registrar mês iFood</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <div>
-              <Label>Período</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !range && "text-muted-foreground")}>
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {range?.from ? (range.to && range.to.getTime() !== range.from.getTime() ? `${format(range.from, "dd/MM/yy")} - ${format(range.to, "dd/MM/yy")}` : format(range.from, "dd/MM/yy")) : "Selecionar"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="range" selected={range} onSelect={setRange} numberOfMonths={2} locale={ptBR} className={cn("p-3 pointer-events-auto")} />
-                </PopoverContent>
-              </Popover>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label>Mês</Label>
+                <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {MONTHS.map((m, i) => <SelectItem key={i} value={String(i)}>{m}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Ano</Label>
+                <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {years.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div className="grid grid-cols-3 gap-2">
-              <div><Label>Pedidos</Label><Input type="number" min="0" value={orders} onChange={(e) => setOrders(e.target.value)} /></div>
-              <div><Label>Faturamento bruto (R$)</Label><Input type="number" step="0.01" value={gross} onChange={(e) => setGross(e.target.value)} /></div>
-              <div><Label>Taxas iFood (R$)</Label><Input type="number" step="0.01" value={fees} onChange={(e) => setFees(e.target.value)} /></div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label>Valor das vendas (R$)</Label>
+                <Input type="number" step="0.01" value={sales} onChange={(e) => setSales(e.target.value)} />
+              </div>
+              <div>
+                <Label>Total faturamento (R$)</Label>
+                <Input type="number" step="0.01" value={net} onChange={(e) => setNet(e.target.value)} />
+              </div>
             </div>
-            {gross && (
-              <div className="text-sm text-muted-foreground">Líquido: <span className="font-semibold text-foreground">{brl(Number(gross) - Number(fees || 0))}</span></div>
+            {(sales || net) && (
+              <div className="rounded-md border p-3 text-sm space-y-1 bg-muted/30">
+                <div className="flex justify-between"><span className="text-muted-foreground">Vendas</span><span className="font-medium">{brl(salesNum)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Taxas, serviços e ajustes</span><span className="font-medium text-red-600">- {brl(feesNum)}</span></div>
+                <div className="flex justify-between border-t pt-1"><span>Faturamento</span><span className="font-semibold">{brl(netNum)}</span></div>
+              </div>
             )}
             <div><Label>Observações</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} /></div>
           </div>
@@ -118,42 +156,42 @@ export function IfoodPanel({ restaurantId }: { restaurantId: string }) {
         </DialogContent>
       </Dialog>
 
-      <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
-        <StatCard label="Pedidos" value={totals.orders.toString()} />
-        <StatCard label="Faturamento bruto" value={brl(totals.gross)} />
-        <StatCard label="Taxas iFood" value={brl(totals.fees)} />
-        <StatCard label="Faturamento líquido" value={brl(totals.net)} />
+      <div className="grid gap-3 grid-cols-1 md:grid-cols-3">
+        <StatCard label="Valor das vendas" value={brl(totals.sales)} />
+        <StatCard label="Taxas, serviços e ajustes" value={`- ${brl(totals.fees)}`} negative />
+        <StatCard label="Total faturamento" value={brl(totals.net)} />
       </div>
 
       <Card>
-        <CardHeader><CardTitle className="text-base">Registro de vendas iFood</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base">Registro mensal iFood</CardTitle></CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Período</TableHead>
-                <TableHead className="text-right">Pedidos</TableHead>
-                <TableHead className="text-right">Bruto</TableHead>
-                <TableHead className="text-right">Taxas</TableHead>
-                <TableHead className="text-right">Líquido</TableHead>
+                <TableHead>Mês</TableHead>
+                <TableHead className="text-right">Vendas</TableHead>
+                <TableHead className="text-right">Taxas/Ajustes</TableHead>
+                <TableHead className="text-right">Faturamento</TableHead>
                 <TableHead>Obs.</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(list.data ?? []).map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell>{r.date_from === r.date_to ? format(new Date(r.date_from + "T00:00"), "dd/MM/yyyy") : `${format(new Date(r.date_from + "T00:00"), "dd/MM/yy")} - ${format(new Date(r.date_to + "T00:00"), "dd/MM/yy")}`}</TableCell>
-                  <TableCell className="text-right">{r.orders_count}</TableCell>
-                  <TableCell className="text-right">{brl(Number(r.gross_revenue))}</TableCell>
-                  <TableCell className="text-right">{brl(Number(r.fees))}</TableCell>
-                  <TableCell className="text-right font-medium">{brl(Number(r.net_revenue))}</TableCell>
-                  <TableCell className="max-w-[200px] truncate text-muted-foreground text-xs">{r.notes}</TableCell>
-                  <TableCell><Button size="icon" variant="ghost" onClick={() => remove(r.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button></TableCell>
-                </TableRow>
-              ))}
+              {(list.data ?? []).map((r) => {
+                const d = new Date(r.date_from + "T00:00");
+                return (
+                  <TableRow key={r.id}>
+                    <TableCell className="capitalize">{format(d, "MMMM 'de' yyyy", { locale: ptBR })}</TableCell>
+                    <TableCell className="text-right">{brl(Number(r.gross_revenue))}</TableCell>
+                    <TableCell className="text-right text-red-600">- {brl(Number(r.fees))}</TableCell>
+                    <TableCell className="text-right font-medium">{brl(Number(r.net_revenue))}</TableCell>
+                    <TableCell className="max-w-[200px] truncate text-muted-foreground text-xs">{r.notes}</TableCell>
+                    <TableCell><Button size="icon" variant="ghost" onClick={() => remove(r.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button></TableCell>
+                  </TableRow>
+                );
+              })}
               {(list.data ?? []).length === 0 && (
-                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Nenhum registro ainda. Clique no botão acima para adicionar.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhum mês registrado. Clique no botão acima para adicionar.</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
@@ -163,8 +201,13 @@ export function IfoodPanel({ restaurantId }: { restaurantId: string }) {
   );
 }
 
-function StatCard({ label, value }: { label: string; value: string }) {
+function StatCard({ label, value, negative }: { label: string; value: string; negative?: boolean }) {
   return (
-    <Card><CardContent className="pt-6"><div className="text-2xl font-bold">{value}</div><div className="text-sm text-muted-foreground">{label}</div></CardContent></Card>
+    <Card>
+      <CardContent className="pt-6">
+        <div className={`text-2xl font-bold ${negative ? "text-red-600" : ""}`}>{value}</div>
+        <div className="text-sm text-muted-foreground">{label}</div>
+      </CardContent>
+    </Card>
   );
 }
