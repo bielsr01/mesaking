@@ -161,8 +161,8 @@ export function SupplyReportsDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2">
-          <BarChart3 className="w-4 h-4" /> Relatórios
+        <Button size="lg" className="gap-2 h-12 px-6 text-base font-semibold shadow-md">
+          <BarChart3 className="w-5 h-5" /> Relatórios
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto">
