@@ -220,6 +220,51 @@ export type Database = {
         }
         Relationships: []
       }
+      ifood_sales: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          date_from: string
+          date_to: string
+          fees: number
+          gross_revenue: number
+          id: string
+          net_revenue: number
+          notes: string | null
+          orders_count: number
+          restaurant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          date_from: string
+          date_to: string
+          fees?: number
+          gross_revenue?: number
+          id?: string
+          net_revenue?: number
+          notes?: string | null
+          orders_count?: number
+          restaurant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          date_from?: string
+          date_to?: string
+          fees?: number
+          gross_revenue?: number
+          id?: string
+          net_revenue?: number
+          notes?: string | null
+          orders_count?: number
+          restaurant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       loyalty_members: {
         Row: {
           created_at: string
