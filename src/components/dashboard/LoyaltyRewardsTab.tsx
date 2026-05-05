@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Plus, Trash2, Pencil, Gift, Search, ArrowLeft, ArrowRight, Check, Bike, Store, ShoppingBag } from "lucide-react";
+import { Plus, Trash2, Pencil, Gift, Search, ArrowLeft, ArrowRight, Check, Bike, Store, ShoppingBag, History } from "lucide-react";
 import { brl, formatPhone } from "@/lib/format";
 import { DeliveryZone, GeoPoint, findDeliveryFee, geocodeAddress, haversineKm } from "@/lib/delivery";
 import { ordersKey } from "./OrdersPanel";
