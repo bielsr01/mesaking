@@ -70,7 +70,7 @@ export function AppSidebar({
 }) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const marketingActive = active.startsWith("marketing:");
+  const marketingActive = active.startsWith("marketing:") && active !== "marketing:loyalty";
   const settingsActive = active.startsWith("settings:");
   const [marketingOpen, setMarketingOpen] = useState(marketingActive);
   const [settingsOpen, setSettingsOpen] = useState(settingsActive);
