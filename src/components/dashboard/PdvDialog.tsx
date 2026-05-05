@@ -290,6 +290,12 @@ export function PdvDialog({
 
   const confirmOrder = async (alsoPrint: boolean) => {
     if (cart.length === 0) { toast.error("Adicione produtos ao pedido"); return; }
+    if (!payment) {
+      setPaymentShake(true);
+      setTimeout(() => setPaymentShake(false), 600);
+      toast.error("Selecione uma forma de pagamento");
+      return;
+    }
     setSubmitting(true);
     const phoneDigits = unmaskPhone(customerPhone);
     const trimmedName = customerName.trim() || "Cliente Balcão";
