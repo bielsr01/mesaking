@@ -484,20 +484,28 @@ export function PdvDialog({
                 <div className="p-2 space-y-1">
                   {groupedByCategory.length === 0 ? (
                     <div className="text-xs text-muted-foreground px-2 py-3">Nenhuma categoria</div>
-                  ) : groupedByCategory.map((g) => (
-                    <button
-                      key={g.id}
-                      type="button"
-                      onClick={() => {
-                        const el = document.getElementById(`pdv-cat-${g.id}`);
-                        el?.scrollIntoView({ behavior: "smooth", block: "start" });
-                      }}
-                      className="w-full text-left px-3 py-2 rounded-md text-sm transition hover:bg-muted"
-                    >
-                      {g.name}
-                      <span className="ml-2 text-[10px] text-muted-foreground">({g.products.length})</span>
-                    </button>
-                  ))}
+                  ) : groupedByCategory.map((g) => {
+                    const isActive = activeCat ? activeCat === g.id : groupedByCategory[0]?.id === g.id;
+                    return (
+                      <button
+                        key={g.id}
+                        type="button"
+                        onClick={() => {
+                          setActiveCat(g.id);
+                          const el = document.getElementById(`pdv-cat-${g.id}`);
+                          el?.scrollIntoView({ behavior: "smooth", block: "start" });
+                        }}
+                        className={`w-full text-left px-3 py-2 rounded-md text-sm transition border-l-2 ${
+                          isActive
+                            ? "bg-primary/10 text-primary border-primary font-semibold"
+                            : "border-transparent hover:bg-muted"
+                        }`}
+                      >
+                        {g.name}
+                        <span className="ml-2 text-[10px] text-muted-foreground">({g.products.length})</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </ScrollArea>
             </div>
