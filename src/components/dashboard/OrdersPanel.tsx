@@ -271,22 +271,6 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     }
   };
 
-  const creditPdvLoyaltyIfNeeded = async (o: Order, newStatus: Order["status"]) => {
-    if (o.order_type !== "pdv") return;
-    if (newStatus !== "preparing" && newStatus !== "delivered") return;
-    try {
-      const sb = supabase as any;
-      const { data: txs } = await sb
-        .from("loyalty_transactions")
-        .select("id,status")
-        .eq("order_id", o.id)
-        .eq("status", "pending");
-      for (const tx of txs ?? []) {
-        await sb.rpc("credit_loyalty_points", { _tx_id: tx.id });
-      }
-    } catch { /* noop */ }
-  };
-
   const advance = async (o: Order) => {
     const next = getNextStatus(o.status, o.order_type) as Order["status"] | null;
     if (!next) return;
@@ -299,7 +283,6 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     } else {
       toast.success(`Pedido movido para "${orderStatusLabel[next]}"`);
       syncQueroStatus(o, next);
-      creditPdvLoyaltyIfNeeded(o, next);
     }
   };
 
