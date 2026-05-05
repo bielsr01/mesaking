@@ -11,6 +11,15 @@ export const orderStatusLabel: Record<string, string> = {
   cancelled: "Cancelado",
 };
 
+/** Rótulo de status considerando o tipo do pedido (PDV recebe sufixo "Balcão"). */
+export const statusLabelFor = (status: string, orderType?: string | null): string => {
+  const base = orderStatusLabel[status] ?? status;
+  if (orderType === "pdv" && (status === "preparing" || status === "delivered")) {
+    return `${base} Balcão`;
+  }
+  return base;
+};
+
 /** Próximo status para pedidos de delivery */
 export const nextStatusDelivery: Record<string, string | null> = {
   pending: "preparing",
