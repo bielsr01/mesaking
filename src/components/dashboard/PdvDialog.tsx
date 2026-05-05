@@ -129,8 +129,11 @@ export function PdvDialog({
   const [tmpFeeType, setTmpFeeType] = useState<"value" | "percent">("percent");
   const [tmpFeeInput, setTmpFeeInput] = useState("10");
 
-  const [payment, setPayment] = useState<PaymentMethod>("cash");
+  const [payment, setPayment] = useState<PaymentMethod | null>(null);
+  const [paymentShake, setPaymentShake] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [activeCat, setActiveCat] = useState<string | null>(null);
+  const productsScrollRef = useRef<HTMLDivElement | null>(null);
 
   // Product → option picker
   const [pickProduct, setPickProduct] = useState<typeof products[number] | null>(null);
