@@ -171,18 +171,23 @@ export function LoyaltyPanel({ restaurantId }: { restaurantId: string }) {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-2">
         <CardTitle className="flex items-center gap-2"><Award className="w-5 h-5" />Programa de fidelidade</CardTitle>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            qc.invalidateQueries({ queryKey: ["loyalty-settings", restaurantId] });
-            qc.invalidateQueries({ queryKey: ["loyalty-members", restaurantId] });
-            qc.invalidateQueries({ queryKey: ["loyalty-tx", restaurantId] });
-            toast.success("Atualizado");
-          }}
-        >
-          <RefreshCw className="w-4 h-4 mr-1" />Atualizar
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setMetricsOpen(true)}>
+            <BarChart3 className="w-4 h-4 mr-1" />Métricas
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              qc.invalidateQueries({ queryKey: ["loyalty-settings", restaurantId] });
+              qc.invalidateQueries({ queryKey: ["loyalty-members", restaurantId] });
+              qc.invalidateQueries({ queryKey: ["loyalty-tx", restaurantId] });
+              toast.success("Atualizado");
+            }}
+          >
+            <RefreshCw className="w-4 h-4 mr-1" />Atualizar
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="settings">
@@ -190,7 +195,12 @@ export function LoyaltyPanel({ restaurantId }: { restaurantId: string }) {
             <TabsTrigger value="settings">Configurações</TabsTrigger>
             <TabsTrigger value="members">Cadastro</TabsTrigger>
             <TabsTrigger value="credit">Creditar Pontos</TabsTrigger>
+            <TabsTrigger value="rewards">Resgatar Pontos</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="rewards">
+            <LoyaltyRewardsTab restaurantId={restaurantId} />
+          </TabsContent>
 
           {/* Settings */}
           <TabsContent value="settings" className="space-y-4 pt-4 max-w-md">
