@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
-import { Minus, Plus, ArrowLeft, Plus as PlusIcon } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Minus, Plus, ArrowLeft, Plus as PlusIcon, Clock, CheckCircle2, Truck, Package } from "lucide-react";
 import { toast } from "sonner";
 import { brl } from "@/lib/format";
 
