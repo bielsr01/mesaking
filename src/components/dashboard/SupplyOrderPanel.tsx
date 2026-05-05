@@ -358,15 +358,15 @@ export function SupplyOrderPanel({ restaurantId }: { restaurantId: string }) {
                   <div className="flex items-center justify-between gap-2">
                     {STEPS.map((step, idx) => {
                       const reached = idx <= active;
-                      const isCurrent = idx === active && !isFinished;
-                      const isDone = reached && !isCurrent;
+                      const isPendingStep = idx === 0 && o.status === "pending";
+                      const isDone = reached && !isPendingStep;
                       return (
                         <div key={step.key} className="flex items-center flex-1 last:flex-none">
                           <div className="flex items-center gap-2">
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
                               isDone
                                 ? "bg-green-500 text-white"
-                                : isCurrent
+                                : isPendingStep
                                   ? "bg-orange-500 text-white"
                                   : "bg-muted text-muted-foreground"
                             }`}>
