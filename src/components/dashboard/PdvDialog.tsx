@@ -518,7 +518,7 @@ export function PdvDialog({
                   <Input autoFocus placeholder="Buscar produto por nome..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
                 </div>
               </div>
-              <ScrollArea className="flex-1">
+              <ScrollArea className="flex-1" ref={productsScrollRef as any}>
                 <div className="p-3 space-y-6">
                   {groupedByCategory.length === 0 ? (
                     <div className="text-sm text-muted-foreground text-center py-12">Nenhum produto encontrado.</div>
