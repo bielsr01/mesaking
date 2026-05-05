@@ -137,14 +137,34 @@ export function OverviewPanel({ restaurantId }: { restaurantId: string }) {
   });
 
   const ifoodQ = useQuery({
-    queryKey: ["overview-ifood", restaurantId, prevRange.from.toISOString(), range.to.toISOString()],
+    queryKey: ["overview-ifood-all", restaurantId],
     queryFn: async () => {
       const { data } = await sb
         .from("ifood_sales")
         .select("date_from, date_to, orders_count, gross_revenue, net_revenue, fees")
+        .eq("restaurant_id", restaurantId);
+      return (data ?? []) as any[];
+    },
+    staleTime: 30_000,
+  });
+
+  // Separate query covering month-to-date + previous month for the Compare cards,
+  // independent of the selected preset.
+  const compareWindow = useMemo(() => {
+    const now = new Date();
+    const from = startOfMonth(subDays(startOfMonth(now), 1));
+    return { from, to: endOfDay(now) };
+  }, []);
+  const compareOrdersQ = useQuery({
+    queryKey: ["overview-compare", restaurantId, compareWindow.from.toISOString()],
+    queryFn: async () => {
+      const { data } = await sb
+        .from("orders")
+        .select("id, created_at, total, order_type, payment_method, external_source")
         .eq("restaurant_id", restaurantId)
-        .lte("date_from", format(range.to, "yyyy-MM-dd"))
-        .gte("date_to", format(prevRange.from, "yyyy-MM-dd"));
+        .gte("created_at", compareWindow.from.toISOString())
+        .lte("created_at", compareWindow.to.toISOString())
+        .neq("status", "cancelled");
       return (data ?? []) as any[];
     },
     staleTime: 30_000,
@@ -301,18 +321,28 @@ export function OverviewPanel({ restaurantId }: { restaurantId: string }) {
   const bestHour = [...hourBuckets].sort((a, b) => b.count - a.count)[0];
   const bestDay = [...wdBuckets].sort((a, b) => b.count - a.count)[0];
 
-  // Comparativos automáticos: hoje vs ontem, hoje vs mesma semana passada
+  // Comparativos automáticos: respeitam o filtro de origem (source)
+  const compareAll = compareOrdersQ.data ?? [];
+  const compareFiltered = source === "all"
+    ? compareAll
+    : source === "ifood"
+      ? []
+      : compareAll.filter((o) => classifySource(o) === source);
   const today = startOfDay(new Date());
   const yesterday = startOfDay(subDays(new Date(), 1));
   const lastWeekSame = startOfDay(subDays(new Date(), 7));
-  const dayOrders = (d: Date) => all.filter((o) => format(new Date(o.created_at), "yyyy-MM-dd") === format(d, "yyyy-MM-dd"));
-  const todayRev = sum(dayOrders(today), "total");
-  const yRev = sum(dayOrders(yesterday), "total");
-  const lwRev = sum(dayOrders(lastWeekSame), "total");
-  const monthCur = sum(all.filter((o) => new Date(o.created_at) >= startOfMonth(new Date())), "total");
-  const monthPrevStart = startOfMonth(subDays(startOfMonth(new Date()), 1));
+  const dayOrders = (d: Date) => compareFiltered.filter((o) => format(new Date(o.created_at), "yyyy-MM-dd") === format(d, "yyyy-MM-dd"));
+  const sumDayIfood = (d: Date) => includeIfood ? sumIfood(startOfDay(d), endOfDay(d)).gross : 0;
+  const todayRev = sum(dayOrders(today), "total") + sumDayIfood(today);
+  const yRev = sum(dayOrders(yesterday), "total") + sumDayIfood(yesterday);
+  const lwRev = sum(dayOrders(lastWeekSame), "total") + sumDayIfood(lastWeekSame);
+  const monthStart = startOfMonth(new Date());
+  const monthCur = sum(compareFiltered.filter((o) => new Date(o.created_at) >= monthStart), "total")
+    + (includeIfood ? sumIfood(monthStart, endOfDay(new Date())).gross : 0);
+  const monthPrevStart = startOfMonth(subDays(monthStart, 1));
   const monthPrevEnd = endOfMonth(monthPrevStart);
-  const monthPrev = sum(all.filter((o) => { const d = new Date(o.created_at); return d >= monthPrevStart && d <= monthPrevEnd; }), "total");
+  const monthPrev = sum(compareFiltered.filter((o) => { const d = new Date(o.created_at); return d >= monthPrevStart && d <= monthPrevEnd; }), "total")
+    + (includeIfood ? sumIfood(monthPrevStart, monthPrevEnd).gross : 0);
 
   return (
     <div className="space-y-4 animate-fade-in">
