@@ -1,4 +1,4 @@
-import { ChefHat, LayoutDashboard, ShoppingBag, UtensilsCrossed, Settings, Store, Printer, Plug, ChevronDown, Users, Megaphone, Ticket, Award, Send, ClipboardList, Package } from "lucide-react";
+import { ChefHat, LayoutDashboard, ShoppingBag, UtensilsCrossed, Settings, Store, Printer, Plug, ChevronDown, Users, Megaphone, Ticket, Award, Send, ClipboardList, Package, Receipt } from "lucide-react";
 import { useState } from "react";
 import {
   Sidebar,
@@ -29,7 +29,8 @@ export type DashboardView =
   | "settings:business"
   | "settings:printers"
   | "settings:integrations"
-  | "supply-orders";
+  | "supply-orders"
+  | "expenses";
 
 const mainItems: { id: DashboardView; title: string; icon: any }[] = [
   { id: "overview", title: "Visão geral", icon: LayoutDashboard },
@@ -194,6 +195,17 @@ export function AppSidebar({
                 >
                   <Package className="h-4 w-4" />
                   <span>Pedido de Insumos</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={active === "expenses"}
+                  onClick={() => onChange("expenses")}
+                  tooltip="Cadastro de despesas"
+                >
+                  <Receipt className="h-4 w-4" />
+                  <span>Cadastro de despesas</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
