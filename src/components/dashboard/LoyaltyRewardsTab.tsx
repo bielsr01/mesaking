@@ -501,12 +501,17 @@ function RedeemWizard({
       if (itErr) throw itErr;
 
       // 3) Resgata pontos via RPC (atualiza saldo + estoque + transação)
-      const { error: rpcErr } = await sb.rpc("redeem_loyalty_points", {
+      const { data: txId, error: rpcErr } = await sb.rpc("redeem_loyalty_points", {
         _restaurant_id: restaurantId,
         _member_id: selectedMember.id,
         _reward_id: reward.id,
       });
       if (rpcErr) throw rpcErr;
+
+      // 3.1) Vincula a transação de resgate ao pedido criado
+      if (txId) {
+        await sb.from("loyalty_transactions").update({ order_id: order.id }).eq("id", txId);
+      }
 
       toast.success(`Pedido #${order.order_number} criado e ${reward.points_cost} pontos resgatados`);
       onDone();
