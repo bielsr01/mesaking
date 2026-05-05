@@ -267,9 +267,11 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     }
   };
 
-  const channelOrders = orders.filter((o) =>
-    channel === "pdv" ? o.order_type === "pdv" : o.order_type !== "pdv"
-  );
+  const channelOrders = orders.filter((o) => {
+    if (channel === "quero") return o.external_source === "quero";
+    if (channel === "pdv") return o.order_type === "pdv" && o.external_source !== "quero";
+    return o.order_type !== "pdv" && o.external_source !== "quero";
+  });
 
   const filtered = channelOrders.filter((o) => {
     if (filter === "all") return true;
