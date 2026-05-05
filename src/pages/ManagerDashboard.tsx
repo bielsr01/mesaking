@@ -26,6 +26,7 @@ import { LazyView } from "@/components/dashboard/LazyView";
 import { useNewOrderNotifications } from "@/hooks/useNewOrderNotifications";
 import { SupplyOrderPanel } from "@/components/dashboard/SupplyOrderPanel";
 import { ExpensesPanel } from "@/components/dashboard/ExpensesPanel";
+import { OverviewPanel } from "@/components/dashboard/OverviewPanel";
 import { ManualOverride, OpeningHours } from "@/lib/hours";
 
 interface Restaurant {
@@ -226,11 +227,7 @@ export default function ManagerDashboard() {
           <main className="flex-1 p-4 sm:p-6">
             {view === "overview" && (
               <LazyView viewKey={view} variant="stats">
-                <div className="grid gap-4 md:grid-cols-3">
-                  <StatCard icon={ShoppingBag} label="Pedidos hoje" value={(stats?.orders ?? 0).toString()} />
-                  <StatCard icon={DollarSign} label="Faturamento hoje" value={brl(stats?.revenue ?? 0)} />
-                  <StatCard icon={TrendingUp} label="Ticket médio" value={brl(stats?.avg ?? 0)} />
-                </div>
+                <OverviewPanel restaurantId={restaurant.id} />
               </LazyView>
             )}
 
