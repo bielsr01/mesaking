@@ -11,7 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 // tabs removed in favor of sidebar layout
-import { Plus, ChefHat, ExternalLink, LogOut, Store, ShoppingBag, DollarSign, Pencil, Trash2 } from "lucide-react";
+import { Plus, ChefHat, ExternalLink, LogOut, Store, ShoppingBag, DollarSign, Pencil, Trash2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { brl, slugify } from "@/lib/format";
@@ -146,7 +146,10 @@ export default function MasterAdmin() {
                   MesaPro <Badge variant="secondary" className="ml-2">Admin</Badge>
                 </div>
               </div>
-              <Button variant="ghost" size="sm" onClick={signOut}><LogOut className="w-4 h-4 mr-2" />Sair</Button>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => window.location.reload()}><RefreshCw className="w-4 h-4 mr-2" />Atualizar</Button>
+                <Button variant="ghost" size="sm" onClick={signOut}><LogOut className="w-4 h-4 mr-2" />Sair</Button>
+              </div>
             </div>
           </header>
 
