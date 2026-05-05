@@ -253,7 +253,16 @@ export function SupplyOrderPanel({ restaurantId }: { restaurantId: string }) {
                     ))}
                   </div>
                 )}
-                <Input placeholder="Observações (opcional)" value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={500} />
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Observações</label>
+                  <Textarea
+                    placeholder="Ex: entregar pela manhã, trocar sabor X por Y..."
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    maxLength={500}
+                    rows={3}
+                  />
+                </div>
                 <div className="flex justify-between font-bold pt-2 border-t">
                   <span>Total</span><span>{brl(total)}</span>
                 </div>
