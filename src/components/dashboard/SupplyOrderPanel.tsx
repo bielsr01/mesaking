@@ -286,7 +286,7 @@ export function SupplyOrderPanel({ restaurantId }: { restaurantId: string }) {
   };
   const FILTERS = [
     { value: "pending", label: "Aguardando", icon: Clock },
-    { value: "accepted", label: "Aceitos", icon: CheckCircle2 },
+    { value: "accepted", label: "Aceitos", icon: Check },
     { value: "shipped", label: "Enviados", icon: Truck },
     { value: "delivered", label: "Entregues", icon: Package },
     { value: "all", label: "Todos", icon: null },
@@ -294,11 +294,15 @@ export function SupplyOrderPanel({ restaurantId }: { restaurantId: string }) {
   const [filter, setFilter] = useState<typeof FILTERS[number]["value"]>("pending");
   const filtered = filter === "all" ? orders : orders.filter(o => o.status === filter);
 
-  const statusBar = (s: SupplyOrder["status"]) => {
-    if (s === "pending") return { label: "Aguardando aceite do fornecedor", icon: Clock, cls: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400" };
-    if (s === "accepted") return { label: "Pedido aceito · preparando envio", icon: CheckCircle2, cls: "bg-blue-500/15 text-blue-700 dark:text-blue-400" };
-    if (s === "shipped") return { label: "Pedido enviado · a caminho", icon: Truck, cls: "bg-purple-500/15 text-purple-700 dark:text-purple-400" };
-    return { label: "Pedido entregue", icon: Package, cls: "bg-green-500/15 text-green-700 dark:text-green-400" };
+  const STEPS = [
+    { key: "pending", label: "Pendente" },
+    { key: "shipped", label: "Enviado" },
+    { key: "delivered", label: "Entregue" },
+  ] as const;
+  const stepIndex = (s: SupplyOrder["status"]) => {
+    if (s === "delivered") return 2;
+    if (s === "shipped") return 1;
+    return 0;
   };
 
   return (
@@ -334,16 +338,16 @@ export function SupplyOrderPanel({ restaurantId }: { restaurantId: string }) {
       {filtered.length === 0 ? (
         <Card><CardContent className="py-12 text-center text-muted-foreground">Nenhum pedido nesta categoria.</CardContent></Card>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="flex flex-col gap-4">
           {filtered.map((o) => {
-            const sb = statusBar(o.status);
+            const active = stepIndex(o.status);
             return (
-              <Card key={o.id} className="overflow-hidden flex flex-col shadow-soft">
-                <CardContent className="p-4 space-y-2 flex-1">
+              <Card key={o.id} className="w-full overflow-hidden shadow-soft">
+                <CardContent className="p-5 space-y-3">
                   <div className="flex justify-between items-start gap-2 flex-wrap">
                     <div>
                       <div className="text-xs text-muted-foreground">{new Date(o.created_at).toLocaleString("pt-BR")}</div>
-                      <div className="font-bold text-lg">{brl(Number(o.total))}</div>
+                      <div className="font-bold text-xl">{brl(Number(o.total))}</div>
                     </div>
                     <Badge className={statusColor[o.status]}>{statusLabel[o.status]}</Badge>
                   </div>
@@ -364,9 +368,33 @@ export function SupplyOrderPanel({ restaurantId }: { restaurantId: string }) {
                   </div>
                   {o.notes && <div className="text-xs text-muted-foreground italic">"{o.notes}"</div>}
                 </CardContent>
-                <div className={`w-full font-semibold py-3 flex items-center justify-center gap-2 ${sb.cls}`}>
-                  <sb.icon className="w-5 h-5" />
-                  {sb.label}
+                <div className="border-t bg-muted/20 px-5 py-4">
+                  <div className="text-xs font-semibold text-foreground mb-3">Acompanhamento</div>
+                  <div className="flex items-center justify-between gap-2">
+                    {STEPS.map((step, idx) => {
+                      const reached = idx <= active;
+                      const isCurrent = idx === active;
+                      return (
+                        <div key={step.key} className="flex items-center flex-1 last:flex-none">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                              reached
+                                ? (isCurrent ? "bg-orange-500 text-white" : "bg-green-500 text-white")
+                                : "bg-muted text-muted-foreground"
+                            }`}>
+                              {reached && !isCurrent ? <Check className="w-4 h-4" /> : idx + 1}
+                            </div>
+                            <span className={`text-sm whitespace-nowrap ${reached ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
+                              {step.label}
+                            </span>
+                          </div>
+                          {idx < STEPS.length - 1 && (
+                            <div className={`h-0.5 flex-1 mx-3 ${idx < active ? "bg-green-500" : "bg-border"}`} />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </Card>
             );
