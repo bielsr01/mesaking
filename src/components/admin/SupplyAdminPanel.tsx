@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Plus, Pencil, Trash2, Package, ShoppingBag, Truck, CheckCircle2, X, Store } from "lucide-react";
 import { toast } from "sonner";
 import { brl } from "@/lib/format";
+import { SupplyReportsDialog } from "./SupplyReportsDialog";
 
 type SupplyProduct = {
   id: string; name: string; description: string | null; unit: string;
