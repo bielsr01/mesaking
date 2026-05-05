@@ -11,6 +11,16 @@ const corsHeaders = {
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
+function normalizePhone(raw: unknown): string {
+  const digits = String(raw ?? "").replace(/\D/g, "");
+  // Remove country code 55 if present and resulting number has 10 or 11 digits (BR)
+  let n = digits;
+  if (n.startsWith("55") && (n.length === 12 || n.length === 13)) n = n.slice(2);
+  if (n.length === 11) return `(${n.slice(0,2)}) ${n.slice(2,7)}-${n.slice(7)}`;
+  if (n.length === 10) return `(${n.slice(0,2)}) ${n.slice(2,6)}-${n.slice(6)}`;
+  return n;
+}
+
 function authHeader(token: string) {
   const t = token.trim();
   if (/^basic\s/i.test(t) || /^bearer\s/i.test(t)) return t;
