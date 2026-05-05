@@ -137,14 +137,34 @@ export function OverviewPanel({ restaurantId }: { restaurantId: string }) {
   });
 
   const ifoodQ = useQuery({
-    queryKey: ["overview-ifood", restaurantId, prevRange.from.toISOString(), range.to.toISOString()],
+    queryKey: ["overview-ifood-all", restaurantId],
     queryFn: async () => {
       const { data } = await sb
         .from("ifood_sales")
         .select("date_from, date_to, orders_count, gross_revenue, net_revenue, fees")
+        .eq("restaurant_id", restaurantId);
+      return (data ?? []) as any[];
+    },
+    staleTime: 30_000,
+  });
+
+  // Separate query covering month-to-date + previous month for the Compare cards,
+  // independent of the selected preset.
+  const compareWindow = useMemo(() => {
+    const now = new Date();
+    const from = startOfMonth(subDays(startOfMonth(now), 1));
+    return { from, to: endOfDay(now) };
+  }, []);
+  const compareOrdersQ = useQuery({
+    queryKey: ["overview-compare", restaurantId, compareWindow.from.toISOString()],
+    queryFn: async () => {
+      const { data } = await sb
+        .from("orders")
+        .select("id, created_at, total, order_type, payment_method, external_source")
         .eq("restaurant_id", restaurantId)
-        .lte("date_from", format(range.to, "yyyy-MM-dd"))
-        .gte("date_to", format(prevRange.from, "yyyy-MM-dd"));
+        .gte("created_at", compareWindow.from.toISOString())
+        .lte("created_at", compareWindow.to.toISOString())
+        .neq("status", "cancelled");
       return (data ?? []) as any[];
     },
     staleTime: 30_000,
