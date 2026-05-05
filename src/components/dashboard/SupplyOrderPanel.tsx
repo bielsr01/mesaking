@@ -49,6 +49,7 @@ export function SupplyOrderPanel({ restaurantId }: { restaurantId: string }) {
   const [dist, setDist] = useState<Record<string, Record<string, number>>>({});
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [filter, setFilter] = useState<"pending"|"accepted"|"shipped"|"delivered"|"all">("pending");
 
   const { data: products = [] } = useQuery({
     queryKey: ["supply_products"],
