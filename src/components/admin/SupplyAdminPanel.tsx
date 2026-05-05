@@ -10,19 +10,24 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Package, ShoppingBag, Truck, CheckCircle2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Package, ShoppingBag, Truck, CheckCircle2, X } from "lucide-react";
 import { toast } from "sonner";
 import { brl } from "@/lib/format";
 
 type SupplyProduct = {
   id: string; name: string; description: string | null; unit: string;
   price: number; image_url: string | null; is_active: boolean; sort_order: number;
+  variant_group_name: string | null; total_quantity: number | null; quantity_step: number;
 };
+type SupplyOption = { id: string; product_id: string; name: string; sort_order: number; is_active: boolean };
 type Restaurant = { id: string; name: string; slug: string };
 type SupplyOrder = {
   id: string; restaurant_id: string; status: "pending"|"accepted"|"shipped"|"delivered";
   total: number; notes: string | null; created_at: string;
-  supply_order_items?: { id: string; product_name: string; unit_price: number; quantity: number; unit: string | null }[];
+  supply_order_items?: {
+    id: string; product_name: string; unit_price: number; quantity: number; unit: string | null;
+    supply_order_item_options?: { id: string; option_name: string; quantity: number }[];
+  }[];
 };
 
 const statusLabel: Record<SupplyOrder["status"], string> = {
@@ -54,7 +59,7 @@ export function SupplyOrdersTab() {
     queryKey: ["admin_supply_orders"],
     queryFn: async () => {
       const { data } = await supabase.from("supply_orders")
-        .select("*, supply_order_items(*)")
+        .select("*, supply_order_items(*, supply_order_item_options(*))")
         .order("created_at", { ascending: false });
       return (data ?? []) as SupplyOrder[];
     },
@@ -124,11 +129,20 @@ export function SupplyOrdersTab() {
                   <span className="font-bold">{brl(Number(o.total))}</span>
                 </div>
               </div>
-              <div className="text-sm space-y-1 border-l-2 pl-3">
+              <div className="text-sm space-y-2 border-l-2 pl-3">
                 {o.supply_order_items?.map(it => (
-                  <div key={it.id} className="flex justify-between">
-                    <span>{it.quantity}× {it.product_name}{it.unit ? ` (${it.unit})` : ""}</span>
-                    <span className="text-muted-foreground">{brl(Number(it.unit_price) * it.quantity)}</span>
+                  <div key={it.id}>
+                    <div className="flex justify-between">
+                      <span>{it.quantity}× {it.product_name}{it.unit ? ` (${it.unit})` : ""}</span>
+                      <span className="text-muted-foreground">{brl(Number(it.unit_price) * it.quantity)}</span>
+                    </div>
+                    {it.supply_order_item_options && it.supply_order_item_options.length > 0 && (
+                      <div className="ml-4 text-xs text-muted-foreground">
+                        {it.supply_order_item_options.map(op => (
+                          <div key={op.id}>↳ {op.quantity}× {op.option_name}</div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -165,14 +179,48 @@ export function SupplyCatalogTab() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<SupplyProduct | null>(null);
+  const [hasVariants, setHasVariants] = useState(false);
+  const [groupName, setGroupName] = useState("");
+  const [totalQty, setTotalQty] = useState<number | "">("");
+  const [step, setStep] = useState<number>(50);
+  const [options, setOptions] = useState<{ id?: string; name: string }[]>([]);
+  const [newOpt, setNewOpt] = useState("");
 
   const { data: products = [] } = useQuery({
     queryKey: ["admin_supply_products"],
     queryFn: async () => {
-      const { data } = await supabase.from("supply_products").select("*").order("sort_order").order("name");
+      const { data } = await supabase.from("supply_products")
+        .select("*").order("sort_order").order("name");
       return (data ?? []) as SupplyProduct[];
     },
   });
+
+  const { data: allOptions = [] } = useQuery({
+    queryKey: ["admin_supply_options"],
+    queryFn: async () => {
+      const { data } = await supabase.from("supply_product_options").select("*").order("sort_order");
+      return (data ?? []) as SupplyOption[];
+    },
+  });
+  const optsByProduct: Record<string, SupplyOption[]> = {};
+  allOptions.forEach(o => { (optsByProduct[o.product_id] ??= []).push(o); });
+
+  const openNew = () => {
+    setEditing(null);
+    setHasVariants(false); setGroupName(""); setTotalQty(""); setStep(50); setOptions([]); setNewOpt("");
+    setOpen(true);
+  };
+  const openEdit = (p: SupplyProduct) => {
+    setEditing(p);
+    const has = !!p.variant_group_name;
+    setHasVariants(has);
+    setGroupName(p.variant_group_name ?? "");
+    setTotalQty(p.total_quantity ?? "");
+    setStep(p.quantity_step ?? 50);
+    setOptions((optsByProduct[p.id] ?? []).map(o => ({ id: o.id, name: o.name })));
+    setNewOpt("");
+    setOpen(true);
+  };
 
   const save = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -184,15 +232,45 @@ export function SupplyCatalogTab() {
       price: Number(fd.get("price") || 0),
       image_url: String(fd.get("image_url") || "").trim() || null,
       is_active: true,
+      variant_group_name: hasVariants ? (groupName.trim() || null) : null,
+      total_quantity: hasVariants && totalQty !== "" ? Number(totalQty) : null,
+      quantity_step: hasVariants ? Math.max(1, Number(step) || 50) : 50,
     };
     if (!payload.name) return toast.error("Nome obrigatório");
-    const { error } = editing
-      ? await supabase.from("supply_products").update(payload).eq("id", editing.id)
-      : await supabase.from("supply_products").insert(payload);
-    if (error) return toast.error(error.message);
+    if (hasVariants) {
+      if (!payload.variant_group_name) return toast.error("Nome do subgrupo obrigatório");
+      if (!payload.total_quantity || payload.total_quantity <= 0) return toast.error("Quantidade total obrigatória");
+      if (options.filter(o => o.name.trim()).length === 0) return toast.error("Cadastre ao menos uma opção");
+    }
+
+    let productId = editing?.id;
+    if (editing) {
+      const { error } = await supabase.from("supply_products").update(payload).eq("id", editing.id);
+      if (error) return toast.error(error.message);
+    } else {
+      const { data, error } = await supabase.from("supply_products").insert(payload).select().single();
+      if (error || !data) return toast.error(error?.message ?? "Erro");
+      productId = data.id;
+    }
+
+    if (productId) {
+      // Replace options
+      await supabase.from("supply_product_options").delete().eq("product_id", productId);
+      if (hasVariants && options.length) {
+        const rows = options.filter(o => o.name.trim()).map((o, i) => ({
+          product_id: productId!, name: o.name.trim(), sort_order: i, is_active: true,
+        }));
+        if (rows.length) {
+          const { error } = await supabase.from("supply_product_options").insert(rows);
+          if (error) return toast.error(error.message);
+        }
+      }
+    }
+
     toast.success("Salvo");
     setOpen(false); setEditing(null);
     qc.invalidateQueries({ queryKey: ["admin_supply_products"] });
+    qc.invalidateQueries({ queryKey: ["admin_supply_options"] });
   };
 
   const remove = async (id: string) => {
@@ -207,12 +285,19 @@ export function SupplyCatalogTab() {
     qc.invalidateQueries({ queryKey: ["admin_supply_products"] });
   };
 
+  const addOption = () => {
+    const v = newOpt.trim();
+    if (!v) return;
+    setOptions(o => [...o, { name: v }]);
+    setNewOpt("");
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
         <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }}>
-          <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" />Novo insumo</Button></DialogTrigger>
-          <DialogContent>
+          <DialogTrigger asChild><Button onClick={openNew}><Plus className="w-4 h-4 mr-2" />Novo insumo</Button></DialogTrigger>
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>{editing ? "Editar" : "Novo"} insumo</DialogTitle></DialogHeader>
             <form onSubmit={save} className="space-y-3">
               <div><Label>Nome</Label><Input name="name" defaultValue={editing?.name} required maxLength={120} /></div>
@@ -222,6 +307,56 @@ export function SupplyCatalogTab() {
                 <div><Label>Unidade</Label><Input name="unit" defaultValue={editing?.unit ?? "un"} placeholder="un, kg, cx..." /></div>
               </div>
               <div><Label>URL da imagem (opcional)</Label><Input name="image_url" defaultValue={editing?.image_url ?? ""} /></div>
+
+              <div className="rounded-lg border p-3 space-y-3 bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-base">Quantidade limitadora?</Label>
+                    <p className="text-xs text-muted-foreground">Ex.: pacote de 1000 coxinhas dividido em sabores</p>
+                  </div>
+                  <Switch checked={hasVariants} onCheckedChange={setHasVariants} />
+                </div>
+
+                {hasVariants && (
+                  <div className="space-y-3 pt-2 border-t">
+                    <div>
+                      <Label>Nome do subgrupo</Label>
+                      <Input value={groupName} onChange={(e) => setGroupName(e.target.value)} placeholder="Ex.: Sabores" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label>Quantidade total</Label>
+                        <Input type="number" min="1" value={totalQty} onChange={(e) => setTotalQty(e.target.value === "" ? "" : Number(e.target.value))} placeholder="1000" />
+                      </div>
+                      <div>
+                        <Label>Passo (incremento)</Label>
+                        <Input type="number" min="1" value={step} onChange={(e) => setStep(Number(e.target.value) || 50)} placeholder="50" />
+                      </div>
+                    </div>
+                    <div>
+                      <Label>Opções (ex.: sabores)</Label>
+                      <div className="flex gap-2">
+                        <Input value={newOpt} onChange={(e) => setNewOpt(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addOption(); } }}
+                          placeholder="Frango, Carne, Queijo..." />
+                        <Button type="button" variant="outline" onClick={addOption}>Adicionar</Button>
+                      </div>
+                      {options.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {options.map((o, i) => (
+                            <Badge key={i} variant="secondary" className="gap-1 pr-1">
+                              {o.name}
+                              <button type="button" onClick={() => setOptions(arr => arr.filter((_, idx) => idx !== i))}
+                                className="hover:bg-destructive/20 rounded p-0.5"><X className="w-3 h-3" /></button>
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <DialogFooter><Button type="submit">Salvar</Button></DialogFooter>
             </form>
           </DialogContent>
@@ -239,13 +374,18 @@ export function SupplyCatalogTab() {
                 <div className="flex-1 min-w-0">
                   <div className="font-medium truncate">{p.name}</div>
                   <div className="text-sm font-semibold">{brl(Number(p.price))} <span className="text-xs text-muted-foreground font-normal">/ {p.unit}</span></div>
+                  {p.variant_group_name && (
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {p.variant_group_name} · total {p.total_quantity} (passo {p.quantity_step})
+                    </div>
+                  )}
                   <div className="flex items-center gap-2 mt-2">
                     <Switch checked={p.is_active} onCheckedChange={() => toggleActive(p)} />
                     <span className="text-xs text-muted-foreground">{p.is_active ? "Ativo" : "Inativo"}</span>
                   </div>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <Button size="icon" variant="ghost" onClick={() => { setEditing(p); setOpen(true); }}><Pencil className="w-4 h-4" /></Button>
+                  <Button size="icon" variant="ghost" onClick={() => openEdit(p)}><Pencil className="w-4 h-4" /></Button>
                   <Button size="icon" variant="ghost" onClick={() => remove(p.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
                 </div>
               </CardContent>
