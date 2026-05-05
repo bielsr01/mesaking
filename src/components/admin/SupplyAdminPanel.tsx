@@ -161,7 +161,7 @@ function StatMini({ label, value }: { label: string; value: string | number }) {
   );
 }
 
-function CatalogTab() {
+export function SupplyCatalogTab() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<SupplyProduct | null>(null);
