@@ -250,6 +250,42 @@ export type Database = {
         }
         Relationships: []
       }
+      loyalty_rewards: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          points_cost: number
+          product_id: string | null
+          restaurant_id: string
+          stock: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          points_cost?: number
+          product_id?: string | null
+          restaurant_id: string
+          stock?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          points_cost?: number
+          product_id?: string | null
+          restaurant_id?: string
+          stock?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       loyalty_settings: {
         Row: {
           created_at: string
@@ -1095,6 +1131,10 @@ export type Database = {
       is_restaurant_manager: {
         Args: { _restaurant_id: string; _user_id: string }
         Returns: boolean
+      }
+      redeem_loyalty_points: {
+        Args: { _member_id: string; _restaurant_id: string; _reward_id: string }
+        Returns: string
       }
       upsert_customer_on_order: {
         Args: {
