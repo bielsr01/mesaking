@@ -185,6 +185,17 @@ export function AppSidebar({
                   </CollapsibleContent>
                 </SidebarMenuItem>
               </Collapsible>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={active === "supply-orders"}
+                  onClick={() => onChange("supply-orders")}
+                  tooltip="Pedido de Insumos"
+                >
+                  <Package className="h-4 w-4" />
+                  <span>Pedido de Insumos</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
