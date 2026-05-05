@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Package, ShoppingBag, Truck, CheckCircle2, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Package, ShoppingBag, Truck, CheckCircle2, X, Store } from "lucide-react";
 import { toast } from "sonner";
 import { brl } from "@/lib/format";
 
@@ -53,8 +53,17 @@ export function SupplyAdminPanel() {
   );
 }
 
+const STATUS_FILTERS: { value: SupplyOrder["status"] | "all"; label: string }[] = [
+  { value: "pending", label: "Aguardando" },
+  { value: "accepted", label: "Aceitos" },
+  { value: "shipped", label: "Enviados" },
+  { value: "delivered", label: "Entregues" },
+  { value: "all", label: "Todos" },
+];
+
 export function SupplyOrdersTab() {
   const qc = useQueryClient();
+  const [filter, setFilter] = useState<SupplyOrder["status"] | "all">("pending");
   const { data: orders = [] } = useQuery({
     queryKey: ["admin_supply_orders"],
     queryFn: async () => {
@@ -92,76 +101,115 @@ export function SupplyOrdersTab() {
     qc.invalidateQueries({ queryKey: ["admin_supply_orders"] });
   };
 
-  const stats = {
+  const counts = {
     pending: orders.filter(o => o.status === "pending").length,
     accepted: orders.filter(o => o.status === "accepted").length,
     shipped: orders.filter(o => o.status === "shipped").length,
     delivered: orders.filter(o => o.status === "delivered").length,
-    revenue: orders.filter(o => o.status === "delivered").reduce((s, o) => s + Number(o.total), 0),
+    all: orders.length,
+  };
+  const revenue = orders.filter(o => o.status === "delivered").reduce((s, o) => s + Number(o.total), 0);
+
+  const filtered = filter === "all" ? orders : orders.filter(o => o.status === filter);
+
+  const nextAction = (s: SupplyOrder["status"]) => {
+    if (s === "pending") return { label: "Aceitar pedido", next: "accepted" as const, icon: CheckCircle2, cls: "bg-blue-600 hover:bg-blue-700" };
+    if (s === "accepted") return { label: "Enviar pedido", next: "shipped" as const, icon: Truck, cls: "bg-purple-600 hover:bg-purple-700" };
+    if (s === "shipped") return { label: "Marcar como entregue", next: "delivered" as const, icon: Package, cls: "bg-green-600 hover:bg-green-700" };
+    return null;
   };
 
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <StatMini label="Aguardando" value={stats.pending} />
-        <StatMini label="Aceitos" value={stats.accepted} />
-        <StatMini label="Enviados" value={stats.shipped} />
-        <StatMini label="Entregues" value={stats.delivered} />
-        <StatMini label="Faturamento" value={brl(stats.revenue)} />
+        <StatMini label="Aguardando" value={counts.pending} />
+        <StatMini label="Aceitos" value={counts.accepted} />
+        <StatMini label="Enviados" value={counts.shipped} />
+        <StatMini label="Entregues" value={counts.delivered} />
+        <StatMini label="Faturamento" value={brl(revenue)} />
       </div>
 
-      {orders.length === 0 ? (
-        <Card><CardContent className="py-12 text-center text-muted-foreground">Nenhum pedido recebido.</CardContent></Card>
-      ) : orders.map((o) => {
-        const r = restMap[o.restaurant_id];
-        return (
-          <Card key={o.id}>
-            <CardContent className="p-4 space-y-3">
-              <div className="flex justify-between items-start gap-2 flex-wrap">
-                <div>
-                  <div className="font-semibold">{r?.name ?? "Restaurante removido"}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {r && `/${r.slug} · `}{new Date(o.created_at).toLocaleString("pt-BR")}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge className={statusColor[o.status]}>{statusLabel[o.status]}</Badge>
-                  <span className="font-bold">{brl(Number(o.total))}</span>
-                </div>
-              </div>
-              <div className="text-sm space-y-2 border-l-2 pl-3">
-                {o.supply_order_items?.map(it => (
-                  <div key={it.id}>
-                    <div className="flex justify-between">
-                      <span>{it.quantity}× {it.product_name}{it.unit ? ` (${it.unit})` : ""}</span>
-                      <span className="text-muted-foreground">{brl(Number(it.unit_price) * it.quantity)}</span>
-                    </div>
-                    {it.supply_order_item_options && it.supply_order_item_options.length > 0 && (
-                      <div className="ml-4 text-xs text-muted-foreground">
-                        {it.supply_order_item_options.map(op => (
-                          <div key={op.id}>↳ {op.quantity}× {op.option_name}</div>
-                        ))}
+      <Tabs value={filter} onValueChange={(v) => setFilter(v as any)}>
+        <TabsList className="flex-wrap h-auto">
+          {STATUS_FILTERS.map(f => (
+            <TabsTrigger key={f.value} value={f.value} className="gap-2">
+              {f.label}
+              <Badge
+                variant={f.value === "pending" && counts[f.value] > 0 ? "destructive" : "secondary"}
+                className="h-5 min-w-5 px-1.5 text-xs"
+              >
+                {counts[f.value] ?? 0}
+              </Badge>
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+
+      {filtered.length === 0 ? (
+        <Card><CardContent className="py-12 text-center text-muted-foreground">Nenhum pedido nesta categoria.</CardContent></Card>
+      ) : (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {filtered.map((o) => {
+            const r = restMap[o.restaurant_id];
+            const action = nextAction(o.status);
+            return (
+              <Card key={o.id} className="overflow-hidden flex flex-col shadow-soft">
+                <CardContent className="p-4 space-y-3 flex-1">
+                  <div className="flex justify-between items-start gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-9 h-9 rounded-lg bg-accent grid place-items-center shrink-0">
+                        <Store className="w-4 h-4" />
                       </div>
-                    )}
+                      <div className="min-w-0">
+                        <div className="font-semibold truncate">{r?.name ?? "Restaurante removido"}</div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          {r && `/${r.slug} · `}{new Date(o.created_at).toLocaleString("pt-BR")}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <Badge className={statusColor[o.status]}>{statusLabel[o.status]}</Badge>
+                      <span className="font-bold">{brl(Number(o.total))}</span>
+                    </div>
                   </div>
-                ))}
-              </div>
-              {o.notes && <div className="text-xs italic text-muted-foreground">"{o.notes}"</div>}
-              <div className="flex gap-2 flex-wrap">
-                {o.status === "pending" && (
-                  <Button size="sm" onClick={() => setStatus(o, "accepted")}><CheckCircle2 className="w-4 h-4 mr-1" />Aceitar pedido</Button>
+                  <div className="text-sm space-y-2 border-l-2 pl-3">
+                    {o.supply_order_items?.map(it => (
+                      <div key={it.id}>
+                        <div className="flex justify-between">
+                          <span>{it.quantity}× {it.product_name}{it.unit ? ` (${it.unit})` : ""}</span>
+                          <span className="text-muted-foreground">{brl(Number(it.unit_price) * it.quantity)}</span>
+                        </div>
+                        {it.supply_order_item_options && it.supply_order_item_options.length > 0 && (
+                          <div className="ml-4 text-xs text-muted-foreground">
+                            {it.supply_order_item_options.map(op => (
+                              <div key={op.id}>↳ {op.quantity}× {op.option_name}</div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {o.notes && <div className="text-xs italic text-muted-foreground">"{o.notes}"</div>}
+                </CardContent>
+                {action && (
+                  <button
+                    onClick={() => setStatus(o, action.next)}
+                    className={`w-full text-white font-semibold py-3 flex items-center justify-center gap-2 transition-colors ${action.cls}`}
+                  >
+                    <action.icon className="w-5 h-5" />
+                    {action.label}
+                  </button>
                 )}
-                {o.status === "accepted" && (
-                  <Button size="sm" onClick={() => setStatus(o, "shipped")}><Truck className="w-4 h-4 mr-1" />Enviar pedido</Button>
+                {o.status === "delivered" && (
+                  <div className="w-full bg-green-600/10 text-green-700 dark:text-green-400 font-semibold py-3 text-center flex items-center justify-center gap-2">
+                    <CheckCircle2 className="w-5 h-5" /> Pedido finalizado
+                  </div>
                 )}
-                {o.status === "shipped" && (
-                  <Button size="sm" onClick={() => setStatus(o, "delivered")}><Package className="w-4 h-4 mr-1" />Marcar entregue</Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
