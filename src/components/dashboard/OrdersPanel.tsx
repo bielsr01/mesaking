@@ -443,7 +443,9 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                       )}
                     </div>
                   </div>
-                  <Badge className={statusColor(o.status)}>{orderStatusLabel[o.status]}</Badge>
+                  <Badge className={statusColor(o.status)}>
+                    {orderStatusLabel[o.status]}{isPdv && (o.status === "preparing" || o.status === "delivered") ? " Balcão" : ""}
+                  </Badge>
                 </div>
 
                 {isPdv ? (
