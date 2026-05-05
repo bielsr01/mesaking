@@ -146,7 +146,10 @@ export default function MasterAdmin() {
                   MesaPro <Badge variant="secondary" className="ml-2">Admin</Badge>
                 </div>
               </div>
-              <Button variant="ghost" size="sm" onClick={signOut}><LogOut className="w-4 h-4 mr-2" />Sair</Button>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => window.location.reload()}><RefreshCw className="w-4 h-4 mr-2" />Atualizar</Button>
+                <Button variant="ghost" size="sm" onClick={signOut}><LogOut className="w-4 h-4 mr-2" />Sair</Button>
+              </div>
             </div>
           </header>
 
