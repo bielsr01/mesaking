@@ -5,10 +5,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Minus, Plus, ArrowLeft, Plus as PlusIcon, Clock, CheckCircle2, Truck, Package } from "lucide-react";
+import { Minus, Plus, ArrowLeft, Plus as PlusIcon, Clock, Truck, Package, Check } from "lucide-react";
 import { toast } from "sonner";
 import { brl } from "@/lib/format";
 
