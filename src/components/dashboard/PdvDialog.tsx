@@ -193,6 +193,29 @@ export function PdvDialog({
     return ordered;
   }, [filteredProducts, categories]);
 
+  // Scroll spy: highlight category in sidebar based on scroll position
+  useEffect(() => {
+    if (!open || groupedByCategory.length === 0) return;
+    const root = productsScrollRef.current?.querySelector<HTMLElement>("[data-radix-scroll-area-viewport]");
+    if (!root) return;
+    const sections = groupedByCategory
+      .map((g) => document.getElementById(`pdv-cat-${g.id}`))
+      .filter((el): el is HTMLElement => !!el);
+    if (sections.length === 0) return;
+    const onScroll = () => {
+      const top = root.getBoundingClientRect().top;
+      let current = sections[0].id.replace("pdv-cat-", "");
+      for (const s of sections) {
+        if (s.getBoundingClientRect().top - top <= 40) current = s.id.replace("pdv-cat-", "");
+        else break;
+      }
+      setActiveCat((prev) => (prev === current ? prev : current));
+    };
+    onScroll();
+    root.addEventListener("scroll", onScroll, { passive: true });
+    return () => root.removeEventListener("scroll", onScroll);
+  }, [open, groupedByCategory]);
+
   const startAdd = (p: typeof products[number]) => {
     const grs = groupsByProduct[p.id] ?? [];
     if (grs.length === 0) {
