@@ -10,10 +10,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Plus, ChefHat, ExternalLink, LogOut, Store, ShoppingBag, DollarSign, Pencil, Trash2 } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Plus, ChefHat, ExternalLink, LogOut, Store, ShoppingBag, DollarSign, Pencil, Trash2, Package } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { brl, slugify } from "@/lib/format";
+import { SupplyAdminPanel } from "@/components/admin/SupplyAdminPanel";
 
 interface Restaurant {
   id: string;
