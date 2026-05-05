@@ -26,6 +26,7 @@ import { LazyView } from "@/components/dashboard/LazyView";
 import { useNewOrderNotifications } from "@/hooks/useNewOrderNotifications";
 import { SupplyOrderPanel } from "@/components/dashboard/SupplyOrderPanel";
 import { ExpensesPanel } from "@/components/dashboard/ExpensesPanel";
+import { OverviewPanel } from "@/components/dashboard/OverviewPanel";
 import { ManualOverride, OpeningHours } from "@/lib/hours";
 
 interface Restaurant {
