@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -129,8 +129,11 @@ export function PdvDialog({
   const [tmpFeeType, setTmpFeeType] = useState<"value" | "percent">("percent");
   const [tmpFeeInput, setTmpFeeInput] = useState("10");
 
-  const [payment, setPayment] = useState<PaymentMethod>("cash");
+  const [payment, setPayment] = useState<PaymentMethod | null>(null);
+  const [paymentShake, setPaymentShake] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [activeCat, setActiveCat] = useState<string | null>(null);
+  const productsScrollRef = useRef<HTMLDivElement | null>(null);
 
   // Product → option picker
   const [pickProduct, setPickProduct] = useState<typeof products[number] | null>(null);
@@ -153,7 +156,7 @@ export function PdvDialog({
         setDiscountValue(Number(d.discountValue) || 0);
         setServiceFeeType(d.serviceFeeType ?? "percent");
         setServiceFeeValue(Number(d.serviceFeeValue) || 0);
-        setPayment(d.payment ?? "cash");
+        setPayment(d.payment ?? null);
       }
     } catch { /* noop */ }
   }, [open, restaurantId]);
@@ -189,6 +192,29 @@ export function PdvDialog({
     if (orphan.length) ordered.push({ id: "__none__", name: "Sem categoria", products: orphan });
     return ordered;
   }, [filteredProducts, categories]);
+
+  // Scroll spy: highlight category in sidebar based on scroll position
+  useEffect(() => {
+    if (!open || groupedByCategory.length === 0) return;
+    const root = productsScrollRef.current?.querySelector<HTMLElement>("[data-radix-scroll-area-viewport]");
+    if (!root) return;
+    const sections = groupedByCategory
+      .map((g) => document.getElementById(`pdv-cat-${g.id}`))
+      .filter((el): el is HTMLElement => !!el);
+    if (sections.length === 0) return;
+    const onScroll = () => {
+      const top = root.getBoundingClientRect().top;
+      let current = sections[0].id.replace("pdv-cat-", "");
+      for (const s of sections) {
+        if (s.getBoundingClientRect().top - top <= 40) current = s.id.replace("pdv-cat-", "");
+        else break;
+      }
+      setActiveCat((prev) => (prev === current ? prev : current));
+    };
+    onScroll();
+    root.addEventListener("scroll", onScroll, { passive: true });
+    return () => root.removeEventListener("scroll", onScroll);
+  }, [open, groupedByCategory]);
 
   const startAdd = (p: typeof products[number]) => {
     const grs = groupsByProduct[p.id] ?? [];
@@ -245,7 +271,7 @@ export function PdvDialog({
 
   const reset = () => {
     setCart([]); setCustomerName(""); setCustomerPhone(""); setLoyaltyOptIn(false);
-    setDiscountValue(0); setServiceFeeValue(0); setServiceFeeType("percent"); setPayment("cash");
+    setDiscountValue(0); setServiceFeeValue(0); setServiceFeeType("percent"); setPayment(null);
     setSearch("");
     try { localStorage.removeItem(STORAGE_KEY(restaurantId)); } catch { /* noop */ }
   };
@@ -287,6 +313,12 @@ export function PdvDialog({
 
   const confirmOrder = async (alsoPrint: boolean) => {
     if (cart.length === 0) { toast.error("Adicione produtos ao pedido"); return; }
+    if (!payment) {
+      setPaymentShake(true);
+      setTimeout(() => setPaymentShake(false), 600);
+      toast.error("Selecione uma forma de pagamento");
+      return;
+    }
     setSubmitting(true);
     const phoneDigits = unmaskPhone(customerPhone);
     const trimmedName = customerName.trim() || "Cliente Balcão";
@@ -475,20 +507,28 @@ export function PdvDialog({
                 <div className="p-2 space-y-1">
                   {groupedByCategory.length === 0 ? (
                     <div className="text-xs text-muted-foreground px-2 py-3">Nenhuma categoria</div>
-                  ) : groupedByCategory.map((g) => (
-                    <button
-                      key={g.id}
-                      type="button"
-                      onClick={() => {
-                        const el = document.getElementById(`pdv-cat-${g.id}`);
-                        el?.scrollIntoView({ behavior: "smooth", block: "start" });
-                      }}
-                      className="w-full text-left px-3 py-2 rounded-md text-sm transition hover:bg-muted"
-                    >
-                      {g.name}
-                      <span className="ml-2 text-[10px] text-muted-foreground">({g.products.length})</span>
-                    </button>
-                  ))}
+                  ) : groupedByCategory.map((g) => {
+                    const isActive = activeCat ? activeCat === g.id : groupedByCategory[0]?.id === g.id;
+                    return (
+                      <button
+                        key={g.id}
+                        type="button"
+                        onClick={() => {
+                          setActiveCat(g.id);
+                          const el = document.getElementById(`pdv-cat-${g.id}`);
+                          el?.scrollIntoView({ behavior: "smooth", block: "start" });
+                        }}
+                        className={`w-full text-left px-3 py-2 rounded-md text-sm transition border-l-2 ${
+                          isActive
+                            ? "bg-primary/10 text-primary border-primary font-semibold"
+                            : "border-transparent hover:bg-muted"
+                        }`}
+                      >
+                        {g.name}
+                        <span className="ml-2 text-[10px] text-muted-foreground">({g.products.length})</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </ScrollArea>
             </div>
@@ -501,7 +541,7 @@ export function PdvDialog({
                   <Input autoFocus placeholder="Buscar produto por nome..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
                 </div>
               </div>
-              <ScrollArea className="flex-1">
+              <ScrollArea className="flex-1" ref={productsScrollRef as any}>
                 <div className="p-3 space-y-6">
                   {groupedByCategory.length === 0 ? (
                     <div className="text-sm text-muted-foreground text-center py-12">Nenhum produto encontrado.</div>
@@ -582,16 +622,25 @@ export function PdvDialog({
               </ScrollArea>
 
               <div className="border-t p-3 space-y-3 shrink-0 bg-background">
-                <div>
+                <div className={paymentShake ? "animate-shake" : ""}>
                   <Label className="text-xs">Pagamento</Label>
-                  <Select value={payment} onValueChange={(v: PaymentMethod) => setPayment(v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="cash">Dinheiro</SelectItem>
-                      <SelectItem value="pix">Pix</SelectItem>
-                      <SelectItem value="card_on_delivery">Cartão</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className={`grid grid-cols-3 gap-2 mt-1 rounded-md ${paymentShake ? "ring-2 ring-destructive" : ""}`}>
+                    {([
+                      { v: "cash", label: "Dinheiro" },
+                      { v: "pix", label: "Pix" },
+                      { v: "card_on_delivery", label: "Cartão" },
+                    ] as { v: PaymentMethod; label: string }[]).map((opt) => (
+                      <Button
+                        key={opt.v}
+                        type="button"
+                        size="sm"
+                        variant={payment === opt.v ? "default" : "outline"}
+                        onClick={() => setPayment(opt.v)}
+                      >
+                        {opt.label}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
 
                 <Separator />
