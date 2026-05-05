@@ -318,29 +318,13 @@ export function SupplyOrderPanel({ restaurantId }: { restaurantId: string }) {
         </Button>
       </div>
 
-      <Tabs value={filter} onValueChange={(v) => setFilter(v as any)}>
-        <TabsList className="flex-wrap h-auto">
-          {FILTERS.map(f => (
-            <TabsTrigger key={f.value} value={f.value} className="gap-2">
-              {f.icon && <f.icon className="w-3.5 h-3.5" />}
-              {f.label}
-              <Badge
-                variant={f.value === "pending" && counts[f.value] > 0 ? "destructive" : "secondary"}
-                className="h-5 min-w-5 px-1.5 text-xs"
-              >
-                {counts[f.value] ?? 0}
-              </Badge>
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
-
-      {filtered.length === 0 ? (
+      {orders.length === 0 ? (
         <Card><CardContent className="py-12 text-center text-muted-foreground">Nenhum pedido nesta categoria.</CardContent></Card>
       ) : (
         <div className="flex flex-col gap-4">
-          {filtered.map((o) => {
+          {orders.map((o) => {
             const active = stepIndex(o.status);
+            const isFinished = o.status === "delivered";
             return (
               <Card key={o.id} className="w-full overflow-hidden shadow-soft">
                 <CardContent className="p-5 space-y-3">
@@ -373,16 +357,19 @@ export function SupplyOrderPanel({ restaurantId }: { restaurantId: string }) {
                   <div className="flex items-center justify-between gap-2">
                     {STEPS.map((step, idx) => {
                       const reached = idx <= active;
-                      const isCurrent = idx === active;
+                      const isCurrent = idx === active && !isFinished;
+                      const isDone = reached && !isCurrent;
                       return (
                         <div key={step.key} className="flex items-center flex-1 last:flex-none">
                           <div className="flex items-center gap-2">
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
-                              reached
-                                ? (isCurrent ? "bg-orange-500 text-white" : "bg-green-500 text-white")
-                                : "bg-muted text-muted-foreground"
+                              isDone
+                                ? "bg-green-500 text-white"
+                                : isCurrent
+                                  ? "bg-orange-500 text-white"
+                                  : "bg-muted text-muted-foreground"
                             }`}>
-                              {reached && !isCurrent ? <Check className="w-4 h-4" /> : idx + 1}
+                              {isDone ? <Check className="w-4 h-4" /> : idx + 1}
                             </div>
                             <span className={`text-sm whitespace-nowrap ${reached ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
                               {step.label}

@@ -111,7 +111,18 @@ export function SupplyOrdersTab() {
   };
   const revenue = orders.filter(o => o.status === "delivered").reduce((s, o) => s + Number(o.total), 0);
 
-  const filtered = filter === "all" ? orders : orders.filter(o => o.status === filter);
+  const filtered = orders;
+
+  const STEPS = [
+    { key: "pending", label: "Pendente" },
+    { key: "shipped", label: "Enviado" },
+    { key: "delivered", label: "Entregue" },
+  ] as const;
+  const stepIndex = (s: SupplyOrder["status"]) => {
+    if (s === "delivered") return 2;
+    if (s === "shipped") return 1;
+    return 0;
+  };
 
   const nextAction = (s: SupplyOrder["status"]) => {
     if (s === "pending") return { label: "Aceitar pedido", next: "accepted" as const, icon: CheckCircle2, cls: "bg-blue-600 hover:bg-blue-700" };
@@ -134,29 +145,16 @@ export function SupplyOrdersTab() {
         <StatMini label="Faturamento" value={brl(revenue)} />
       </div>
 
-      <Tabs value={filter} onValueChange={(v) => setFilter(v as any)}>
-        <TabsList className="flex-wrap h-auto">
-          {STATUS_FILTERS.map(f => (
-            <TabsTrigger key={f.value} value={f.value} className="gap-2">
-              {f.label}
-              <Badge
-                variant={f.value === "pending" && counts[f.value] > 0 ? "destructive" : "secondary"}
-                className="h-5 min-w-5 px-1.5 text-xs"
-              >
-                {counts[f.value] ?? 0}
-              </Badge>
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
 
       {filtered.length === 0 ? (
-        <Card><CardContent className="py-12 text-center text-muted-foreground">Nenhum pedido nesta categoria.</CardContent></Card>
+        <Card><CardContent className="py-12 text-center text-muted-foreground">Nenhum pedido recebido ainda.</CardContent></Card>
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
           {filtered.map((o) => {
             const r = restMap[o.restaurant_id];
             const action = nextAction(o.status);
+            const active = stepIndex(o.status);
+            const isFinished = o.status === "delivered";
             return (
               <Card key={o.id} className="overflow-hidden flex flex-col shadow-soft">
                 <CardContent className="p-4 space-y-3 flex-1">
@@ -196,6 +194,37 @@ export function SupplyOrdersTab() {
                   </div>
                   {o.notes && <div className="text-xs italic text-muted-foreground">"{o.notes}"</div>}
                 </CardContent>
+                <div className="border-t bg-muted/20 px-4 py-3">
+                  <div className="text-xs font-semibold text-foreground mb-2">Acompanhamento</div>
+                  <div className="flex items-center justify-between gap-2">
+                    {STEPS.map((step, idx) => {
+                      const reached = idx <= active;
+                      const isCurrent = idx === active && !isFinished;
+                      const isDone = reached && !isCurrent;
+                      return (
+                        <div key={step.key} className="flex items-center flex-1 last:flex-none">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                              isDone
+                                ? "bg-green-500 text-white"
+                                : isCurrent
+                                  ? "bg-orange-500 text-white"
+                                  : "bg-muted text-muted-foreground"
+                            }`}>
+                              {isDone ? <CheckCircle2 className="w-4 h-4" /> : idx + 1}
+                            </div>
+                            <span className={`text-xs whitespace-nowrap ${reached ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
+                              {step.label}
+                            </span>
+                          </div>
+                          {idx < STEPS.length - 1 && (
+                            <div className={`h-0.5 flex-1 mx-2 ${idx < active ? "bg-green-500" : "bg-border"}`} />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
                 {action && (
                   <button
                     onClick={() => setStatus(o, action.next)}
