@@ -49,7 +49,7 @@ import type { DateRange } from "react-day-picker";
 
 const sb = supabase as any;
 
-type SourceFilter = "all" | "web" | "pdv" | "quero";
+type SourceFilter = "all" | "web" | "pdv" | "quero" | "ifood";
 type Preset = "today" | "yesterday" | "7d" | "30d" | "month" | "lastmonth" | "custom";
 
 const presets: { id: Preset; label: string }[] = [
@@ -136,8 +136,41 @@ export function OverviewPanel({ restaurantId }: { restaurantId: string }) {
     staleTime: 60_000,
   });
 
+  const ifoodQ = useQuery({
+    queryKey: ["overview-ifood", restaurantId, prevRange.from.toISOString(), range.to.toISOString()],
+    queryFn: async () => {
+      const { data } = await sb
+        .from("ifood_sales")
+        .select("date_from, date_to, orders_count, gross_revenue, net_revenue, fees")
+        .eq("restaurant_id", restaurantId)
+        .lte("date_from", format(range.to, "yyyy-MM-dd"))
+        .gte("date_to", format(prevRange.from, "yyyy-MM-dd"));
+      return (data ?? []) as any[];
+    },
+    staleTime: 30_000,
+  });
+
+  // Aggregate iFood entries overlapping a date range
+  const sumIfood = (from: Date, to: Date) => {
+    const fromS = format(from, "yyyy-MM-dd");
+    const toS = format(to, "yyyy-MM-dd");
+    const rows = (ifoodQ.data ?? []).filter((r) => r.date_from <= toS && r.date_to >= fromS);
+    return rows.reduce(
+      (a, r) => ({
+        orders: a.orders + Number(r.orders_count || 0),
+        gross: a.gross + Number(r.gross_revenue || 0),
+        net: a.net + Number(r.net_revenue || 0),
+        fees: a.fees + Number(r.fees || 0),
+      }),
+      { orders: 0, gross: 0, net: 0, fees: 0 }
+    );
+  };
+  const ifoodCur = sumIfood(range.from, range.to);
+  const ifoodPrev = sumIfood(prevRange.from, prevRange.to);
+  const includeIfood = source === "all" || source === "ifood";
+
   const all = ordersQ.data ?? [];
-  const filteredAll = source === "all" ? all : all.filter((o) => classifySource(o) === source);
+  const filteredAll = source === "all" ? all : source === "ifood" ? [] : all.filter((o) => classifySource(o) === source);
   const inRange = (o: any) => {
     const d = new Date(o.created_at);
     return d >= range.from && d <= range.to;
