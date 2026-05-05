@@ -12,7 +12,22 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { brl, orderStatusLabel, getNextStatus, paymentLabel, formatPhone, orderTypeLabel } from "@/lib/format";
 import { toast } from "sonner";
-import { Bike, ChefHat, Clock, MapPin, Phone, Plus, Printer, Store, User, X } from "lucide-react";
+import { Bike, ChefHat, Clock, MapPin, MessageCircle, Phone, Plus, Printer, Store, User, X } from "lucide-react";
+
+/** Monta link wa.me garantindo DDI 55 (Brasil) sem duplicar */
+function waLink(phone: string | null | undefined): string | null {
+  const digits = String(phone ?? "").replace(/\D/g, "");
+  if (!digits) return null;
+  let normalized = digits;
+  if (normalized.startsWith("55") && (normalized.length === 12 || normalized.length === 13)) {
+    // já tem DDI
+  } else if (normalized.length === 10 || normalized.length === 11) {
+    normalized = "55" + normalized;
+  } else if (normalized.length < 10) {
+    return null;
+  }
+  return `https://wa.me/${normalized}`;
+}
 import { buildTicketHtml, TicketMode, TicketOptionCatalog, TicketRestaurant } from "@/lib/ticket";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { PdvDialog } from "./PdvDialog";
@@ -414,6 +429,18 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                       {" às "}
                       {new Date(o.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                       <Phone className="w-3 h-3 ml-2" />{formatPhone(o.customer_phone)}
+                      {waLink(o.customer_phone) && (
+                        <a
+                          href={waLink(o.customer_phone)!}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          title="Abrir WhatsApp"
+                          className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-success text-success-foreground hover:opacity-90 transition-opacity"
+                        >
+                          <MessageCircle className="w-3 h-3" />
+                        </a>
+                      )}
                     </div>
                   </div>
                   <Badge className={statusColor(o.status)}>{orderStatusLabel[o.status]}</Badge>
