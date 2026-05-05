@@ -292,7 +292,6 @@ export function SupplyOrderPanel({ restaurantId }: { restaurantId: string }) {
     { value: "delivered", label: "Entregues", icon: Package },
     { value: "all", label: "Todos", icon: null },
   ] as const;
-  const [filter, setFilter] = useState<typeof FILTERS[number]["value"]>("pending");
   const filtered = filter === "all" ? orders : orders.filter(o => o.status === filter);
 
   const STEPS = [
