@@ -6,10 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent } from "@/components/ui/tabs";
-import { Minus, Plus, ArrowLeft, Package } from "lucide-react";
+import { Minus, Plus, ArrowLeft, Plus as PlusIcon } from "lucide-react";
 import { toast } from "sonner";
-import { useState as useStateAlias } from "react";
 import { brl } from "@/lib/format";
 
 type SupplyProduct = {
@@ -36,6 +34,7 @@ const statusColor: Record<SupplyOrder["status"], string> = {
 export function SupplyOrderPanel({ restaurantId }: { restaurantId: string }) {
   const qc = useQueryClient();
   const { user } = useAuth();
+  const [view, setView] = useState<"history" | "new">("history");
   const [cart, setCart] = useState<Record<string, number>>({});
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
