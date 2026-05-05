@@ -25,6 +25,7 @@ import { NotificationsBell } from "@/components/dashboard/NotificationsBell";
 import { LazyView } from "@/components/dashboard/LazyView";
 import { useNewOrderNotifications } from "@/hooks/useNewOrderNotifications";
 import { SupplyOrderPanel } from "@/components/dashboard/SupplyOrderPanel";
+import { ExpensesPanel } from "@/components/dashboard/ExpensesPanel";
 import { ManualOverride, OpeningHours } from "@/lib/hours";
 
 interface Restaurant {
@@ -162,6 +163,7 @@ export default function ManagerDashboard() {
     "settings:printers": "Impressões",
     "settings:integrations": "Integrações",
     "supply-orders": "Pedido de Insumos",
+    expenses: "Cadastro de despesas",
   };
 
   return (
@@ -270,6 +272,11 @@ export default function ManagerDashboard() {
             {view === "supply-orders" && (
               <LazyView viewKey={view} variant="list">
                 <SupplyOrderPanel restaurantId={restaurant.id} />
+              </LazyView>
+            )}
+            {view === "expenses" && (
+              <LazyView viewKey={view} variant="list">
+                <ExpensesPanel restaurantId={restaurant.id} />
               </LazyView>
             )}
           </main>
