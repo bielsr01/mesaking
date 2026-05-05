@@ -42,6 +42,7 @@ interface Order {
   created_at: string;
   delivery_latitude: number | null;
   delivery_longitude: number | null;
+  external_source?: string | null;
 }
 
 interface Item {
