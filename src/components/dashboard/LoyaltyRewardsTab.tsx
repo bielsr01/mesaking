@@ -141,12 +141,16 @@ export function LoyaltyRewardsTab({ restaurantId }: { restaurantId: string }) {
 
   // ============== REDEEM WIZARD ==============
   const [redeemReward, setRedeemReward] = useState<Reward | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   return (
     <div className="space-y-4 pt-4">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center gap-2 flex-wrap">
         <div className="text-sm text-muted-foreground">Cadastre produtos do cardápio que podem ser resgatados com pontos</div>
-        <Button onClick={openCreate}><Plus className="w-4 h-4 mr-1" />Nova recompensa</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setHistoryOpen(true)}><History className="w-4 h-4 mr-1" />Histórico de resgate</Button>
+          <Button onClick={openCreate}><Plus className="w-4 h-4 mr-1" />Nova recompensa</Button>
+        </div>
       </div>
 
       <div className="border rounded-lg">
