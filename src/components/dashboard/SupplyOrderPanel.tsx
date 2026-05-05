@@ -94,14 +94,17 @@ export function SupplyOrderPanel({ restaurantId }: { restaurantId: string }) {
     qc.invalidateQueries({ queryKey: ["supply_orders", restaurantId] });
   };
 
-  return (
-    <Tabs defaultValue="new" className="space-y-4">
-      <TabsList>
-        <TabsTrigger value="new"><ShoppingCart className="w-4 h-4 mr-2" />Novo pedido</TabsTrigger>
-        <TabsTrigger value="history"><Package className="w-4 h-4 mr-2" />Meus pedidos ({orders.length})</TabsTrigger>
-      </TabsList>
+  if (view === "new") {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between gap-2">
+          <Button variant="ghost" size="sm" onClick={() => setView("history")}>
+            <ArrowLeft className="w-4 h-4 mr-1" />Voltar
+          </Button>
+          <h2 className="text-lg font-semibold">Novo pedido</h2>
+          <div className="w-20" />
+        </div>
 
-      <TabsContent value="new" className="space-y-4">
         {products.length === 0 ? (
           <Card><CardContent className="py-12 text-center text-muted-foreground">
             Nenhum insumo disponível no momento.
@@ -150,41 +153,54 @@ export function SupplyOrderPanel({ restaurantId }: { restaurantId: string }) {
                 <div className="flex justify-between font-bold pt-2 border-t">
                   <span>Total</span><span>{brl(total)}</span>
                 </div>
-                <Button className="w-full" onClick={submitOrder} disabled={submitting || total === 0}>
+                <Button className="w-full" onClick={async () => { await submitOrder(); setView("history"); }} disabled={submitting || total === 0}>
                   {submitting ? "Enviando..." : "Enviar pedido"}
                 </Button>
               </CardContent>
             </Card>
           </div>
         )}
-      </TabsContent>
+      </div>
+    );
+  }
 
-      <TabsContent value="history" className="space-y-3">
-        {orders.length === 0 ? (
-          <Card><CardContent className="py-12 text-center text-muted-foreground">Nenhum pedido ainda.</CardContent></Card>
-        ) : orders.map((o) => (
-          <Card key={o.id}>
-            <CardContent className="p-4 space-y-2">
-              <div className="flex justify-between items-start gap-2 flex-wrap">
-                <div>
-                  <div className="text-xs text-muted-foreground">{new Date(o.created_at).toLocaleString("pt-BR")}</div>
-                  <div className="font-semibold">{brl(Number(o.total))}</div>
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <h2 className="text-2xl font-bold">Meus pedidos</h2>
+        <Button
+          size="lg"
+          onClick={() => setView("new")}
+          className="bg-orange-500 hover:bg-orange-600 text-white font-semibold text-base px-6 h-12 shadow-md"
+        >
+          <PlusIcon className="w-5 h-5 mr-2" />Novo pedido
+        </Button>
+      </div>
+
+      {orders.length === 0 ? (
+        <Card><CardContent className="py-12 text-center text-muted-foreground">Nenhum pedido ainda.</CardContent></Card>
+      ) : orders.map((o) => (
+        <Card key={o.id}>
+          <CardContent className="p-4 space-y-2">
+            <div className="flex justify-between items-start gap-2 flex-wrap">
+              <div>
+                <div className="text-xs text-muted-foreground">{new Date(o.created_at).toLocaleString("pt-BR")}</div>
+                <div className="font-semibold">{brl(Number(o.total))}</div>
+              </div>
+              <Badge className={statusColor[o.status]}>{statusLabel[o.status]}</Badge>
+            </div>
+            <div className="text-sm space-y-1">
+              {o.supply_order_items?.map(it => (
+                <div key={it.id} className="flex justify-between text-muted-foreground">
+                  <span>{it.quantity}× {it.product_name}</span>
+                  <span>{brl(Number(it.unit_price) * it.quantity)}</span>
                 </div>
-                <Badge className={statusColor[o.status]}>{statusLabel[o.status]}</Badge>
-              </div>
-              <div className="text-sm space-y-1">
-                {o.supply_order_items?.map(it => (
-                  <div key={it.id} className="flex justify-between text-muted-foreground">
-                    <span>{it.quantity}× {it.product_name}</span>
-                    <span>{brl(Number(it.unit_price) * it.quantity)}</span>
-                  </div>
-                ))}
-              </div>
-              {o.notes && <div className="text-xs text-muted-foreground italic">"{o.notes}"</div>}
-            </CardContent>
-          </Card>
-        ))}
-      </TabsContent>
-    </Tabs>
+              ))}
+            </div>
+            {o.notes && <div className="text-xs text-muted-foreground italic">"{o.notes}"</div>}
+          </CardContent>
+        </Card>
+      ))}
+    </div>
   );
 }
