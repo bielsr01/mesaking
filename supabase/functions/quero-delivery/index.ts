@@ -150,7 +150,7 @@ Deno.serve(async (req) => {
       const path = endpointByStatus[newStatus];
       if (!path) return json({ ok: true, skipped: true });
 
-      const r = await fetch(`${baseUrl}${path}`, { method: "POST", headers });
+      const r = await fetch(`${baseUrl}${path}?placeId=${encodeURIComponent(cfgPlaceId)}`, { method: "POST", headers });
       const txt = await r.text();
       if (!r.ok) {
         return json({ ok: false, status: r.status, message: txt.slice(0, 400) }, 200);
