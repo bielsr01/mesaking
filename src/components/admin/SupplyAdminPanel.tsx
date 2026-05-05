@@ -111,7 +111,18 @@ export function SupplyOrdersTab() {
   };
   const revenue = orders.filter(o => o.status === "delivered").reduce((s, o) => s + Number(o.total), 0);
 
-  const filtered = filter === "all" ? orders : orders.filter(o => o.status === filter);
+  const filtered = orders;
+
+  const STEPS = [
+    { key: "pending", label: "Pendente" },
+    { key: "shipped", label: "Enviado" },
+    { key: "delivered", label: "Entregue" },
+  ] as const;
+  const stepIndex = (s: SupplyOrder["status"]) => {
+    if (s === "delivered") return 2;
+    if (s === "shipped") return 1;
+    return 0;
+  };
 
   const nextAction = (s: SupplyOrder["status"]) => {
     if (s === "pending") return { label: "Aceitar pedido", next: "accepted" as const, icon: CheckCircle2, cls: "bg-blue-600 hover:bg-blue-700" };
