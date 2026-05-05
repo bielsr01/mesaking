@@ -296,8 +296,9 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     all: channelOrders.length,
   };
 
-  const deliveryCount = orders.filter((o) => o.order_type !== "pdv").length;
-  const pdvCount = orders.filter((o) => o.order_type === "pdv").length;
+  const deliveryCount = orders.filter((o) => o.order_type !== "pdv" && o.external_source !== "quero").length;
+  const pdvCount = orders.filter((o) => o.order_type === "pdv" && o.external_source !== "quero").length;
+  const queroCount = orders.filter((o) => o.external_source === "quero").length;
 
   // PDV: em preparo + entregues
   const visibleFilters = channel === "pdv"
@@ -308,9 +309,11 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Tabs value={channel} onValueChange={(v) => {
-          setChannel(v as "delivery" | "pdv");
-          setFilter(v === "pdv" ? "preparing" : "pending");
-          if (v === "delivery") setDeliveryBlink(false);
+          const nv = v as "delivery" | "pdv" | "quero";
+          setChannel(nv);
+          setFilter(nv === "pdv" ? "preparing" : "pending");
+          if (nv === "delivery") setDeliveryBlink(false);
+          if (nv === "quero") setQueroBlink(false);
         }}>
           <TabsList>
             <TabsTrigger value="delivery" className={`gap-2 ${deliveryBlink ? "animate-pulse text-destructive ring-2 ring-destructive" : ""}`}>
@@ -320,6 +323,13 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
             <TabsTrigger value="pdv" className="gap-2">
               <Store className="w-4 h-4" /> PDV (Balcão)
               <Badge variant="secondary" className="h-5 min-w-5 px-1.5 text-xs">{pdvCount}</Badge>
+            </TabsTrigger>
+            <TabsTrigger
+              value="quero"
+              className={`gap-2 data-[state=active]:bg-purple-600 data-[state=active]:text-white ${queroBlink ? "animate-pulse ring-2 ring-purple-600 text-purple-700" : "text-purple-700"}`}
+            >
+              <Bike className="w-4 h-4" /> Quero Delivery
+              <Badge className="h-5 min-w-5 px-1.5 text-xs bg-purple-600 text-white hover:bg-purple-600">{queroCount}</Badge>
             </TabsTrigger>
           </TabsList>
         </Tabs>
