@@ -20,6 +20,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 export type DashboardView =
   | "overview"
   | "orders"
+  | "ifood"
   | "menu"
   | "customers"
   | "marketing:coupons"
@@ -35,6 +36,7 @@ export type DashboardView =
 const mainItems: { id: DashboardView; title: string; icon: any }[] = [
   { id: "overview", title: "Visão geral", icon: LayoutDashboard },
   { id: "orders", title: "Pedidos", icon: ShoppingBag },
+  { id: "ifood", title: "iFood", icon: Bike },
   { id: "menu", title: "Cardápio", icon: UtensilsCrossed },
   { id: "customers", title: "Clientes", icon: Users },
 ];
