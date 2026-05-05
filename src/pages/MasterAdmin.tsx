@@ -156,98 +156,111 @@ export default function MasterAdmin() {
           </CardContent></Card>
         </div>
 
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Restaurantes</h2>
-          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-            <DialogTrigger asChild>
-              <Button><Plus className="w-4 h-4 mr-2" />Novo restaurante</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Cadastrar restaurante</DialogTitle>
-                <DialogDescription>Crie o restaurante e a conta de acesso do gerente.</DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleCreate} className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2 col-span-2">
-                    <Label>Nome do restaurante</Label>
-                    <Input name="name" value={name} onChange={(e) => { setName(e.target.value); setSlug(slugify(e.target.value)); }} required />
-                  </div>
-                  <div className="space-y-2 col-span-2">
-                    <Label>Slug (URL pública)</Label>
-                    <Input name="slug" value={slug} onChange={(e) => setSlug(slugify(e.target.value))} required />
-                    <p className="text-xs text-muted-foreground">/r/{slug || "seu-slug"}</p>
-                  </div>
-                  <div className="space-y-2 col-span-2 pt-2 border-t">
-                    <Label className="text-base">Acesso do gerente</Label>
-                  </div>
-                  <div className="space-y-2 col-span-2">
-                    <Label>Nome do gerente</Label>
-                    <Input name="manager_name" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Email (login)</Label>
-                    <Input name="manager_email" type="email" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Senha</Label>
-                    <Input name="manager_password" type="password" minLength={6} required />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button type="submit" disabled={busy}>{busy ? "Criando..." : "Criar restaurante"}</Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
+        <Tabs defaultValue="restaurants" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="restaurants"><Store className="w-4 h-4 mr-2" />Restaurantes</TabsTrigger>
+            <TabsTrigger value="supply"><Package className="w-4 h-4 mr-2" />Pedido de Insumos</TabsTrigger>
+          </TabsList>
 
-        <Card>
-          <CardContent className="p-0">
-            {restaurants.length === 0 ? (
-              <div className="p-8 text-center text-muted-foreground">Nenhum restaurante cadastrado ainda.</div>
-            ) : (
-              <div className="divide-y">
-                {restaurants.map((r) => (
-                  <div key={r.id} className="p-4 flex items-center justify-between gap-4 flex-wrap">
-                    <div className="min-w-0">
-                      <div className="font-medium flex items-center gap-2">
-                        {r.name}
-                        {r.is_open ? <Badge className="bg-success text-success-foreground">Aberto</Badge> : <Badge variant="secondary">Fechado</Badge>}
+          <TabsContent value="restaurants" className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold">Restaurantes</h2>
+              <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+                <DialogTrigger asChild>
+                  <Button><Plus className="w-4 h-4 mr-2" />Novo restaurante</Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Cadastrar restaurante</DialogTitle>
+                    <DialogDescription>Crie o restaurante e a conta de acesso do gerente.</DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleCreate} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2 col-span-2">
+                        <Label>Nome do restaurante</Label>
+                        <Input name="name" value={name} onChange={(e) => { setName(e.target.value); setSlug(slugify(e.target.value)); }} required />
                       </div>
-                      <div className="text-sm text-muted-foreground">/r/{r.slug}</div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-2 px-2">
-                        <Switch checked={r.is_open} onCheckedChange={() => toggleOpen(r)} />
-                        <span className="text-xs text-muted-foreground">{r.is_open ? "Ativo" : "Inativo"}</span>
+                      <div className="space-y-2 col-span-2">
+                        <Label>Slug (URL pública)</Label>
+                        <Input name="slug" value={slug} onChange={(e) => setSlug(slugify(e.target.value))} required />
+                        <p className="text-xs text-muted-foreground">/r/{slug || "seu-slug"}</p>
                       </div>
-                      <Button asChild variant="outline" size="sm"><Link to={`/r/${r.slug}`} target="_blank"><ExternalLink className="w-4 h-4" /></Link></Button>
-                      <Button variant="outline" size="sm" onClick={() => setEditing(r)}><Pencil className="w-4 h-4" /></Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="outline" size="sm" className="text-destructive hover:text-destructive"><Trash2 className="w-4 h-4" /></Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Excluir {r.name}?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Isso apaga o restaurante, cardápio, pedidos, imagens e a conta do gerente. Ação irreversível.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDelete(r)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir tudo</AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                      <div className="space-y-2 col-span-2 pt-2 border-t">
+                        <Label className="text-base">Acesso do gerente</Label>
+                      </div>
+                      <div className="space-y-2 col-span-2">
+                        <Label>Nome do gerente</Label>
+                        <Input name="manager_name" required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Email (login)</Label>
+                        <Input name="manager_email" type="email" required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Senha</Label>
+                        <Input name="manager_password" type="password" minLength={6} required />
+                      </div>
                     </div>
+                    <DialogFooter>
+                      <Button type="submit" disabled={busy}>{busy ? "Criando..." : "Criar restaurante"}</Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            <Card>
+              <CardContent className="p-0">
+                {restaurants.length === 0 ? (
+                  <div className="p-8 text-center text-muted-foreground">Nenhum restaurante cadastrado ainda.</div>
+                ) : (
+                  <div className="divide-y">
+                    {restaurants.map((r) => (
+                      <div key={r.id} className="p-4 flex items-center justify-between gap-4 flex-wrap">
+                        <div className="min-w-0">
+                          <div className="font-medium flex items-center gap-2">
+                            {r.name}
+                            {r.is_open ? <Badge className="bg-success text-success-foreground">Aberto</Badge> : <Badge variant="secondary">Fechado</Badge>}
+                          </div>
+                          <div className="text-sm text-muted-foreground">/r/{r.slug}</div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 px-2">
+                            <Switch checked={r.is_open} onCheckedChange={() => toggleOpen(r)} />
+                            <span className="text-xs text-muted-foreground">{r.is_open ? "Ativo" : "Inativo"}</span>
+                          </div>
+                          <Button asChild variant="outline" size="sm"><Link to={`/r/${r.slug}`} target="_blank"><ExternalLink className="w-4 h-4" /></Link></Button>
+                          <Button variant="outline" size="sm" onClick={() => setEditing(r)}><Pencil className="w-4 h-4" /></Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="outline" size="sm" className="text-destructive hover:text-destructive"><Trash2 className="w-4 h-4" /></Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Excluir {r.name}?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Isso apaga o restaurante, cardápio, pedidos, imagens e a conta do gerente. Ação irreversível.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDelete(r)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir tudo</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="supply">
+            <SupplyAdminPanel />
+          </TabsContent>
+        </Tabs>
       </main>
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
