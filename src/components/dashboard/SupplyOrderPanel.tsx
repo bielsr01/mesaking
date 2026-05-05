@@ -62,6 +62,8 @@ export function SupplyOrderPanel({ restaurantId }: { restaurantId: string }) {
     const ch = supabase.channel(`supply_orders_mgr_${restaurantId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "supply_orders", filter: `restaurant_id=eq.${restaurantId}` },
         () => qc.invalidateQueries({ queryKey: ["supply_orders", restaurantId] }))
+      .on("postgres_changes", { event: "*", schema: "public", table: "supply_products" },
+        () => qc.invalidateQueries({ queryKey: ["supply_products"] }))
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [restaurantId, qc]);
