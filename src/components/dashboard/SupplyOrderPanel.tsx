@@ -366,7 +366,7 @@ export function SupplyOrderPanel({ restaurantId }: { restaurantId: string }) {
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
                               isDone
                                 ? "bg-green-500 text-white"
-                                : isCurrent
+                                : isPendingStep
                                   ? "bg-orange-500 text-white"
                                   : "bg-muted text-muted-foreground"
                             }`}>
