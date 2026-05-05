@@ -821,6 +821,38 @@ export type Database = {
         }
         Relationships: []
       }
+      supply_order_item_options: {
+        Row: {
+          created_at: string
+          id: string
+          option_name: string
+          quantity: number
+          supply_order_item_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          option_name: string
+          quantity: number
+          supply_order_item_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          option_name?: string
+          quantity?: number
+          supply_order_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supply_order_item_options_supply_order_item_id_fkey"
+            columns: ["supply_order_item_id"]
+            isOneToOne: false
+            referencedRelation: "supply_order_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supply_order_items: {
         Row: {
           created_at: string
@@ -904,6 +936,41 @@ export type Database = {
         }
         Relationships: []
       }
+      supply_product_options: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          product_id: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          product_id: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          product_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supply_product_options_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "supply_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supply_products: {
         Row: {
           created_at: string
@@ -913,9 +980,12 @@ export type Database = {
           is_active: boolean
           name: string
           price: number
+          quantity_step: number
           sort_order: number
+          total_quantity: number | null
           unit: string
           updated_at: string
+          variant_group_name: string | null
         }
         Insert: {
           created_at?: string
@@ -925,9 +995,12 @@ export type Database = {
           is_active?: boolean
           name: string
           price?: number
+          quantity_step?: number
           sort_order?: number
+          total_quantity?: number | null
           unit?: string
           updated_at?: string
+          variant_group_name?: string | null
         }
         Update: {
           created_at?: string
@@ -937,9 +1010,12 @@ export type Database = {
           is_active?: boolean
           name?: string
           price?: number
+          quantity_step?: number
           sort_order?: number
+          total_quantity?: number | null
           unit?: string
           updated_at?: string
+          variant_group_name?: string | null
         }
         Relationships: []
       }
