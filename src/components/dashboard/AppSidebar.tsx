@@ -1,4 +1,4 @@
-import { ChefHat, LayoutDashboard, ShoppingBag, UtensilsCrossed, Settings, Store, Printer, Plug, ChevronDown, Users, Megaphone, Ticket, Award, Send, ClipboardList } from "lucide-react";
+import { ChefHat, LayoutDashboard, ShoppingBag, UtensilsCrossed, Settings, Store, Printer, Plug, ChevronDown, Users, Megaphone, Ticket, Award, Send, ClipboardList, Package } from "lucide-react";
 import { useState } from "react";
 import {
   Sidebar,
@@ -28,7 +28,8 @@ export type DashboardView =
   | "settings:order-config"
   | "settings:business"
   | "settings:printers"
-  | "settings:integrations";
+  | "settings:integrations"
+  | "supply-orders";
 
 const mainItems: { id: DashboardView; title: string; icon: any }[] = [
   { id: "overview", title: "Visão geral", icon: LayoutDashboard },
@@ -184,6 +185,17 @@ export function AppSidebar({
                   </CollapsibleContent>
                 </SidebarMenuItem>
               </Collapsible>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={active === "supply-orders"}
+                  onClick={() => onChange("supply-orders")}
+                  tooltip="Pedido de Insumos"
+                >
+                  <Package className="h-4 w-4" />
+                  <span>Pedido de Insumos</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

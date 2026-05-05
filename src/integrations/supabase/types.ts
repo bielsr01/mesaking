@@ -821,6 +821,128 @@ export type Database = {
         }
         Relationships: []
       }
+      supply_order_items: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string | null
+          product_name: string
+          quantity: number
+          supply_order_id: string
+          unit: string | null
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id?: string | null
+          product_name: string
+          quantity: number
+          supply_order_id: string
+          unit?: string | null
+          unit_price: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string | null
+          product_name?: string
+          quantity?: number
+          supply_order_id?: string
+          unit?: string | null
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supply_order_items_supply_order_id_fkey"
+            columns: ["supply_order_id"]
+            isOneToOne: false
+            referencedRelation: "supply_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supply_orders: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          created_by: string | null
+          delivered_at: string | null
+          id: string
+          notes: string | null
+          restaurant_id: string
+          shipped_at: string | null
+          status: Database["public"]["Enums"]["supply_order_status"]
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivered_at?: string | null
+          id?: string
+          notes?: string | null
+          restaurant_id: string
+          shipped_at?: string | null
+          status?: Database["public"]["Enums"]["supply_order_status"]
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivered_at?: string | null
+          id?: string
+          notes?: string | null
+          restaurant_id?: string
+          shipped_at?: string | null
+          status?: Database["public"]["Enums"]["supply_order_status"]
+          total?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      supply_products: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          name: string
+          price: number
+          sort_order: number
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name: string
+          price?: number
+          sort_order?: number
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name?: string
+          price?: number
+          sort_order?: number
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -887,6 +1009,7 @@ export type Database = {
         | "awaiting_pickup"
       order_type: "delivery" | "pickup" | "pdv"
       payment_method: "cash" | "pix" | "card_on_delivery"
+      supply_order_status: "pending" | "accepted" | "shipped" | "delivered"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1026,6 +1149,7 @@ export const Constants = {
       ],
       order_type: ["delivery", "pickup", "pdv"],
       payment_method: ["cash", "pix", "card_on_delivery"],
+      supply_order_status: ["pending", "accepted", "shipped", "delivered"],
     },
   },
 } as const
