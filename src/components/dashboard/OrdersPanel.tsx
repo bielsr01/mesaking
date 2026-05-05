@@ -196,11 +196,15 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
       .channel(`orders-${restaurantId}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` }, (payload) => {
         const row = payload.new as Order;
-        if (row?.order_type === "pdv") {
+        if (row?.external_source === "quero") {
+          setChannel((cur) => {
+            if (cur !== "quero") setQueroBlink(true);
+            return cur;
+          });
+        } else if (row?.order_type === "pdv") {
           setChannel("pdv");
           setFilter("preparing");
         } else {
-          // Novo pedido delivery/retirada — pisca a aba se não estiver nela
           setChannel((cur) => {
             if (cur !== "delivery") setDeliveryBlink(true);
             return cur;
