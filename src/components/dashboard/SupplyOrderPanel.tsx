@@ -153,6 +153,7 @@ export function SupplyOrderPanel({ restaurantId }: { restaurantId: string }) {
     setCart({}); setDist({}); setNotes("");
     toast.success("Pedido enviado!");
     qc.invalidateQueries({ queryKey: ["supply_orders", restaurantId] });
+    setView("history");
   };
 
   if (view === "new") {
