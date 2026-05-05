@@ -267,6 +267,30 @@ export function SupplyOrderPanel({ restaurantId }: { restaurantId: string }) {
     );
   }
 
+  const counts = {
+    pending: orders.filter(o => o.status === "pending").length,
+    accepted: orders.filter(o => o.status === "accepted").length,
+    shipped: orders.filter(o => o.status === "shipped").length,
+    delivered: orders.filter(o => o.status === "delivered").length,
+    all: orders.length,
+  };
+  const FILTERS = [
+    { value: "pending", label: "Aguardando", icon: Clock },
+    { value: "accepted", label: "Aceitos", icon: CheckCircle2 },
+    { value: "shipped", label: "Enviados", icon: Truck },
+    { value: "delivered", label: "Entregues", icon: Package },
+    { value: "all", label: "Todos", icon: null },
+  ] as const;
+  const [filter, setFilter] = useState<typeof FILTERS[number]["value"]>("pending");
+  const filtered = filter === "all" ? orders : orders.filter(o => o.status === filter);
+
+  const statusBar = (s: SupplyOrder["status"]) => {
+    if (s === "pending") return { label: "Aguardando aceite do fornecedor", icon: Clock, cls: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400" };
+    if (s === "accepted") return { label: "Pedido aceito · preparando envio", icon: CheckCircle2, cls: "bg-blue-500/15 text-blue-700 dark:text-blue-400" };
+    if (s === "shipped") return { label: "Pedido enviado · a caminho", icon: Truck, cls: "bg-purple-500/15 text-purple-700 dark:text-purple-400" };
+    return { label: "Pedido entregue", icon: Package, cls: "bg-green-500/15 text-green-700 dark:text-green-400" };
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -280,37 +304,65 @@ export function SupplyOrderPanel({ restaurantId }: { restaurantId: string }) {
         </Button>
       </div>
 
-      {orders.length === 0 ? (
-        <Card><CardContent className="py-12 text-center text-muted-foreground">Nenhum pedido ainda.</CardContent></Card>
-      ) : orders.map((o) => (
-        <Card key={o.id}>
-          <CardContent className="p-4 space-y-2">
-            <div className="flex justify-between items-start gap-2 flex-wrap">
-              <div>
-                <div className="text-xs text-muted-foreground">{new Date(o.created_at).toLocaleString("pt-BR")}</div>
-                <div className="font-semibold">{brl(Number(o.total))}</div>
-              </div>
-              <Badge className={statusColor[o.status]}>{statusLabel[o.status]}</Badge>
-            </div>
-            <div className="text-sm space-y-1">
-              {o.supply_order_items?.map(it => (
-                <div key={it.id}>
-                  <div className="flex justify-between text-muted-foreground">
-                    <span>{it.quantity}× {it.product_name}</span>
-                    <span>{brl(Number(it.unit_price) * it.quantity)}</span>
-                  </div>
-                  {it.supply_order_item_options && it.supply_order_item_options.length > 0 && (
-                    <div className="ml-3 text-xs text-muted-foreground">
-                      {it.supply_order_item_options.map(op => `${op.quantity}× ${op.option_name}`).join(" · ")}
+      <Tabs value={filter} onValueChange={(v) => setFilter(v as any)}>
+        <TabsList className="flex-wrap h-auto">
+          {FILTERS.map(f => (
+            <TabsTrigger key={f.value} value={f.value} className="gap-2">
+              {f.icon && <f.icon className="w-3.5 h-3.5" />}
+              {f.label}
+              <Badge
+                variant={f.value === "pending" && counts[f.value] > 0 ? "destructive" : "secondary"}
+                className="h-5 min-w-5 px-1.5 text-xs"
+              >
+                {counts[f.value] ?? 0}
+              </Badge>
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+
+      {filtered.length === 0 ? (
+        <Card><CardContent className="py-12 text-center text-muted-foreground">Nenhum pedido nesta categoria.</CardContent></Card>
+      ) : (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {filtered.map((o) => {
+            const sb = statusBar(o.status);
+            return (
+              <Card key={o.id} className="overflow-hidden flex flex-col shadow-soft">
+                <CardContent className="p-4 space-y-2 flex-1">
+                  <div className="flex justify-between items-start gap-2 flex-wrap">
+                    <div>
+                      <div className="text-xs text-muted-foreground">{new Date(o.created_at).toLocaleString("pt-BR")}</div>
+                      <div className="font-bold text-lg">{brl(Number(o.total))}</div>
                     </div>
-                  )}
+                    <Badge className={statusColor[o.status]}>{statusLabel[o.status]}</Badge>
+                  </div>
+                  <div className="text-sm space-y-1 border-l-2 pl-3">
+                    {o.supply_order_items?.map(it => (
+                      <div key={it.id}>
+                        <div className="flex justify-between text-muted-foreground">
+                          <span>{it.quantity}× {it.product_name}</span>
+                          <span>{brl(Number(it.unit_price) * it.quantity)}</span>
+                        </div>
+                        {it.supply_order_item_options && it.supply_order_item_options.length > 0 && (
+                          <div className="ml-3 text-xs text-muted-foreground">
+                            {it.supply_order_item_options.map(op => `${op.quantity}× ${op.option_name}`).join(" · ")}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {o.notes && <div className="text-xs text-muted-foreground italic">"{o.notes}"</div>}
+                </CardContent>
+                <div className={`w-full font-semibold py-3 flex items-center justify-center gap-2 ${sb.cls}`}>
+                  <sb.icon className="w-5 h-5" />
+                  {sb.label}
                 </div>
-              ))}
-            </div>
-            {o.notes && <div className="text-xs text-muted-foreground italic">"{o.notes}"</div>}
-          </CardContent>
-        </Card>
-      ))}
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
