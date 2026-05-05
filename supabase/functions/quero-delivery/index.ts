@@ -196,7 +196,7 @@ Deno.serve(async (req) => {
           .insert({
             restaurant_id: restaurantId,
             customer_name: detail?.customer?.name || "Cliente Quero",
-            customer_phone: detail?.customer?.phone?.number || "",
+            customer_phone: normalizePhone(detail?.customer?.phone?.number),
             order_type: isDelivery ? "delivery" : "pickup",
             payment_method: mapPayment(pmMethod),
             change_for: changeFor ?? null,
