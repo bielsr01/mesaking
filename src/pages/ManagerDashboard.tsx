@@ -154,6 +154,7 @@ export default function ManagerDashboard() {
   const titleByView: Record<DashboardView, string> = {
     overview: "Visão geral",
     orders: "Pedidos",
+    ifood: "iFood",
     menu: "Cardápio",
     customers: "Clientes",
     "marketing:coupons": "Cupons de desconto",
