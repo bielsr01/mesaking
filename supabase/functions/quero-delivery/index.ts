@@ -113,8 +113,8 @@ Deno.serve(async (req) => {
     }
 
     if (action === "sync") {
-      // Poll new orders
-      const pollUrl = `${baseUrl}/orders/events:polling?placeId=${encodeURIComponent(cfgPlaceId)}&eventType=CREATED`;
+      // Poll new orders (sem filtro de eventType para importar qualquer status)
+      const pollUrl = `${baseUrl}/orders/events:polling?placeId=${encodeURIComponent(cfgPlaceId)}`;
       const pr = await fetch(pollUrl, { headers });
       if (!pr.ok) {
         const t = await pr.text();
