@@ -357,15 +357,20 @@ export function OverviewPanel({ restaurantId }: { restaurantId: string }) {
       </Tabs>
 
       {/* KPI grid */}
+      {source === "ifood" && (
+        <div className="text-xs text-muted-foreground -mb-1">
+          iFood é registrado manualmente: somente valores financeiros estão disponíveis. Demais métricas aparecem desabilitadas.
+        </div>
+      )}
       <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-        <Kpi icon={ShoppingBag} label="Pedidos" value={ordersCountCur.toString()} delta={ordersGrowth} sub={includeIfood && ifoodCur.orders > 0 ? `Inclui ${ifoodCur.orders} iFood` : undefined} />
-        <Kpi icon={DollarSign} label="Faturamento bruto" value={brl(grossCur)} delta={revenueGrowth} />
-        <Kpi icon={Receipt} label="Faturamento líquido" value={brl(netCur)} sub={`Descontos ${brl(discountCur)}`} />
-        <Kpi icon={TrendingUp} label="Ticket médio" value={brl(ticketCur)} delta={ticketGrowth} />
-        <Kpi icon={Tag} label="Cupons aplicados" value={`${couponOrders.length}`} sub={`Impacto ${couponImpactPct.toFixed(1)}%`} />
-        <Kpi icon={Truck} label="Taxas de entrega" value={brl(deliveryFeeCur)} sub={`Serviço ${brl(serviceFeeCur)}`} />
-        <Kpi icon={Users} label="Novos clientes" value={newCustomers.toString()} sub={`${recurringPct.toFixed(0)}% recorrentes`} />
-        <Kpi icon={RefreshCw} label="Taxa de recompra" value={`${repurchaseRate.toFixed(1)}%`} sub={`Freq. ${purchaseFreq.toFixed(1)} ped./cliente`} />
+        <Kpi icon={DollarSign} label="Valor das vendas" value={brl(source === "ifood" ? ifoodCur.gross : grossCur)} delta={source === "ifood" ? undefined : revenueGrowth} />
+        <Kpi icon={Receipt} label="Total faturamento" value={brl(source === "ifood" ? ifoodCur.net : netCur)} sub={source === "ifood" ? undefined : `Descontos ${brl(discountCur)}`} />
+        <Kpi icon={Truck} label="Taxas, serviços e ajustes" value={`- ${brl(source === "ifood" ? ifoodCur.fees : serviceFeeCur)}`} negative />
+        <Kpi icon={ShoppingBag} label="Pedidos" value={ordersCountCur.toString()} delta={ordersGrowth} disabled={source === "ifood"} />
+        <Kpi icon={TrendingUp} label="Ticket médio" value={brl(ticketCur)} delta={ticketGrowth} disabled={source === "ifood"} />
+        <Kpi icon={Tag} label="Cupons aplicados" value={`${couponOrders.length}`} sub={`Impacto ${couponImpactPct.toFixed(1)}%`} disabled={source === "ifood"} />
+        <Kpi icon={Users} label="Novos clientes" value={newCustomers.toString()} sub={`${recurringPct.toFixed(0)}% recorrentes`} disabled={source === "ifood"} />
+        <Kpi icon={RefreshCw} label="Taxa de recompra" value={`${repurchaseRate.toFixed(1)}%`} sub={`Freq. ${purchaseFreq.toFixed(1)} ped./cliente`} disabled={source === "ifood"} />
       </div>
 
       {/* Comparativos automáticos */}
@@ -376,7 +381,7 @@ export function OverviewPanel({ restaurantId }: { restaurantId: string }) {
       </div>
 
       {/* Service breakdown */}
-      <div className="grid gap-3 lg:grid-cols-3">
+      <div className={`grid gap-3 lg:grid-cols-3 ${source === "ifood" ? "opacity-40 pointer-events-none" : ""}`}>
         <Card className="lg:col-span-2">
           <CardHeader><CardTitle className="text-base">Análise de pedidos por tipo</CardTitle></CardHeader>
           <CardContent>
@@ -419,6 +424,7 @@ export function OverviewPanel({ restaurantId }: { restaurantId: string }) {
       </div>
 
       {/* Progress chart */}
+      <div className={source === "ifood" ? "opacity-40 pointer-events-none" : ""}>
       <Card>
         <CardHeader><CardTitle className="text-base">Progresso dos pedidos</CardTitle></CardHeader>
         <CardContent style={{ height: 280 }}>
@@ -578,27 +584,29 @@ export function OverviewPanel({ restaurantId }: { restaurantId: string }) {
           </CardContent>
         </Card>
       </div>
+      </div>
     </div>
   );
 }
 
-function Kpi({ icon: Icon, label, value, sub, delta }: { icon: any; label: string; value: string; sub?: string; delta?: number }) {
+function Kpi({ icon: Icon, label, value, sub, delta, disabled, negative }: { icon: any; label: string; value: string; sub?: string; delta?: number; disabled?: boolean; negative?: boolean }) {
   const showDelta = typeof delta === "number" && isFinite(delta);
   const positive = (delta ?? 0) >= 0;
   return (
-    <Card>
+    <Card className={disabled ? "opacity-40" : ""}>
       <CardContent className="p-4">
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <div className="flex items-center gap-1.5"><Icon className="w-3.5 h-3.5" />{label}</div>
-          {showDelta && (
+          {showDelta && !disabled && (
             <span className={`flex items-center gap-0.5 font-medium ${positive ? "text-emerald-600" : "text-red-600"}`}>
               {positive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
               {Math.abs(delta!).toFixed(1)}%
             </span>
           )}
         </div>
-        <div className="text-2xl font-bold mt-1">{value}</div>
-        {sub && <div className="text-xs text-muted-foreground mt-0.5">{sub}</div>}
+        <div className={`text-2xl font-bold mt-1 ${negative ? "text-red-600" : ""}`}>{disabled ? "—" : value}</div>
+        {sub && !disabled && <div className="text-xs text-muted-foreground mt-0.5">{sub}</div>}
+        {disabled && <div className="text-xs text-muted-foreground mt-0.5">Indisponível para iFood</div>}
       </CardContent>
     </Card>
   );
