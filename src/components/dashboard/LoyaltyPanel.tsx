@@ -295,7 +295,7 @@ export function LoyaltyPanel({ restaurantId }: { restaurantId: string }) {
                       </TableCell>
                       <TableCell>
                         <Badge variant={t.orders?.status === "delivered" || t.orders?.status === "completed" ? "default" : "secondary"}>
-                          {t.orders?.status ? statusLabelFor(t.orders.status, t.orders.order_type) : "—"}
+                          {t.orders?.status ? statusLabelFor(t.orders.status, (t.orders as any).order_type) : "—"}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">{t.orders ? brl(Number(t.orders.total)) : "—"}</TableCell>
