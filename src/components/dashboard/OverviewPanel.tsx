@@ -424,6 +424,7 @@ export function OverviewPanel({ restaurantId }: { restaurantId: string }) {
       </div>
 
       {/* Progress chart */}
+      <div className={source === "ifood" ? "opacity-40 pointer-events-none" : ""}>
       <Card>
         <CardHeader><CardTitle className="text-base">Progresso dos pedidos</CardTitle></CardHeader>
         <CardContent style={{ height: 280 }}>
