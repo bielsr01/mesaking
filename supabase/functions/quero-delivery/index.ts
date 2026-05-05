@@ -112,6 +112,42 @@ Deno.serve(async (req) => {
       return json({ ok: true, status: r.status });
     }
 
+    if (action === "update_status") {
+      // newStatus: pending|preparing|out_for_delivery|awaiting_pickup|delivered|cancelled
+      const { newStatus, orderId: localOrderId } = body || {};
+      if (!localOrderId || !newStatus) return json({ error: "orderId and newStatus required" }, 400);
+
+      const { data: ord } = await admin
+        .from("orders")
+        .select("external_order_id, external_source, order_type")
+        .eq("id", localOrderId)
+        .maybeSingle();
+      if (!ord || ord.external_source !== "quero" || !ord.external_order_id) {
+        return json({ ok: true, skipped: true });
+      }
+
+      const orderId = ord.external_order_id;
+      const isPickup = ord.order_type === "pickup";
+
+      const endpointByStatus: Record<string, string | null> = {
+        preparing: `/orders/${orderId}/confirm`,
+        out_for_delivery: `/orders/${orderId}/dispatch`,
+        awaiting_pickup: `/orders/${orderId}/ready-fo-pickup`,
+        delivered: `/orders/${orderId}/delivery-completed`,
+        cancelled: `/orders/${orderId}/request-cancellation`,
+      };
+
+      const path = endpointByStatus[newStatus];
+      if (!path) return json({ ok: true, skipped: true });
+
+      const r = await fetch(`${baseUrl}${path}`, { method: "POST", headers });
+      const txt = await r.text();
+      if (!r.ok) {
+        return json({ ok: false, status: r.status, message: txt.slice(0, 400) }, 200);
+      }
+      return json({ ok: true, status: r.status, isPickup });
+    }
+
     if (action === "sync") {
       // Poll new orders (sem filtro de eventType para importar qualquer status)
       const pollUrl = `${baseUrl}/orders/events:polling?placeId=${encodeURIComponent(cfgPlaceId)}`;

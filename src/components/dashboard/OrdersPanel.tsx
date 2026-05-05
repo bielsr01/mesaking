@@ -241,29 +241,45 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     });
   };
 
+  const syncQueroStatus = async (o: Order, newStatus: Order["status"]) => {
+    if (o.external_source !== "quero") return;
+    try {
+      const { data } = await supabase.functions.invoke("quero-delivery", {
+        body: { action: "update_status", restaurantId, orderId: o.id, newStatus },
+      });
+      if (data && data.ok === false) {
+        toast.warning(`Quero Delivery: ${data.message || "falha ao atualizar status"}`);
+      }
+    } catch (e: any) {
+      toast.warning(`Quero Delivery: ${e?.message || "erro de conexão"}`);
+    }
+  };
+
   const advance = async (o: Order) => {
     const next = getNextStatus(o.status, o.order_type) as Order["status"] | null;
     if (!next) return;
     const prevStatus = o.status;
-    patchOrder(o.id, { status: next }); // optimistic
+    patchOrder(o.id, { status: next });
     const { error } = await supabase.from("orders").update({ status: next }).eq("id", o.id);
     if (error) {
       patchOrder(o.id, { status: prevStatus });
       toast.error(error.message);
     } else {
       toast.success(`Pedido movido para "${orderStatusLabel[next]}"`);
+      syncQueroStatus(o, next);
     }
   };
 
   const cancel = async (o: Order) => {
     const prevStatus = o.status;
-    patchOrder(o.id, { status: "cancelled" }); // optimistic
+    patchOrder(o.id, { status: "cancelled" });
     const { error } = await supabase.from("orders").update({ status: "cancelled" }).eq("id", o.id);
     if (error) {
       patchOrder(o.id, { status: prevStatus });
       toast.error(error.message);
     } else {
       toast.success("Pedido cancelado");
+      syncQueroStatus(o, "cancelled");
     }
   };
 
