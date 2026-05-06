@@ -15,7 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 const sb = supabase as any;
 
-type ClientType = "elite" | "best" | "frequent" | "none";
+type ClientType = "elite" | "best" | "frequent" | "new" | "none";
 type ClientStatus = "active" | "inactive" | "sleeping" | "risk";
 
 const TYPE_LABELS: Record<ClientType, string> = {
