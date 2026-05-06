@@ -13,8 +13,11 @@ function normalizePhone(p: string) {
   return "55" + d;
 }
 
+function sanitizeBase(apiUrl: string) {
+  return (apiUrl || "").replace(/\/+$/, "").replace(/\/manager$/i, "");
+}
 async function evoFetch(apiUrl: string, path: string, apiKey: string, body: any) {
-  const url = apiUrl.replace(/\/+$/, "") + path;
+  const url = sanitizeBase(apiUrl) + path;
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json", apikey: apiKey },
