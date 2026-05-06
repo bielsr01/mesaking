@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
-export type AdminView = "restaurants" | "supply:catalog" | "supply:orders";
+export type AdminView = "overview" | "restaurants" | "supply:catalog" | "supply:orders";
 
 export function AdminSidebar({ active, onChange }: { active: AdminView; onChange: (v: AdminView) => void }) {
   const { state } = useSidebar();
