@@ -1,7 +1,7 @@
 // Shared bulk-campaigns panel.
 // - In dashboard mode: scope="restaurant", restaurantId required.
 // - In admin mode: scope="admin", with multi-restaurant filter.
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Send, Play, Pause, Plus, Search, Filter, X, Trash2, Users } from "lucide-react";
+import { Send, Play, Pause, Plus, Search, Filter, X, Trash2, Users, Pencil, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { unmaskPhone } from "@/lib/format";
 import { RestaurantMultiSelect, useRestaurants } from "@/components/admin/RestaurantMultiSelect";
@@ -51,6 +51,13 @@ const STATUS_LABEL: Record<string, string> = {
   draft: "Rascunho", running: "Em execução", paused: "Pausada", completed: "Concluída", failed: "Falhou",
 };
 
+const RECIP_BADGE: Record<string, string> = {
+  pending: "bg-muted text-foreground",
+  sent: "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200",
+  failed: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200",
+  skipped: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-200",
+};
+
 export function BulkCampaignsPanel({
   scope, restaurantId,
 }: { scope: "restaurant" | "admin"; restaurantId?: string }) {
@@ -59,6 +66,7 @@ export function BulkCampaignsPanel({
   const allRest = restaurantsQ.data ?? [];
   const [adminFilter, setAdminFilter] = useState<string[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
+  const [editing, setEditing] = useState<any | null>(null);
 
   const filterIds = scope === "admin" ? adminFilter : [restaurantId!];
   const filterKey = filterIds.slice().sort().join(",");
@@ -84,10 +92,17 @@ export function BulkCampaignsPanel({
     const { error } = await sb.from("bulk_campaigns").update(patch).eq("id", id);
     if (error) return toast.error(error.message);
     if (status === "running") {
-      // kick worker immediately (don't wait)
       supabase.functions.invoke("bulk-campaign-worker", { body: {} }).catch(() => {});
       toast.success("Campanha iniciada");
     } else toast.success("Campanha pausada");
+    qc.invalidateQueries({ queryKey: ["bulk-campaigns"] });
+  };
+
+  const clearAutoPause = async (id: string) => {
+    const { error } = await sb.from("bulk_campaigns").update({ paused_until: null, sent_in_block: 0 }).eq("id", id);
+    if (error) return toast.error(error.message);
+    supabase.functions.invoke("bulk-campaign-worker", { body: {} }).catch(() => {});
+    toast.success("Pausa removida");
     qc.invalidateQueries({ queryKey: ["bulk-campaigns"] });
   };
 
@@ -96,6 +111,18 @@ export function BulkCampaignsPanel({
     if (error) return toast.error(error.message);
     toast.success("Removida");
     qc.invalidateQueries({ queryKey: ["bulk-campaigns"] });
+  };
+
+  const handleEdit = async (c: any) => {
+    if (c.status === "running") {
+      if (!confirm("A campanha está em execução. Ela será pausada para edição. Continuar?")) return;
+      const { error } = await sb.from("bulk_campaigns").update({ status: "paused" }).eq("id", c.id);
+      if (error) return toast.error(error.message);
+      qc.invalidateQueries({ queryKey: ["bulk-campaigns"] });
+      setEditing({ ...c, status: "paused" });
+    } else {
+      setEditing(c);
+    }
   };
 
   return (
@@ -137,41 +164,54 @@ export function BulkCampaignsPanel({
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
-                  {(campaigns ?? []).map((c: any) => (
-                    <TableRow key={c.id}>
-                      <TableCell className="font-medium">{c.name}</TableCell>
-                      {scope === "admin" && <TableCell><Badge variant="outline">{restNameById.get(c.restaurant_id) ?? "—"}</Badge></TableCell>}
-                      <TableCell>
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_BADGE[c.status]}`}>{STATUS_LABEL[c.status]}</span>
-                        {c.status === "running" && c.paused_until && new Date(c.paused_until).getTime() > Date.now() && (
-                          <div className="text-[10px] text-yellow-700 dark:text-yellow-300 mt-0.5">
-                            Pausa auto até {new Date(c.paused_until).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                  {(campaigns ?? []).map((c: any) => {
+                    const isAutoPaused = c.paused_until && new Date(c.paused_until).getTime() > Date.now();
+                    return (
+                      <TableRow key={c.id}>
+                        <TableCell className="font-medium">{c.name}</TableCell>
+                        {scope === "admin" && <TableCell><Badge variant="outline">{restNameById.get(c.restaurant_id) ?? "—"}</Badge></TableCell>}
+                        <TableCell>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_BADGE[c.status]}`}>{STATUS_LABEL[c.status]}</span>
+                          {c.status === "running" && isAutoPaused && (
+                            <div className="text-[10px] text-yellow-700 dark:text-yellow-300 mt-0.5">
+                              Pausa auto até {new Date(c.paused_until).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">{c.sent}</TableCell>
+                        <TableCell className="text-center">{c.failed}</TableCell>
+                        <TableCell className="text-center">{c.total}</TableCell>
+                        <TableCell>{new Date(c.created_at).toLocaleString("pt-BR")}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            {isAutoPaused && (
+                              <Button size="sm" variant="outline" onClick={() => clearAutoPause(c.id)} title="Retomar agora (limpar pausa automática)">
+                                <RotateCcw className="w-3.5 h-3.5 mr-1" /> Retomar agora
+                              </Button>
+                            )}
+                            {(c.status === "draft" || c.status === "paused") && (
+                              <Button size="sm" variant="outline" onClick={() => setStatus(c.id, "running")}>
+                                <Play className="w-3.5 h-3.5 mr-1" /> Play
+                              </Button>
+                            )}
+                            {c.status === "running" && (
+                              <Button size="sm" variant="outline" onClick={() => setStatus(c.id, "paused")}>
+                                <Pause className="w-3.5 h-3.5 mr-1" /> Pausar
+                              </Button>
+                            )}
+                            {c.status !== "completed" && (
+                              <Button size="sm" variant="outline" onClick={() => handleEdit(c)} title="Editar">
+                                <Pencil className="w-3.5 h-3.5" />
+                              </Button>
+                            )}
+                            <Button size="sm" variant="outline" className="text-destructive" onClick={() => remove(c.id)}>
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
                           </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-center">{c.sent}</TableCell>
-                      <TableCell className="text-center">{c.failed}</TableCell>
-                      <TableCell className="text-center">{c.total}</TableCell>
-                      <TableCell>{new Date(c.created_at).toLocaleString("pt-BR")}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          {(c.status === "draft" || c.status === "paused") && (
-                            <Button size="sm" variant="outline" onClick={() => setStatus(c.id, "running")}>
-                              <Play className="w-3.5 h-3.5 mr-1" /> Play
-                            </Button>
-                          )}
-                          {c.status === "running" && (
-                            <Button size="sm" variant="outline" onClick={() => setStatus(c.id, "paused")}>
-                              <Pause className="w-3.5 h-3.5 mr-1" /> Pausar
-                            </Button>
-                          )}
-                          <Button size="sm" variant="outline" className="text-destructive" onClick={() => remove(c.id)}>
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
@@ -180,39 +220,54 @@ export function BulkCampaignsPanel({
       </Card>
 
       {createOpen && (
-        <CreateCampaignDialog
+        <CampaignDialog
           open={createOpen}
           onOpenChange={setCreateOpen}
           scope={scope}
           restaurantIds={scope === "admin" ? adminFilter : [restaurantId!]}
           allRest={allRest}
-          onCreated={() => qc.invalidateQueries({ queryKey: ["bulk-campaigns"] })}
+          onSaved={() => qc.invalidateQueries({ queryKey: ["bulk-campaigns"] })}
+        />
+      )}
+      {editing && (
+        <CampaignDialog
+          open={!!editing}
+          onOpenChange={(o) => !o && setEditing(null)}
+          scope={scope}
+          restaurantIds={[editing.restaurant_id]}
+          allRest={allRest}
+          campaign={editing}
+          onSaved={() => qc.invalidateQueries({ queryKey: ["bulk-campaigns"] })}
         />
       )}
     </div>
   );
 }
 
-function CreateCampaignDialog({
-  open, onOpenChange, scope, restaurantIds, allRest, onCreated,
+function CampaignDialog({
+  open, onOpenChange, scope, restaurantIds, allRest, onSaved, campaign,
 }: {
   open: boolean; onOpenChange: (o: boolean) => void;
   scope: "restaurant" | "admin"; restaurantIds: string[];
   allRest: { id: string; name: string }[];
-  onCreated: () => void;
+  onSaved: () => void;
+  campaign?: any;
 }) {
-  const [name, setName] = useState("");
-  const [text, setText] = useState("");
-  const [mediaUrl, setMediaUrl] = useState("");
-  const [interval, setInterval] = useState(8);
-  const [pauseAfter, setPauseAfter] = useState(0);
-  const [pauseMinutes, setPauseMinutes] = useState(0);
+  const isEdit = !!campaign;
+  const [name, setName] = useState(campaign?.name ?? "");
+  const [text, setText] = useState(campaign?.message_text ?? "");
+  const [mediaUrl, setMediaUrl] = useState(campaign?.media_url ?? "");
+  const [interval, setInterval] = useState(campaign?.interval_seconds ?? 8);
+  const [pauseAfter, setPauseAfter] = useState(campaign?.pause_after_messages ?? 0);
+  const [pauseMinutes, setPauseMinutes] = useState(campaign?.pause_duration_minutes ?? 0);
   const [search, setSearch] = useState("");
   const [typeFilters, setTypeFilters] = useState<Set<ClientType>>(new Set());
   const [statusFilters, setStatusFilters] = useState<Set<ClientStatus>>(new Set());
   const [picked, setPicked] = useState<Set<string>>(new Set());
-  // For admin: required restaurant target (one campaign = one restaurant)
-  const [targetRestaurant, setTargetRestaurant] = useState<string>(scope === "restaurant" ? restaurantIds[0] : "");
+  const [removedRecipientIds, setRemovedRecipientIds] = useState<Set<string>>(new Set());
+  const [targetRestaurant, setTargetRestaurant] = useState<string>(
+    campaign?.restaurant_id ?? (scope === "restaurant" ? restaurantIds[0] : "")
+  );
   const [saving, setSaving] = useState(false);
 
   const idsKey = restaurantIds.slice().sort().join(",");
@@ -228,9 +283,32 @@ function CreateCampaignDialog({
     },
   });
 
+  // In edit mode, load existing recipients
+  const { data: existingRecipients } = useQuery({
+    queryKey: ["bulk-recipients", campaign?.id],
+    enabled: open && isEdit,
+    queryFn: async () => {
+      const { data } = await sb.from("bulk_campaign_recipients")
+        .select("id, customer_id, name, phone, status, error, sent_at")
+        .eq("campaign_id", campaign.id)
+        .order("created_at", { ascending: true });
+      return data ?? [];
+    },
+  });
+
+  // Skip already-included customers from the picker
+  const existingCustomerIds = useMemo(() => {
+    const s = new Set<string>();
+    (existingRecipients ?? []).forEach((r: any) => {
+      if (r.customer_id && !removedRecipientIds.has(r.id)) s.add(r.customer_id);
+    });
+    return s;
+  }, [existingRecipients, removedRecipientIds]);
+
   const restNameById = useMemo(() => { const m = new Map<string,string>(); allRest.forEach(r=>m.set(r.id,r.name)); return m; }, [allRest]);
 
   const filtered = (customers ?? []).filter((c: any) => {
+    if (existingCustomerIds.has(c.id)) return false;
     if (search.trim()) {
       const q = search.toLowerCase();
       if (!(c.name?.toLowerCase().includes(q) || unmaskPhone(c.phone || "").includes(unmaskPhone(search)))) return false;
@@ -246,37 +324,78 @@ function CreateCampaignDialog({
   const toggleType = (t: ClientType) => { const n = new Set(typeFilters); n.has(t) ? n.delete(t) : n.add(t); setTypeFilters(n); };
   const toggleStatus = (s: ClientStatus) => { const n = new Set(statusFilters); n.has(s) ? n.delete(s) : n.add(s); setStatusFilters(n); };
 
-  const handleCreate = async () => {
+  const toggleRemoveRecipient = (rid: string) => {
+    const n = new Set(removedRecipientIds);
+    n.has(rid) ? n.delete(rid) : n.add(rid);
+    setRemovedRecipientIds(n);
+  };
+
+  const handleSave = async () => {
     if (!name.trim()) return toast.error("Informe o nome");
     if (!text.trim()) return toast.error("Escreva a mensagem");
-    if (picked.size === 0) return toast.error("Selecione ao menos 1 contato");
-    if (scope === "admin" && !targetRestaurant) return toast.error("Selecione o restaurante para a campanha");
 
-    const chosen = (customers ?? []).filter((c: any) => picked.has(c.id));
+    const newChosen = (customers ?? []).filter((c: any) => picked.has(c.id));
+    const remainingExisting = (existingRecipients ?? []).filter((r: any) => !removedRecipientIds.has(r.id)).length;
+    const newTotal = remainingExisting + newChosen.length;
+
+    if (!isEdit && newChosen.length === 0) return toast.error("Selecione ao menos 1 contato");
+    if (isEdit && newTotal === 0) return toast.error("A campanha precisa ter ao menos 1 contato");
+    if (!isEdit && scope === "admin" && !targetRestaurant) return toast.error("Selecione o restaurante para a campanha");
+
     setSaving(true);
     try {
-      const { data: camp, error } = await sb.from("bulk_campaigns").insert({
-        restaurant_id: scope === "admin" ? targetRestaurant : restaurantIds[0],
-        is_admin: false,
-        name, message_text: text, media_url: mediaUrl || null,
-        interval_seconds: interval,
-        pause_after_messages: pauseAfter,
-        pause_duration_minutes: pauseMinutes,
-        total: chosen.length, status: "draft",
-      }).select("id").single();
-      if (error) throw error;
+      if (isEdit) {
+        // Update campaign fields
+        const { error: uErr } = await sb.from("bulk_campaigns").update({
+          name, message_text: text, media_url: mediaUrl || null,
+          interval_seconds: interval,
+          pause_after_messages: pauseAfter,
+          pause_duration_minutes: pauseMinutes,
+          total: newTotal,
+        }).eq("id", campaign.id);
+        if (uErr) throw uErr;
 
-      const rows = chosen.map((c: any) => ({
-        campaign_id: camp.id, customer_id: c.id, name: c.name, phone: c.phone,
-      }));
-      // chunk insert
-      for (let i = 0; i < rows.length; i += 500) {
-        const slice = rows.slice(i, i + 500);
-        const { error: e2 } = await sb.from("bulk_campaign_recipients").insert(slice);
-        if (e2) throw e2;
+        // Remove pending recipients flagged for removal
+        if (removedRecipientIds.size > 0) {
+          const ids = Array.from(removedRecipientIds);
+          const { error: dErr } = await sb.from("bulk_campaign_recipients")
+            .delete().in("id", ids).eq("status", "pending");
+          if (dErr) throw dErr;
+        }
+
+        // Insert newly picked
+        if (newChosen.length > 0) {
+          const rows = newChosen.map((c: any) => ({
+            campaign_id: campaign.id, customer_id: c.id, name: c.name, phone: c.phone,
+          }));
+          for (let i = 0; i < rows.length; i += 500) {
+            const { error: e2 } = await sb.from("bulk_campaign_recipients").insert(rows.slice(i, i + 500));
+            if (e2) throw e2;
+          }
+        }
+        toast.success("Campanha atualizada");
+      } else {
+        const { data: camp, error } = await sb.from("bulk_campaigns").insert({
+          restaurant_id: scope === "admin" ? targetRestaurant : restaurantIds[0],
+          is_admin: false,
+          name, message_text: text, media_url: mediaUrl || null,
+          interval_seconds: interval,
+          pause_after_messages: pauseAfter,
+          pause_duration_minutes: pauseMinutes,
+          total: newChosen.length, status: "draft",
+        }).select("id").single();
+        if (error) throw error;
+
+        const rows = newChosen.map((c: any) => ({
+          campaign_id: camp.id, customer_id: c.id, name: c.name, phone: c.phone,
+        }));
+        for (let i = 0; i < rows.length; i += 500) {
+          const { error: e2 } = await sb.from("bulk_campaign_recipients").insert(rows.slice(i, i + 500));
+          if (e2) throw e2;
+        }
+        toast.success("Campanha criada");
       }
-      toast.success("Campanha criada");
-      onCreated();
+      onSaved();
       onOpenChange(false);
     } catch (e: any) { toast.error(e.message || "Erro"); }
     finally { setSaving(false); }
@@ -286,8 +405,12 @@ function CreateCampaignDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Nova campanha</DialogTitle>
-          <DialogDescription>Selecione contatos e escreva a mensagem. Use {"{nome}"} para personalizar.</DialogDescription>
+          <DialogTitle>{isEdit ? "Editar campanha" : "Nova campanha"}</DialogTitle>
+          <DialogDescription>
+            {isEdit
+              ? "Ajuste a mensagem, intervalo, pausa e destinatários. Quem já recebeu não será reenviado."
+              : <>Selecione contatos e escreva a mensagem. Use {"{nome}"} para personalizar.</>}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -296,7 +419,7 @@ function CreateCampaignDialog({
               <Label>Nome da campanha</Label>
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Promoção de quarta" />
             </div>
-            {scope === "admin" && (
+            {!isEdit && scope === "admin" && (
               <div className="space-y-2 col-span-2">
                 <Label>Restaurante (envio será feito pela instância dele)</Label>
                 <RSelect value={targetRestaurant} onValueChange={setTargetRestaurant}>
@@ -331,9 +454,47 @@ function CreateCampaignDialog({
             </div>
           </div>
 
+          {isEdit && (existingRecipients ?? []).length > 0 && (
+            <div className="border-t pt-3">
+              <div className="font-medium flex items-center gap-2 mb-2">
+                <Users className="w-4 h-4" /> Destinatários atuais ({(existingRecipients ?? []).length - removedRecipientIds.size} de {(existingRecipients ?? []).length})
+              </div>
+              <div className="text-xs text-muted-foreground mb-2">Apenas destinatários pendentes podem ser removidos.</div>
+              <div className="border rounded-lg max-h-60 overflow-y-auto">
+                <Table>
+                  <TableBody>
+                    {(existingRecipients ?? []).map((r: any) => {
+                      const removable = r.status === "pending";
+                      const marked = removedRecipientIds.has(r.id);
+                      return (
+                        <TableRow key={r.id} className={marked ? "opacity-50 line-through" : ""}>
+                          <TableCell className="font-medium">{r.name}</TableCell>
+                          <TableCell>{r.phone}</TableCell>
+                          <TableCell>
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${RECIP_BADGE[r.status] ?? RECIP_BADGE.pending}`}>{r.status}</span>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {removable ? (
+                              <Button size="sm" variant="ghost" onClick={() => toggleRemoveRecipient(r.id)}>
+                                {marked ? "Manter" : <><X className="w-3.5 h-3.5 mr-1" /> Remover</>}
+                              </Button>
+                            ) : <span className="text-xs text-muted-foreground">—</span>}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
+
           <div className="border-t pt-3">
             <div className="flex items-center justify-between mb-2">
-              <div className="font-medium flex items-center gap-2"><Users className="w-4 h-4" /> Contatos ({picked.size} selecionados)</div>
+              <div className="font-medium flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                {isEdit ? "Adicionar contatos" : "Contatos"} ({picked.size} selecionados)
+              </div>
               <div className="flex gap-1">
                 <Button size="sm" variant="outline" onClick={pickAllVisible}>Selecionar visíveis</Button>
                 <Button size="sm" variant="outline" onClick={clearAll}>Limpar</Button>
@@ -384,7 +545,7 @@ function CreateCampaignDialog({
               {isLoading ? (
                 <div className="p-4 space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}</div>
               ) : filtered.length === 0 ? (
-                <div className="p-4 text-center text-sm text-muted-foreground">Nenhum cliente encontrado.</div>
+                <div className="p-4 text-center text-sm text-muted-foreground">Nenhum cliente disponível.</div>
               ) : (
                 <Table>
                   <TableBody>
@@ -406,7 +567,9 @@ function CreateCampaignDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleCreate} disabled={saving}>{saving ? "Criando..." : "Criar campanha"}</Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? "Salvando..." : isEdit ? "Salvar alterações" : "Criar campanha"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
