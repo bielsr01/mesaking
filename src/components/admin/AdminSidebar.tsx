@@ -1,4 +1,4 @@
-import { ChefHat, Store, Package, ShoppingBag, ChevronDown } from "lucide-react";
+import { ChefHat, Store, Package, ShoppingBag, ChevronDown, BarChart3 } from "lucide-react";
 import { useState } from "react";
 import {
   Sidebar,
