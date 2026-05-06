@@ -18,6 +18,7 @@ import { brl, slugify } from "@/lib/format";
 import { SupplyOrdersTab, SupplyCatalogTab } from "@/components/admin/SupplyAdminPanel";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { AdminSidebar, type AdminView } from "@/components/admin/AdminSidebar";
+import { AdminOverviewPanel } from "@/components/admin/AdminOverviewPanel";
 
 interface Restaurant {
   id: string;
