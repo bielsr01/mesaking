@@ -477,7 +477,7 @@ export function OverviewPanel({ restaurantId }: { restaurantId: string }) {
           <CardHeader><CardTitle className="text-base">Faturamento iFood por mês</CardTitle></CardHeader>
           <CardContent style={{ height: 280 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={(ifoodQ.data ?? [])
+              <LineChart data={(ifoodQ.data ?? [])
                 .slice()
                 .sort((a, b) => a.date_from.localeCompare(b.date_from))
                 .map((r) => ({
@@ -489,12 +489,23 @@ export function OverviewPanel({ restaurantId }: { restaurantId: string }) {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="mes" />
                 <YAxis />
-                <RTooltip formatter={(v: any) => brl(Number(v))} />
-                <Legend />
-                <Bar dataKey="vendas" fill="hsl(var(--primary))" name="Vendas" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="faturamento" fill="#10b981" name="Faturamento" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="taxas" fill="#ef4444" name="Taxas/Ajustes" radius={[6, 6, 0, 0]} />
-              </BarChart>
+                <RTooltip
+                  formatter={(v: any, name: any) => [brl(Number(v)), name]}
+                  content={({ active, payload, label }: any) => {
+                    if (!active || !payload?.length) return null;
+                    const d = payload[0].payload;
+                    return (
+                      <div className="rounded-md border bg-background px-3 py-2 text-xs shadow-md space-y-1">
+                        <div className="font-medium">{label}</div>
+                        <div className="flex justify-between gap-4"><span className="text-muted-foreground">Vendas</span><span>{brl(d.vendas)}</span></div>
+                        <div className="flex justify-between gap-4"><span className="text-muted-foreground">Faturamento</span><span className="text-emerald-600">{brl(d.faturamento)}</span></div>
+                        <div className="flex justify-between gap-4"><span className="text-muted-foreground">Taxas/Ajustes</span><span className="text-red-600">- {brl(d.taxas)}</span></div>
+                      </div>
+                    );
+                  }}
+                />
+                <Line type="monotone" dataKey="faturamento" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} name="Faturamento" />
+              </LineChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
