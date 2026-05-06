@@ -67,6 +67,41 @@ export function AdminSidebar({ active, onChange }: { active: AdminView; onChange
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={active === "customers"}
+                  onClick={() => onChange("customers")}
+                  tooltip="Clientes"
+                >
+                  <Users className="h-4 w-4" />
+                  <span>Clientes</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <Collapsible open={marketingOpen || collapsed} onOpenChange={setMarketingOpen} asChild>
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton isActive={marketingActive} tooltip="Marketing">
+                      <Megaphone className="h-4 w-4" />
+                      <span>Marketing</span>
+                      <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={active === "marketing:coupons"}>
+                          <button type="button" onClick={() => onChange("marketing:coupons")} className="w-full text-left flex items-center gap-2">
+                            <Ticket className="h-4 w-4" />
+                            <span>Cupons de desconto</span>
+                          </button>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
+
               <Collapsible open={supplyOpen || collapsed} onOpenChange={setSupplyOpen} asChild>
                 <SidebarMenuItem>
                   <CollapsibleTrigger asChild>
