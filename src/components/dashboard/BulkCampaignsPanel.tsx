@@ -251,7 +251,10 @@ function CreateCampaignDialog({
         restaurant_id: scope === "admin" ? targetRestaurant : restaurantIds[0],
         is_admin: false,
         name, message_text: text, media_url: mediaUrl || null,
-        interval_seconds: interval, total: chosen.length, status: "draft",
+        interval_seconds: interval,
+        pause_after_messages: pauseAfter,
+        pause_duration_minutes: pauseMinutes,
+        total: chosen.length, status: "draft",
       }).select("id").single();
       if (error) throw error;
 
