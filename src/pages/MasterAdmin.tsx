@@ -128,6 +128,8 @@ export default function MasterAdmin() {
   const titleMap: Record<AdminView, string> = {
     overview: "Visão geral",
     restaurants: "Restaurantes",
+    customers: "Clientes",
+    "marketing:coupons": "Cupons de desconto",
     "supply:catalog": "Catálogo de insumos",
     "supply:orders": "Pedidos de insumos recebidos",
   };
