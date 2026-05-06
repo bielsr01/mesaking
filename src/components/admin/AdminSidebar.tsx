@@ -1,4 +1,4 @@
-import { ChefHat, Store, Package, ShoppingBag, ChevronDown } from "lucide-react";
+import { ChefHat, Store, Package, ShoppingBag, ChevronDown, BarChart3 } from "lucide-react";
 import { useState } from "react";
 import {
   Sidebar,
@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
-export type AdminView = "restaurants" | "supply:catalog" | "supply:orders";
+export type AdminView = "overview" | "restaurants" | "supply:catalog" | "supply:orders";
 
 export function AdminSidebar({ active, onChange }: { active: AdminView; onChange: (v: AdminView) => void }) {
   const { state } = useSidebar();
@@ -38,6 +38,16 @@ export function AdminSidebar({ active, onChange }: { active: AdminView; onChange
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={active === "overview"}
+                  onClick={() => onChange("overview")}
+                  tooltip="Visão geral"
+                >
+                  <BarChart3 className="h-4 w-4" />
+                  <span>Visão geral</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
                   isActive={active === "restaurants"}

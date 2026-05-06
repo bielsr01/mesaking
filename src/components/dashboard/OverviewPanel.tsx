@@ -86,7 +86,9 @@ function classifySource(o: any): SourceFilter {
 
 const COLORS = ["hsl(var(--primary))", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"];
 
-export function OverviewPanel({ restaurantId }: { restaurantId: string }) {
+export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: string; restaurantIds?: string[] }) {
+  const ids = restaurantIds && restaurantIds.length > 0 ? restaurantIds : restaurantId ? [restaurantId] : [];
+  const idsKey = ids.slice().sort().join(",");
   const [preset, setPreset] = useState<Preset>("7d");
   const [custom, setCustom] = useState<DateRange | undefined>();
   const [source, setSource] = useState<SourceFilter>("all");
@@ -106,12 +108,13 @@ export function OverviewPanel({ restaurantId }: { restaurantId: string }) {
   }, [range]);
 
   const ordersQ = useQuery({
-    queryKey: ["overview-orders", restaurantId, prevRange.from.toISOString(), range.to.toISOString()],
+    queryKey: ["overview-orders", idsKey, prevRange.from.toISOString(), range.to.toISOString()],
+    enabled: ids.length > 0,
     queryFn: async () => {
       const { data } = await sb
         .from("orders")
         .select("id, created_at, total, subtotal, discount, delivery_fee, service_fee, coupon_code, status, order_type, payment_method, external_source, customer_phone, customer_name")
-        .eq("restaurant_id", restaurantId)
+        .in("restaurant_id", ids)
         .gte("created_at", prevRange.from.toISOString())
         .lte("created_at", range.to.toISOString())
         .neq("status", "cancelled");
@@ -121,12 +124,13 @@ export function OverviewPanel({ restaurantId }: { restaurantId: string }) {
   });
 
   const itemsQ = useQuery({
-    queryKey: ["overview-items", restaurantId, range.from.toISOString(), range.to.toISOString()],
+    queryKey: ["overview-items", idsKey, range.from.toISOString(), range.to.toISOString()],
+    enabled: ids.length > 0,
     queryFn: async () => {
       const { data } = await sb
         .from("order_items")
         .select("product_name, quantity, unit_price, order_id, orders!inner(restaurant_id, created_at, status)")
-        .eq("orders.restaurant_id", restaurantId)
+        .in("orders.restaurant_id", ids)
         .gte("orders.created_at", range.from.toISOString())
         .lte("orders.created_at", range.to.toISOString())
         .neq("orders.status", "cancelled");
@@ -136,21 +140,23 @@ export function OverviewPanel({ restaurantId }: { restaurantId: string }) {
   });
 
   const customersQ = useQuery({
-    queryKey: ["overview-customers", restaurantId],
+    queryKey: ["overview-customers", idsKey],
+    enabled: ids.length > 0,
     queryFn: async () => {
-      const { count } = await sb.from("loyalty_members").select("id", { count: "exact", head: true }).eq("restaurant_id", restaurantId);
+      const { count } = await sb.from("loyalty_members").select("id", { count: "exact", head: true }).in("restaurant_id", ids);
       return count ?? 0;
     },
     staleTime: 60_000,
   });
 
   const ifoodQ = useQuery({
-    queryKey: ["overview-ifood-all", restaurantId],
+    queryKey: ["overview-ifood-all", idsKey],
+    enabled: ids.length > 0,
     queryFn: async () => {
       const { data } = await sb
         .from("ifood_sales")
         .select("date_from, date_to, orders_count, gross_revenue, net_revenue, fees")
-        .eq("restaurant_id", restaurantId);
+        .in("restaurant_id", ids);
       return (data ?? []) as any[];
     },
     staleTime: 30_000,
@@ -164,12 +170,13 @@ export function OverviewPanel({ restaurantId }: { restaurantId: string }) {
     return { from, to: endOfDay(now) };
   }, []);
   const compareOrdersQ = useQuery({
-    queryKey: ["overview-compare", restaurantId, compareWindow.from.toISOString()],
+    queryKey: ["overview-compare", idsKey, compareWindow.from.toISOString()],
+    enabled: ids.length > 0,
     queryFn: async () => {
       const { data } = await sb
         .from("orders")
         .select("id, created_at, total, order_type, payment_method, external_source")
-        .eq("restaurant_id", restaurantId)
+        .in("restaurant_id", ids)
         .gte("created_at", compareWindow.from.toISOString())
         .lte("created_at", compareWindow.to.toISOString())
         .neq("status", "cancelled");
