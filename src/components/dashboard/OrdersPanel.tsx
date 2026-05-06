@@ -300,6 +300,25 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     }
   };
 
+  const deleteOrder = async (o: Order) => {
+    const prev = qc.getQueryData<{ orders: Order[]; items: Record<string, Item[]> }>(ordersKey(restaurantId));
+    qc.setQueryData<{ orders: Order[]; items: Record<string, Item[]> }>(ordersKey(restaurantId), (p) => {
+      if (!p) return p;
+      return { ...p, orders: p.orders.filter((x) => x.id !== o.id) };
+    });
+    const { error: itemsErr } = await supabase.from("order_items").delete().eq("order_id", o.id);
+    const { error } = await supabase.from("orders").delete().eq("id", o.id);
+    if (error || itemsErr) {
+      if (prev) qc.setQueryData(ordersKey(restaurantId), prev);
+      toast.error((error || itemsErr)!.message);
+      return;
+    }
+    toast.success("Pedido excluído permanentemente");
+    qc.invalidateQueries({ queryKey: ["managerStats", restaurantId] });
+    qc.invalidateQueries({ queryKey: ["overview", restaurantId] }, { exact: false } as any);
+    qc.invalidateQueries();
+  };
+
   const channelOrders = orders.filter((o) => {
     if (channel === "quero") return o.external_source === "quero";
     if (channel === "pdv") return o.order_type === "pdv" && o.external_source !== "quero";
