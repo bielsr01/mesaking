@@ -78,10 +78,6 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-      return new Response(JSON.stringify({ ok: r.ok, status: r.status, data: r.data }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
     throw new Error("Ação desconhecida");
   } catch (e) {
