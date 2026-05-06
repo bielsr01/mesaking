@@ -1,4 +1,4 @@
-import { ChefHat, Store, Package, ShoppingBag, ChevronDown, BarChart3, Users, Megaphone, Ticket, BookOpen } from "lucide-react";
+import { ChefHat, Store, Package, ShoppingBag, ChevronDown, BarChart3, Users, Megaphone, Ticket, BookOpen, Send, Plug } from "lucide-react";
 import { useState } from "react";
 import {
   Sidebar,
@@ -22,6 +22,8 @@ export type AdminView =
   | "menu"
   | "customers"
   | "marketing:coupons"
+  | "marketing:bulk"
+  | "settings:integrations"
   | "supply:catalog"
   | "supply:orders";
 
