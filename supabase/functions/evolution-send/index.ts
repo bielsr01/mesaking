@@ -43,8 +43,9 @@ Deno.serve(async (req) => {
     }
     if (!cfg.apiUrl || !cfg.apiKey || !cfg.instance) throw new Error("Credenciais incompletas");
 
+    const inst = encodeURIComponent(cfg.instance);
     if (action === "verify") {
-      const r = await evoFetch(cfg.apiUrl, `/instance/connectionState/${cfg.instance}`, cfg.apiKey, undefined, "GET");
+      const r = await evoFetch(cfg.apiUrl, `/instance/connectionState/${inst}`, cfg.apiKey, undefined, "GET");
       if (integrationId) {
         await supabase.from("evolution_integrations").update({
           last_status: r.ok ? (r.data?.instance?.state || "ok") : `erro ${r.status}`,
@@ -61,18 +62,22 @@ Deno.serve(async (req) => {
       if (!number) throw new Error("Telefone inválido");
       let r;
       if (mediaUrl) {
-        r = await evoFetch(cfg.apiUrl, `/message/sendMedia/${cfg.instance}`, cfg.apiKey, {
+        r = await evoFetch(cfg.apiUrl, `/message/sendMedia/${inst}`, cfg.apiKey, {
           number,
           mediatype: "image",
           media: mediaUrl,
           caption: text || "",
         });
       } else {
-        r = await evoFetch(cfg.apiUrl, `/message/sendText/${cfg.instance}`, cfg.apiKey, {
+        r = await evoFetch(cfg.apiUrl, `/message/sendText/${inst}`, cfg.apiKey, {
           number,
           text: text || "",
         });
       }
+      return new Response(JSON.stringify({ ok: r.ok, status: r.status, data: r.data }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
       return new Response(JSON.stringify({ ok: r.ok, status: r.status, data: r.data }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
