@@ -91,6 +91,14 @@ export function OverviewPanel({ restaurantId }: { restaurantId: string }) {
   const [custom, setCustom] = useState<DateRange | undefined>();
   const [source, setSource] = useState<SourceFilter>("all");
 
+  const ifoodAllowedPresets: Preset[] = ["lastmonth", "month", "custom"];
+  const handleSourceChange = (v: SourceFilter) => {
+    setSource(v);
+    if (v === "ifood" && !ifoodAllowedPresets.includes(preset)) {
+      setPreset("lastmonth");
+    }
+  };
+
   const range = useMemo(() => rangeFor(preset, custom), [preset, custom]);
   const prevRange = useMemo(() => {
     const days = differenceInCalendarDays(range.to, range.from) + 1;
