@@ -15,13 +15,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 const sb = supabase as any;
 
-type ClientType = "elite" | "best" | "frequent" | "none";
+type ClientType = "elite" | "best" | "frequent" | "new" | "none";
 type ClientStatus = "active" | "inactive" | "sleeping" | "risk";
 
 const TYPE_LABELS: Record<ClientType, string> = {
   elite: "Comprador Elite (+8)",
   best: "Melhor Comprador (5–7)",
   frequent: "Comprador Frequente (3–4)",
+  new: "Novo Cliente (1–2)",
   none: "Sem pedido",
 };
 const STATUS_LABELS: Record<ClientStatus, string> = {
@@ -34,6 +35,7 @@ const TYPE_BADGE: Record<ClientType, string> = {
   elite: "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-200",
   best: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200",
   frequent: "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200",
+  new: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-200",
   none: "bg-muted text-muted-foreground",
 };
 const STATUS_BADGE: Record<ClientStatus, string> = {
@@ -47,6 +49,7 @@ function getClientType(orders: number): ClientType | null {
   if (orders >= 8) return "elite";
   if (orders >= 5) return "best";
   if (orders >= 3) return "frequent";
+  if (orders >= 1) return "new";
   if (orders === 0) return "none";
   return null;
 }
