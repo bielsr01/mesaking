@@ -1,4 +1,4 @@
-import { ChefHat, Store, Package, ShoppingBag, ChevronDown, BarChart3 } from "lucide-react";
+import { ChefHat, Store, Package, ShoppingBag, ChevronDown, BarChart3, Users, Megaphone, Ticket } from "lucide-react";
 import { useState } from "react";
 import {
   Sidebar,
@@ -16,13 +16,21 @@ import {
 } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
-export type AdminView = "overview" | "restaurants" | "supply:catalog" | "supply:orders";
+export type AdminView =
+  | "overview"
+  | "restaurants"
+  | "customers"
+  | "marketing:coupons"
+  | "supply:catalog"
+  | "supply:orders";
 
 export function AdminSidebar({ active, onChange }: { active: AdminView; onChange: (v: AdminView) => void }) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const supplyActive = active.startsWith("supply:");
+  const marketingActive = active.startsWith("marketing:");
   const [supplyOpen, setSupplyOpen] = useState(supplyActive);
+  const [marketingOpen, setMarketingOpen] = useState(marketingActive);
 
   return (
     <Sidebar collapsible="icon">
