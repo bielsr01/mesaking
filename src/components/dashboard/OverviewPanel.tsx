@@ -661,7 +661,6 @@ export function OverviewPanel({ restaurantId }: { restaurantId: string }) {
       </div>
       </div>
       )}
-      </div>
     </div>
   );
 }
