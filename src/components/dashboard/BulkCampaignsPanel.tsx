@@ -66,6 +66,7 @@ export function BulkCampaignsPanel({
   const { data: campaigns, isLoading } = useQuery({
     queryKey: ["bulk-campaigns", scope, filterKey],
     enabled: scope === "restaurant" ? !!restaurantId : adminFilter.length > 0,
+    refetchInterval: 5000,
     queryFn: async () => {
       let q = sb.from("bulk_campaigns").select("*").order("created_at", { ascending: false }).limit(200);
       if (scope === "restaurant") q = q.eq("restaurant_id", restaurantId);
@@ -140,7 +141,14 @@ export function BulkCampaignsPanel({
                     <TableRow key={c.id}>
                       <TableCell className="font-medium">{c.name}</TableCell>
                       {scope === "admin" && <TableCell><Badge variant="outline">{restNameById.get(c.restaurant_id) ?? "—"}</Badge></TableCell>}
-                      <TableCell><span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_BADGE[c.status]}`}>{STATUS_LABEL[c.status]}</span></TableCell>
+                      <TableCell>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_BADGE[c.status]}`}>{STATUS_LABEL[c.status]}</span>
+                        {c.status === "running" && c.paused_until && new Date(c.paused_until).getTime() > Date.now() && (
+                          <div className="text-[10px] text-yellow-700 dark:text-yellow-300 mt-0.5">
+                            Pausa auto até {new Date(c.paused_until).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell className="text-center">{c.sent}</TableCell>
                       <TableCell className="text-center">{c.failed}</TableCell>
                       <TableCell className="text-center">{c.total}</TableCell>
@@ -197,6 +205,8 @@ function CreateCampaignDialog({
   const [text, setText] = useState("");
   const [mediaUrl, setMediaUrl] = useState("");
   const [interval, setInterval] = useState(8);
+  const [pauseAfter, setPauseAfter] = useState(0);
+  const [pauseMinutes, setPauseMinutes] = useState(0);
   const [search, setSearch] = useState("");
   const [typeFilters, setTypeFilters] = useState<Set<ClientType>>(new Set());
   const [statusFilters, setStatusFilters] = useState<Set<ClientStatus>>(new Set());
@@ -249,7 +259,10 @@ function CreateCampaignDialog({
         restaurant_id: scope === "admin" ? targetRestaurant : restaurantIds[0],
         is_admin: false,
         name, message_text: text, media_url: mediaUrl || null,
-        interval_seconds: interval, total: chosen.length, status: "draft",
+        interval_seconds: interval,
+        pause_after_messages: pauseAfter,
+        pause_duration_minutes: pauseMinutes,
+        total: chosen.length, status: "draft",
       }).select("id").single();
       if (error) throw error;
 
@@ -306,7 +319,15 @@ function CreateCampaignDialog({
             </div>
             <div className="space-y-2">
               <Label>Intervalo entre envios (segundos)</Label>
-              <Input type="number" min={3} value={interval} onChange={(e) => setInterval(Number(e.target.value) || 8)} />
+              <Input type="number" min={1} value={interval} onChange={(e) => setInterval(Number(e.target.value) || 8)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Pausar a cada N mensagens (0 = desligado)</Label>
+              <Input type="number" min={0} value={pauseAfter} onChange={(e) => setPauseAfter(Math.max(0, Number(e.target.value) || 0))} placeholder="Ex: 100" />
+            </div>
+            <div className="space-y-2">
+              <Label>Duração da pausa (minutos)</Label>
+              <Input type="number" min={0} value={pauseMinutes} onChange={(e) => setPauseMinutes(Math.max(0, Number(e.target.value) || 0))} placeholder="Ex: 60" />
             </div>
           </div>
 

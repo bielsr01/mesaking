@@ -36,13 +36,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    let currentUserId: string | null = null;
+
     const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
       setUser(newSession?.user ?? null);
-      if (newSession?.user) {
+      const newId = newSession?.user?.id ?? null;
+      // Only (re)load roles when the user identity actually changes.
+      // Avoids unmounting the app on TOKEN_REFRESHED when switching browser tabs.
+      if (newId && newId !== currentUserId) {
+        currentUserId = newId;
         setRolesLoading(true);
-        setTimeout(() => loadRoles(newSession.user.id), 0);
-      } else {
+        setTimeout(() => loadRoles(newId), 0);
+      } else if (!newId) {
+        currentUserId = null;
         setRoles([]);
         setRolesLoading(false);
       }
@@ -52,6 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(s);
       setUser(s?.user ?? null);
       if (s?.user) {
+        currentUserId = s.user.id;
         setRolesLoading(true);
         loadRoles(s.user.id).finally(() => setLoading(false));
       } else {
