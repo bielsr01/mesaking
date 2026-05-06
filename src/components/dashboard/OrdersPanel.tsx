@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { brl, orderStatusLabel, getNextStatus, paymentLabel, formatPhone, orderTypeLabel } from "@/lib/format";
 import { toast } from "sonner";
-import { Bike, ChefHat, Clock, MapPin, MessageCircle, Phone, Plus, Printer, Store, User, X } from "lucide-react";
+import { Bike, ChefHat, Clock, MapPin, MessageCircle, Phone, Plus, Printer, Store, Trash2, User, X } from "lucide-react";
 
 /** Monta link wa.me garantindo DDI 55 (Brasil) sem duplicar */
 function waLink(phone: string | null | undefined): string | null {
@@ -109,6 +109,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const [queroBlink, setQueroBlink] = useState(false);
   const [filter, setFilter] = useState("pending");
   const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Order | null>(null);
   const [printTarget, setPrintTarget] = useState<Order | null>(null);
   const [pdvOpen, setPdvOpen] = useState(false);
   const [deliveryBlink, setDeliveryBlink] = useState(false);
@@ -297,6 +298,23 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
       toast.success("Pedido cancelado");
       syncQueroStatus(o, "cancelled");
     }
+  };
+
+  const deleteOrder = async (o: Order) => {
+    const prev = qc.getQueryData<{ orders: Order[]; items: Record<string, Item[]> }>(ordersKey(restaurantId));
+    qc.setQueryData<{ orders: Order[]; items: Record<string, Item[]> }>(ordersKey(restaurantId), (p) => {
+      if (!p) return p;
+      return { ...p, orders: p.orders.filter((x) => x.id !== o.id) };
+    });
+    const { error: itemsErr } = await supabase.from("order_items").delete().eq("order_id", o.id);
+    const { error } = await supabase.from("orders").delete().eq("id", o.id);
+    if (error || itemsErr) {
+      if (prev) qc.setQueryData(ordersKey(restaurantId), prev);
+      toast.error((error || itemsErr)!.message);
+      return;
+    }
+    toast.success("Pedido excluído permanentemente");
+    qc.invalidateQueries();
   };
 
   const channelOrders = orders.filter((o) => {
@@ -517,6 +535,16 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                       <Button size="sm" variant="outline" onClick={() => setCancelTarget(o)} aria-label="Cancelar pedido"><X className="w-4 h-4" /></Button>
                     </>
                   )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setDeleteTarget(o)}
+                    aria-label="Excluir pedido permanentemente"
+                    title="Excluir permanentemente"
+                    className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -542,6 +570,28 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
               onClick={() => { if (cancelTarget) { cancel(cancelTarget); setCancelTarget(null); } }}
             >
               Sim, cancelar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir pedido permanentemente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTarget && (
+                <>Esta ação <strong>não pode ser desfeita</strong>. O pedido <strong>#{deleteTarget.order_number}</strong> de <strong>{deleteTarget.customer_name}</strong> ({brl(deleteTarget.total)}) será removido do banco e todos os relatórios serão recalculados.</>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => { if (deleteTarget) { deleteOrder(deleteTarget); setDeleteTarget(null); } }}
+            >
+              Sim, excluir
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
