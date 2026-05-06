@@ -91,6 +91,14 @@ export function OverviewPanel({ restaurantId }: { restaurantId: string }) {
   const [custom, setCustom] = useState<DateRange | undefined>();
   const [source, setSource] = useState<SourceFilter>("all");
 
+  const ifoodAllowedPresets: Preset[] = ["lastmonth", "month", "custom"];
+  const handleSourceChange = (v: SourceFilter) => {
+    setSource(v);
+    if (v === "ifood" && !ifoodAllowedPresets.includes(preset)) {
+      setPreset("lastmonth");
+    }
+  };
+
   const range = useMemo(() => rangeFor(preset, custom), [preset, custom]);
   const prevRange = useMemo(() => {
     const days = differenceInCalendarDays(range.to, range.from) + 1;
@@ -351,11 +359,21 @@ export function OverviewPanel({ restaurantId }: { restaurantId: string }) {
         <CardContent className="p-4 flex flex-wrap items-center gap-3">
           <CalendarIcon className="w-4 h-4 text-muted-foreground" />
           <div className="flex flex-wrap gap-1">
-            {presets.map((p) => (
-              <Button key={p.id} size="sm" variant={preset === p.id ? "default" : "outline"} onClick={() => setPreset(p.id)}>
-                {p.label}
-              </Button>
-            ))}
+            {presets.map((p) => {
+              const disabled = source === "ifood" && !ifoodAllowedPresets.includes(p.id);
+              return (
+                <Button
+                  key={p.id}
+                  size="sm"
+                  variant={preset === p.id ? "default" : "outline"}
+                  onClick={() => setPreset(p.id)}
+                  disabled={disabled}
+                  className={disabled ? "opacity-40" : ""}
+                >
+                  {p.label}
+                </Button>
+              );
+            })}
           </div>
           {preset === "custom" && (
             <Popover>
@@ -376,7 +394,7 @@ export function OverviewPanel({ restaurantId }: { restaurantId: string }) {
       </Card>
 
       {/* Source filter */}
-      <Tabs value={source} onValueChange={(v) => setSource(v as SourceFilter)}>
+      <Tabs value={source} onValueChange={(v) => handleSourceChange(v as SourceFilter)}>
         <TabsList className="grid grid-cols-5 w-full max-w-3xl">
           <TabsTrigger value="all">Todos</TabsTrigger>
           <TabsTrigger value="pdv">PDV</TabsTrigger>
@@ -454,7 +472,34 @@ export function OverviewPanel({ restaurantId }: { restaurantId: string }) {
       </div>
 
       {/* Progress chart */}
-      <div className={source === "ifood" ? "opacity-40 pointer-events-none" : ""}>
+      {source === "ifood" ? (
+        <Card>
+          <CardHeader><CardTitle className="text-base">Faturamento iFood por mês</CardTitle></CardHeader>
+          <CardContent style={{ height: 280 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={(ifoodQ.data ?? [])
+                .slice()
+                .sort((a, b) => a.date_from.localeCompare(b.date_from))
+                .map((r) => ({
+                  mes: format(new Date(r.date_from + "T00:00"), "MMM/yy", { locale: ptBR }),
+                  vendas: Number(r.gross_revenue || 0),
+                  faturamento: Number(r.net_revenue || 0),
+                  taxas: Number(r.fees || 0),
+                }))}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="mes" />
+                <YAxis />
+                <RTooltip formatter={(v: any) => brl(Number(v))} />
+                <Legend />
+                <Bar dataKey="vendas" fill="hsl(var(--primary))" name="Vendas" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="faturamento" fill="#10b981" name="Faturamento" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="taxas" fill="#ef4444" name="Taxas/Ajustes" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      ) : (
+      <div>
       <Card>
         <CardHeader><CardTitle className="text-base">Progresso dos pedidos</CardTitle></CardHeader>
         <CardContent style={{ height: 280 }}>
@@ -615,6 +660,7 @@ export function OverviewPanel({ restaurantId }: { restaurantId: string }) {
         </Card>
       </div>
       </div>
+      )}
     </div>
   );
 }
