@@ -109,6 +109,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const [queroBlink, setQueroBlink] = useState(false);
   const [filter, setFilter] = useState("pending");
   const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Order | null>(null);
   const [printTarget, setPrintTarget] = useState<Order | null>(null);
   const [pdvOpen, setPdvOpen] = useState(false);
   const [deliveryBlink, setDeliveryBlink] = useState(false);
