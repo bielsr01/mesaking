@@ -1,43 +1,44 @@
-## Problema
+## Editar campanha (mesmo ativa)
 
-Ao logar, o redirecionamento usa `isMasterAdmin` / `isManager`, mas esses valores dependem da tabela `user_roles`, que é carregada **assincronamente** depois que `user` é definido. Resultado:
+Adicionar a possibilidade de editar uma campanha em qualquer status, com a regra de que **edição só é permitida quando a campanha está pausada ou em draft** — se estiver `running`, o sistema pausa automaticamente antes de abrir o editor.
 
-1. `signIn` dispara `onAuthStateChange` → `user` é setado imediatamente, `roles` ainda é `[]`.
-2. O `useEffect` em `Auth.tsx` roda com `user` presente mas `isMasterAdmin=false` e `isManager=false` → cai no `else` e navega para `/`.
-3. `Index.tsx` vê `user` sem roles → redireciona de volta para `/auth`.
-4. Quando os roles finalmente chegam, o redirecionamento correto acontece — mas nesse meio tempo o usuário pode ver tela errada, ou em alguns casos ficar parado em `/`.
+### Fluxo do usuário
 
-O `RequireRole` tem o mesmo risco: durante a janela em que `loading=false` mas roles ainda não chegaram (ex.: trocar de conta sem reload), ele redireciona indevidamente para `/`.
+1. Na lista de campanhas (`BulkCampaignsPanel` — usado tanto no Dashboard quanto no Admin), cada linha ganha um botão **Editar** (ícone de lápis).
+2. Ao clicar:
+   - Se a campanha está `running` → mostra confirmação "A campanha será pausada para edição. Continuar?" e altera status para `paused`.
+   - Abre o mesmo dialog usado para criar campanha, em modo edição, pré-preenchido.
+3. Usuário pode alterar:
+   - Nome
+   - Texto da mensagem (com `{nome}`)
+   - URL da mídia
+   - Intervalo de envio (segundos)
+   - Pausa automática (a cada N msg / duração em min)
+   - **Destinatários**: adicionar novos contatos (mesmos filtros de cliente já existentes) ou remover pendentes.
+4. Ao salvar, a campanha permanece `paused`. Usuário clica em **Play** para retomar.
 
-## Solução
+### Regras importantes
 
-Introduzir uma flag explícita `rolesLoading` no `AuthContext` e usá-la em todos os pontos de redirecionamento.
+- **Não é possível remover destinatários já enviados** (`status = sent`/`failed`) — apenas os `pending`.
+- Adicionar novos contatos cria novos `bulk_campaign_recipients` com `status = pending` e atualiza `total` da campanha.
+- Editar texto/mídia/intervalo/pausa afeta apenas envios futuros — quem já recebeu não é reenviado.
+- Ao editar uma campanha pausada por auto-pausa (`paused_until` no futuro), o usuário pode optar por **limpar a pausa** (botão "Retomar agora") que zera `paused_until` e `sent_in_block`.
 
-### 1. `src/contexts/AuthContext.tsx`
+### Mudanças técnicas
 
-- Adicionar estado `rolesLoading: boolean` (inicial `false`).
-- Em `loadRoles`: setar `rolesLoading=true` antes do fetch e `false` no `finally`.
-- No `onAuthStateChange`: quando há novo user, setar `rolesLoading=true` imediatamente (antes do `setTimeout`) para evitar a janela onde `user` existe mas roles ainda são as antigas/vazias. Quando `newSession` é null, limpar roles e garantir `rolesLoading=false`.
-- Expor `rolesLoading` no value do contexto.
+**Frontend** — `src/components/dashboard/BulkCampaignsPanel.tsx`:
+- Refatorar o `CreateCampaignDialog` interno para aceitar prop `campaign?: BulkCampaign` (modo edição).
+- Em modo edição:
+  - Pré-carregar valores e recipients existentes.
+  - Mostrar lista de recipients atuais com badge de status; permitir remover só os `pending`.
+  - Botão "Adicionar contatos" abre seletor com os mesmos filtros de cliente.
+  - Submit faz `UPDATE` em `bulk_campaigns` + `INSERT` dos novos recipients + `DELETE` dos removidos.
+- Adicionar botão **Editar** (lápis) na tabela de campanhas, ao lado de Play/Pause/Delete.
+- Handler do botão: se status = `running`, faz `update status='paused'` antes de abrir o dialog.
+- Adicionar botão **"Retomar agora"** quando `paused_until` está no futuro.
 
-### 2. `src/pages/Auth.tsx`
+**Backend**: nenhuma mudança de schema necessária — todas as colunas (`interval_seconds`, `pause_after_messages`, `pause_duration_minutes`, `media_url`, `message_text`, `name`) já existem e as RLS policies já permitem update pelo manager/admin. O worker já lê esses valores a cada iteração, então mudanças tomam efeito imediatamente quando a campanha voltar a `running`.
 
-- Importar `rolesLoading` do `useAuth`.
-- No `useEffect` de redirect, só executar quando `!loading && !rolesLoading && user`.
-- Manter prioridade: `master_admin` → `/admin`, `manager` → `/dashboard`, senão `/` (cliente comum, mas isso não deve acontecer com contas de painel).
+### Arquivos afetados
 
-### 3. `src/pages/Index.tsx`
-
-- Importar `rolesLoading`. Enquanto `loading || rolesLoading`, mostrar tela "Carregando..." (mesma UX já existente).
-- Só decidir destino depois que roles carregarem.
-
-### 4. `src/components/RequireRole.tsx`
-
-- Tratar `rolesLoading` igual a `loading`: enquanto qualquer um for true, mostrar "Carregando...". Só então avaliar `isMasterAdmin` / `isManager` e redirecionar.
-
-## Resultado
-
-- Login com conta admin → fica em `/auth` mostrando "Entrando..."/spinner até roles carregarem → vai direto para `/admin`.
-- Login com conta manager → vai direto para `/dashboard`.
-- Acesso cruzado (admin tentando `/dashboard` ou manager tentando `/admin`) continua bloqueado pelo `RequireRole`, agora sem o falso-negativo da janela de carregamento.
-- Nenhuma mudança de banco, RLS ou edge function.
+- `src/components/dashboard/BulkCampaignsPanel.tsx` (única edição)
