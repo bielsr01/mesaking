@@ -21,6 +21,7 @@ import { AdminSidebar, type AdminView } from "@/components/admin/AdminSidebar";
 import { AdminOverviewPanel } from "@/components/admin/AdminOverviewPanel";
 import { AdminCustomersPanel } from "@/components/admin/AdminCustomersPanel";
 import { AdminCouponsPanel } from "@/components/admin/AdminCouponsPanel";
+import { AdminMenuPanel } from "@/components/admin/AdminMenuPanel";
 
 interface Restaurant {
   id: string;
@@ -130,6 +131,7 @@ export default function MasterAdmin() {
   const titleMap: Record<AdminView, string> = {
     overview: "Visão geral",
     restaurants: "Restaurantes",
+    menu: "Cardápio",
     customers: "Clientes",
     "marketing:coupons": "Cupons de desconto",
     "supply:catalog": "Catálogo de insumos",
@@ -278,6 +280,7 @@ export default function MasterAdmin() {
             )}
 
             {view === "overview" && <AdminOverviewPanel />}
+            {view === "menu" && <AdminMenuPanel />}
             {view === "customers" && <AdminCustomersPanel />}
             {view === "marketing:coupons" && <AdminCouponsPanel />}
             {view === "supply:catalog" && <SupplyCatalogTab />}
