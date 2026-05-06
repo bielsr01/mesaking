@@ -472,7 +472,34 @@ export function OverviewPanel({ restaurantId }: { restaurantId: string }) {
       </div>
 
       {/* Progress chart */}
-      <div className={source === "ifood" ? "opacity-40 pointer-events-none" : ""}>
+      {source === "ifood" ? (
+        <Card>
+          <CardHeader><CardTitle className="text-base">Faturamento iFood por mês</CardTitle></CardHeader>
+          <CardContent style={{ height: 280 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={(ifoodQ.data ?? [])
+                .slice()
+                .sort((a, b) => a.date_from.localeCompare(b.date_from))
+                .map((r) => ({
+                  mes: format(new Date(r.date_from + "T00:00"), "MMM/yy", { locale: ptBR }),
+                  vendas: Number(r.gross_revenue || 0),
+                  faturamento: Number(r.net_revenue || 0),
+                  taxas: Number(r.fees || 0),
+                }))}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="mes" />
+                <YAxis />
+                <RTooltip formatter={(v: any) => brl(Number(v))} />
+                <Legend />
+                <Bar dataKey="vendas" fill="hsl(var(--primary))" name="Vendas" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="faturamento" fill="#10b981" name="Faturamento" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="taxas" fill="#ef4444" name="Taxas/Ajustes" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      ) : (
+      <div>
       <Card>
         <CardHeader><CardTitle className="text-base">Progresso dos pedidos</CardTitle></CardHeader>
         <CardContent style={{ height: 280 }}>
