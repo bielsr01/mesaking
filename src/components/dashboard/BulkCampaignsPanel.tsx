@@ -197,6 +197,8 @@ function CreateCampaignDialog({
   const [text, setText] = useState("");
   const [mediaUrl, setMediaUrl] = useState("");
   const [interval, setInterval] = useState(8);
+  const [pauseAfter, setPauseAfter] = useState(0);
+  const [pauseMinutes, setPauseMinutes] = useState(0);
   const [search, setSearch] = useState("");
   const [typeFilters, setTypeFilters] = useState<Set<ClientType>>(new Set());
   const [statusFilters, setStatusFilters] = useState<Set<ClientStatus>>(new Set());
