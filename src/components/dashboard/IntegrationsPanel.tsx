@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, RefreshCw, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import queroLogo from "@/assets/quero-delivery-logo.png";
+import { EvolutionIntegrationCard } from "./EvolutionIntegrationCard";
 
 type Integration = {
   id?: string;
@@ -73,6 +74,7 @@ export function IntegrationsPanel({ restaurantId }: { restaurantId: string }) {
             )}
           </CardContent>
         </Card>
+        <EvolutionIntegrationCard scope="restaurant" restaurantId={restaurantId} />
       </div>
 
       <QueroDialog

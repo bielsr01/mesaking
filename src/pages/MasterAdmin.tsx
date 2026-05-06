@@ -22,6 +22,8 @@ import { AdminOverviewPanel } from "@/components/admin/AdminOverviewPanel";
 import { AdminCustomersPanel } from "@/components/admin/AdminCustomersPanel";
 import { AdminCouponsPanel } from "@/components/admin/AdminCouponsPanel";
 import { AdminMenuPanel } from "@/components/admin/AdminMenuPanel";
+import { BulkCampaignsPanel } from "@/components/dashboard/BulkCampaignsPanel";
+import { EvolutionIntegrationCard } from "@/components/dashboard/EvolutionIntegrationCard";
 
 interface Restaurant {
   id: string;
@@ -134,6 +136,8 @@ export default function MasterAdmin() {
     menu: "Cardápio",
     customers: "Clientes",
     "marketing:coupons": "Cupons de desconto",
+    "marketing:bulk": "Envio em massa",
+    "settings:integrations": "Integrações",
     "supply:catalog": "Catálogo de insumos",
     "supply:orders": "Pedidos de insumos recebidos",
   };
@@ -283,6 +287,12 @@ export default function MasterAdmin() {
             {view === "menu" && <AdminMenuPanel />}
             {view === "customers" && <AdminCustomersPanel />}
             {view === "marketing:coupons" && <AdminCouponsPanel />}
+            {view === "marketing:bulk" && <BulkCampaignsPanel scope="admin" />}
+            {view === "settings:integrations" && (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <EvolutionIntegrationCard scope="admin" />
+              </div>
+            )}
             {view === "supply:catalog" && <SupplyCatalogTab />}
             {view === "supply:orders" && <SupplyOrdersTab />}
           </main>

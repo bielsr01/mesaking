@@ -1,4 +1,4 @@
-import { ChefHat, Store, Package, ShoppingBag, ChevronDown, BarChart3, Users, Megaphone, Ticket, BookOpen } from "lucide-react";
+import { ChefHat, Store, Package, ShoppingBag, ChevronDown, BarChart3, Users, Megaphone, Ticket, BookOpen, Send, Plug } from "lucide-react";
 import { useState } from "react";
 import {
   Sidebar,
@@ -22,6 +22,8 @@ export type AdminView =
   | "menu"
   | "customers"
   | "marketing:coupons"
+  | "marketing:bulk"
+  | "settings:integrations"
   | "supply:catalog"
   | "supply:orders";
 
@@ -109,10 +111,29 @@ export function AdminSidebar({ active, onChange }: { active: AdminView; onChange
                           </button>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={active === "marketing:bulk"}>
+                          <button type="button" onClick={() => onChange("marketing:bulk")} className="w-full text-left flex items-center gap-2">
+                            <Send className="h-4 w-4" />
+                            <span>Envio em massa</span>
+                          </button>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
                     </SidebarMenuSub>
                   </CollapsibleContent>
                 </SidebarMenuItem>
               </Collapsible>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={active === "settings:integrations"}
+                  onClick={() => onChange("settings:integrations")}
+                  tooltip="Integrações"
+                >
+                  <Plug className="h-4 w-4" />
+                  <span>Integrações</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
 
               <Collapsible open={supplyOpen || collapsed} onOpenChange={setSupplyOpen} asChild>
                 <SidebarMenuItem>
