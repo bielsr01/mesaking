@@ -40,6 +40,16 @@ export function AdminSidebar({ active, onChange }: { active: AdminView; onChange
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton
+                  isActive={active === "overview"}
+                  onClick={() => onChange("overview")}
+                  tooltip="Visão geral"
+                >
+                  <BarChart3 className="h-4 w-4" />
+                  <span>Visão geral</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
                   isActive={active === "restaurants"}
                   onClick={() => onChange("restaurants")}
                   tooltip="Restaurantes"
