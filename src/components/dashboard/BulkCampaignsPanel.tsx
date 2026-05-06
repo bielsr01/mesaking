@@ -140,7 +140,14 @@ export function BulkCampaignsPanel({
                     <TableRow key={c.id}>
                       <TableCell className="font-medium">{c.name}</TableCell>
                       {scope === "admin" && <TableCell><Badge variant="outline">{restNameById.get(c.restaurant_id) ?? "—"}</Badge></TableCell>}
-                      <TableCell><span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_BADGE[c.status]}`}>{STATUS_LABEL[c.status]}</span></TableCell>
+                      <TableCell>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_BADGE[c.status]}`}>{STATUS_LABEL[c.status]}</span>
+                        {c.status === "running" && c.paused_until && new Date(c.paused_until).getTime() > Date.now() && (
+                          <div className="text-[10px] text-yellow-700 dark:text-yellow-300 mt-0.5">
+                            Pausa auto até {new Date(c.paused_until).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell className="text-center">{c.sent}</TableCell>
                       <TableCell className="text-center">{c.failed}</TableCell>
                       <TableCell className="text-center">{c.total}</TableCell>
