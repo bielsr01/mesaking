@@ -74,6 +74,7 @@ export function IntegrationsPanel({ restaurantId }: { restaurantId: string }) {
             )}
           </CardContent>
         </Card>
+        <EvolutionIntegrationCard scope="restaurant" restaurantId={restaurantId} />
       </div>
 
       <QueroDialog
