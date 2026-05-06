@@ -66,6 +66,7 @@ export function BulkCampaignsPanel({
   const { data: campaigns, isLoading } = useQuery({
     queryKey: ["bulk-campaigns", scope, filterKey],
     enabled: scope === "restaurant" ? !!restaurantId : adminFilter.length > 0,
+    refetchInterval: 5000,
     queryFn: async () => {
       let q = sb.from("bulk_campaigns").select("*").order("created_at", { ascending: false }).limit(200);
       if (scope === "restaurant") q = q.eq("restaurant_id", restaurantId);
