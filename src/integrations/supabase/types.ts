@@ -14,6 +14,110 @@ export type Database = {
   }
   public: {
     Tables: {
+      bulk_campaign_recipients: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          customer_id: string | null
+          error: string | null
+          id: string
+          name: string | null
+          phone: string
+          sent_at: string | null
+          status: Database["public"]["Enums"]["bulk_recipient_status"]
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          customer_id?: string | null
+          error?: string | null
+          id?: string
+          name?: string | null
+          phone: string
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["bulk_recipient_status"]
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          customer_id?: string | null
+          error?: string | null
+          id?: string
+          name?: string | null
+          phone?: string
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["bulk_recipient_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bulk_campaign_recipients_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "bulk_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bulk_campaigns: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          failed: number
+          finished_at: string | null
+          id: string
+          interval_seconds: number
+          is_admin: boolean
+          last_run_at: string | null
+          media_url: string | null
+          message_text: string
+          name: string
+          restaurant_id: string | null
+          sent: number
+          started_at: string | null
+          status: Database["public"]["Enums"]["bulk_campaign_status"]
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          failed?: number
+          finished_at?: string | null
+          id?: string
+          interval_seconds?: number
+          is_admin?: boolean
+          last_run_at?: string | null
+          media_url?: string | null
+          message_text: string
+          name: string
+          restaurant_id?: string | null
+          sent?: number
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["bulk_campaign_status"]
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          failed?: number
+          finished_at?: string | null
+          id?: string
+          interval_seconds?: number
+          is_admin?: boolean
+          last_run_at?: string | null
+          media_url?: string | null
+          message_text?: string
+          name?: string
+          restaurant_id?: string | null
+          sent?: number
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["bulk_campaign_status"]
+          total?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           created_at: string
@@ -177,6 +281,48 @@ export type Database = {
           orders_count?: number
           phone?: string
           restaurant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      evolution_integrations: {
+        Row: {
+          api_key: string
+          api_url: string
+          created_at: string
+          enabled: boolean
+          id: string
+          instance_name: string
+          is_admin: boolean
+          last_check_at: string | null
+          last_status: string | null
+          restaurant_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          api_key: string
+          api_url: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          instance_name: string
+          is_admin?: boolean
+          last_check_at?: string | null
+          last_status?: string | null
+          restaurant_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          api_key?: string
+          api_url?: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          instance_name?: string
+          is_admin?: boolean
+          last_check_at?: string | null
+          last_status?: string | null
+          restaurant_id?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -1199,6 +1345,13 @@ export type Database = {
     }
     Enums: {
       app_role: "master_admin" | "manager" | "customer"
+      bulk_campaign_status:
+        | "draft"
+        | "running"
+        | "paused"
+        | "completed"
+        | "failed"
+      bulk_recipient_status: "pending" | "sent" | "failed"
       order_status:
         | "pending"
         | "accepted"
@@ -1338,6 +1491,14 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["master_admin", "manager", "customer"],
+      bulk_campaign_status: [
+        "draft",
+        "running",
+        "paused",
+        "completed",
+        "failed",
+      ],
+      bulk_recipient_status: ["pending", "sent", "failed"],
       order_status: [
         "pending",
         "accepted",
