@@ -311,7 +311,15 @@ function CreateCampaignDialog({
             </div>
             <div className="space-y-2">
               <Label>Intervalo entre envios (segundos)</Label>
-              <Input type="number" min={3} value={interval} onChange={(e) => setInterval(Number(e.target.value) || 8)} />
+              <Input type="number" min={1} value={interval} onChange={(e) => setInterval(Number(e.target.value) || 8)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Pausar a cada N mensagens (0 = desligado)</Label>
+              <Input type="number" min={0} value={pauseAfter} onChange={(e) => setPauseAfter(Math.max(0, Number(e.target.value) || 0))} placeholder="Ex: 100" />
+            </div>
+            <div className="space-y-2">
+              <Label>Duração da pausa (minutos)</Label>
+              <Input type="number" min={0} value={pauseMinutes} onChange={(e) => setPauseMinutes(Math.max(0, Number(e.target.value) || 0))} placeholder="Ex: 60" />
             </div>
           </div>
 
