@@ -86,7 +86,9 @@ function classifySource(o: any): SourceFilter {
 
 const COLORS = ["hsl(var(--primary))", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"];
 
-export function OverviewPanel({ restaurantId }: { restaurantId: string }) {
+export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: string; restaurantIds?: string[] }) {
+  const ids = restaurantIds && restaurantIds.length > 0 ? restaurantIds : restaurantId ? [restaurantId] : [];
+  const idsKey = ids.slice().sort().join(",");
   const [preset, setPreset] = useState<Preset>("7d");
   const [custom, setCustom] = useState<DateRange | undefined>();
   const [source, setSource] = useState<SourceFilter>("all");
