@@ -359,11 +359,21 @@ export function OverviewPanel({ restaurantId }: { restaurantId: string }) {
         <CardContent className="p-4 flex flex-wrap items-center gap-3">
           <CalendarIcon className="w-4 h-4 text-muted-foreground" />
           <div className="flex flex-wrap gap-1">
-            {presets.map((p) => (
-              <Button key={p.id} size="sm" variant={preset === p.id ? "default" : "outline"} onClick={() => setPreset(p.id)}>
-                {p.label}
-              </Button>
-            ))}
+            {presets.map((p) => {
+              const disabled = source === "ifood" && !ifoodAllowedPresets.includes(p.id);
+              return (
+                <Button
+                  key={p.id}
+                  size="sm"
+                  variant={preset === p.id ? "default" : "outline"}
+                  onClick={() => setPreset(p.id)}
+                  disabled={disabled}
+                  className={disabled ? "opacity-40" : ""}
+                >
+                  {p.label}
+                </Button>
+              );
+            })}
           </div>
           {preset === "custom" && (
             <Popover>
