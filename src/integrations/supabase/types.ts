@@ -71,8 +71,12 @@ export type Database = {
           media_url: string | null
           message_text: string
           name: string
+          pause_after_messages: number
+          pause_duration_minutes: number
+          paused_until: string | null
           restaurant_id: string | null
           sent: number
+          sent_in_block: number
           started_at: string | null
           status: Database["public"]["Enums"]["bulk_campaign_status"]
           total: number
@@ -90,8 +94,12 @@ export type Database = {
           media_url?: string | null
           message_text: string
           name: string
+          pause_after_messages?: number
+          pause_duration_minutes?: number
+          paused_until?: string | null
           restaurant_id?: string | null
           sent?: number
+          sent_in_block?: number
           started_at?: string | null
           status?: Database["public"]["Enums"]["bulk_campaign_status"]
           total?: number
@@ -109,8 +117,12 @@ export type Database = {
           media_url?: string | null
           message_text?: string
           name?: string
+          pause_after_messages?: number
+          pause_duration_minutes?: number
+          paused_until?: string | null
           restaurant_id?: string | null
           sent?: number
+          sent_in_block?: number
           started_at?: string | null
           status?: Database["public"]["Enums"]["bulk_campaign_status"]
           total?: number
