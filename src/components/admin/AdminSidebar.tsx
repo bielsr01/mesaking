@@ -111,10 +111,29 @@ export function AdminSidebar({ active, onChange }: { active: AdminView; onChange
                           </button>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={active === "marketing:bulk"}>
+                          <button type="button" onClick={() => onChange("marketing:bulk")} className="w-full text-left flex items-center gap-2">
+                            <Send className="h-4 w-4" />
+                            <span>Envio em massa</span>
+                          </button>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
                     </SidebarMenuSub>
                   </CollapsibleContent>
                 </SidebarMenuItem>
               </Collapsible>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={active === "settings:integrations"}
+                  onClick={() => onChange("settings:integrations")}
+                  tooltip="Integrações"
+                >
+                  <Plug className="h-4 w-4" />
+                  <span>Integrações</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
 
               <Collapsible open={supplyOpen || collapsed} onOpenChange={setSupplyOpen} asChild>
                 <SidebarMenuItem>
