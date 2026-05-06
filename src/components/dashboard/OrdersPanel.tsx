@@ -314,8 +314,6 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
       return;
     }
     toast.success("Pedido excluído permanentemente");
-    qc.invalidateQueries({ queryKey: ["managerStats", restaurantId] });
-    qc.invalidateQueries({ queryKey: ["overview", restaurantId] }, { exact: false } as any);
     qc.invalidateQueries();
   };
 
