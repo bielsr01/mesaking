@@ -575,6 +575,28 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
         </AlertDialogContent>
       </AlertDialog>
 
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir pedido permanentemente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTarget && (
+                <>Esta ação <strong>não pode ser desfeita</strong>. O pedido <strong>#{deleteTarget.order_number}</strong> de <strong>{deleteTarget.customer_name}</strong> ({brl(deleteTarget.total)}) será removido do banco e todos os relatórios serão recalculados.</>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => { if (deleteTarget) { deleteOrder(deleteTarget); setDeleteTarget(null); } }}
+            >
+              Sim, excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <Dialog open={!!printTarget} onOpenChange={(o) => !o && setPrintTarget(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
