@@ -13,8 +13,11 @@ function normalizePhone(p: string) {
   return "55" + d;
 }
 
+function sanitizeBase(apiUrl: string) {
+  return (apiUrl || "").replace(/\/+$/, "").replace(/\/manager$/i, "");
+}
 async function evoFetch(apiUrl: string, path: string, apiKey: string, body: any) {
-  const url = apiUrl.replace(/\/+$/, "") + path;
+  const url = sanitizeBase(apiUrl) + path;
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json", apikey: apiKey },
@@ -75,14 +78,15 @@ Deno.serve(async (req) => {
 
     const number = normalizePhone(rec.phone);
     const personalized = (c.message_text || "").replace(/\{nome\}/gi, rec.name || "");
+    const inst = encodeURIComponent(integ.instance_name);
     let r;
     try {
       if (c.media_url) {
-        r = await evoFetch(integ.api_url, `/message/sendMedia/${integ.instance_name}`, integ.api_key, {
+        r = await evoFetch(integ.api_url, `/message/sendMedia/${inst}`, integ.api_key, {
           number, mediatype: "image", media: c.media_url, caption: personalized,
         });
       } else {
-        r = await evoFetch(integ.api_url, `/message/sendText/${integ.instance_name}`, integ.api_key, {
+        r = await evoFetch(integ.api_url, `/message/sendText/${inst}`, integ.api_key, {
           number, text: personalized,
         });
       }

@@ -13,8 +13,11 @@ function normalizePhone(p: string) {
   return "55" + d;
 }
 
+function sanitizeBase(apiUrl: string) {
+  return (apiUrl || "").replace(/\/+$/, "").replace(/\/manager$/i, "");
+}
 async function evoFetch(apiUrl: string, path: string, apiKey: string, body?: any, method = "POST") {
-  const url = apiUrl.replace(/\/+$/, "") + path;
+  const url = sanitizeBase(apiUrl) + path;
   const res = await fetch(url, {
     method,
     headers: { "Content-Type": "application/json", apikey: apiKey },
@@ -40,8 +43,9 @@ Deno.serve(async (req) => {
     }
     if (!cfg.apiUrl || !cfg.apiKey || !cfg.instance) throw new Error("Credenciais incompletas");
 
+    const inst = encodeURIComponent(cfg.instance);
     if (action === "verify") {
-      const r = await evoFetch(cfg.apiUrl, `/instance/connectionState/${cfg.instance}`, cfg.apiKey, undefined, "GET");
+      const r = await evoFetch(cfg.apiUrl, `/instance/connectionState/${inst}`, cfg.apiKey, undefined, "GET");
       if (integrationId) {
         await supabase.from("evolution_integrations").update({
           last_status: r.ok ? (r.data?.instance?.state || "ok") : `erro ${r.status}`,
@@ -58,14 +62,14 @@ Deno.serve(async (req) => {
       if (!number) throw new Error("Telefone inválido");
       let r;
       if (mediaUrl) {
-        r = await evoFetch(cfg.apiUrl, `/message/sendMedia/${cfg.instance}`, cfg.apiKey, {
+        r = await evoFetch(cfg.apiUrl, `/message/sendMedia/${inst}`, cfg.apiKey, {
           number,
           mediatype: "image",
           media: mediaUrl,
           caption: text || "",
         });
       } else {
-        r = await evoFetch(cfg.apiUrl, `/message/sendText/${cfg.instance}`, cfg.apiKey, {
+        r = await evoFetch(cfg.apiUrl, `/message/sendText/${inst}`, cfg.apiKey, {
           number,
           text: text || "",
         });
