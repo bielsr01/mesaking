@@ -394,7 +394,7 @@ export function OverviewPanel({ restaurantId }: { restaurantId: string }) {
       </Card>
 
       {/* Source filter */}
-      <Tabs value={source} onValueChange={(v) => setSource(v as SourceFilter)}>
+      <Tabs value={source} onValueChange={(v) => handleSourceChange(v as SourceFilter)}>
         <TabsList className="grid grid-cols-5 w-full max-w-3xl">
           <TabsTrigger value="all">Todos</TabsTrigger>
           <TabsTrigger value="pdv">PDV</TabsTrigger>
