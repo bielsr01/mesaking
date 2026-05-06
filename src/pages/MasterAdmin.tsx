@@ -19,6 +19,8 @@ import { SupplyOrdersTab, SupplyCatalogTab } from "@/components/admin/SupplyAdmi
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { AdminSidebar, type AdminView } from "@/components/admin/AdminSidebar";
 import { AdminOverviewPanel } from "@/components/admin/AdminOverviewPanel";
+import { AdminCustomersPanel } from "@/components/admin/AdminCustomersPanel";
+import { AdminCouponsPanel } from "@/components/admin/AdminCouponsPanel";
 
 interface Restaurant {
   id: string;
@@ -128,6 +130,8 @@ export default function MasterAdmin() {
   const titleMap: Record<AdminView, string> = {
     overview: "Visão geral",
     restaurants: "Restaurantes",
+    customers: "Clientes",
+    "marketing:coupons": "Cupons de desconto",
     "supply:catalog": "Catálogo de insumos",
     "supply:orders": "Pedidos de insumos recebidos",
   };
@@ -274,6 +278,8 @@ export default function MasterAdmin() {
             )}
 
             {view === "overview" && <AdminOverviewPanel />}
+            {view === "customers" && <AdminCustomersPanel />}
+            {view === "marketing:coupons" && <AdminCouponsPanel />}
             {view === "supply:catalog" && <SupplyCatalogTab />}
             {view === "supply:orders" && <SupplyOrdersTab />}
           </main>

@@ -1,4 +1,4 @@
-import { ChefHat, Store, Package, ShoppingBag, ChevronDown, BarChart3 } from "lucide-react";
+import { ChefHat, Store, Package, ShoppingBag, ChevronDown, BarChart3, Users, Megaphone, Ticket } from "lucide-react";
 import { useState } from "react";
 import {
   Sidebar,
@@ -16,13 +16,21 @@ import {
 } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
-export type AdminView = "overview" | "restaurants" | "supply:catalog" | "supply:orders";
+export type AdminView =
+  | "overview"
+  | "restaurants"
+  | "customers"
+  | "marketing:coupons"
+  | "supply:catalog"
+  | "supply:orders";
 
 export function AdminSidebar({ active, onChange }: { active: AdminView; onChange: (v: AdminView) => void }) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const supplyActive = active.startsWith("supply:");
+  const marketingActive = active.startsWith("marketing:");
   const [supplyOpen, setSupplyOpen] = useState(supplyActive);
+  const [marketingOpen, setMarketingOpen] = useState(marketingActive);
 
   return (
     <Sidebar collapsible="icon">
@@ -58,6 +66,41 @@ export function AdminSidebar({ active, onChange }: { active: AdminView; onChange
                   <span>Restaurantes</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={active === "customers"}
+                  onClick={() => onChange("customers")}
+                  tooltip="Clientes"
+                >
+                  <Users className="h-4 w-4" />
+                  <span>Clientes</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <Collapsible open={marketingOpen || collapsed} onOpenChange={setMarketingOpen} asChild>
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton isActive={marketingActive} tooltip="Marketing">
+                      <Megaphone className="h-4 w-4" />
+                      <span>Marketing</span>
+                      <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={active === "marketing:coupons"}>
+                          <button type="button" onClick={() => onChange("marketing:coupons")} className="w-full text-left flex items-center gap-2">
+                            <Ticket className="h-4 w-4" />
+                            <span>Cupons de desconto</span>
+                          </button>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
 
               <Collapsible open={supplyOpen || collapsed} onOpenChange={setSupplyOpen} asChild>
                 <SidebarMenuItem>
