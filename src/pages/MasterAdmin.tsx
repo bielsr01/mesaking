@@ -273,6 +273,7 @@ export default function MasterAdmin() {
               </>
             )}
 
+            {view === "overview" && <AdminOverviewPanel />}
             {view === "supply:catalog" && <SupplyCatalogTab />}
             {view === "supply:orders" && <SupplyOrdersTab />}
           </main>
