@@ -1,4 +1,4 @@
-import { ChefHat, Store, Package, ShoppingBag, ChevronDown, BarChart3, Users, Megaphone, Ticket } from "lucide-react";
+import { ChefHat, Store, Package, ShoppingBag, ChevronDown, BarChart3, Users, Megaphone, Ticket, BookOpen } from "lucide-react";
 import { useState } from "react";
 import {
   Sidebar,
@@ -19,6 +19,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 export type AdminView =
   | "overview"
   | "restaurants"
+  | "menu"
   | "customers"
   | "marketing:coupons"
   | "supply:catalog"
@@ -64,6 +65,17 @@ export function AdminSidebar({ active, onChange }: { active: AdminView; onChange
                 >
                   <Store className="h-4 w-4" />
                   <span>Restaurantes</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={active === "menu"}
+                  onClick={() => onChange("menu")}
+                  tooltip="Cardápio"
+                >
+                  <BookOpen className="h-4 w-4" />
+                  <span>Cardápio</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
