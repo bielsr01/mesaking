@@ -269,6 +269,7 @@ function CampaignDialog({
     campaign?.restaurant_id ?? (scope === "restaurant" ? restaurantIds[0] : "")
   );
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const idsKey = restaurantIds.slice().sort().join(",");
   const { data: customers, isLoading } = useQuery({
