@@ -174,15 +174,24 @@ Deno.serve(async (req) => {
         const orderId: string | undefined = ev?.orderId;
         if (!orderId) continue;
 
-        // Skip if already imported
+        // If already imported, sync status from Quero (external -> local)
         const { data: existing } = await admin
           .from("orders")
-          .select("id")
+          .select("id, status")
           .eq("restaurant_id", restaurantId)
           .eq("external_source", "quero")
           .eq("external_order_id", orderId)
           .maybeSingle();
-        if (existing) continue;
+        if (existing) {
+          const newStatus = mapStatus(ev?.status || "");
+          if (newStatus && newStatus !== existing.status) {
+            await admin
+              .from("orders")
+              .update({ status: newStatus, updated_at: new Date().toISOString() })
+              .eq("id", existing.id);
+          }
+          continue;
+        }
 
         // Fetch full order
         const detailUrl = `${baseUrl}/orders?placeId=${encodeURIComponent(cfgPlaceId)}&orderId=${encodeURIComponent(orderId)}`;
