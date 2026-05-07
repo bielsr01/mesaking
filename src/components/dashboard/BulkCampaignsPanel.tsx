@@ -269,6 +269,7 @@ function CampaignDialog({
     campaign?.restaurant_id ?? (scope === "restaurant" ? restaurantIds[0] : "")
   );
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const idsKey = restaurantIds.slice().sort().join(",");
   const { data: customers, isLoading } = useQuery({
@@ -437,8 +438,48 @@ function CampaignDialog({
               <Textarea rows={4} value={text} onChange={(e) => setText(e.target.value)} placeholder="Olá {nome}, temos uma oferta especial..." />
             </div>
             <div className="space-y-2">
-              <Label>URL da imagem (opcional)</Label>
-              <Input value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} placeholder="https://..." />
+              <Label>Imagem (opcional)</Label>
+              <div className="flex gap-2">
+                <Input value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} placeholder="Cole a URL ou envie um arquivo" />
+                <input
+                  id="campaign-media-file"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = "";
+                    if (!file) return;
+                    if (file.size > 8 * 1024 * 1024) return toast.error("Imagem deve ter no máximo 8MB");
+                    setUploading(true);
+                    try {
+                      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+                      const path = `campaigns/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+                      const { error: upErr } = await supabase.storage.from("menu-images").upload(path, file, {
+                        contentType: file.type, upsert: false,
+                      });
+                      if (upErr) throw upErr;
+                      const { data } = supabase.storage.from("menu-images").getPublicUrl(path);
+                      setMediaUrl(data.publicUrl);
+                      toast.success("Imagem enviada");
+                    } catch (err: any) {
+                      toast.error(err.message || "Falha no upload");
+                    } finally { setUploading(false); }
+                  }}
+                />
+                <Button type="button" variant="outline" disabled={uploading}
+                  onClick={() => document.getElementById("campaign-media-file")?.click()}>
+                  {uploading ? "Enviando..." : "Upload"}
+                </Button>
+              </div>
+              {mediaUrl && (
+                <div className="mt-2 flex items-start gap-2">
+                  <img src={mediaUrl} alt="Prévia" className="h-20 w-20 object-cover rounded border" onError={(e) => ((e.currentTarget.style.display = "none"))} />
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setMediaUrl("")}>
+                    <X className="w-3.5 h-3.5 mr-1" /> Remover
+                  </Button>
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               <Label>Intervalo entre envios (segundos)</Label>
