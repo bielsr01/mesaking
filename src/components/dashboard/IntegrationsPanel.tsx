@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -107,6 +107,15 @@ function QueroDialog({
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [verifyResult, setVerifyResult] = useState<{ ok: boolean; msg: string } | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    setApiUrl(existing?.api_url ?? "https://api.quero.io");
+    setPlaceId(existing?.place_id ?? "");
+    setToken(existing?.auth_token ?? "");
+    setEnabled(existing?.enabled ?? true);
+    setVerifyResult(null);
+  }, [open, existing?.api_url, existing?.place_id, existing?.auth_token, existing?.enabled]);
 
   const handleVerify = async () => {
     if (!placeId || !token) {
