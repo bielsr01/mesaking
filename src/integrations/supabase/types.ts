@@ -423,6 +423,116 @@ export type Database = {
         }
         Relationships: []
       }
+      ihub_events: {
+        Row: {
+          code: string | null
+          created_at: string
+          error: string | null
+          event_id: string | null
+          full_code: string | null
+          id: string
+          integration_id: string | null
+          merchant_id: string | null
+          order_id: string | null
+          payload: Json
+          processed: boolean
+          restaurant_id: string | null
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          error?: string | null
+          event_id?: string | null
+          full_code?: string | null
+          id?: string
+          integration_id?: string | null
+          merchant_id?: string | null
+          order_id?: string | null
+          payload: Json
+          processed?: boolean
+          restaurant_id?: string | null
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          error?: string | null
+          event_id?: string | null
+          full_code?: string | null
+          id?: string
+          integration_id?: string | null
+          merchant_id?: string | null
+          order_id?: string | null
+          payload?: Json
+          processed?: boolean
+          restaurant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ihub_events_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "ihub_integrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ihub_events_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ihub_integrations: {
+        Row: {
+          created_at: string
+          domain: string
+          enabled: boolean
+          id: string
+          last_event_at: string | null
+          last_event_code: string | null
+          merchant_id: string | null
+          merchant_name: string | null
+          restaurant_id: string
+          secret_token: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          domain: string
+          enabled?: boolean
+          id?: string
+          last_event_at?: string | null
+          last_event_code?: string | null
+          merchant_id?: string | null
+          merchant_name?: string | null
+          restaurant_id: string
+          secret_token: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          domain?: string
+          enabled?: boolean
+          id?: string
+          last_event_at?: string | null
+          last_event_code?: string | null
+          merchant_id?: string | null
+          merchant_name?: string | null
+          restaurant_id?: string
+          secret_token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ihub_integrations_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: true
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       loyalty_members: {
         Row: {
           created_at: string
