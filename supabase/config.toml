@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.bulk-campaign-worker]
 verify_jwt = false
+
+[functions.ihub-webhook]
+verify_jwt = false
