@@ -77,7 +77,9 @@ Deno.serve(async (req) => {
         headers: {
           "Authorization": `Bearer ${token}`,
           "Accept": "application/json",
+          "Content-Type": "application/json",
         },
+        body: JSON.stringify({ domain: integration.domain || "ihub.arcn.com.br" }),
       });
       const text = await r.text();
       let data: any;
