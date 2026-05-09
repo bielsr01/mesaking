@@ -106,7 +106,7 @@ export async function fetchOrders(restaurantId: string): Promise<{ orders: Order
 
 export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const qc = useQueryClient();
-  const [channel, setChannel] = useState<"delivery" | "pdv">("pdv");
+  const [channel, setChannel] = useState<"delivery" | "pdv" | "ifood">("pdv");
   const [filter, setFilter] = useState("pending");
   const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Order | null>(null);
