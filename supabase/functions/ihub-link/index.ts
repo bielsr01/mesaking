@@ -13,6 +13,15 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
 );
 
+function normalizeIhubBaseUrl(domain: string | null | undefined) {
+  const cleanDomain = (domain || "ihub.arcn.com.br")
+    .trim()
+    .replace(/^https?:\/\//i, "")
+    .replace(/\/api\/?$/i, "")
+    .replace(/\/+$/, "");
+  return `https://${cleanDomain}/api`;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -22,13 +31,9 @@ Deno.serve(async (req) => {
       status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-  const userClient = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_ANON_KEY")!,
-    { global: { headers: { Authorization: authHeader } } },
-  );
-  const { data: userRes } = await userClient.auth.getUser();
-  if (!userRes?.user) {
+  const token0 = authHeader.replace(/^Bearer\s+/i, "").trim();
+  const { data: userRes, error: userErr } = await supabase.auth.getUser(token0);
+  if (userErr || !userRes?.user) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -60,7 +65,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  const base = `https://${integration.domain || "ihub.arcn.com.br"}/api`;
+  const base = normalizeIhubBaseUrl(integration.domain);
   const token = integration.secret_token;
 
   try {
