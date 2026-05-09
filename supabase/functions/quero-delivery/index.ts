@@ -64,17 +64,19 @@ Deno.serve(async (req) => {
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
     const authz = req.headers.get("Authorization") || "";
     if (!authz.startsWith("Bearer ")) return json({ error: "unauthorized" }, 401);
 
-    const admin = createClient(SUPABASE_URL, SERVICE_KEY);
-    const userClient = createClient(SUPABASE_URL, ANON, {
-      global: { headers: { Authorization: authz } },
+    const token0 = authz.replace(/^Bearer\s+/i, "").trim();
+    if (!token0) return json({ error: "unauthorized", details: "Missing bearer token" }, 401);
+
+    const admin = createClient(SUPABASE_URL, SERVICE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
     });
-    const { data: userRes, error: userErr } = await userClient.auth.getUser();
-    if (userErr || !userRes?.user) {
-      console.error("auth getUser error:", userErr);
+    const { data: claimsRes, error: userErr } = await admin.auth.getClaims(token0);
+    const userId = claimsRes?.claims?.sub;
+    if (userErr || !userId) {
+      console.error("auth getClaims error:", userErr);
       return json({ error: "unauthorized", details: userErr?.message }, 401);
     }
 
@@ -85,11 +87,11 @@ Deno.serve(async (req) => {
 
     // Verify caller is manager/owner
     const { data: isMgr } = await admin.rpc("is_restaurant_manager", {
-      _user_id: userRes.user.id,
+      _user_id: userId,
       _restaurant_id: restaurantId,
     });
     if (!isMgr) {
-      const { data: roles } = await admin.from("user_roles").select("role").eq("user_id", userRes.user.id);
+      const { data: roles } = await admin.from("user_roles").select("role").eq("user_id", userId);
       const isAdmin = roles?.some((r: any) => r.role === "master_admin");
       if (!isAdmin) return json({ error: "forbidden" }, 403);
     }
