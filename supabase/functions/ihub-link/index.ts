@@ -13,13 +13,13 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
 );
 
-function normalizeIhubBaseUrl(domain: string | null | undefined) {
-  const cleanDomain = (domain || "ihub.arcn.com.br")
+const IHUB_BASE = "https://ihub.arcn.com.br/api";
+
+function normalizeDomain(domain: string | null | undefined) {
+  return (domain || "")
     .trim()
     .replace(/^https?:\/\//i, "")
-    .replace(/\/api\/?$/i, "")
     .replace(/\/+$/, "");
-  return `https://${cleanDomain}/api`;
 }
 
 Deno.serve(async (req) => {
@@ -35,7 +35,6 @@ Deno.serve(async (req) => {
   const { data: claimsRes, error: userErr } = await supabase.auth.getClaims(token0);
   const userId = claimsRes?.claims?.sub;
   if (userErr || !userId) {
-    console.error("auth getClaims error:", userErr);
     return new Response(JSON.stringify({ error: "Unauthorized", details: userErr?.message }), {
       status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -67,23 +66,28 @@ Deno.serve(async (req) => {
     });
   }
 
-  const base = normalizeIhubBaseUrl(integration.domain);
+  const domain = normalizeDomain(integration.domain);
+  if (!domain) {
+    return new Response(JSON.stringify({
+      error: "Domínio não configurado",
+      details: "Cadastre o domínio do seu sistema (ex.: app.meudelivery.com.br) — deve ser EXATAMENTE o mesmo domínio cadastrado no painel do iHub para este token.",
+    }), {
+      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   const token = integration.secret_token;
+  const authHdr = { "Authorization": `Bearer ${token}`, "Accept": "application/json" };
 
   try {
     if (action === "generate-user-code") {
-      const r = await fetch(`${base}/auth/generate-user-code`, {
+      // Per docs: generate-user-code does NOT require a body — token identifies the client.
+      const r = await fetch(`${IHUB_BASE}/auth/generate-user-code`, {
         method: "POST",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Accept": "application/json",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ domain: integration.domain || "ihub.arcn.com.br" }),
+        headers: authHdr,
       });
       const text = await r.text();
-      let data: any;
-      try { data = JSON.parse(text); } catch { data = { raw: text }; }
+      let data: any; try { data = JSON.parse(text); } catch { data = { raw: text }; }
       if (!r.ok) {
         return new Response(JSON.stringify({ error: "iHub error", status: r.status, data }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -100,28 +104,22 @@ Deno.serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const r = await fetch(`${base}/auth/link-merchant`, {
+      const r = await fetch(`${IHUB_BASE}/auth/link-merchant`, {
         method: "POST",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Accept": "application/json",
-          "Content-Type": "application/json",
-        },
+        headers: { ...authHdr, "Content-Type": "application/json" },
         body: JSON.stringify({
-          domain: integration.domain || "ihub.arcn.com.br",
+          domain,
           authorizationCode,
           authorizationCodeVerifier,
         }),
       });
       const text = await r.text();
-      let data: any;
-      try { data = JSON.parse(text); } catch { data = { raw: text }; }
+      let data: any; try { data = JSON.parse(text); } catch { data = { raw: text }; }
       if (!r.ok) {
         return new Response(JSON.stringify({ error: "iHub error", status: r.status, data }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      // Auto-save merchant_id
       const merchantId = data?.merchant?.merchant_id ?? data?.ifood_details?.id ?? null;
       const merchantName = data?.ifood_details?.name ?? null;
       if (merchantId) {

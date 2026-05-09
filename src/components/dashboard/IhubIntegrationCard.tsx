@@ -91,7 +91,7 @@ export function IhubIntegrationCard({ restaurantId }: { restaurantId: string }) 
   useEffect(() => {
     if (!open) return;
     setToken(data?.secret_token ?? "");
-    setDomain(data?.domain ?? "ihub.arcn.com.br");
+    setDomain(data?.domain ?? "");
     setMerchantId(data?.merchant_id ?? "");
     setEnabled(data?.enabled ?? true);
   }, [open, data]);
@@ -113,7 +113,7 @@ export function IhubIntegrationCard({ restaurantId }: { restaurantId: string }) 
       const payload = {
         restaurant_id: restaurantId,
         secret_token: token.trim(),
-        domain: domain.trim() || "ihub.arcn.com.br",
+        domain: domain.trim().replace(/^https?:\/\//i, "").replace(/\/+$/, ""),
         merchant_id: merchantId.trim() || null,
         enabled,
       };
@@ -243,8 +243,12 @@ export function IhubIntegrationCard({ restaurantId }: { restaurantId: string }) 
             </div>
 
             <div className="space-y-2">
-              <Label>Domínio iHub</Label>
-              <Input value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="ihub.arcn.com.br" />
+              <Label>Domínio do seu sistema (cadastrado no painel iHub)</Label>
+              <Input value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="ex: app.meudelivery.com.br" />
+              <p className="text-xs text-muted-foreground">
+                Deve ser <strong>exatamente</strong> o mesmo domínio que você cadastrou no painel do iHub para este token.
+                Não é o domínio do iHub. Sem <code>https://</code>.
+              </p>
             </div>
 
             <div className="flex items-center justify-between rounded-md border p-3">
