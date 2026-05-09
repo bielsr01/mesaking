@@ -32,9 +32,7 @@ export function IhubIntegrationCard({ restaurantId }: { restaurantId: string }) 
 
   const [token, setToken] = useState("");
   const [domain, setDomain] = useState("");
-  const [merchantId, setMerchantId] = useState("");
   const [enabled, setEnabled] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [linking, setLinking] = useState(false);
   const [userCodeData, setUserCodeData] = useState<any>(null);
   const [authCode, setAuthCode] = useState("");
@@ -44,19 +42,32 @@ export function IhubIntegrationCard({ restaurantId }: { restaurantId: string }) 
     return payload.error || payload.data?.message || payload.data?.error || fallback;
   };
 
+  const persistConfig = async () => {
+    const normalizedDomain = domain.trim().replace(/^https?:\/\//i, "").replace(/\/+$/, "");
+    if (!token.trim()) throw new Error("Cole o token secreto do iHub");
+    if (!normalizedDomain) throw new Error("Informe o domínio cadastrado no painel iHub");
+    const { error } = await sb
+      .from("ihub_integrations")
+      .upsert({
+        restaurant_id: restaurantId,
+        secret_token: token.trim(),
+        domain: normalizedDomain,
+        enabled,
+      }, { onConflict: "restaurant_id" });
+    if (error) throw error;
+  };
+
   const handleGenerateUserCode = async () => {
-    if (!data?.secret_token) {
-      toast.error("Salve o token primeiro");
-      return;
-    }
     setLinking(true);
     try {
+      await persistConfig();
       const { data: res, error } = await supabase.functions.invoke("ihub-link", {
         body: { action: "generate-user-code", restaurantId },
       });
       if (error) throw error;
       if (!res?.ok) throw new Error(formatFunctionError(res, "Falha ao gerar código"));
       setUserCodeData(res);
+      qc.invalidateQueries({ queryKey: ["ihub-integration", restaurantId] });
       toast.success("Código gerado! Autorize no portal do iFood.");
     } catch (e: any) {
       toast.error(e.message ?? "Erro");
@@ -70,31 +81,25 @@ export function IhubIntegrationCard({ restaurantId }: { restaurantId: string }) 
       toast.error("Cole o authorizationCode retornado pelo iFood");
       return;
     }
-    const normalizedMerchantId = merchantId.trim();
     setLinking(true);
     try {
-      if (normalizedMerchantId && normalizedMerchantId !== data?.merchant_id) {
-        const { error: saveError } = await sb
-          .from("ihub_integrations")
-          .update({ merchant_id: normalizedMerchantId })
-          .eq("restaurant_id", restaurantId);
-        if (saveError) throw saveError;
-      }
+      // Garante que token/domain estão salvos antes de vincular
+      await persistConfig();
       const { data: res, error } = await supabase.functions.invoke("ihub-link", {
         body: {
           action: "link-merchant",
           restaurantId,
           authorizationCode: authCode.trim(),
           authorizationCodeVerifier: userCodeData.authorizationCodeVerifier,
-          merchantId: normalizedMerchantId || undefined,
         },
       });
       if (error) throw error;
       if (!res?.ok) throw new Error(formatFunctionError(res, "Falha ao vincular"));
-      toast.success(`Loja vinculada: ${res.merchantName ?? res.merchantId}`);
+      toast.success(`Loja vinculada: ${res.merchantName ?? res.merchantId ?? "OK"}`);
       setUserCodeData(null);
       setAuthCode("");
       qc.invalidateQueries({ queryKey: ["ihub-integration", restaurantId] });
+      setOpen(false);
     } catch (e: any) {
       toast.error(e.message ?? "Erro");
     } finally {
@@ -106,42 +111,27 @@ export function IhubIntegrationCard({ restaurantId }: { restaurantId: string }) 
     if (!open) return;
     setToken(data?.secret_token ?? "");
     setDomain(data?.domain ?? "");
-    setMerchantId(data?.merchant_id ?? "");
     setEnabled(data?.enabled ?? true);
   }, [open, data]);
 
   const isConfigured = !!data?.secret_token;
+  const isLinked = !!data?.merchant_id;
 
   const copy = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     toast.success(`${label} copiado`);
   };
 
-  const handleSave = async () => {
-    if (!token.trim()) {
-      toast.error("Cole o token secreto do iHub");
-      return;
-    }
-    setSaving(true);
+  const handleSaveOnly = async () => {
+    setLinking(true);
     try {
-      const payload = {
-        restaurant_id: restaurantId,
-        secret_token: token.trim(),
-        domain: domain.trim().replace(/^https?:\/\//i, "").replace(/\/+$/, ""),
-        merchant_id: merchantId.trim() || null,
-        enabled,
-      };
-      const { error } = await sb
-        .from("ihub_integrations")
-        .upsert(payload, { onConflict: "restaurant_id" });
-      if (error) throw error;
-      toast.success("Integração iHub salva");
+      await persistConfig();
+      toast.success("Configuração salva");
       qc.invalidateQueries({ queryKey: ["ihub-integration", restaurantId] });
-      setOpen(false);
     } catch (e: any) {
       toast.error(e.message ?? "Erro ao salvar");
     } finally {
-      setSaving(false);
+      setLinking(false);
     }
   };
 
@@ -160,10 +150,12 @@ export function IhubIntegrationCard({ restaurantId }: { restaurantId: string }) 
         <CardContent>
           {isLoading ? (
             <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-          ) : isConfigured ? (
+          ) : isLinked ? (
             <Badge variant={data?.enabled ? "default" : "secondary"}>
               {data?.enabled ? "Conectado" : "Desativado"}
             </Badge>
+          ) : isConfigured ? (
+            <Badge variant="outline">Falta vincular loja</Badge>
           ) : (
             <Badge variant="outline">Não configurado</Badge>
           )}
@@ -171,11 +163,11 @@ export function IhubIntegrationCard({ restaurantId }: { restaurantId: string }) 
       </Card>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Integração iHub (iFood)</DialogTitle>
             <DialogDescription>
-              O token é da sua conta iHub (mesmo para todos os restaurantes). O <strong>Merchant ID</strong> identifica este restaurante específico no iFood.
+              Preencha o token e o domínio, gere o código, autorize no iFood e cole o código de volta — a integração será ativada automaticamente.
             </DialogDescription>
           </DialogHeader>
 
@@ -198,32 +190,37 @@ export function IhubIntegrationCard({ restaurantId }: { restaurantId: string }) 
                 placeholder="Cole o token UUID gerado pelo iHub"
                 type="password"
               />
-              <p className="text-xs text-muted-foreground">
-                Mesmo token para todos os seus restaurantes. Recebido no header <code>X-iFood-Hub-Signature</code>.
-              </p>
             </div>
 
             <div className="space-y-2">
-              <Label>Merchant ID (iFood) deste restaurante</Label>
-              <Input
-                value={merchantId}
-                onChange={(e) => setMerchantId(e.target.value)}
-                placeholder="Ex: abcd-1234-efgh-5678 — obtido ao vincular a loja no iHub"
-              />
+              <Label>Domínio cadastrado no painel iHub</Label>
+              <Input value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="ex: app.meudelivery.com.br" />
               <p className="text-xs text-muted-foreground">
-                Se deixar vazio, será preenchido automaticamente no 1º evento recebido — desde que esta seja a única integração sem merchant.
-                Para múltiplos restaurantes na mesma conta iHub, preencha manualmente.
+                Deve ser <strong>exatamente</strong> o mesmo domínio cadastrado no iHub. Sem <code>https://</code>.
               </p>
             </div>
 
+            <div className="flex items-center justify-between rounded-md border p-3">
+              <div>
+                <Label className="cursor-pointer">Integração ativa</Label>
+                <p className="text-xs text-muted-foreground">Importar pedidos automaticamente</p>
+              </div>
+              <Switch checked={enabled} onCheckedChange={setEnabled} />
+            </div>
+
             <div className="space-y-2 rounded-md border border-dashed p-3">
-              <Label className="text-sm">Vincular loja iFood (via iHub)</Label>
+              <Label className="text-sm">Vincular loja iFood</Label>
+              {isLinked && (
+                <p className="text-xs text-emerald-600">
+                  ✓ Loja vinculada: <strong>{data?.merchant_name ?? data?.merchant_id}</strong>
+                </p>
+              )}
               <p className="text-xs text-muted-foreground">
-                Salve o token primeiro. Depois gere o código, autorize no iFood e cole o <code>authorizationCode</code>.
+                {isLinked ? "Você pode gerar um novo código para vincular outra loja." : "Gere o código, autorize no iFood e cole o authorizationCode abaixo. A integração é salva automaticamente."}
               </p>
 
               {!userCodeData ? (
-                <Button type="button" variant="outline" size="sm" onClick={handleGenerateUserCode} disabled={linking || !isConfigured}>
+                <Button type="button" variant="outline" size="sm" onClick={handleGenerateUserCode} disabled={linking}>
                   {linking ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Link2 className="w-4 h-4 mr-1" />}
                   Gerar User Code
                 </Button>
@@ -246,7 +243,7 @@ export function IhubIntegrationCard({ restaurantId }: { restaurantId: string }) 
                   <div className="flex gap-2">
                     <Button type="button" size="sm" onClick={handleLinkMerchant} disabled={linking}>
                       {linking ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <CheckCircle2 className="w-4 h-4 mr-1" />}
-                      Vincular merchant
+                      Vincular e ativar
                     </Button>
                     <Button type="button" variant="ghost" size="sm" onClick={() => { setUserCodeData(null); setAuthCode(""); }}>
                       Cancelar
@@ -254,23 +251,6 @@ export function IhubIntegrationCard({ restaurantId }: { restaurantId: string }) 
                   </div>
                 </div>
               )}
-            </div>
-
-            <div className="space-y-2">
-              <Label>Domínio do seu sistema (cadastrado no painel iHub)</Label>
-              <Input value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="ex: app.meudelivery.com.br" />
-              <p className="text-xs text-muted-foreground">
-                Deve ser <strong>exatamente</strong> o mesmo domínio que você cadastrou no painel do iHub para este token.
-                Não é o domínio do iHub. Sem <code>https://</code>.
-              </p>
-            </div>
-
-            <div className="flex items-center justify-between rounded-md border p-3">
-              <div>
-                <Label className="cursor-pointer">Integração ativa</Label>
-                <p className="text-xs text-muted-foreground">Importar pedidos automaticamente</p>
-              </div>
-              <Switch checked={enabled} onCheckedChange={setEnabled} />
             </div>
 
             {data?.last_event_at && (
@@ -282,9 +262,11 @@ export function IhubIntegrationCard({ restaurantId }: { restaurantId: string }) 
           </div>
 
           <DialogFooter>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-              Salvar
+            <Button variant="outline" onClick={handleSaveOnly} disabled={linking}>
+              Salvar configuração
+            </Button>
+            <Button onClick={() => setOpen(false)}>
+              Fechar
             </Button>
           </DialogFooter>
         </DialogContent>
