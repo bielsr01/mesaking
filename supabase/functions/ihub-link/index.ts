@@ -122,7 +122,6 @@ Deno.serve(async (req) => {
         console.error("ihub link-merchant failed", {
           status: r.status,
           domain,
-          merchantId: merchantIdForLink || null,
           authorizationCodeLength: String(authorizationCode).trim().length,
           authorizationCodeVerifierLength: String(authorizationCodeVerifier).trim().length,
           data,
@@ -135,7 +134,7 @@ Deno.serve(async (req) => {
           error: message,
           status: r.status,
           data,
-          debug: { domain, merchantId: merchantIdForLink || null },
+          debug: { domain },
         }), {
           status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
