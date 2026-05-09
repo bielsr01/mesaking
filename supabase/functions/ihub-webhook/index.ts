@@ -125,26 +125,49 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Find the integration that owns this secret token
-  const { data: integration, error: intErr } = await supabase
-    .from("ihub_integrations")
-    .select("*")
-    .eq("secret_token", signature)
-    .maybeSingle();
-
-  if (intErr || !integration) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
+  // Parse body first — we need the merchantId to identify which restaurant
   let ev: IHubEvent;
   try {
     ev = await req.json();
   } catch {
     return new Response(JSON.stringify({ error: "Invalid JSON" }), {
       status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  // The iHub secret_token is per-account (not per-restaurant).
+  // The merchantId in the payload identifies which restaurant.
+  // We accept any integration that:
+  //   1) shares this secret_token (proves authenticity), AND
+  //   2) matches the merchantId from the event.
+  // If no merchant_id is mapped yet, fall back to the first integration with this token
+  // and auto-link the merchant_id on first event.
+  let integration: any = null;
+  if (ev.merchantId) {
+    const { data } = await supabase
+      .from("ihub_integrations")
+      .select("*")
+      .eq("secret_token", signature)
+      .eq("merchant_id", ev.merchantId)
+      .maybeSingle();
+    integration = data;
+  }
+  if (!integration) {
+    // Fallback: any integration with this token that hasn't been linked to a merchant yet
+    const { data } = await supabase
+      .from("ihub_integrations")
+      .select("*")
+      .eq("secret_token", signature)
+      .is("merchant_id", null)
+      .limit(1)
+      .maybeSingle();
+    integration = data;
+  }
+
+  if (!integration) {
+    return new Response(JSON.stringify({ error: "Unauthorized or merchant not linked" }), {
+      status: 401,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
