@@ -109,13 +109,13 @@ export function IhubIntegrationCard({ restaurantId }: { restaurantId: string }) 
           <DialogHeader>
             <DialogTitle>Integração iHub (iFood)</DialogTitle>
             <DialogDescription>
-              Configure no painel do iHub usando a URL e cole aqui o token gerado.
+              O token é da sua conta iHub (mesmo para todos os restaurantes). O <strong>Merchant ID</strong> identifica este restaurante específico no iFood.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label>URL do Webhook (configure no iHub)</Label>
+              <Label>URL do Webhook (configure no painel do iHub)</Label>
               <div className="flex gap-2">
                 <Input value={WEBHOOK_URL} readOnly className="font-mono text-xs" />
                 <Button variant="outline" size="icon" onClick={() => copy(WEBHOOK_URL, "URL")}>
@@ -125,30 +125,34 @@ export function IhubIntegrationCard({ restaurantId }: { restaurantId: string }) 
             </div>
 
             <div className="space-y-2">
-              <Label>Token Secreto (gerado pelo iHub)</Label>
+              <Label>Token Secreto da conta iHub</Label>
               <Input
                 value={token}
                 onChange={(e) => setToken(e.target.value)}
-                placeholder="Cole aqui o token gerado"
+                placeholder="Cole o token UUID gerado pelo iHub"
                 type="password"
               />
               <p className="text-xs text-muted-foreground">
-                Esse token é enviado no header <code>X-iFood-Hub-Signature</code> e identifica seu restaurante.
+                Mesmo token para todos os seus restaurantes. Recebido no header <code>X-iFood-Hub-Signature</code>.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Merchant ID (iFood) deste restaurante</Label>
+              <Input
+                value={merchantId}
+                onChange={(e) => setMerchantId(e.target.value)}
+                placeholder="Ex: abcd-1234-efgh-5678 — obtido ao vincular a loja no iHub"
+              />
+              <p className="text-xs text-muted-foreground">
+                Se deixar vazio, será preenchido automaticamente no 1º evento recebido — desde que esta seja a única integração sem merchant.
+                Para múltiplos restaurantes na mesma conta iHub, preencha manualmente.
               </p>
             </div>
 
             <div className="space-y-2">
               <Label>Domínio iHub</Label>
               <Input value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="ihub.arcn.com.br" />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Merchant ID (opcional)</Label>
-              <Input
-                value={merchantId}
-                onChange={(e) => setMerchantId(e.target.value)}
-                placeholder="Preenchido automaticamente no 1º evento"
-              />
             </div>
 
             <div className="flex items-center justify-between rounded-md border p-3">
