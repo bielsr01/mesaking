@@ -113,6 +113,8 @@ Deno.serve(async (req) => {
           .eq("id", integration.id);
       }
 
+      const merchantIdForLink = normalizedManualMerchantId || integration.merchant_id || undefined;
+
       const r = await fetch(`${IHUB_BASE}/auth/link-merchant`, {
         method: "POST",
         headers: { ...authHdr, "Content-Type": "application/json" },
@@ -120,6 +122,7 @@ Deno.serve(async (req) => {
           domain,
           authorizationCode,
           authorizationCodeVerifier,
+          merchantId: merchantIdForLink,
         }),
       });
       const text = await r.text();
@@ -128,7 +131,7 @@ Deno.serve(async (req) => {
         console.error("ihub link-merchant failed", {
           status: r.status,
           domain,
-          merchantId: normalizedManualMerchantId || integration.merchant_id || null,
+          merchantId: merchantIdForLink || null,
           authorizationCodeLength: String(authorizationCode).trim().length,
           authorizationCodeVerifierLength: String(authorizationCodeVerifier).trim().length,
           data,
@@ -141,7 +144,7 @@ Deno.serve(async (req) => {
           error: message,
           status: r.status,
           data,
-          debug: { domain, merchantId: normalizedManualMerchantId || integration.merchant_id || null },
+          debug: { domain, merchantId: merchantIdForLink || null },
         }), {
           status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
