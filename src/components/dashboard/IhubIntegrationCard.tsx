@@ -35,6 +35,58 @@ export function IhubIntegrationCard({ restaurantId }: { restaurantId: string }) 
   const [merchantId, setMerchantId] = useState("");
   const [enabled, setEnabled] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [linking, setLinking] = useState(false);
+  const [userCodeData, setUserCodeData] = useState<any>(null);
+  const [authCode, setAuthCode] = useState("");
+
+  const handleGenerateUserCode = async () => {
+    if (!data?.secret_token) {
+      toast.error("Salve o token primeiro");
+      return;
+    }
+    setLinking(true);
+    try {
+      const { data: res, error } = await supabase.functions.invoke("ihub-link", {
+        body: { action: "generate-user-code", restaurantId },
+      });
+      if (error) throw error;
+      if (!res?.ok) throw new Error(res?.error || "Falha ao gerar código");
+      setUserCodeData(res);
+      toast.success("Código gerado! Autorize no portal do iFood.");
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro");
+    } finally {
+      setLinking(false);
+    }
+  };
+
+  const handleLinkMerchant = async () => {
+    if (!authCode.trim() || !userCodeData?.authorizationCodeVerifier) {
+      toast.error("Cole o authorizationCode retornado pelo iFood");
+      return;
+    }
+    setLinking(true);
+    try {
+      const { data: res, error } = await supabase.functions.invoke("ihub-link", {
+        body: {
+          action: "link-merchant",
+          restaurantId,
+          authorizationCode: authCode.trim(),
+          authorizationCodeVerifier: userCodeData.authorizationCodeVerifier,
+        },
+      });
+      if (error) throw error;
+      if (!res?.ok) throw new Error(res?.error || "Falha ao vincular");
+      toast.success(`Loja vinculada: ${res.merchantName ?? res.merchantId}`);
+      setUserCodeData(null);
+      setAuthCode("");
+      qc.invalidateQueries({ queryKey: ["ihub-integration", restaurantId] });
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro");
+    } finally {
+      setLinking(false);
+    }
+  };
 
   useEffect(() => {
     if (!open) return;
