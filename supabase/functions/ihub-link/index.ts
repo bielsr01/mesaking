@@ -105,16 +105,8 @@ Deno.serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const normalizedManualMerchantId = typeof manualMerchantId === "string" ? manualMerchantId.trim() : "";
-      if (normalizedManualMerchantId && normalizedManualMerchantId !== integration.merchant_id) {
-        await supabase
-          .from("ihub_integrations")
-          .update({ merchant_id: normalizedManualMerchantId })
-          .eq("id", integration.id);
-      }
-
-      const merchantIdForLink = normalizedManualMerchantId || integration.merchant_id || undefined;
-
+      // Per docs: link-merchant only needs domain + authorizationCode + authorizationCodeVerifier.
+      // The merchant is identified by the iFood authorization itself.
       const r = await fetch(`${IHUB_BASE}/auth/link-merchant`, {
         method: "POST",
         headers: { ...authHdr, "Content-Type": "application/json" },
@@ -122,7 +114,6 @@ Deno.serve(async (req) => {
           domain,
           authorizationCode,
           authorizationCodeVerifier,
-          merchantId: merchantIdForLink,
         }),
       });
       const text = await r.text();
@@ -131,7 +122,6 @@ Deno.serve(async (req) => {
         console.error("ihub link-merchant failed", {
           status: r.status,
           domain,
-          merchantId: merchantIdForLink || null,
           authorizationCodeLength: String(authorizationCode).trim().length,
           authorizationCodeVerifierLength: String(authorizationCodeVerifier).trim().length,
           data,
@@ -144,7 +134,7 @@ Deno.serve(async (req) => {
           error: message,
           status: r.status,
           data,
-          debug: { domain, merchantId: merchantIdForLink || null },
+          debug: { domain },
         }), {
           status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
