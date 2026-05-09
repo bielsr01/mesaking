@@ -12,6 +12,7 @@ import { Loader2, RefreshCw, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import queroLogo from "@/assets/quero-delivery-logo.png";
 import { EvolutionIntegrationCard } from "./EvolutionIntegrationCard";
+import { IhubIntegrationCard } from "./IhubIntegrationCard";
 
 type Integration = {
   id?: string;
