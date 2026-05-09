@@ -64,7 +64,6 @@ Deno.serve(async (req) => {
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
     const authz = req.headers.get("Authorization") || "";
     if (!authz.startsWith("Bearer ")) return json({ error: "unauthorized" }, 401);
 
