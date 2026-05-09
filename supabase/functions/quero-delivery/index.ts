@@ -69,9 +69,8 @@ Deno.serve(async (req) => {
     if (!authz.startsWith("Bearer ")) return json({ error: "unauthorized" }, 401);
 
     const userClient = createClient(SUPABASE_URL, ANON, { global: { headers: { Authorization: authz } } });
-    const token0 = authz.replace("Bearer ", "");
-    const { data: claimsRes, error: claimsErr } = await userClient.auth.getClaims(token0);
-    if (claimsErr || !claimsRes?.claims?.sub) return json({ error: "unauthorized" }, 401);
+    const { data: userRes, error: userErr } = await userClient.auth.getUser();
+    if (userErr || !userRes?.user) return json({ error: "unauthorized" }, 401);
 
     const body = await req.json().catch(() => ({}));
     const { action, restaurantId, apiUrl, placeId, token } = body || {};
