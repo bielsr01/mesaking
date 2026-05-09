@@ -89,6 +89,7 @@ Deno.serve(async (req) => {
       const text = await r.text();
       let data: any; try { data = JSON.parse(text); } catch { data = { raw: text }; }
        if (!r.ok) {
+        console.error("ihub generate-user-code failed", { status: r.status, domain, data });
          return new Response(JSON.stringify({ ok: false, error: "iHub error", status: r.status, data, domain }), {
            status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
          });
@@ -124,6 +125,14 @@ Deno.serve(async (req) => {
       const text = await r.text();
       let data: any; try { data = JSON.parse(text); } catch { data = { raw: text }; }
       if (!r.ok) {
+        console.error("ihub link-merchant failed", {
+          status: r.status,
+          domain,
+          merchantId: normalizedManualMerchantId || integration.merchant_id || null,
+          authorizationCodeLength: String(authorizationCode).trim().length,
+          authorizationCodeVerifierLength: String(authorizationCodeVerifier).trim().length,
+          data,
+        });
         const message = data?.error === "No merchants found for this token on iFood API"
           ? "O iFood autorizou o código, mas a conta usada no portal não retornou nenhuma loja/merchant para a API. Confirme se o login no portal do iFood é o dono/gestor da loja e se essa loja está liberada para integrações/API."
           : data?.message ?? data?.error ?? "Erro ao vincular merchant no iHub";
