@@ -91,7 +91,7 @@ export function IhubIntegrationCard({ restaurantId }: { restaurantId: string }) 
   useEffect(() => {
     if (!open) return;
     setToken(data?.secret_token ?? "");
-    setDomain(data?.domain ?? "ihub.arcn.com.br");
+    setDomain(data?.domain ?? "");
     setMerchantId(data?.merchant_id ?? "");
     setEnabled(data?.enabled ?? true);
   }, [open, data]);
