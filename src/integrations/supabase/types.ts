@@ -1016,53 +1016,6 @@ export type Database = {
         }
         Relationships: []
       }
-      quero_integrations: {
-        Row: {
-          api_url: string
-          auth_token: string
-          created_at: string
-          enabled: boolean
-          id: string
-          last_status: string | null
-          last_sync_at: string | null
-          place_id: string
-          restaurant_id: string
-          updated_at: string
-        }
-        Insert: {
-          api_url?: string
-          auth_token: string
-          created_at?: string
-          enabled?: boolean
-          id?: string
-          last_status?: string | null
-          last_sync_at?: string | null
-          place_id: string
-          restaurant_id: string
-          updated_at?: string
-        }
-        Update: {
-          api_url?: string
-          auth_token?: string
-          created_at?: string
-          enabled?: boolean
-          id?: string
-          last_status?: string | null
-          last_sync_at?: string | null
-          place_id?: string
-          restaurant_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "quero_integrations_restaurant_id_fkey"
-            columns: ["restaurant_id"]
-            isOneToOne: true
-            referencedRelation: "restaurants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       restaurant_members: {
         Row: {
           created_at: string

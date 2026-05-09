@@ -1,6 +1,6 @@
 // iHub merchant linking helper
 // Actions: generate-user-code, link-merchant
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -32,9 +32,11 @@ Deno.serve(async (req) => {
     });
   }
   const token0 = authHeader.replace(/^Bearer\s+/i, "").trim();
-  const { data: userRes, error: userErr } = await supabase.auth.getUser(token0);
-  if (userErr || !userRes?.user) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+  const { data: claimsRes, error: userErr } = await supabase.auth.getClaims(token0);
+  const userId = claimsRes?.claims?.sub;
+  if (userErr || !userId) {
+    console.error("auth getClaims error:", userErr);
+    return new Response(JSON.stringify({ error: "Unauthorized", details: userErr?.message }), {
       status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

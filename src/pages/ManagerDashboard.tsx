@@ -92,28 +92,6 @@ export default function ManagerDashboard() {
     qc.prefetchQuery({ queryKey: menuKeys.products(restaurant.id), queryFn: () => fetchProducts(restaurant.id) });
   }, [restaurant?.id, qc]);
 
-  // Polling Quero Delivery: import new orders every 60s when integration is enabled
-  useEffect(() => {
-    if (!restaurant?.id) return;
-    let cancelled = false;
-    const tick = async () => {
-      try {
-        const { data: cfg } = await supabase
-          .from("quero_integrations")
-          .select("enabled")
-          .eq("restaurant_id", restaurant.id)
-          .maybeSingle();
-        if (cancelled || !cfg?.enabled) return;
-        await supabase.functions.invoke("quero-delivery", {
-          body: { action: "sync", restaurantId: restaurant.id },
-        });
-      } catch { /* silent */ }
-    };
-    tick();
-    const id = setInterval(tick, 10_000);
-    return () => { cancelled = true; clearInterval(id); };
-  }, [restaurant?.id]);
-
   useEffect(() => {
     if (!restaurant?.id) return;
     const ch = supabase.channel(`stats-${restaurant.id}`)
