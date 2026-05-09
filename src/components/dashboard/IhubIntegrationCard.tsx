@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, CheckCircle2, Copy, Utensils } from "lucide-react";
+import { Loader2, CheckCircle2, Copy, Utensils, Link2, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 
 const sb = supabase as any;
