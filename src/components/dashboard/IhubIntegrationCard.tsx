@@ -39,6 +39,11 @@ export function IhubIntegrationCard({ restaurantId }: { restaurantId: string }) 
   const [userCodeData, setUserCodeData] = useState<any>(null);
   const [authCode, setAuthCode] = useState("");
 
+  const formatFunctionError = (payload: any, fallback: string) => {
+    if (!payload) return fallback;
+    return payload.error || payload.data?.message || payload.data?.error || fallback;
+  };
+
   const handleGenerateUserCode = async () => {
     if (!data?.secret_token) {
       toast.error("Salve o token primeiro");
@@ -50,7 +55,7 @@ export function IhubIntegrationCard({ restaurantId }: { restaurantId: string }) 
         body: { action: "generate-user-code", restaurantId },
       });
       if (error) throw error;
-      if (!res?.ok) throw new Error(res?.error || "Falha ao gerar código");
+      if (!res?.ok) throw new Error(formatFunctionError(res, "Falha ao gerar código"));
       setUserCodeData(res);
       toast.success("Código gerado! Autorize no portal do iFood.");
     } catch (e: any) {
@@ -65,18 +70,27 @@ export function IhubIntegrationCard({ restaurantId }: { restaurantId: string }) 
       toast.error("Cole o authorizationCode retornado pelo iFood");
       return;
     }
+    const normalizedMerchantId = merchantId.trim();
     setLinking(true);
     try {
+      if (normalizedMerchantId && normalizedMerchantId !== data?.merchant_id) {
+        const { error: saveError } = await sb
+          .from("ihub_integrations")
+          .update({ merchant_id: normalizedMerchantId })
+          .eq("restaurant_id", restaurantId);
+        if (saveError) throw saveError;
+      }
       const { data: res, error } = await supabase.functions.invoke("ihub-link", {
         body: {
           action: "link-merchant",
           restaurantId,
           authorizationCode: authCode.trim(),
           authorizationCodeVerifier: userCodeData.authorizationCodeVerifier,
+          merchantId: normalizedMerchantId || undefined,
         },
       });
       if (error) throw error;
-      if (!res?.ok) throw new Error(res?.error || "Falha ao vincular");
+      if (!res?.ok) throw new Error(formatFunctionError(res, "Falha ao vincular"));
       toast.success(`Loja vinculada: ${res.merchantName ?? res.merchantId}`);
       setUserCodeData(null);
       setAuthCode("");
