@@ -335,10 +335,10 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Tabs value={channel} onValueChange={(v) => {
-          const nv = v as "delivery" | "pdv";
+          const nv = v as "delivery" | "pdv" | "ifood";
           setChannel(nv);
-          setFilter(nv === "pdv" ? "preparing" : "pending");
-          if (nv === "delivery") setDeliveryBlink(false);
+          if (nv === "pdv") setFilter("preparing");
+          else if (nv === "delivery") { setFilter("pending"); setDeliveryBlink(false); }
         }}>
           <TabsList>
             <TabsTrigger value="pdv" className="gap-2">
@@ -349,6 +349,9 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
               <Bike className="w-4 h-4" /> Delivery / Retirada
               <Badge variant={deliveryBlink ? "destructive" : "secondary"} className="h-5 min-w-5 px-1.5 text-xs">{deliveryCount}</Badge>
             </TabsTrigger>
+            <TabsTrigger value="ifood" className="gap-2">
+              <Utensils className="w-4 h-4" /> iFood
+            </TabsTrigger>
           </TabsList>
         </Tabs>
 
@@ -358,6 +361,11 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
           </Button>
         )}
       </div>
+
+      {channel === "ifood" ? (
+        <IfoodEventsTab restaurantId={restaurantId} />
+      ) : (
+      <>
 
       <Tabs value={filter} onValueChange={setFilter}>
         <TabsList className="flex-wrap h-auto">
