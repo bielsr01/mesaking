@@ -243,8 +243,12 @@ export function IhubIntegrationCard({ restaurantId }: { restaurantId: string }) 
             </div>
 
             <div className="space-y-2">
-              <Label>Domínio iHub</Label>
-              <Input value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="ihub.arcn.com.br" />
+              <Label>Domínio do seu sistema (cadastrado no painel iHub)</Label>
+              <Input value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="ex: app.meudelivery.com.br" />
+              <p className="text-xs text-muted-foreground">
+                Deve ser <strong>exatamente</strong> o mesmo domínio que você cadastrou no painel do iHub para este token.
+                Não é o domínio do iHub. Sem <code>https://</code>.
+              </p>
             </div>
 
             <div className="flex items-center justify-between rounded-md border p-3">
