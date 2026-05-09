@@ -202,6 +202,46 @@ export function IhubIntegrationCard({ restaurantId }: { restaurantId: string }) 
               </p>
             </div>
 
+            <div className="space-y-2 rounded-md border border-dashed p-3">
+              <Label className="text-sm">Vincular loja iFood (via iHub)</Label>
+              <p className="text-xs text-muted-foreground">
+                Salve o token primeiro. Depois gere o código, autorize no iFood e cole o <code>authorizationCode</code>.
+              </p>
+
+              {!userCodeData ? (
+                <Button type="button" variant="outline" size="sm" onClick={handleGenerateUserCode} disabled={linking || !isConfigured}>
+                  {linking ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Link2 className="w-4 h-4 mr-1" />}
+                  Gerar User Code
+                </Button>
+              ) : (
+                <div className="space-y-2">
+                  <div className="rounded bg-muted p-2 text-xs space-y-1">
+                    <div><strong>userCode:</strong> <code>{userCodeData.userCode}</code></div>
+                    {userCodeData.verificationUrlComplete && (
+                      <a href={userCodeData.verificationUrlComplete} target="_blank" rel="noreferrer"
+                         className="inline-flex items-center gap-1 text-primary underline">
+                        Abrir portal iFood <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
+                  <Input
+                    value={authCode}
+                    onChange={(e) => setAuthCode(e.target.value)}
+                    placeholder="Cole o authorizationCode retornado pelo iFood"
+                  />
+                  <div className="flex gap-2">
+                    <Button type="button" size="sm" onClick={handleLinkMerchant} disabled={linking}>
+                      {linking ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <CheckCircle2 className="w-4 h-4 mr-1" />}
+                      Vincular merchant
+                    </Button>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => { setUserCodeData(null); setAuthCode(""); }}>
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="space-y-2">
               <Label>Domínio iHub</Label>
               <Input value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="ihub.arcn.com.br" />
