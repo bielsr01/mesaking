@@ -74,9 +74,10 @@ Deno.serve(async (req) => {
     const admin = createClient(SUPABASE_URL, SERVICE_KEY, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
-    const { data: userRes, error: userErr } = await admin.auth.getUser(token0);
-    if (userErr || !userRes?.user) {
-      console.error("auth getUser error:", userErr);
+    const { data: claimsRes, error: userErr } = await admin.auth.getClaims(token0);
+    const userId = claimsRes?.claims?.sub;
+    if (userErr || !userId) {
+      console.error("auth getClaims error:", userErr);
       return json({ error: "unauthorized", details: userErr?.message }, 401);
     }
 
@@ -87,11 +88,11 @@ Deno.serve(async (req) => {
 
     // Verify caller is manager/owner
     const { data: isMgr } = await admin.rpc("is_restaurant_manager", {
-      _user_id: userRes.user.id,
+      _user_id: userId,
       _restaurant_id: restaurantId,
     });
     if (!isMgr) {
-      const { data: roles } = await admin.from("user_roles").select("role").eq("user_id", userRes.user.id);
+      const { data: roles } = await admin.from("user_roles").select("role").eq("user_id", userId);
       const isAdmin = roles?.some((r: any) => r.role === "master_admin");
       if (!isAdmin) return json({ error: "forbidden" }, 403);
     }
