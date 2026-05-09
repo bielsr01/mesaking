@@ -523,6 +523,8 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
           })}
         </div>
       )}
+      </>
+      )}
 
       <AlertDialog open={!!cancelTarget} onOpenChange={(o) => !o && setCancelTarget(null)}>
         <AlertDialogContent>
