@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, CheckCircle2, Copy, Utensils } from "lucide-react";
+import { Loader2, CheckCircle2, Copy, Utensils, Link2, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 
 const sb = supabase as any;
@@ -35,6 +35,58 @@ export function IhubIntegrationCard({ restaurantId }: { restaurantId: string }) 
   const [merchantId, setMerchantId] = useState("");
   const [enabled, setEnabled] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [linking, setLinking] = useState(false);
+  const [userCodeData, setUserCodeData] = useState<any>(null);
+  const [authCode, setAuthCode] = useState("");
+
+  const handleGenerateUserCode = async () => {
+    if (!data?.secret_token) {
+      toast.error("Salve o token primeiro");
+      return;
+    }
+    setLinking(true);
+    try {
+      const { data: res, error } = await supabase.functions.invoke("ihub-link", {
+        body: { action: "generate-user-code", restaurantId },
+      });
+      if (error) throw error;
+      if (!res?.ok) throw new Error(res?.error || "Falha ao gerar código");
+      setUserCodeData(res);
+      toast.success("Código gerado! Autorize no portal do iFood.");
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro");
+    } finally {
+      setLinking(false);
+    }
+  };
+
+  const handleLinkMerchant = async () => {
+    if (!authCode.trim() || !userCodeData?.authorizationCodeVerifier) {
+      toast.error("Cole o authorizationCode retornado pelo iFood");
+      return;
+    }
+    setLinking(true);
+    try {
+      const { data: res, error } = await supabase.functions.invoke("ihub-link", {
+        body: {
+          action: "link-merchant",
+          restaurantId,
+          authorizationCode: authCode.trim(),
+          authorizationCodeVerifier: userCodeData.authorizationCodeVerifier,
+        },
+      });
+      if (error) throw error;
+      if (!res?.ok) throw new Error(res?.error || "Falha ao vincular");
+      toast.success(`Loja vinculada: ${res.merchantName ?? res.merchantId}`);
+      setUserCodeData(null);
+      setAuthCode("");
+      qc.invalidateQueries({ queryKey: ["ihub-integration", restaurantId] });
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro");
+    } finally {
+      setLinking(false);
+    }
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -148,6 +200,46 @@ export function IhubIntegrationCard({ restaurantId }: { restaurantId: string }) 
                 Se deixar vazio, será preenchido automaticamente no 1º evento recebido — desde que esta seja a única integração sem merchant.
                 Para múltiplos restaurantes na mesma conta iHub, preencha manualmente.
               </p>
+            </div>
+
+            <div className="space-y-2 rounded-md border border-dashed p-3">
+              <Label className="text-sm">Vincular loja iFood (via iHub)</Label>
+              <p className="text-xs text-muted-foreground">
+                Salve o token primeiro. Depois gere o código, autorize no iFood e cole o <code>authorizationCode</code>.
+              </p>
+
+              {!userCodeData ? (
+                <Button type="button" variant="outline" size="sm" onClick={handleGenerateUserCode} disabled={linking || !isConfigured}>
+                  {linking ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Link2 className="w-4 h-4 mr-1" />}
+                  Gerar User Code
+                </Button>
+              ) : (
+                <div className="space-y-2">
+                  <div className="rounded bg-muted p-2 text-xs space-y-1">
+                    <div><strong>userCode:</strong> <code>{userCodeData.userCode}</code></div>
+                    {userCodeData.verificationUrlComplete && (
+                      <a href={userCodeData.verificationUrlComplete} target="_blank" rel="noreferrer"
+                         className="inline-flex items-center gap-1 text-primary underline">
+                        Abrir portal iFood <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
+                  <Input
+                    value={authCode}
+                    onChange={(e) => setAuthCode(e.target.value)}
+                    placeholder="Cole o authorizationCode retornado pelo iFood"
+                  />
+                  <div className="flex gap-2">
+                    <Button type="button" size="sm" onClick={handleLinkMerchant} disabled={linking}>
+                      {linking ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <CheckCircle2 className="w-4 h-4 mr-1" />}
+                      Vincular merchant
+                    </Button>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => { setUserCodeData(null); setAuthCode(""); }}>
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
