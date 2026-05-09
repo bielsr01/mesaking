@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  const { action, restaurantId, authorizationCode, authorizationCodeVerifier } = body;
+  const { action, restaurantId, authorizationCode, authorizationCodeVerifier, merchantId: manualMerchantId } = body;
   if (!action || !restaurantId) {
     return new Response(JSON.stringify({ error: "Missing action or restaurantId" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -88,11 +88,11 @@ Deno.serve(async (req) => {
       });
       const text = await r.text();
       let data: any; try { data = JSON.parse(text); } catch { data = { raw: text }; }
-      if (!r.ok) {
-        return new Response(JSON.stringify({ error: "iHub error", status: r.status, data }), {
-          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+       if (!r.ok) {
+         return new Response(JSON.stringify({ ok: false, error: "iHub error", status: r.status, data, domain }), {
+           status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+         });
+       }
       return new Response(JSON.stringify({ ok: true, ...data }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -104,6 +104,14 @@ Deno.serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      const normalizedManualMerchantId = typeof manualMerchantId === "string" ? manualMerchantId.trim() : "";
+      if (normalizedManualMerchantId && normalizedManualMerchantId !== integration.merchant_id) {
+        await supabase
+          .from("ihub_integrations")
+          .update({ merchant_id: normalizedManualMerchantId })
+          .eq("id", integration.id);
+      }
+
       const r = await fetch(`${IHUB_BASE}/auth/link-merchant`, {
         method: "POST",
         headers: { ...authHdr, "Content-Type": "application/json" },
@@ -116,8 +124,17 @@ Deno.serve(async (req) => {
       const text = await r.text();
       let data: any; try { data = JSON.parse(text); } catch { data = { raw: text }; }
       if (!r.ok) {
-        return new Response(JSON.stringify({ error: "iHub error", status: r.status, data }), {
-          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        const message = data?.error === "No merchants found for this token on iFood API"
+          ? "O iFood autorizou o código, mas a conta usada no portal não retornou nenhuma loja/merchant para a API. Confirme se o login no portal do iFood é o dono/gestor da loja e se essa loja está liberada para integrações/API."
+          : data?.message ?? data?.error ?? "Erro ao vincular merchant no iHub";
+        return new Response(JSON.stringify({
+          ok: false,
+          error: message,
+          status: r.status,
+          data,
+          debug: { domain, merchantId: normalizedManualMerchantId || integration.merchant_id || null },
+        }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       const merchantId = data?.merchant?.merchant_id ?? data?.ifood_details?.id ?? null;
