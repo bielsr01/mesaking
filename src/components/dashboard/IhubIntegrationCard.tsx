@@ -113,7 +113,7 @@ export function IhubIntegrationCard({ restaurantId }: { restaurantId: string }) 
       const payload = {
         restaurant_id: restaurantId,
         secret_token: token.trim(),
-        domain: domain.trim() || "ihub.arcn.com.br",
+        domain: domain.trim().replace(/^https?:\/\//i, "").replace(/\/+$/, ""),
         merchant_id: merchantId.trim() || null,
         enabled,
       };
