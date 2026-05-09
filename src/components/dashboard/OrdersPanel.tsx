@@ -12,7 +12,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { brl, orderStatusLabel, getNextStatus, paymentLabel, formatPhone, orderTypeLabel } from "@/lib/format";
 import { toast } from "sonner";
-import { Bike, ChefHat, Clock, MapPin, MessageCircle, Phone, Plus, Printer, Store, Trash2, User, X } from "lucide-react";
+import { Bike, ChefHat, Clock, MapPin, MessageCircle, Phone, Plus, Printer, Store, Trash2, User, X, Utensils } from "lucide-react";
+import { IfoodEventsTab } from "./IfoodEventsTab";
 
 /** Monta link wa.me garantindo DDI 55 (Brasil) sem duplicar */
 function waLink(phone: string | null | undefined): string | null {
