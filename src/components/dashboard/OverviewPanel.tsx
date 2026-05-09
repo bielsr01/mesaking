@@ -49,7 +49,7 @@ import type { DateRange } from "react-day-picker";
 
 const sb = supabase as any;
 
-type SourceFilter = "all" | "web" | "pdv" | "quero" | "ifood";
+type SourceFilter = "all" | "web" | "pdv" | "ifood";
 type Preset = "today" | "yesterday" | "7d" | "30d" | "month" | "lastmonth" | "custom";
 
 const presets: { id: Preset; label: string }[] = [
@@ -78,7 +78,6 @@ function rangeFor(preset: Preset, custom?: DateRange): { from: Date; to: Date } 
 }
 
 function classifySource(o: any): SourceFilter {
-  if (o.external_source === "quero") return "quero";
   if (o.payment_method === "card_on_delivery" && o.order_type === "pdv") return "pdv";
   if (o.order_type === "pdv") return "pdv";
   return "web";
@@ -303,7 +302,7 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
   });
 
   // by source pie
-  const sourceCounts = { web: 0, pdv: 0, quero: 0 } as Record<string, number>;
+  const sourceCounts = { web: 0, pdv: 0 } as Record<string, number>;
   cur.forEach((o) => { sourceCounts[classifySource(o)]++; });
 
   // payment methods
@@ -402,11 +401,10 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
 
       {/* Source filter */}
       <Tabs value={source} onValueChange={(v) => handleSourceChange(v as SourceFilter)}>
-        <TabsList className="grid grid-cols-5 w-full max-w-3xl">
+        <TabsList className="grid grid-cols-4 w-full max-w-3xl">
           <TabsTrigger value="all">Todos</TabsTrigger>
           <TabsTrigger value="pdv">PDV</TabsTrigger>
           <TabsTrigger value="web">Web</TabsTrigger>
-          <TabsTrigger value="quero">Quero Delivery</TabsTrigger>
           <TabsTrigger value="ifood">iFood</TabsTrigger>
         </TabsList>
       </Tabs>
@@ -544,7 +542,6 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
               <BarChart data={[
                 { name: "WEB", value: sourceCounts.web },
                 { name: "PDV", value: sourceCounts.pdv },
-                { name: "QUERO", value: sourceCounts.quero },
               ]}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
