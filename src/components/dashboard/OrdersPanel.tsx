@@ -12,7 +12,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { brl, orderStatusLabel, getNextStatus, paymentLabel, formatPhone, orderTypeLabel } from "@/lib/format";
 import { toast } from "sonner";
-import { Bike, ChefHat, Clock, MapPin, MessageCircle, Phone, Plus, Printer, Store, Trash2, User, X } from "lucide-react";
+import { Bike, ChefHat, Clock, MapPin, MessageCircle, Phone, Plus, Printer, Store, Trash2, User, X, Utensils } from "lucide-react";
+import { IfoodEventsTab } from "./IfoodEventsTab";
 
 /** Monta link wa.me garantindo DDI 55 (Brasil) sem duplicar */
 function waLink(phone: string | null | undefined): string | null {
@@ -105,7 +106,7 @@ export async function fetchOrders(restaurantId: string): Promise<{ orders: Order
 
 export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const qc = useQueryClient();
-  const [channel, setChannel] = useState<"delivery" | "pdv">("pdv");
+  const [channel, setChannel] = useState<"delivery" | "pdv" | "ifood">("pdv");
   const [filter, setFilter] = useState("pending");
   const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Order | null>(null);
@@ -334,10 +335,10 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Tabs value={channel} onValueChange={(v) => {
-          const nv = v as "delivery" | "pdv";
+          const nv = v as "delivery" | "pdv" | "ifood";
           setChannel(nv);
-          setFilter(nv === "pdv" ? "preparing" : "pending");
-          if (nv === "delivery") setDeliveryBlink(false);
+          if (nv === "pdv") setFilter("preparing");
+          else if (nv === "delivery") { setFilter("pending"); setDeliveryBlink(false); }
         }}>
           <TabsList>
             <TabsTrigger value="pdv" className="gap-2">
@@ -348,6 +349,9 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
               <Bike className="w-4 h-4" /> Delivery / Retirada
               <Badge variant={deliveryBlink ? "destructive" : "secondary"} className="h-5 min-w-5 px-1.5 text-xs">{deliveryCount}</Badge>
             </TabsTrigger>
+            <TabsTrigger value="ifood" className="gap-2">
+              <Utensils className="w-4 h-4" /> iFood
+            </TabsTrigger>
           </TabsList>
         </Tabs>
 
@@ -357,6 +361,11 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
           </Button>
         )}
       </div>
+
+      {channel === "ifood" ? (
+        <IfoodEventsTab restaurantId={restaurantId} />
+      ) : (
+      <>
 
       <Tabs value={filter} onValueChange={setFilter}>
         <TabsList className="flex-wrap h-auto">
@@ -513,6 +522,8 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
             );
           })}
         </div>
+      )}
+      </>
       )}
 
       <AlertDialog open={!!cancelTarget} onOpenChange={(o) => !o && setCancelTarget(null)}>
