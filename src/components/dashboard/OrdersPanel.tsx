@@ -105,8 +105,7 @@ export async function fetchOrders(restaurantId: string): Promise<{ orders: Order
 
 export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const qc = useQueryClient();
-  const [channel, setChannel] = useState<"delivery" | "pdv" | "quero">("pdv");
-  const [queroBlink, setQueroBlink] = useState(false);
+  const [channel, setChannel] = useState<"delivery" | "pdv">("pdv");
   const [filter, setFilter] = useState("pending");
   const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Order | null>(null);
@@ -212,13 +211,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
       .channel(`orders-${restaurantId}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` }, (payload) => {
         const row = payload.new as Order;
-        if (row?.external_source === "quero") {
-          setChannel((cur) => {
-            if (cur !== "quero") setQueroBlink(true);
-            return cur;
-          });
-          setFilter("pending");
-        } else if (row?.order_type === "pdv") {
+        if (row?.order_type === "pdv") {
           setChannel("pdv");
           setFilter("preparing");
         } else {
@@ -258,20 +251,6 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     });
   };
 
-  const syncQueroStatus = async (o: Order, newStatus: Order["status"]) => {
-    if (o.external_source !== "quero") return;
-    try {
-      const { data } = await supabase.functions.invoke("quero-delivery", {
-        body: { action: "update_status", restaurantId, orderId: o.id, newStatus },
-      });
-      if (data && data.ok === false) {
-        toast.warning(`Quero Delivery: ${data.message || "falha ao atualizar status"}`);
-      }
-    } catch (e: any) {
-      toast.warning(`Quero Delivery: ${e?.message || "erro de conexão"}`);
-    }
-  };
-
   const advance = async (o: Order) => {
     const next = getNextStatus(o.status, o.order_type) as Order["status"] | null;
     if (!next) return;
@@ -283,7 +262,6 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
       toast.error(error.message);
     } else {
       toast.success(`Pedido movido para "${orderStatusLabel[next]}"`);
-      syncQueroStatus(o, next);
     }
   };
 
@@ -296,7 +274,6 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
       toast.error(error.message);
     } else {
       toast.success("Pedido cancelado");
-      syncQueroStatus(o, "cancelled");
     }
   };
 
@@ -318,9 +295,8 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   };
 
   const channelOrders = orders.filter((o) => {
-    if (channel === "quero") return o.external_source === "quero";
-    if (channel === "pdv") return o.order_type === "pdv" && o.external_source !== "quero";
-    return o.order_type !== "pdv" && o.external_source !== "quero";
+    if (channel === "pdv") return o.order_type === "pdv";
+    return o.order_type !== "pdv";
   });
 
   const filtered = channelOrders.filter((o) => {
@@ -346,9 +322,8 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     all: channelOrders.length,
   };
 
-  const deliveryCount = orders.filter((o) => o.order_type !== "pdv" && o.external_source !== "quero").length;
-  const pdvCount = orders.filter((o) => o.order_type === "pdv" && o.external_source !== "quero").length;
-  const queroCount = orders.filter((o) => o.external_source === "quero").length;
+  const deliveryCount = orders.filter((o) => o.order_type !== "pdv").length;
+  const pdvCount = orders.filter((o) => o.order_type === "pdv").length;
 
   // PDV: em preparo + entregues
   const visibleFilters = channel === "pdv"
@@ -359,11 +334,10 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Tabs value={channel} onValueChange={(v) => {
-          const nv = v as "delivery" | "pdv" | "quero";
+          const nv = v as "delivery" | "pdv";
           setChannel(nv);
           setFilter(nv === "pdv" ? "preparing" : "pending");
           if (nv === "delivery") setDeliveryBlink(false);
-          if (nv === "quero") setQueroBlink(false);
         }}>
           <TabsList>
             <TabsTrigger value="pdv" className="gap-2">
@@ -373,13 +347,6 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
             <TabsTrigger value="delivery" className={`gap-2 ${deliveryBlink ? "animate-pulse text-destructive ring-2 ring-destructive" : ""}`}>
               <Bike className="w-4 h-4" /> Delivery / Retirada
               <Badge variant={deliveryBlink ? "destructive" : "secondary"} className="h-5 min-w-5 px-1.5 text-xs">{deliveryCount}</Badge>
-            </TabsTrigger>
-            <TabsTrigger
-              value="quero"
-              className={`gap-2 data-[state=active]:bg-purple-600 data-[state=active]:text-white ${queroBlink ? "animate-pulse ring-2 ring-purple-600 text-purple-700" : "text-purple-700"}`}
-            >
-              <Bike className="w-4 h-4" /> Quero Delivery
-              <Badge className="h-5 min-w-5 px-1.5 text-xs bg-purple-600 text-white hover:bg-purple-600">{queroCount}</Badge>
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -421,13 +388,8 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
             const isPdv = o.order_type === "pdv";
             const next = getNextStatus(o.status, o.order_type);
             return (
-            <Card key={o.id} className={`shadow-soft ${o.external_source === "quero" ? "border-2 border-purple-600" : ""}`}>
+            <Card key={o.id} className="shadow-soft">
               <CardContent className="pt-0 space-y-3">
-                {o.external_source === "quero" && (
-                  <div className="-mx-6 -mt-px px-3 py-1.5 bg-purple-600 text-white text-xs font-bold tracking-wide text-center rounded-t-lg">
-                    QUERO DELIVERY
-                  </div>
-                )}
                 <div className="pt-3" />
                 {/* Tipo do pedido — destaque no topo */}
                 <div className={`-mt-2 -mx-1 px-3 py-1.5 rounded-md flex items-center gap-2 text-xs font-semibold ${isPdv ? "bg-success/15 text-success border border-success/30" : isPickup ? "bg-accent/20 text-accent-foreground border border-accent/40" : "bg-primary/10 text-primary border border-primary/20"}`}>
