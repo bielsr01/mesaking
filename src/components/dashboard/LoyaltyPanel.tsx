@@ -423,11 +423,13 @@ function MemberHistoryDialog({
                   </TableCell>
                   <TableCell className="font-mono">{t.orders?.order_number ? `#${t.orders.order_number}` : "—"}</TableCell>
                   <TableCell>
-                    <Badge variant={t.status === "credited" ? "default" : "secondary"}>
-                      {t.status === "credited" ? "Creditado" : "Pendente"}
-                    </Badge>
+                    {(() => {
+                      if (t.type === "redeem") return <Badge variant="default">Resgatado</Badge>;
+                      if (t.type === "manual") return <Badge variant="outline">Ajuste manual</Badge>;
+                      return <Badge variant={t.status === "credited" ? "default" : "secondary"}>{t.status === "credited" ? "Creditado" : "Pendente"}</Badge>;
+                    })()}
                   </TableCell>
-                  <TableCell className="text-right font-bold">{t.points}</TableCell>
+                  <TableCell className="text-right font-bold">{t.points > 0 ? `+${t.points}` : t.points}</TableCell>
                 </TableRow>
               ))}
               {(historyQ.data ?? []).length === 0 && (
