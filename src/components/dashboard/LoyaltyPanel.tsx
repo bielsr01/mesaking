@@ -130,6 +130,7 @@ export function LoyaltyPanel({ restaurantId }: { restaurantId: string }) {
     }
     setMemberDialog(false);
     qc.invalidateQueries({ queryKey: ["loyalty-members", restaurantId] });
+    qc.invalidateQueries({ queryKey: ["loyalty-history"] });
   };
 
   const deleteMember = async (id: string) => {
