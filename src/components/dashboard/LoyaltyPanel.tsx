@@ -101,10 +101,21 @@ export function LoyaltyPanel({ restaurantId }: { restaurantId: string }) {
     if (!newName.trim() || !newPhone.trim()) return toast.error("Preencha nome e telefone");
     const points = Math.floor(Number(newPoints) || 0);
     if (editingMember) {
+      const diff = points - (editingMember.points ?? 0);
       const { error } = await sb.from("loyalty_members")
         .update({ name: newName.trim(), phone: formatPhone(newPhone), points })
         .eq("id", editingMember.id);
       if (error) return toast.error(error.message);
+      if (diff !== 0) {
+        await sb.from("loyalty_transactions").insert({
+          restaurant_id: restaurantId,
+          member_id: editingMember.id,
+          points: diff,
+          type: "manual",
+          status: "credited",
+          credited_at: new Date().toISOString(),
+        });
+      }
       toast.success("Cadastro atualizado");
     } else {
       const { error } = await sb.from("loyalty_members").insert({
