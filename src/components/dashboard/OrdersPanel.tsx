@@ -96,7 +96,7 @@ export async function fetchOrders(restaurantId: string): Promise<{ orders: Order
     .select("*")
     .eq("restaurant_id", restaurantId)
     .order("created_at", { ascending: false })
-    .limit(100);
+    .limit(500);
   const orders = (data ?? []) as Order[];
   const ids = orders.map((o) => o.id);
   const grouped: Record<string, Item[]> = {};
