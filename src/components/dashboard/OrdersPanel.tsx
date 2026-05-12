@@ -283,9 +283,17 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
           body: { orderId: o.id, action },
         });
         if (fnErr || (fnData && fnData.ok === false)) {
-          patchOrder(o.id, { status: prevStatus });
-          toast.error(`iFood: ${fnData?.error ?? fnErr?.message ?? "falha"}`);
-          return;
+          // O iHub costuma retornar 5xx mesmo quando o iFood já aceitou a ação.
+          // Tratamos como aviso e seguimos atualizando localmente — o webhook reconcilia.
+          const ihubStatus = fnData?.ihub_status;
+          const transient = !ihubStatus || ihubStatus >= 500;
+          if (transient) {
+            toast.warning("iFood respondeu com erro temporário, mas o status foi atualizado. Aguarde a confirmação do webhook.");
+          } else {
+            patchOrder(o.id, { status: prevStatus });
+            toast.error(`iFood: ${fnData?.error ?? fnErr?.message ?? "falha"}`);
+            return;
+          }
         }
       }
     }
