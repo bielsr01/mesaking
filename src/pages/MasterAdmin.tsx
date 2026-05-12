@@ -67,7 +67,7 @@ export default function MasterAdmin() {
   const [showPwd, setShowPwd] = useState(false);
   const [showEditPwd, setShowEditPwd] = useState(false);
   const [editManager, setEditManager] = useState<{ email: string; full_name: string }>({ email: "", full_name: "" });
-  const [loadingEdit, setLoadingEdit] = useState(false);
+  const [loadingEditId, setLoadingEditId] = useState<string | null>(null);
 
   const openEdit = async (r: Restaurant) => {
     setShowEditPwd(false);
