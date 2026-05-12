@@ -100,38 +100,64 @@ export function LoyaltyPanel({ restaurantId }: { restaurantId: string }) {
   };
 
   const saveMember = async () => {
+    if (savingMember) return;
     if (!newName.trim() || !newPhone.trim()) return toast.error("Preencha nome e telefone");
     const points = Math.floor(Number(newPoints) || 0);
-    if (editingMember) {
-      const diff = points - (editingMember.points ?? 0);
-      const { error } = await sb.from("loyalty_members")
-        .update({ name: newName.trim(), phone: formatPhone(newPhone), points })
-        .eq("id", editingMember.id);
-      if (error) return toast.error(error.message);
-      if (diff !== 0) {
-        await sb.from("loyalty_transactions").insert({
+    setSavingMember(true);
+    try {
+      if (editingMember) {
+        const diff = points - (editingMember.points ?? 0);
+        const { error } = await sb.from("loyalty_members")
+          .update({ name: newName.trim(), phone: formatPhone(newPhone), points })
+          .eq("id", editingMember.id);
+        if (error) {
+          if ((error.code === "23505") || /duplicate|unique/i.test(error.message)) {
+            return toast.error("Já existe um cliente cadastrado com este telefone.");
+          }
+          return toast.error(error.message);
+        }
+        if (diff !== 0) {
+          await sb.from("loyalty_transactions").insert({
+            restaurant_id: restaurantId,
+            member_id: editingMember.id,
+            points: diff,
+            type: "manual",
+            status: "credited",
+            credited_at: new Date().toISOString(),
+          });
+        }
+        toast.success("Cadastro atualizado");
+      } else {
+        const phoneFmt = formatPhone(newPhone);
+        const digits = phoneFmt.replace(/\D/g, "");
+        const { data: existing } = await sb.from("loyalty_members")
+          .select("id")
+          .eq("restaurant_id", restaurantId)
+          .eq("phone", phoneFmt)
+          .maybeSingle();
+        if (existing) {
+          return toast.error("Já existe um cliente cadastrado com este telefone.");
+        }
+        const { error } = await sb.from("loyalty_members").insert({
           restaurant_id: restaurantId,
-          member_id: editingMember.id,
-          points: diff,
-          type: "manual",
-          status: "credited",
-          credited_at: new Date().toISOString(),
+          name: newName.trim(),
+          phone: phoneFmt,
+          points,
         });
+        if (error) {
+          if ((error.code === "23505") || /duplicate|unique/i.test(error.message)) {
+            return toast.error("Já existe um cliente cadastrado com este telefone.");
+          }
+          return toast.error(error.message);
+        }
+        toast.success("Cliente cadastrado");
       }
-      toast.success("Cadastro atualizado");
-    } else {
-      const { error } = await sb.from("loyalty_members").insert({
-        restaurant_id: restaurantId,
-        name: newName.trim(),
-        phone: formatPhone(newPhone),
-        points,
-      });
-      if (error) return toast.error(error.message);
-      toast.success("Cliente cadastrado");
+      setMemberDialog(false);
+      qc.invalidateQueries({ queryKey: ["loyalty-members", restaurantId] });
+      qc.invalidateQueries({ queryKey: ["loyalty-history"] });
+    } finally {
+      setSavingMember(false);
     }
-    setMemberDialog(false);
-    qc.invalidateQueries({ queryKey: ["loyalty-members", restaurantId] });
-    qc.invalidateQueries({ queryKey: ["loyalty-history"] });
   };
 
   const deleteMember = async (id: string) => {
