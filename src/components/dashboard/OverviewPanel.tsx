@@ -610,7 +610,6 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
         </Card>
       </div>
       </div>
-      )}
     </div>
   );
 }
