@@ -307,6 +307,7 @@ export function SupplyCatalogTab() {
 
   const save = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (saving) return;
     const fd = new FormData(e.currentTarget);
     const payload = {
       name: String(fd.get("name") || "").trim(),
@@ -326,34 +327,40 @@ export function SupplyCatalogTab() {
       if (options.filter(o => o.name.trim()).length === 0) return toast.error("Cadastre ao menos uma opção");
     }
 
-    let productId = editing?.id;
-    if (editing) {
-      const { error } = await supabase.from("supply_products").update(payload).eq("id", editing.id);
-      if (error) return toast.error(error.message);
-    } else {
-      const { data, error } = await supabase.from("supply_products").insert(payload).select().single();
-      if (error || !data) return toast.error(error?.message ?? "Erro");
-      productId = data.id;
-    }
+    setSaving(true);
+    try {
+      let productId = editing?.id;
+      if (editing) {
+        const { error } = await supabase.from("supply_products").update(payload).eq("id", editing.id);
+        if (error) { toast.error(error.message); return; }
+      } else {
+        const { data, error } = await supabase.from("supply_products").insert(payload).select().single();
+        if (error || !data) { toast.error(error?.message ?? "Erro"); return; }
+        productId = data.id;
+      }
 
-    if (productId) {
-      // Replace options
-      await supabase.from("supply_product_options").delete().eq("product_id", productId);
-      if (hasVariants && options.length) {
-        const rows = options.filter(o => o.name.trim()).map((o, i) => ({
-          product_id: productId!, name: o.name.trim(), sort_order: i, is_active: true,
-        }));
-        if (rows.length) {
-          const { error } = await supabase.from("supply_product_options").insert(rows);
-          if (error) return toast.error(error.message);
+      if (productId) {
+        await supabase.from("supply_product_options").delete().eq("product_id", productId);
+        if (hasVariants && options.length) {
+          const rows = options.filter(o => o.name.trim()).map((o, i) => ({
+            product_id: productId!, name: o.name.trim(), sort_order: i, is_active: true,
+          }));
+          if (rows.length) {
+            const { error } = await supabase.from("supply_product_options").insert(rows);
+            if (error) { toast.error(error.message); return; }
+          }
         }
       }
-    }
 
-    toast.success("Salvo");
-    setOpen(false); setEditing(null);
-    qc.invalidateQueries({ queryKey: ["admin_supply_products"] });
-    qc.invalidateQueries({ queryKey: ["admin_supply_options"] });
+      toast.success("Salvo");
+      setOpen(false); setEditing(null);
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["admin_supply_products"] }),
+        qc.invalidateQueries({ queryKey: ["admin_supply_options"] }),
+      ]);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const remove = async (id: string) => {
