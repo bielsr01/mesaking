@@ -803,6 +803,7 @@ export type Database = {
           extra_price: number
           group_id: string
           id: string
+          image_url: string | null
           is_active: boolean
           name: string
           sort_order: number
@@ -812,6 +813,7 @@ export type Database = {
           extra_price?: number
           group_id: string
           id?: string
+          image_url?: string | null
           is_active?: boolean
           name: string
           sort_order?: number
@@ -821,6 +823,7 @@ export type Database = {
           extra_price?: number
           group_id?: string
           id?: string
+          image_url?: string | null
           is_active?: boolean
           name?: string
           sort_order?: number
