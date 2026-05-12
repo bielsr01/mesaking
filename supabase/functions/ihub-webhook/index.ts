@@ -76,16 +76,18 @@ function mapPayment(od: any): string {
   const methods = od?.payments?.methods ?? od?.paymentMethods ?? [];
   const m = Array.isArray(methods) && methods.length > 0 ? methods[0] : null;
   if (!m) return "card_on_delivery";
+  // Pago online (pré-pago) no iFood => loja não recebe na entrega
+  const prepaid = m?.prepaid === true || String(m?.type ?? "").toUpperCase() === "ONLINE";
+  if (prepaid) return "online";
   const method = String(m?.method ?? "").toUpperCase();
   const type = String(m?.type ?? "").toUpperCase();
   const combined = `${method} ${type}`;
   if (combined.includes("CASH") || combined.includes("DINHEIRO")) return "cash";
   if (combined.includes("PIX")) return "pix";
-  // Cartão (crédito, débito, carteira digital, voucher, online)
   if (
     combined.includes("CREDIT") || combined.includes("DEBIT") || combined.includes("CARD") ||
     combined.includes("WALLET") || combined.includes("VOUCHER") || combined.includes("MEAL_VOUCHER") ||
-    combined.includes("FOOD_VOUCHER") || combined.includes("ONLINE")
+    combined.includes("FOOD_VOUCHER")
   ) return "card_on_delivery";
   return "card_on_delivery";
 }
@@ -104,27 +106,37 @@ function extractChangeFor(od: any): number | null {
 // Itens com sub-itens (grupos de opções) achatados na coluna notes
 function buildItemsForOrderItems(od: any) {
   const items = Array.isArray(od?.items) ? od.items : [];
+  const collectOpt = (s: any, depth: number, acc: string[]) => {
+    const qty = s.quantity ? `${s.quantity}× ` : "";
+    const indent = depth > 0 ? "  ".repeat(depth) + "↳ " : "";
+    acc.push(`${indent}${qty}${s.name ?? ""}`.trim());
+    if (Array.isArray(s.customizations)) {
+      s.customizations.forEach((c: any) => collectOpt(c, depth + 1, acc));
+    }
+    if (Array.isArray(s.options)) {
+      s.options.forEach((c: any) => collectOpt(c, depth + 1, acc));
+    }
+  };
   return items.map((it: any) => {
     const subs: string[] = [];
-    if (Array.isArray(it.subItems)) {
-      it.subItems.forEach((s: any) => {
-        const qty = s.quantity ? `${s.quantity}× ` : "";
-        subs.push(`${qty}${s.name ?? ""}`.trim());
-      });
-    }
-    if (Array.isArray(it.options)) {
-      it.options.forEach((s: any) => {
-        const qty = s.quantity ? `${s.quantity}× ` : "";
-        subs.push(`${qty}${s.name ?? ""}`.trim());
-      });
-    }
+    if (Array.isArray(it.subItems)) it.subItems.forEach((s: any) => collectOpt(s, 0, subs));
+    if (Array.isArray(it.options)) it.options.forEach((s: any) => collectOpt(s, 0, subs));
     const notesParts: string[] = [];
     if (subs.length) notesParts.push(subs.join(" • "));
     if (it.observations) notesParts.push(it.observations);
+    // Preço unitário considerando complementos/customizações:
+    // iFood já fornece totalPrice (preço total da linha incluindo opções).
+    // Dividimos pela quantidade para obter o unitário "cheio".
+    const qty = Number(it.quantity ?? 1) || 1;
+    const total = Number(it.totalPrice ?? 0);
+    const optionsPrice = Number(it.optionsPrice ?? 0);
+    const customizationPrice = Number(it.customizationPrice ?? 0);
+    const baseUnit = Number(it.unitPrice ?? it.price ?? 0);
+    const unitFromTotal = total > 0 ? total / qty : baseUnit + optionsPrice + customizationPrice;
     return {
       product_name: it.name ?? "Item",
-      unit_price: Number(it.unitPrice ?? it.price ?? 0),
-      quantity: Number(it.quantity ?? 1),
+      unit_price: unitFromTotal,
+      quantity: qty,
       notes: notesParts.length ? notesParts.join(" — ") : null,
     };
   });

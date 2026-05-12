@@ -1797,7 +1797,7 @@ export type Database = {
         | "cancelled"
         | "awaiting_pickup"
       order_type: "delivery" | "pickup" | "pdv"
-      payment_method: "cash" | "pix" | "card_on_delivery"
+      payment_method: "cash" | "pix" | "card_on_delivery" | "online"
       stock_movement_type:
         | "supply_delivery"
         | "order_consumption"
@@ -1950,7 +1950,7 @@ export const Constants = {
         "awaiting_pickup",
       ],
       order_type: ["delivery", "pickup", "pdv"],
-      payment_method: ["cash", "pix", "card_on_delivery"],
+      payment_method: ["cash", "pix", "card_on_delivery", "online"],
       stock_movement_type: [
         "supply_delivery",
         "order_consumption",

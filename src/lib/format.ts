@@ -66,6 +66,7 @@ export const paymentLabel: Record<string, string> = {
   cash: "Dinheiro",
   pix: "Pix",
   card_on_delivery: "Cartão na entrega",
+  online: "Pago via iFood (online)",
 };
 
 export const slugify = (s: string) =>
