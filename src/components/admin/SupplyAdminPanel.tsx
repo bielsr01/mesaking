@@ -19,7 +19,9 @@ type SupplyProduct = {
   id: string; name: string; description: string | null; unit: string;
   price: number; image_url: string | null; is_active: boolean; sort_order: number;
   variant_group_name: string | null; total_quantity: number | null; quantity_step: number;
+  stock_group_id: string | null;
 };
+type StockGroup = { id: string; name: string };
 type SupplyOption = { id: string; product_id: string; name: string; sort_order: number; is_active: boolean };
 type Restaurant = { id: string; name: string; slug: string };
 type SupplyOrder = {
@@ -267,7 +269,16 @@ export function SupplyCatalogTab() {
   const [step, setStep] = useState<number>(50);
   const [options, setOptions] = useState<{ id?: string; name: string }[]>([]);
   const [newOpt, setNewOpt] = useState("");
+  const [stockGroupId, setStockGroupId] = useState<string>("");
   const [saving, setSaving] = useState(false);
+
+  const { data: stockGroups = [] } = useQuery({
+    queryKey: ["stock_groups_admin"],
+    queryFn: async () => {
+      const { data } = await supabase.from("stock_groups").select("id,name").eq("is_active", true).order("sort_order");
+      return (data ?? []) as StockGroup[];
+    },
+  });
 
   const { data: products = [] } = useQuery({
     queryKey: ["admin_supply_products"],
@@ -291,6 +302,7 @@ export function SupplyCatalogTab() {
   const openNew = () => {
     setEditing(null);
     setHasVariants(false); setGroupName(""); setTotalQty(""); setStep(50); setOptions([]); setNewOpt("");
+    setStockGroupId("");
     setOpen(true);
   };
   const openEdit = (p: SupplyProduct) => {
@@ -302,6 +314,7 @@ export function SupplyCatalogTab() {
     setStep(p.quantity_step ?? 50);
     setOptions((optsByProduct[p.id] ?? []).map(o => ({ id: o.id, name: o.name })));
     setNewOpt("");
+    setStockGroupId(p.stock_group_id ?? "");
     setOpen(true);
   };
 
@@ -319,6 +332,7 @@ export function SupplyCatalogTab() {
       variant_group_name: hasVariants ? (groupName.trim() || null) : null,
       total_quantity: hasVariants && totalQty !== "" ? Number(totalQty) : null,
       quantity_step: hasVariants ? Math.max(1, Number(step) || 50) : 50,
+      stock_group_id: stockGroupId || null,
     };
     if (!payload.name) return toast.error("Nome obrigatório");
     if (hasVariants) {
