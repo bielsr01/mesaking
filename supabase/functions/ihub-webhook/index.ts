@@ -27,10 +27,12 @@ type IHubEvent = {
 };
 
 // Map iHub fullCode -> internal order status
+// CONFIRMED é mapeado direto para "preparing" porque, no nosso fluxo, ao aceitar
+// o pedido o restaurante já está iniciando o preparo (não temos passo "accepted" separado).
 function mapStatus(fullCode?: string): string | null {
   switch (fullCode) {
     case "PLACED": return "pending";
-    case "CONFIRMED": return "accepted";
+    case "CONFIRMED": return "preparing";
     case "PREPARATION_STARTED": return "preparing";
     case "READY_TO_PICKUP": return "awaiting_pickup";
     case "DISPATCHED": return "out_for_delivery";
@@ -39,6 +41,17 @@ function mapStatus(fullCode?: string): string | null {
     default: return null;
   }
 }
+
+// Ordem de progresso para evitar regressões (webhook fora de ordem não puxa status pra trás)
+const STATUS_ORDER: Record<string, number> = {
+  pending: 0,
+  accepted: 1,
+  preparing: 2,
+  awaiting_pickup: 3,
+  out_for_delivery: 3,
+  delivered: 4,
+  cancelled: 5,
+};
 
 // iFood orderType -> nosso order_type
 function mapOrderType(od: any): "delivery" | "pickup" {
@@ -197,6 +210,19 @@ async function handlePlaced(integration: any, ev: IHubEvent) {
 async function handleStatus(integration: any, ev: IHubEvent) {
   const newStatus = mapStatus(ev.fullCode);
   if (!newStatus || !ev.orderId) return;
+  // Busca status atual para evitar regressão (ex.: CONFIRMED chegando depois de DISPATCHED)
+  const { data: cur } = await supabase
+    .from("orders")
+    .select("status")
+    .eq("restaurant_id", integration.restaurant_id)
+    .eq("external_source", "ifood")
+    .eq("external_order_id", ev.orderId)
+    .maybeSingle();
+  if (cur && newStatus !== "cancelled") {
+    const curRank = STATUS_ORDER[cur.status] ?? -1;
+    const newRank = STATUS_ORDER[newStatus] ?? -1;
+    if (newRank < curRank) return; // ignora evento que regrediria o status
+  }
   await supabase
     .from("orders")
     .update({ status: newStatus, updated_at: new Date().toISOString() })
