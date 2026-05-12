@@ -80,11 +80,19 @@ export function FinancePanel({ restaurantIds }: { restaurantIds: string[] }) {
       <Card>
         <CardContent className="p-4 flex flex-wrap items-center gap-3">
           <span className="text-sm font-medium">Período:</span>
-          <Select value={month} onValueChange={setMonth}>
-            <SelectTrigger className="w-[220px]"><SelectValue /></SelectTrigger>
+          <Select value={String(month)} onValueChange={(v) => setMonthN(Number(v))}>
+            <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {months.map((m) => (
-                <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+              {MONTH_NAMES.map((name, i) => (
+                <SelectItem key={i + 1} value={String(i + 1)}>{name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
+            <SelectTrigger className="w-[120px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {YEARS.map((y) => (
+                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
               ))}
             </SelectContent>
           </Select>
