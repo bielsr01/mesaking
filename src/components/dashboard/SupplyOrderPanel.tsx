@@ -198,10 +198,10 @@ export function SupplyOrderPanel({ restaurantId }: { restaurantId: string }) {
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-2">
-          <Button variant="ghost" size="sm" onClick={() => setView("history")}>
+          <Button variant="ghost" size="sm" onClick={() => { setView("history"); setEditingId(null); setCart({}); setDist({}); setNotes(""); }}>
             <ArrowLeft className="w-4 h-4 mr-1" />Voltar
           </Button>
-          <h2 className="text-lg font-semibold">Novo pedido</h2>
+          <h2 className="text-lg font-semibold">{editingId ? "Editar pedido" : "Novo pedido"}</h2>
           <div className="w-20" />
         </div>
 
