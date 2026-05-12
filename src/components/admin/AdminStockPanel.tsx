@@ -160,7 +160,26 @@ function AdminStockGroups() {
             <form onSubmit={save} className="space-y-3">
               <div><Label>Nome</Label><Input name="name" defaultValue={editing?.name} required /></div>
               <div><Label>Ordem</Label><Input name="sort_order" type="number" defaultValue={editing?.sort_order ?? 0} /></div>
+              <div className="space-y-2">
+                <Label>Ajustes manuais permitidos no estoque</Label>
+                <div className="space-y-2 rounded-md border p-3">
+                  <label className="flex items-center gap-2 text-sm">
+                    <Checkbox name="allow_add" defaultChecked={editing?.allow_add ?? true} />
+                    Permitir <strong>somar</strong> (entrada)
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <Checkbox name="allow_subtract" defaultChecked={editing?.allow_subtract ?? true} />
+                    Permitir <strong>subtrair</strong> (saída) — não permite ficar negativo
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <Checkbox name="allow_set" defaultChecked={editing?.allow_set ?? true} />
+                    Permitir <strong>definir total</strong>
+                  </label>
+                </div>
+              </div>
               <DialogFooter><Button type="submit">Salvar</Button></DialogFooter>
+            </form>
+          </DialogContent>
             </form>
           </DialogContent>
         </Dialog>
