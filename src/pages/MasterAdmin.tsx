@@ -49,6 +49,8 @@ const editSchema = z.object({
 
 export default function MasterAdmin() {
   const { signOut } = useAuth();
+  const qc = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
   const [view, setView] = useState<AdminView>("restaurants");
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [stats, setStats] = useState({ orders: 0, revenue: 0 });
