@@ -347,6 +347,7 @@ export function SupplyCatalogTab() {
       total_quantity: hasVariants && totalQty !== "" ? Number(totalQty) : null,
       quantity_step: hasVariants ? Math.max(1, Number(step) || 50) : 50,
       stock_group_id: stockGroupId || null,
+      expense_category_id: expenseCategoryId || null,
     };
     if (!payload.name) return toast.error("Nome obrigatório");
     if (hasVariants) {
