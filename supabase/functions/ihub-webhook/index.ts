@@ -1,7 +1,6 @@
 // iHub (iFood) webhook receiver
 // URL: https://kcjrrnxsqdcgjqplgiku.supabase.co/functions/v1/ihub-webhook
 // Configure this URL no painel do iHub (https://ihub.arcn.com.br)
-// O iHub envia POST com o token secreto no header X-iFood-Hub-Signature.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -33,7 +32,7 @@ function mapStatus(fullCode?: string): string | null {
     case "PLACED": return "pending";
     case "CONFIRMED": return "accepted";
     case "PREPARATION_STARTED": return "preparing";
-    case "READY_TO_PICKUP": return "ready";
+    case "READY_TO_PICKUP": return "awaiting_pickup";
     case "DISPATCHED": return "out_for_delivery";
     case "CONCLUDED": return "delivered";
     case "CANCELLED": return "cancelled";
@@ -41,13 +40,71 @@ function mapStatus(fullCode?: string): string | null {
   }
 }
 
+// iFood orderType -> nosso order_type
+function mapOrderType(od: any): "delivery" | "pickup" {
+  const t = String(od?.orderType ?? od?.type ?? "DELIVERY").toUpperCase();
+  if (t === "TAKEOUT" || t === "PICKUP" || t === "INDOOR") return "pickup";
+  return "delivery";
+}
+
+// Telefone do iFood: vem como { number: "0800...", localizer: "12345" }
+function formatIfoodPhone(customer: any): string {
+  const phoneObj = customer?.phone;
+  if (!phoneObj) return "";
+  if (typeof phoneObj === "string") return phoneObj;
+  const num = phoneObj.number ?? "";
+  const loc = phoneObj.localizer ?? "";
+  if (num && loc) return `${num} (cód: ${loc})`;
+  return num || loc || "";
+}
+
+// Mapeia método de pagamento iFood -> enum interno
+function mapPayment(od: any): string {
+  const methods = od?.payments?.methods ?? od?.paymentMethods ?? [];
+  const m = Array.isArray(methods) && methods.length > 0 ? methods[0] : null;
+  const type = String(m?.method ?? m?.type ?? "").toUpperCase();
+  if (type.includes("CASH")) return "cash";
+  if (type.includes("PIX")) return "pix";
+  if (type.includes("CREDIT") || type.includes("DEBIT") || type.includes("CARD")) return "card";
+  return "card";
+}
+
+// Itens com sub-itens (grupos de opções) achatados na coluna notes
+function buildItemsForOrderItems(od: any) {
+  const items = Array.isArray(od?.items) ? od.items : [];
+  return items.map((it: any) => {
+    const subs: string[] = [];
+    if (Array.isArray(it.subItems)) {
+      it.subItems.forEach((s: any) => {
+        const qty = s.quantity ? `${s.quantity}× ` : "";
+        subs.push(`${qty}${s.name ?? ""}`.trim());
+      });
+    }
+    if (Array.isArray(it.options)) {
+      it.options.forEach((s: any) => {
+        const qty = s.quantity ? `${s.quantity}× ` : "";
+        subs.push(`${qty}${s.name ?? ""}`.trim());
+      });
+    }
+    const notesParts: string[] = [];
+    if (subs.length) notesParts.push(subs.join(" • "));
+    if (it.observations) notesParts.push(it.observations);
+    return {
+      product_name: it.name ?? "Item",
+      unit_price: Number(it.unitPrice ?? it.price ?? 0),
+      quantity: Number(it.quantity ?? 1),
+      notes: notesParts.length ? notesParts.join(" — ") : null,
+    };
+  });
+}
+
 async function handlePlaced(integration: any, ev: IHubEvent) {
   const od = ev.order_details ?? {};
   const customer = od.customer ?? {};
-  const addr = od.deliveryAddress ?? {};
-  const items = Array.isArray(od.items) ? od.items : [];
+  const addr = od.deliveryAddress ?? od.takeoutAddress ?? {};
   const total = od.total ?? {};
-  const phone = typeof customer.phone === "object" ? customer.phone?.number : customer.phone;
+  const orderType = mapOrderType(od);
+  const phone = formatIfoodPhone(customer);
 
   // Avoid duplicates
   const { data: existing } = await supabase
@@ -55,45 +112,52 @@ async function handlePlaced(integration: any, ev: IHubEvent) {
     .select("id")
     .eq("restaurant_id", integration.restaurant_id)
     .eq("external_source", "ifood")
-    .eq("external_id", ev.orderId)
+    .eq("external_order_id", ev.orderId)
     .maybeSingle();
   if (existing) return existing.id;
 
-  const itemsJson = items.map((it: any) => ({
-    name: it.name,
-    quantity: it.quantity,
-    price: Number(it.unitPrice ?? 0),
-    total: Number(it.totalPrice ?? 0),
-    observations: it.observations ?? null,
-    subItems: it.subItems ?? [],
-  }));
+  const subtotal = Number(total.subTotal ?? total.subtotal ?? 0);
+  const deliveryFee = Number(total.deliveryFee ?? 0);
+  const benefits = Number(total.benefits ?? 0);
+  const orderAmount = Number(total.orderAmount ?? subtotal + deliveryFee - benefits);
 
   const { data, error } = await supabase
     .from("orders")
     .insert({
       restaurant_id: integration.restaurant_id,
       customer_name: customer.name ?? "Cliente iFood",
-      customer_phone: phone ?? null,
-      address_street: addr.streetName ?? null,
-      address_number: addr.streetNumber ?? null,
-      address_neighborhood: addr.neighborhood ?? null,
-      address_city: addr.city ?? null,
-      address_state: addr.state ?? null,
-      address_cep: addr.postalCode ?? null,
-      address_complement: addr.complement ?? null,
-      items: itemsJson,
-      subtotal: Number(total.subTotal ?? 0),
-      delivery_fee: Number(total.deliveryFee ?? 0),
-      total: Number(total.orderAmount ?? 0),
+      customer_phone: phone || "—",
+      address_street: orderType === "delivery" ? (addr.streetName ?? null) : null,
+      address_number: orderType === "delivery" ? (addr.streetNumber ?? null) : null,
+      address_neighborhood: orderType === "delivery" ? (addr.neighborhood ?? null) : null,
+      address_city: orderType === "delivery" ? (addr.city ?? null) : null,
+      address_state: orderType === "delivery" ? (addr.state ?? null) : null,
+      address_cep: orderType === "delivery" ? (addr.postalCode ?? null) : null,
+      address_complement: orderType === "delivery" ? (addr.complement ?? null) : null,
+      address_notes: orderType === "delivery" ? (addr.reference ?? null) : null,
+      delivery_latitude: addr?.coordinates?.latitude ?? null,
+      delivery_longitude: addr?.coordinates?.longitude ?? null,
+      subtotal,
+      delivery_fee: deliveryFee,
+      discount: benefits,
+      total: orderAmount,
+      payment_method: mapPayment(od),
       status: "pending",
-      order_type: "delivery",
+      order_type: orderType,
       external_source: "ifood",
-      external_id: ev.orderId,
+      external_order_id: ev.orderId,
       external_display_id: od.displayId ?? null,
     })
     .select("id")
     .single();
   if (error) throw error;
+
+  // Insert order_items
+  const items = buildItemsForOrderItems(od);
+  if (items.length) {
+    const rows = items.map((it) => ({ order_id: data.id, ...it }));
+    await supabase.from("order_items").insert(rows);
+  }
   return data.id;
 }
 
@@ -105,7 +169,7 @@ async function handleStatus(integration: any, ev: IHubEvent) {
     .update({ status: newStatus, updated_at: new Date().toISOString() })
     .eq("restaurant_id", integration.restaurant_id)
     .eq("external_source", "ifood")
-    .eq("external_id", ev.orderId);
+    .eq("external_order_id", ev.orderId);
 }
 
 Deno.serve(async (req) => {
@@ -125,7 +189,6 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Parse body first — we need the merchantId to identify which restaurant
   let ev: IHubEvent;
   try {
     ev = await req.json();
@@ -136,13 +199,6 @@ Deno.serve(async (req) => {
     });
   }
 
-  // The iHub secret_token is per-account (not per-restaurant).
-  // The merchantId in the payload identifies which restaurant.
-  // We accept any integration that:
-  //   1) shares this secret_token (proves authenticity), AND
-  //   2) matches the merchantId from the event.
-  // If no merchant_id is mapped yet, fall back to the first integration with this token
-  // and auto-link the merchant_id on first event.
   let integration: any = null;
   if (ev.merchantId) {
     const { data } = await supabase
@@ -154,7 +210,6 @@ Deno.serve(async (req) => {
     integration = data;
   }
   if (!integration) {
-    // Fallback: any integration with this token that hasn't been linked to a merchant yet
     const { data } = await supabase
       .from("ihub_integrations")
       .select("*")
@@ -172,7 +227,6 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Log the raw event
   const { data: logged } = await supabase
     .from("ihub_events")
     .insert({
@@ -202,7 +256,6 @@ Deno.serve(async (req) => {
     console.error("ihub-webhook process error", processError);
   }
 
-  // Update integration last seen + auto-link merchantId if not yet set
   await supabase
     .from("ihub_integrations")
     .update({

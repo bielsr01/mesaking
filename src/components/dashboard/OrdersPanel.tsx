@@ -59,6 +59,8 @@ interface Order {
   delivery_latitude: number | null;
   delivery_longitude: number | null;
   external_source?: string | null;
+  external_order_id?: string | null;
+  external_display_id?: string | null;
 }
 
 interface Item {
@@ -113,6 +115,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const [printTarget, setPrintTarget] = useState<Order | null>(null);
   const [pdvOpen, setPdvOpen] = useState(false);
   const [deliveryBlink, setDeliveryBlink] = useState(false);
+  const [ifoodView, setIfoodView] = useState<"orders" | "events">("orders");
 
   const doPrint = (o: Order, mode: TicketMode) => {
     const html = buildTicketHtml(
@@ -257,6 +260,29 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     if (!next) return;
     const prevStatus = o.status;
     patchOrder(o.id, { status: next });
+
+    // For iFood orders, forward the action to iHub first
+    if (o.external_source === "ifood") {
+      const actionMap: Record<string, string> = {
+        accepted: "confirm",
+        preparing: "startPreparation",
+        awaiting_pickup: "readyToPickup",
+        out_for_delivery: "dispatch",
+        delivered: "dispatch", // CONCLUDED is auto in iFood; fall back
+      };
+      const action = actionMap[next];
+      if (action) {
+        const { error: fnErr } = await supabase.functions.invoke("ifood-action", {
+          body: { orderId: o.id, action },
+        });
+        if (fnErr) {
+          patchOrder(o.id, { status: prevStatus });
+          toast.error(`iFood: ${fnErr.message}`);
+          return;
+        }
+      }
+    }
+
     const { error } = await supabase.from("orders").update({ status: next }).eq("id", o.id);
     if (error) {
       patchOrder(o.id, { status: prevStatus });
@@ -269,6 +295,16 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const cancel = async (o: Order) => {
     const prevStatus = o.status;
     patchOrder(o.id, { status: "cancelled" });
+    if (o.external_source === "ifood") {
+      const { error: fnErr } = await supabase.functions.invoke("ifood-action", {
+        body: { orderId: o.id, action: "cancel", cancelReason: "Cancelado pelo restaurante" },
+      });
+      if (fnErr) {
+        patchOrder(o.id, { status: prevStatus });
+        toast.error(`iFood: ${fnErr.message}`);
+        return;
+      }
+    }
     const { error } = await supabase.from("orders").update({ status: "cancelled" }).eq("id", o.id);
     if (error) {
       patchOrder(o.id, { status: prevStatus });
@@ -297,7 +333,9 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
 
   const channelOrders = orders.filter((o) => {
     if (channel === "pdv") return o.order_type === "pdv";
-    return o.order_type !== "pdv";
+    if (channel === "ifood") return o.external_source === "ifood";
+    // delivery: tudo que não é pdv e não é ifood
+    return o.order_type !== "pdv" && o.external_source !== "ifood";
   });
 
   const filtered = channelOrders.filter((o) => {
@@ -323,9 +361,11 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     all: channelOrders.length,
   };
 
-  const deliveryCount = orders.filter((o) => o.order_type !== "pdv").length;
-  const deliveryPendingCount = orders.filter((o) => o.order_type !== "pdv" && o.status === "pending").length;
+  const deliveryCount = orders.filter((o) => o.order_type !== "pdv" && o.external_source !== "ifood").length;
+  const deliveryPendingCount = orders.filter((o) => o.order_type !== "pdv" && o.external_source !== "ifood" && o.status === "pending").length;
   const pdvCount = orders.filter((o) => o.order_type === "pdv").length;
+  const ifoodCount = orders.filter((o) => o.external_source === "ifood").length;
+  const ifoodPendingCount = orders.filter((o) => o.external_source === "ifood" && o.status === "pending").length;
 
   // PDV: em preparo + entregues
   const visibleFilters = channel === "pdv"
@@ -340,6 +380,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
           setChannel(nv);
           if (nv === "pdv") setFilter("preparing");
           else if (nv === "delivery") { setFilter("pending"); setDeliveryBlink(false); }
+          else if (nv === "ifood") { setFilter("pending"); setIfoodView("orders"); }
         }}>
           <TabsList>
             <TabsTrigger value="pdv" className="gap-2">
@@ -350,8 +391,9 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
               <Bike className="w-4 h-4" /> Delivery / Retirada
               <Badge variant={deliveryPendingCount > 0 ? "destructive" : "secondary"} className="h-5 min-w-5 px-1.5 text-xs">{deliveryPendingCount > 0 ? deliveryPendingCount : deliveryCount}</Badge>
             </TabsTrigger>
-            <TabsTrigger value="ifood" className="gap-2">
+            <TabsTrigger value="ifood" className={`gap-2 ${ifoodPendingCount > 0 ? "animate-pulse text-destructive ring-2 ring-destructive" : ""}`}>
               <Utensils className="w-4 h-4" /> iFood
+              <Badge variant={ifoodPendingCount > 0 ? "destructive" : "secondary"} className="h-5 min-w-5 px-1.5 text-xs">{ifoodPendingCount > 0 ? ifoodPendingCount : ifoodCount}</Badge>
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -363,7 +405,16 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
         )}
       </div>
 
-      {channel === "ifood" ? (
+      {channel === "ifood" && (
+        <Tabs value={ifoodView} onValueChange={(v) => setIfoodView(v as "orders" | "events")}>
+          <TabsList>
+            <TabsTrigger value="orders">Pedidos iFood</TabsTrigger>
+            <TabsTrigger value="events">Histórico de webhooks</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      )}
+
+      {channel === "ifood" && ifoodView === "events" ? (
         <IfoodEventsTab restaurantId={restaurantId} />
       ) : (
       <>

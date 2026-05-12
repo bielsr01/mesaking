@@ -906,6 +906,7 @@ export type Database = {
           delivery_latitude: number | null
           delivery_longitude: number | null
           discount: number
+          external_display_id: string | null
           external_order_id: string | null
           external_source: string | null
           id: string
@@ -940,6 +941,7 @@ export type Database = {
           delivery_latitude?: number | null
           delivery_longitude?: number | null
           discount?: number
+          external_display_id?: string | null
           external_order_id?: string | null
           external_source?: string | null
           id?: string
@@ -974,6 +976,7 @@ export type Database = {
           delivery_latitude?: number | null
           delivery_longitude?: number | null
           discount?: number
+          external_display_id?: string | null
           external_order_id?: string | null
           external_source?: string | null
           id?: string
