@@ -143,7 +143,7 @@ Deno.serve(async (req) => {
           status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const merchantId = data?.merchant?.merchant_id ?? data?.ifood_details?.id ?? null;
+      const merchantId = data?.merchant?.merchant_id ?? data?.ifood_details?.id ?? manualMerchantId ?? null;
       const merchantName = data?.ifood_details?.name ?? null;
       if (merchantId) {
         await supabase
