@@ -447,8 +447,16 @@ export function SupplyCatalogTab() {
                 )}
               </div>
 
-              <DialogFooter><Button type="submit">Salvar</Button></DialogFooter>
+              <DialogFooter><Button type="submit" disabled={saving}>{saving ? "Salvando..." : "Salvar"}</Button></DialogFooter>
             </form>
+            {saving && (
+              <div className="absolute inset-0 z-50 flex items-center justify-center rounded-lg bg-background/70 backdrop-blur-sm cursor-wait">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  Salvando...
+                </div>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
       </div>
