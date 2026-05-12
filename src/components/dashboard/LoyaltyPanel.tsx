@@ -102,7 +102,7 @@ export function LoyaltyPanel({ restaurantId }: { restaurantId: string }) {
     setMemberDialog(true);
   };
 
-  const saveMember = async () => {
+  const executeSave = async () => {
     if (savingMember) return;
     if (!newName.trim() || !newPhone.trim()) return toast.error("Preencha nome e telefone");
     const points = Math.floor(Number(newPoints) || 0);
@@ -132,7 +132,6 @@ export function LoyaltyPanel({ restaurantId }: { restaurantId: string }) {
         toast.success("Cadastro atualizado");
       } else {
         const phoneFmt = formatPhone(newPhone);
-        const digits = phoneFmt.replace(/\D/g, "");
         const { data: existing } = await sb.from("loyalty_members")
           .select("id")
           .eq("restaurant_id", restaurantId)
@@ -161,6 +160,30 @@ export function LoyaltyPanel({ restaurantId }: { restaurantId: string }) {
     } finally {
       setSavingMember(false);
     }
+  };
+
+  const saveMember = async () => {
+    if (!newName.trim() || !newPhone.trim()) return toast.error("Preencha nome e telefone");
+    if (editingMember) {
+      setPinValue("");
+      setPinPromptOpen(true);
+      return;
+    }
+    await executeSave();
+  };
+
+  const confirmWithPin = async () => {
+    if (!/^\d{6}$/.test(pinValue)) return toast.error("Informe a senha mestra de 6 dígitos");
+    setPinVerifying(true);
+    const { data, error } = await sb.rpc("verify_restaurant_master_pin", {
+      _restaurant_id: restaurantId, _pin: pinValue,
+    });
+    setPinVerifying(false);
+    if (error) return toast.error(error.message);
+    if (!data) return toast.error("Senha mestra incorreta ou não cadastrada para este restaurante.");
+    setPinPromptOpen(false);
+    setPinValue("");
+    await executeSave();
   };
 
   const deleteMember = async (id: string) => {
