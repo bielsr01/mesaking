@@ -25,6 +25,7 @@ export function AdminExpenseStoresPanel() {
   const qc = useQueryClient();
   const [catOpen, setCatOpen] = useState(false);
   const [editingCat, setEditingCat] = useState<Cat | null>(null);
+  const [savingCat, setSavingCat] = useState(false);
   const [restaurantFilter, setRestaurantFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [from, setFrom] = useState(monthStartISO());
