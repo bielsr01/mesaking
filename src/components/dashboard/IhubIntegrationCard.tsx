@@ -119,6 +119,7 @@ export function IhubIntegrationCard({ restaurantId }: { restaurantId: string }) 
     setToken(data?.secret_token ?? "");
     setDomain(data?.domain ?? "");
     setEnabled(data?.enabled ?? true);
+    setMerchantIdInput(data?.merchant_id ?? "");
   }, [open, data]);
 
   const isConfigured = !!data?.secret_token;
