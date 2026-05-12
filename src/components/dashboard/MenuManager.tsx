@@ -408,7 +408,8 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
                     products={list}
                     restaurantId={restaurantId}
                     qc={qc}
-                    onEdit={(p) => { setEditingProd(p); setProdOpen(true); }}
+                    onEdit={openProductEdit}
+                    loadingId={loadingProdId}
                     onToggle={toggleProd}
                     onRemove={removeProd}
                   />
