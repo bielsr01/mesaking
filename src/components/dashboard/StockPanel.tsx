@@ -155,32 +155,67 @@ export function StockPanel({ restaurantId }: { restaurantId: string }) {
       </TabsContent>
 
       <TabsContent value="history">
-        <Card>
-          <CardContent className="p-0">
-            {movements.length === 0 ? (
-              <div className="py-10 text-center text-muted-foreground">Sem movimentações ainda.</div>
-            ) : (
-              <div className="divide-y">
-                {movements.map(m => (
-                  <div key={m.id} className="p-3 flex items-center justify-between gap-3 text-sm">
-                    <div className="min-w-0">
-                      <div className="font-medium truncate">{groupMap[m.group_id]?.name ?? "—"}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {movementLabel[m.type] ?? m.type} · {new Date(m.created_at).toLocaleString("pt-BR")}
-                      </div>
-                      {m.notes && <div className="text-xs italic text-muted-foreground truncate">{m.notes}</div>}
-                    </div>
-                    <div className={`font-bold tabular-nums ${m.quantity >= 0 ? "text-success" : "text-destructive"}`}>
-                      {m.quantity >= 0 ? "+" : ""}{m.quantity}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <div className="grid gap-4 md:grid-cols-2">
+          <MovementList
+            title="Entradas no estoque"
+            empty="Sem entradas ainda."
+            movements={incoming}
+            groupMap={groupMap}
+            describe={describeMovement}
+          />
+          <MovementList
+            title="Saídas / consumo"
+            empty="Sem saídas ainda."
+            movements={outgoing}
+            groupMap={groupMap}
+            describe={describeMovement}
+          />
+        </div>
       </TabsContent>
     </Tabs>
+  );
+}
+
+function MovementList({
+  title, empty, movements, groupMap, describe,
+}: {
+  title: string;
+  empty: string;
+  movements: Movement[];
+  groupMap: Record<string, StockGroup>;
+  describe: (m: Movement) => { title: string; subtitle?: string };
+}) {
+  return (
+    <Card>
+      <CardHeader className="pb-2"><CardTitle className="text-base">{title}</CardTitle></CardHeader>
+      <CardContent className="p-0">
+        {movements.length === 0 ? (
+          <div className="py-10 text-center text-muted-foreground text-sm">{empty}</div>
+        ) : (
+          <div className="divide-y">
+            {movements.map(m => {
+              const d = describe(m);
+              return (
+                <div key={m.id} className="p-3 flex items-start justify-between gap-3 text-sm">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium truncate">{groupMap[m.group_id]?.name ?? "—"}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {d.title} · {new Date(m.created_at).toLocaleString("pt-BR")}
+                    </div>
+                    {d.subtitle && (
+                      <div className="text-xs italic text-muted-foreground line-clamp-2">{d.subtitle}</div>
+                    )}
+                  </div>
+                  <div className={`font-bold tabular-nums whitespace-nowrap ${m.quantity >= 0 ? "text-success" : "text-destructive"}`}>
+                    {m.quantity >= 0 ? "+" : ""}{m.quantity}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
