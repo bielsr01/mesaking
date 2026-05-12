@@ -387,7 +387,7 @@ export function SupplyCatalogTab() {
       <div className="flex justify-end">
         <Dialog open={open} onOpenChange={(v) => { if (saving) return; setOpen(v); if (!v) setEditing(null); }}>
           <DialogTrigger asChild><Button onClick={openNew}><Plus className="w-4 h-4 mr-2" />Novo insumo</Button></DialogTrigger>
-          <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-h-[90vh] overflow-y-auto" onPointerDownOutside={(e) => { if (saving) e.preventDefault(); }} onEscapeKeyDown={(e) => { if (saving) e.preventDefault(); }}>
             <DialogHeader><DialogTitle>{editing ? "Editar" : "Novo"} insumo</DialogTitle></DialogHeader>
             <form onSubmit={save} className="space-y-3">
               <div><Label>Nome</Label><Input name="name" defaultValue={editing?.name} required maxLength={120} /></div>
