@@ -1,4 +1,4 @@
-import { ChefHat, Store, Package, ShoppingBag, ChevronDown, BarChart3, Users, Megaphone, Ticket, BookOpen, Send, Plug, Boxes } from "lucide-react";
+import { ChefHat, Store, Package, ShoppingBag, ChevronDown, BarChart3, Users, Megaphone, Ticket, BookOpen, Send, Plug, Boxes, Receipt } from "lucide-react";
 import { useState } from "react";
 import {
   Sidebar,
@@ -26,15 +26,19 @@ export type AdminView =
   | "settings:integrations"
   | "supply:catalog"
   | "supply:orders"
-  | "stock";
+  | "stock"
+  | "expenses:admin"
+  | "expenses:stores";
 
 export function AdminSidebar({ active, onChange, supplyBadge = 0 }: { active: AdminView; onChange: (v: AdminView) => void; supplyBadge?: number }) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const supplyActive = active.startsWith("supply:");
   const marketingActive = active.startsWith("marketing:");
+  const expensesActive = active.startsWith("expenses:");
   const [supplyOpen, setSupplyOpen] = useState(supplyActive);
   const [marketingOpen, setMarketingOpen] = useState(marketingActive);
+  const [expensesOpen, setExpensesOpen] = useState(expensesActive);
 
   return (
     <Sidebar collapsible="icon">
@@ -188,6 +192,38 @@ export function AdminSidebar({ active, onChange, supplyBadge = 0 }: { active: Ad
                   <span>Estoque</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+
+              <Collapsible open={expensesOpen || collapsed} onOpenChange={setExpensesOpen} asChild>
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton isActive={expensesActive} tooltip="Cadastro de despesas">
+                      <Receipt className="h-4 w-4" />
+                      <span>Cadastro de despesas</span>
+                      <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={active === "expenses:admin"}>
+                          <button type="button" onClick={() => onChange("expenses:admin")} className="w-full text-left flex items-center gap-2">
+                            <Receipt className="h-4 w-4" />
+                            <span>Despesas Admin</span>
+                          </button>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={active === "expenses:stores"}>
+                          <button type="button" onClick={() => onChange("expenses:stores")} className="w-full text-left flex items-center gap-2">
+                            <Store className="h-4 w-4" />
+                            <span>Despesas das lojas</span>
+                          </button>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
