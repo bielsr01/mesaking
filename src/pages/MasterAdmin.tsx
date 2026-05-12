@@ -26,6 +26,7 @@ import { AdminStockPanel } from "@/components/admin/AdminStockPanel";
 import { BulkCampaignsPanel } from "@/components/dashboard/BulkCampaignsPanel";
 import { EvolutionIntegrationCard } from "@/components/dashboard/EvolutionIntegrationCard";
 import { useQueryClient } from "@tanstack/react-query";
+import { usePendingSupplyOrdersCount } from "@/hooks/usePendingCounts";
 
 interface Restaurant {
   id: string;
