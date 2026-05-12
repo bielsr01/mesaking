@@ -370,6 +370,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     out_for_delivery: channelOrders.filter((o) => o.status === "out_for_delivery").length,
     awaiting_pickup: channelOrders.filter((o) => o.status === "awaiting_pickup").length,
     delivered: channelOrders.filter((o) => o.status === "delivered").length,
+    cancelled: channelOrders.filter((o) => o.status === "cancelled").length,
     active: channelOrders.filter((o) => !["delivered", "cancelled"].includes(o.status)).length,
     all: channelOrders.length,
   };
@@ -380,9 +381,9 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const ifoodCount = orders.filter((o) => o.external_source === "ifood").length;
   const ifoodPendingCount = orders.filter((o) => o.external_source === "ifood" && o.status === "pending").length;
 
-  // PDV: em preparo + entregues
+  // PDV: em preparo + entregues + cancelados + todos
   const visibleFilters = channel === "pdv"
-    ? FILTERS.filter((f) => ["preparing", "delivered", "all"].includes(f.value))
+    ? FILTERS.filter((f) => ["preparing", "delivered", "cancelled", "all"].includes(f.value))
     : FILTERS;
 
   return (
