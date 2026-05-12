@@ -1,60 +1,56 @@
-# Sistema de Estoque
+## Contexto do que encontrei
 
-## O que será criado
+Olhei os logs do banco (`ihub_events`, `orders`) e o código que dispara as ações:
 
-### 1. Banco de dados (novas tabelas)
+- **Frontend** (`OrdersPanel.tsx`, função `advance`): o botão "Aceitar"/"Despachar" já manda **apenas** o `orderId` do pedido clicado: `supabase.functions.invoke("ifood-action", { body: { orderId: o.id, action } })`. A última requisição que apareceu na rede confirma isso (apenas 1 chamada com o id da Darlen).
+- **Edge function `ifood-action`**: resolve o `external_order_id` daquele 1 pedido e envia para o iHub um payload com `merchantId` + `orderId` específicos. Não há laço, não há "para todos".
+- **Webhook `ihub-webhook`**: ao receber `CONFIRMED`/`DISPATCHED`, atualiza `orders` filtrando por `restaurant_id + external_source='ifood' + external_order_id = ev.orderId`. Cada pedido tem `external_order_id` único no banco.
+- **O que os eventos mostram**: o pedido da Darlen recebeu CONFIRMED às 19:33 (≈2min após o PLACED) e o do Odon recebeu CONFIRMED às 19:37 (≈4min após o PLACED) — em **horários diferentes** e cada evento veio com o `orderId` correto. Ou seja, no banco os pedidos foram confirmados separadamente, em momentos distintos, vindo do **webhook do iFood** (não do clique manual).
 
-- **stock_groups** (global, gerenciado só pelo admin): `name`, `is_active`, `sort_order`. Pré-popula com **Coxinhas**, **Churros**, **Bebidas**.
-- **restaurant_stock**: saldo por restaurante e por grupo (`restaurant_id`, `group_id`, `quantity`, `updated_at`). Único por (restaurante, grupo).
-- **stock_movements**: histórico de toda entrada/saída (`restaurant_id`, `group_id`, `quantity` (+/-), `type` (`supply_delivery`, `order_consumption`, `manual_adjust`), `reference_id`, `notes`, `created_by`).
-- **supply_products.stock_group_id** (nova coluna): vincula cada insumo a um grupo de estoque. Quantidade do pedido entregue → entra no grupo.
-- **product_stock_consumption**: vincula produto do cardápio a 1+ grupos de estoque (`product_id`, `group_id`, `quantity_per_unit`).
+Isso indica que o "todos foram aceitos junto" provavelmente **não foi um clique nosso aceitando vários** — foi o iFood/iHub mandando CONFIRMED automaticamente para cada pedido (auto-aceite no portal do iFood, ou o lojista aceitou no app do iFood, ou regra de auto-confirm ativa no iHub). Precisamos confirmar isso com você antes de mexer no código.
 
-### 2. Regras automáticas (triggers)
+## O que proponho fazer
 
-- Quando `supply_orders.status` muda para **delivered**: para cada item, soma `quantity` no `restaurant_stock` do grupo vinculado ao insumo. Cria registro em `stock_movements`.
-- Quando `orders.status` muda para **accepted**: para cada item do pedido, calcula `quantity * quantity_per_unit` por grupo e debita do `restaurant_stock`. Permite ficar negativo. Cria movimento.
-- Reverter (somar de volta) caso o status volte de accepted para pending/cancelled.
+### 1. Reforçar/auditar o caminho da ação por pedido (defensivo)
 
-### 3. Painel Admin → nova aba "Estoque"
+Mesmo já estando correto, adicionar travas para garantir que **nunca** uma ação sem `orderId` específico seja aceita:
 
-- Gerenciar **grupos globais** (CRUD: criar, renomear, ativar/desativar).
-- Visualizar estoque de **todas as lojas** (tabela: restaurante × grupo = quantidade, com filtro por restaurante).
-- Histórico de movimentações por restaurante.
-- No `SupplyAdminPanel` (cadastro de insumos): adicionar campo **Grupo de estoque** no formulário.
+- `supabase/functions/ifood-action/index.ts`: rejeitar com erro explícito se `externalOrderId` estiver vazio depois da resolução, e logar no console o par `(local orderId, external orderId, merchantId, action)` em toda chamada — para que dê para auditar no painel de logs.
+- `OrdersPanel.tsx`: bloquear o botão enquanto a ação está em andamento (estado `pendingAction[id]`) para evitar duplo clique e qualquer chance de race com outro pedido.
 
-### 4. Dashboard do gerente → nova aba "Estoque"
+### 2. Distinguir "aceito por mim" vs "aceito pelo iFood"
 
-- Mostra saldo atual por grupo do próprio restaurante.
-- Histórico de movimentações (filtro por tipo/data).
-- Botão **Ajuste manual** (corrige saldo, vai para o histórico).
-- Aviso visual em vermelho quando saldo ≤ 0.
+Adicionar coluna `confirmed_by` (`'system' | 'ifood_webhook' | 'manual'`) ou registrar em `ihub_events`/`orders.metadata` a origem da transição. Na UI, mostrar um pequeno selo no card do pedido: "Confirmado pelo iFood" vs "Confirmado por você". Assim, na próxima vez você consegue identificar se foi o webhook ou o seu clique.
 
-### 5. Cardápio (MenuManager)
+### 3. Painel de auditoria por pedido
 
-- Dentro do formulário de cada produto, nova seção **"Consumo de estoque"**:
-  - Botão "Adicionar grupo" → seleciona um `stock_group` + define `quantity_per_unit`.
-  - Permite múltiplos grupos (ex: combo "50 coxinhas + bebida" → 50 Coxinhas + 1 Bebida).
+No detalhe do pedido (já existe `IhubEventsViewer` global), adicionar um mini-timeline mostrando **só os eventos daquele pedido** (`external_order_id`), com hora, código e se veio do webhook ou da nossa ação. Resolve futuras dúvidas como esta na hora.
 
-## Detalhes técnicos
+### 4. Confirmar a hipótese antes de ir além
 
-- Todas as tabelas com RLS:
-  - `stock_groups`: leitura para autenticados, escrita só `master_admin`.
-  - `restaurant_stock` / `stock_movements`: leitura/escrita para `is_restaurant_manager` ou `master_admin`.
-  - `supply_products.stock_group_id`: nullable (insumos antigos não quebram).
-  - `product_stock_consumption`: gerenciado pelo manager do restaurante dono do produto.
-- Triggers em `SECURITY DEFINER` para garantir gravação independente de RLS do usuário.
-- Decisão confirmada: desconto **ao aceitar o pedido**; estoque pode ficar negativo (apenas avisa).
+Antes de eu implementar, preciso saber:
 
-## Arquivos a alterar/criar
+- No portal do **iHub** existe alguma opção tipo "auto-confirmar pedidos" ligada? Se sim, isso explica 100% o que aconteceu (o iHub aceita sozinho assim que o PLACED chega).
+- Você tem o **app do iFood Gestor de Pedidos** aberto em outro dispositivo? Ele também pode aceitar automaticamente.
+- Você quer que o sistema **trave** a confirmação automática (mantenha em "pendente" até clique manual) ou só quer **enxergar a origem** da confirmação?
 
-- Migração SQL (novas tabelas + colunas + triggers + RLS + seed dos 3 grupos).
-- `src/components/dashboard/AppSidebar.tsx` — item "Estoque".
-- `src/pages/ManagerDashboard.tsx` — rota da nova view.
-- `src/components/dashboard/StockPanel.tsx` (novo) — saldo + histórico + ajuste.
-- `src/components/admin/AdminSidebar.tsx` + `src/pages/MasterAdmin.tsx` — aba "Estoque".
-- `src/components/admin/AdminStockPanel.tsx` (novo) — grupos globais + visão geral todas lojas.
-- `src/components/admin/SupplyAdminPanel.tsx` — campo "Grupo de estoque".
-- `src/components/dashboard/MenuManager.tsx` — seção "Consumo de estoque" no produto.
+## Detalhes técnicos (referência)
 
-Ao aprovar, começo pela migração e sigo na sequência acima.
+```text
+Fluxo atual ao clicar Aceitar:
+  UI → ifood-action(orderId=local)
+         ↓ resolve external_order_id (1 linha)
+         → POST ihub /api/ifood/action { merchantId, orderId=external, action: "confirm" }
+  Webhook iHub → ihub-webhook
+         ↓ filtra orders por external_order_id (1 linha)
+         → UPDATE status
+```
+
+Nenhum ponto desse fluxo afeta múltiplos pedidos. A causa provável do sintoma é o iFood/iHub disparando CONFIRMED por conta própria.
+
+## Arquivos que serão tocados na implementação
+
+- `supabase/functions/ifood-action/index.ts` — validação extra + log estruturado
+- `src/components/dashboard/OrdersPanel.tsx` — lock por pedido + selo de origem
+- `supabase/migrations/<nova>.sql` — coluna `confirmed_source` em `orders` (opcional, conforme sua resposta)
+- `src/components/dashboard/IhubEventsViewer*` — filtro por `external_order_id`

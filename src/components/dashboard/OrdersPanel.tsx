@@ -117,6 +117,9 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const [pdvOpen, setPdvOpen] = useState(false);
   const [deliveryBlink, setDeliveryBlink] = useState(false);
   const [ifoodView, setIfoodView] = useState<"orders" | "events">("orders");
+  const [pendingAction, setPendingAction] = useState<Record<string, boolean>>({});
+  const setPending = (id: string, v: boolean) =>
+    setPendingAction((m) => ({ ...m, [id]: v }));
 
   const doPrint = (o: Order, mode: TicketMode) => {
     const html = buildTicketHtml(
@@ -257,8 +260,10 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   };
 
   const advance = async (o: Order) => {
+    if (pendingAction[o.id]) return; // evita duplo-clique / corrida com outro pedido
     const next = getNextStatus(o.status, o.order_type) as Order["status"] | null;
     if (!next) return;
+    setPending(o.id, true);
     const prevStatus = o.status;
     patchOrder(o.id, { status: next });
 
@@ -266,20 +271,26 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     // No iFood, "delivered" é atualizado automaticamente pelo webhook (CONCLUDED) — não enviamos ação.
     if (o.external_source === "ifood") {
       if (next === "delivered") {
-        // não dispara ação manual; espera webhook do iFood
         patchOrder(o.id, { status: prevStatus });
         toast.info("Pedidos do iFood são marcados como entregues automaticamente pelo iFood.");
+        setPending(o.id, false);
+        return;
+      }
+      // Defesa: precisa ter external_order_id para mandar a ação só desse pedido
+      if (!o.external_order_id) {
+        patchOrder(o.id, { status: prevStatus });
+        toast.error("Pedido iFood sem external_order_id — não é possível enviar a ação.");
+        setPending(o.id, false);
         return;
       }
       const actionMap: Record<string, string> = {
-        // pending → preparing: confirma o pedido (PLACED → CONFIRMED)
         preparing: "confirm",
         awaiting_pickup: "readyToPickup",
-        // preparing → out_for_delivery: despacha
         out_for_delivery: "dispatch",
       };
       const action = actionMap[next];
       if (action) {
+        console.info("[ifood-action] enviando", { orderId: o.id, externalOrderId: o.external_order_id, customer: o.customer_name, action });
         const { data: fnData, error: fnErr } = await supabase.functions.invoke("ifood-action", {
           body: { orderId: o.id, action },
         });
@@ -289,9 +300,9 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
           if (!transient) {
             patchOrder(o.id, { status: prevStatus });
             toast.error(`iFood: ${fnData?.error ?? fnErr?.message ?? "falha"}`);
+            setPending(o.id, false);
             return;
           }
-          // Erros 5xx do iHub costumam ser falsos-positivos; segue silenciosamente.
         }
       }
     }
@@ -301,20 +312,31 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
       patchOrder(o.id, { status: prevStatus });
       toast.error(error.message);
     } else {
-      toast.success(`Pedido movido para "${orderStatusLabel[next]}"`);
+      toast.success(`Pedido #${o.order_number} → "${orderStatusLabel[next]}"`);
     }
+    setPending(o.id, false);
   };
 
   const cancel = async (o: Order) => {
+    if (pendingAction[o.id]) return;
+    setPending(o.id, true);
     const prevStatus = o.status;
     patchOrder(o.id, { status: "cancelled" });
     if (o.external_source === "ifood") {
+      if (!o.external_order_id) {
+        patchOrder(o.id, { status: prevStatus });
+        toast.error("Pedido iFood sem external_order_id — não é possível cancelar.");
+        setPending(o.id, false);
+        return;
+      }
+      console.info("[ifood-action] cancelando", { orderId: o.id, externalOrderId: o.external_order_id, customer: o.customer_name });
       const { data: fnData, error: fnErr } = await supabase.functions.invoke("ifood-action", {
         body: { orderId: o.id, action: "cancel", cancelReason: "Cancelado pelo restaurante" },
       });
       if (fnErr || (fnData && fnData.ok === false)) {
         patchOrder(o.id, { status: prevStatus });
         toast.error(`iFood: ${fnData?.error ?? fnErr?.message ?? "falha"}`);
+        setPending(o.id, false);
         return;
       }
     }
@@ -323,8 +345,9 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
       patchOrder(o.id, { status: prevStatus });
       toast.error(error.message);
     } else {
-      toast.success("Pedido cancelado");
+      toast.success(`Pedido #${o.order_number} cancelado`);
     }
+    setPending(o.id, false);
   };
 
   const deleteOrder = async (o: Order) => {
@@ -590,19 +613,21 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                   {!["delivered", "cancelled"].includes(o.status) && (
                     <>
                       {next && !(o.external_source === "ifood" && next === "delivered") ? (
-                        <Button size="sm" className="flex-1" onClick={() => advance(o)}>
-                          {o.status === "pending"
-                            ? "✓ Aceitar pedido"
-                            : o.external_source === "ifood" && next === "out_for_delivery"
-                              ? "🛵 Enviar para entrega"
-                              : `→ ${orderStatusLabel[next]}`}
+                        <Button size="sm" className="flex-1" onClick={() => advance(o)} disabled={!!pendingAction[o.id]}>
+                          {pendingAction[o.id]
+                            ? "Enviando…"
+                            : o.status === "pending"
+                              ? "✓ Aceitar pedido"
+                              : o.external_source === "ifood" && next === "out_for_delivery"
+                                ? "🛵 Enviar para entrega"
+                                : `→ ${orderStatusLabel[next]}`}
                         </Button>
                       ) : o.external_source === "ifood" && o.status === "out_for_delivery" ? (
                         <div className="flex-1 text-xs text-muted-foreground italic flex items-center px-2">
                           Aguardando confirmação de entrega pelo iFood…
                         </div>
                       ) : null}
-                      <Button size="sm" variant="outline" onClick={() => setCancelTarget(o)} aria-label="Cancelar pedido"><X className="w-4 h-4" /></Button>
+                      <Button size="sm" variant="outline" onClick={() => setCancelTarget(o)} disabled={!!pendingAction[o.id]} aria-label="Cancelar pedido"><X className="w-4 h-4" /></Button>
                     </>
                   )}
                   <Button
