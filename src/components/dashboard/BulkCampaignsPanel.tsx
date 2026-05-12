@@ -130,7 +130,7 @@ export function BulkCampaignsPanel({
 
   return (
     <div className="space-y-4">
-      {scope === "admin" && (
+      {scope === "admin" && !isControlled && (
         <Card><CardContent className="p-4">
           <RestaurantMultiSelect all={allRest} selected={adminFilter} onChange={setAdminFilter} />
         </CardContent></Card>
