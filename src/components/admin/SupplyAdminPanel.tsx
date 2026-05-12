@@ -315,6 +315,7 @@ export function SupplyCatalogTab() {
     setEditing(null);
     setHasVariants(false); setGroupName(""); setTotalQty(""); setStep(50); setOptions([]); setNewOpt("");
     setStockGroupId("");
+    setExpenseCategoryId("");
     setOpen(true);
   };
   const openEdit = (p: SupplyProduct) => {
@@ -327,6 +328,7 @@ export function SupplyCatalogTab() {
     setOptions((optsByProduct[p.id] ?? []).map(o => ({ id: o.id, name: o.name })));
     setNewOpt("");
     setStockGroupId(p.stock_group_id ?? "");
+    setExpenseCategoryId(p.expense_category_id ?? "");
     setOpen(true);
   };
 
