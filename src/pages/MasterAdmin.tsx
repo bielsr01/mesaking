@@ -24,6 +24,7 @@ import { AdminCouponsPanel } from "@/components/admin/AdminCouponsPanel";
 import { AdminMenuPanel } from "@/components/admin/AdminMenuPanel";
 import { BulkCampaignsPanel } from "@/components/dashboard/BulkCampaignsPanel";
 import { EvolutionIntegrationCard } from "@/components/dashboard/EvolutionIntegrationCard";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface Restaurant {
   id: string;
@@ -48,6 +49,8 @@ const editSchema = z.object({
 
 export default function MasterAdmin() {
   const { signOut } = useAuth();
+  const qc = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
   const [view, setView] = useState<AdminView>("restaurants");
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [stats, setStats] = useState({ orders: 0, revenue: 0 });
@@ -159,7 +162,15 @@ export default function MasterAdmin() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => window.location.reload()}><RefreshCw className="w-4 h-4 mr-2" />Atualizar</Button>
+                <Button variant="outline" size="sm" disabled={refreshing} onClick={async () => {
+                  setRefreshing(true);
+                  try {
+                    await Promise.all([qc.invalidateQueries(), load()]);
+                    toast.success("Dados atualizados");
+                  } finally {
+                    setRefreshing(false);
+                  }
+                }}><RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />{refreshing ? "Atualizando..." : "Atualizar"}</Button>
                 <Button variant="ghost" size="sm" onClick={signOut}><LogOut className="w-4 h-4 mr-2" />Sair</Button>
               </div>
             </div>
