@@ -70,13 +70,13 @@ export function AdminOwnExpensesPanel() {
 
   const openNew = () => {
     setEditing(null);
-    setSelectedCatId("__free__"); setFreeCatName(""); setDescValue("");
+    setSelectedCatId(""); setFreeCatName(""); setDescValue("");
     setOpen(true);
   };
   const openEdit = (e: AdminExpense) => {
     setEditing(e);
-    setSelectedCatId(e.category_id ?? "__free__");
-    setFreeCatName(e.category_id ? "" : (e.category ?? ""));
+    setSelectedCatId(e.category_id ?? "");
+    setFreeCatName("");
     setDescValue(e.description ?? "");
     setOpen(true);
   };
@@ -94,9 +94,9 @@ export function AdminOwnExpensesPanel() {
     ev.preventDefault();
     if (saving) return;
     const fd = new FormData(ev.currentTarget);
-    const cat = selectedCatId !== "__free__" ? catsById[selectedCatId] : null;
-    const categoryName = cat ? cat.name : freeCatName.trim();
-    if (!categoryName) return toast.error("Selecione ou digite uma categoria");
+    const cat = catsById[selectedCatId];
+    if (!cat) return toast.error("Selecione uma categoria");
+    const categoryName = cat.name;
     const description = descValue.trim();
     if (!description) return toast.error("Descrição obrigatória");
     const payload = {
@@ -221,17 +221,13 @@ export function AdminOwnExpensesPanel() {
                 <form onSubmit={save} className="space-y-3">
                   <div>
                     <Label>Categoria</Label>
-                    <Select value={selectedCatId} onValueChange={setSelectedCatId}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                    <Select value={selectedCatId === "__free__" ? "" : selectedCatId} onValueChange={setSelectedCatId}>
+                      <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                       <SelectContent>
                         {cats.filter(c => c.is_active).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                        <SelectItem value="__free__">Outra (digitar)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                  {selectedCatId === "__free__" && (
-                    <div><Label>Nome da categoria</Label><Input value={freeCatName} onChange={(e) => setFreeCatName(e.target.value)} required /></div>
-                  )}
                   <div><Label>Descrição</Label><Input value={descValue} onChange={(e) => setDescValue(e.target.value)} required maxLength={200} /></div>
                   <div className="grid grid-cols-2 gap-3">
                     <div><Label>Valor (R$)</Label><Input name="amount" type="number" step="0.01" min="0" defaultValue={editing?.amount ?? ""} required /></div>
