@@ -70,18 +70,17 @@ export default function MasterAdmin() {
   const [loadingEdit, setLoadingEdit] = useState(false);
 
   const openEdit = async (r: Restaurant) => {
-    setEditing(r);
-    setEditManager({ email: "", full_name: "" });
     setShowEditPwd(false);
     setLoadingEdit(true);
     try {
       const { data, error } = await supabase.functions.invoke("admin-update-restaurant", { body: { restaurant_id: r.id, mode: "fetch" } });
       if (error || (data as any)?.error) {
         toast.error((data as any)?.error ?? error?.message ?? "Erro ao carregar dados");
-      } else {
-        const m = (data as any)?.manager ?? {};
-        setEditManager({ email: m.email ?? "", full_name: m.full_name ?? "" });
+        return;
       }
+      const m = (data as any)?.manager ?? {};
+      setEditManager({ email: m.email ?? "", full_name: m.full_name ?? "" });
+      setEditing(r);
     } finally {
       setLoadingEdit(false);
     }
