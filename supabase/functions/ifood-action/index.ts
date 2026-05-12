@@ -124,6 +124,15 @@ Deno.serve(async (req) => {
     payload.cancelReason = body.cancelReason ?? "Cancelado pelo restaurante";
   }
 
+  console.info("[ifood-action] forwarding", {
+    user: userData.user.id,
+    restaurantId,
+    localOrderId: body.orderId ?? null,
+    externalOrderId,
+    merchantId: canSee.merchant_id,
+    action: body.action,
+  });
+
   const resp = await fetch(`${IHUB_BASE}/ifood/action`, {
     method: "POST",
     headers: {
