@@ -39,6 +39,15 @@ async function fetchProductGroupIds(productId: string): Promise<string[]> {
   return (data ?? []).map((r: any) => r.group_id);
 }
 
+type StockGroup = { id: string; name: string };
+type StockConsumption = { group_id: string; quantity_per_unit: number };
+
+async function fetchStockConsumption(productId: string): Promise<StockConsumption[]> {
+  const { data } = await supabase.from("product_stock_consumption")
+    .select("group_id, quantity_per_unit").eq("product_id", productId);
+  return (data ?? []).map((r: any) => ({ group_id: r.group_id, quantity_per_unit: Number(r.quantity_per_unit) }));
+}
+
 export function MenuManager({ restaurantId }: { restaurantId: string }) {
   const qc = useQueryClient();
   const { data: categories = [], isLoading: loadingCats } = useQuery({
@@ -80,13 +89,25 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
   const [editingProd, setEditingProd] = useState<Product | null>(null);
   const [defaultCat, setDefaultCat] = useState<string | null>(null);
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
+  const [stockConsumption, setStockConsumption] = useState<StockConsumption[]>([]);
+
+  const { data: stockGroups = [] } = useQuery({
+    queryKey: ["stock_groups_active"],
+    queryFn: async () => {
+      const { data } = await supabase.from("stock_groups").select("id,name").eq("is_active", true).order("sort_order");
+      return (data ?? []) as StockGroup[];
+    },
+    staleTime: 60_000,
+  });
 
   // Load product->groups when editing
   useEffect(() => {
     if (prodOpen && editingProd) {
       fetchProductGroupIds(editingProd.id).then(setSelectedGroupIds);
+      fetchStockConsumption(editingProd.id).then(setStockConsumption);
     } else if (prodOpen && !editingProd) {
       setSelectedGroupIds([]);
+      setStockConsumption([]);
     }
   }, [prodOpen, editingProd]);
 
