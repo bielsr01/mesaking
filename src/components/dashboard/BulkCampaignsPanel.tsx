@@ -614,8 +614,21 @@ function CampaignDialog({
                         </label>
                       ))}
                     </div>
-                    {(typeFilters.size + statusFilters.size > 0) && (
-                      <Button variant="ghost" size="sm" className="w-full" onClick={() => { setTypeFilters(new Set()); setStatusFilters(new Set()); }}>
+                    {scope === "admin" && restaurantIds.length > 1 && (
+                      <div>
+                        <div className="text-xs font-semibold uppercase text-muted-foreground mb-2">Restaurante</div>
+                        <div className="max-h-40 overflow-y-auto space-y-1">
+                          {restaurantIds.map((id) => (
+                            <label key={id} className="flex items-center gap-2 text-sm cursor-pointer">
+                              <Checkbox checked={restaurantFilters.has(id)} onCheckedChange={() => toggleRestaurant(id)} />
+                              <span className="truncate">{restNameById.get(id) ?? id}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {(typeFilters.size + statusFilters.size + restaurantFilters.size > 0) && (
+                      <Button variant="ghost" size="sm" className="w-full" onClick={() => { setTypeFilters(new Set()); setStatusFilters(new Set()); setRestaurantFilters(new Set()); }}>
                         <X className="w-4 h-4 mr-1" /> Limpar filtros
                       </Button>
                     )}
