@@ -221,8 +221,6 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
   const netCur = grossCur - discountCur - ifoodFeesCur - nonIfoodServiceFee;
   const ticketCur = ordersCountCur ? grossCur / ordersCountCur : 0;
   const ticketPrev = ordersCountPrev ? grossPrev / ordersCountPrev : 0;
-  const ticketCur = ordersCountCur ? grossCur / ordersCountCur : 0;
-  const ticketPrev = ordersCountPrev ? grossPrev / ordersCountPrev : 0;
 
   const couponOrders = cur.filter((o) => o.coupon_code);
   const couponImpactPct = grossCur ? (sum(couponOrders, "total") / grossCur) * 100 : 0;
