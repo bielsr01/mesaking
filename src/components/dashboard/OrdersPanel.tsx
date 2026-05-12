@@ -318,15 +318,25 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   };
 
   const cancel = async (o: Order) => {
+    if (pendingAction[o.id]) return;
+    setPending(o.id, true);
     const prevStatus = o.status;
     patchOrder(o.id, { status: "cancelled" });
     if (o.external_source === "ifood") {
+      if (!o.external_order_id) {
+        patchOrder(o.id, { status: prevStatus });
+        toast.error("Pedido iFood sem external_order_id — não é possível cancelar.");
+        setPending(o.id, false);
+        return;
+      }
+      console.info("[ifood-action] cancelando", { orderId: o.id, externalOrderId: o.external_order_id, customer: o.customer_name });
       const { data: fnData, error: fnErr } = await supabase.functions.invoke("ifood-action", {
         body: { orderId: o.id, action: "cancel", cancelReason: "Cancelado pelo restaurante" },
       });
       if (fnErr || (fnData && fnData.ok === false)) {
         patchOrder(o.id, { status: prevStatus });
         toast.error(`iFood: ${fnData?.error ?? fnErr?.message ?? "falha"}`);
+        setPending(o.id, false);
         return;
       }
     }
@@ -335,8 +345,9 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
       patchOrder(o.id, { status: prevStatus });
       toast.error(error.message);
     } else {
-      toast.success("Pedido cancelado");
+      toast.success(`Pedido #${o.order_number} cancelado`);
     }
+    setPending(o.id, false);
   };
 
   const deleteOrder = async (o: Order) => {
