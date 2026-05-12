@@ -1,44 +1,60 @@
-## Editar campanha (mesmo ativa)
+# Sistema de Estoque
 
-Adicionar a possibilidade de editar uma campanha em qualquer status, com a regra de que **edição só é permitida quando a campanha está pausada ou em draft** — se estiver `running`, o sistema pausa automaticamente antes de abrir o editor.
+## O que será criado
 
-### Fluxo do usuário
+### 1. Banco de dados (novas tabelas)
 
-1. Na lista de campanhas (`BulkCampaignsPanel` — usado tanto no Dashboard quanto no Admin), cada linha ganha um botão **Editar** (ícone de lápis).
-2. Ao clicar:
-   - Se a campanha está `running` → mostra confirmação "A campanha será pausada para edição. Continuar?" e altera status para `paused`.
-   - Abre o mesmo dialog usado para criar campanha, em modo edição, pré-preenchido.
-3. Usuário pode alterar:
-   - Nome
-   - Texto da mensagem (com `{nome}`)
-   - URL da mídia
-   - Intervalo de envio (segundos)
-   - Pausa automática (a cada N msg / duração em min)
-   - **Destinatários**: adicionar novos contatos (mesmos filtros de cliente já existentes) ou remover pendentes.
-4. Ao salvar, a campanha permanece `paused`. Usuário clica em **Play** para retomar.
+- **stock_groups** (global, gerenciado só pelo admin): `name`, `is_active`, `sort_order`. Pré-popula com **Coxinhas**, **Churros**, **Bebidas**.
+- **restaurant_stock**: saldo por restaurante e por grupo (`restaurant_id`, `group_id`, `quantity`, `updated_at`). Único por (restaurante, grupo).
+- **stock_movements**: histórico de toda entrada/saída (`restaurant_id`, `group_id`, `quantity` (+/-), `type` (`supply_delivery`, `order_consumption`, `manual_adjust`), `reference_id`, `notes`, `created_by`).
+- **supply_products.stock_group_id** (nova coluna): vincula cada insumo a um grupo de estoque. Quantidade do pedido entregue → entra no grupo.
+- **product_stock_consumption**: vincula produto do cardápio a 1+ grupos de estoque (`product_id`, `group_id`, `quantity_per_unit`).
 
-### Regras importantes
+### 2. Regras automáticas (triggers)
 
-- **Não é possível remover destinatários já enviados** (`status = sent`/`failed`) — apenas os `pending`.
-- Adicionar novos contatos cria novos `bulk_campaign_recipients` com `status = pending` e atualiza `total` da campanha.
-- Editar texto/mídia/intervalo/pausa afeta apenas envios futuros — quem já recebeu não é reenviado.
-- Ao editar uma campanha pausada por auto-pausa (`paused_until` no futuro), o usuário pode optar por **limpar a pausa** (botão "Retomar agora") que zera `paused_until` e `sent_in_block`.
+- Quando `supply_orders.status` muda para **delivered**: para cada item, soma `quantity` no `restaurant_stock` do grupo vinculado ao insumo. Cria registro em `stock_movements`.
+- Quando `orders.status` muda para **accepted**: para cada item do pedido, calcula `quantity * quantity_per_unit` por grupo e debita do `restaurant_stock`. Permite ficar negativo. Cria movimento.
+- Reverter (somar de volta) caso o status volte de accepted para pending/cancelled.
 
-### Mudanças técnicas
+### 3. Painel Admin → nova aba "Estoque"
 
-**Frontend** — `src/components/dashboard/BulkCampaignsPanel.tsx`:
-- Refatorar o `CreateCampaignDialog` interno para aceitar prop `campaign?: BulkCampaign` (modo edição).
-- Em modo edição:
-  - Pré-carregar valores e recipients existentes.
-  - Mostrar lista de recipients atuais com badge de status; permitir remover só os `pending`.
-  - Botão "Adicionar contatos" abre seletor com os mesmos filtros de cliente.
-  - Submit faz `UPDATE` em `bulk_campaigns` + `INSERT` dos novos recipients + `DELETE` dos removidos.
-- Adicionar botão **Editar** (lápis) na tabela de campanhas, ao lado de Play/Pause/Delete.
-- Handler do botão: se status = `running`, faz `update status='paused'` antes de abrir o dialog.
-- Adicionar botão **"Retomar agora"** quando `paused_until` está no futuro.
+- Gerenciar **grupos globais** (CRUD: criar, renomear, ativar/desativar).
+- Visualizar estoque de **todas as lojas** (tabela: restaurante × grupo = quantidade, com filtro por restaurante).
+- Histórico de movimentações por restaurante.
+- No `SupplyAdminPanel` (cadastro de insumos): adicionar campo **Grupo de estoque** no formulário.
 
-**Backend**: nenhuma mudança de schema necessária — todas as colunas (`interval_seconds`, `pause_after_messages`, `pause_duration_minutes`, `media_url`, `message_text`, `name`) já existem e as RLS policies já permitem update pelo manager/admin. O worker já lê esses valores a cada iteração, então mudanças tomam efeito imediatamente quando a campanha voltar a `running`.
+### 4. Dashboard do gerente → nova aba "Estoque"
 
-### Arquivos afetados
+- Mostra saldo atual por grupo do próprio restaurante.
+- Histórico de movimentações (filtro por tipo/data).
+- Botão **Ajuste manual** (corrige saldo, vai para o histórico).
+- Aviso visual em vermelho quando saldo ≤ 0.
 
-- `src/components/dashboard/BulkCampaignsPanel.tsx` (única edição)
+### 5. Cardápio (MenuManager)
+
+- Dentro do formulário de cada produto, nova seção **"Consumo de estoque"**:
+  - Botão "Adicionar grupo" → seleciona um `stock_group` + define `quantity_per_unit`.
+  - Permite múltiplos grupos (ex: combo "50 coxinhas + bebida" → 50 Coxinhas + 1 Bebida).
+
+## Detalhes técnicos
+
+- Todas as tabelas com RLS:
+  - `stock_groups`: leitura para autenticados, escrita só `master_admin`.
+  - `restaurant_stock` / `stock_movements`: leitura/escrita para `is_restaurant_manager` ou `master_admin`.
+  - `supply_products.stock_group_id`: nullable (insumos antigos não quebram).
+  - `product_stock_consumption`: gerenciado pelo manager do restaurante dono do produto.
+- Triggers em `SECURITY DEFINER` para garantir gravação independente de RLS do usuário.
+- Decisão confirmada: desconto **ao aceitar o pedido**; estoque pode ficar negativo (apenas avisa).
+
+## Arquivos a alterar/criar
+
+- Migração SQL (novas tabelas + colunas + triggers + RLS + seed dos 3 grupos).
+- `src/components/dashboard/AppSidebar.tsx` — item "Estoque".
+- `src/pages/ManagerDashboard.tsx` — rota da nova view.
+- `src/components/dashboard/StockPanel.tsx` (novo) — saldo + histórico + ajuste.
+- `src/components/admin/AdminSidebar.tsx` + `src/pages/MasterAdmin.tsx` — aba "Estoque".
+- `src/components/admin/AdminStockPanel.tsx` (novo) — grupos globais + visão geral todas lojas.
+- `src/components/admin/SupplyAdminPanel.tsx` — campo "Grupo de estoque".
+- `src/components/dashboard/MenuManager.tsx` — seção "Consumo de estoque" no produto.
+
+Ao aprovar, começo pela migração e sigo na sequência acima.
