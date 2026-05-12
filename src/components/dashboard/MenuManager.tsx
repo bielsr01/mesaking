@@ -531,7 +531,7 @@ function SortableProductCard({
           <div className="text-sm font-semibold text-primary mt-0.5">{brl(p.price)}</div>
         </div>
         <Switch checked={p.is_active} onCheckedChange={() => onToggle(p)} />
-        <Button size="icon" variant="ghost" onClick={() => onEdit(p)}><Pencil className="w-4 h-4" /></Button>
+        <Button size="icon" variant="ghost" disabled={loading} onClick={() => onEdit(p)}>{loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Pencil className="w-4 h-4" />}</Button>
         <Button size="icon" variant="ghost" onClick={() => onRemove(p)}><Trash2 className="w-4 h-4" /></Button>
       </CardContent>
     </Card>
