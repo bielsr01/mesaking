@@ -935,6 +935,45 @@ export type Database = {
           },
         ]
       }
+      product_stock_consumption: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          product_id: string
+          quantity_per_unit: number
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          product_id: string
+          quantity_per_unit?: number
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          product_id?: string
+          quantity_per_unit?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_stock_consumption_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "stock_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_stock_consumption_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           category_id: string | null
@@ -1041,6 +1080,41 @@ export type Database = {
             columns: ["restaurant_id"]
             isOneToOne: false
             referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restaurant_stock: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          quantity: number
+          restaurant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          quantity?: number
+          restaurant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          quantity?: number
+          restaurant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_stock_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "stock_groups"
             referencedColumns: ["id"]
           },
         ]
@@ -1161,6 +1235,77 @@ export type Database = {
           whatsapp_url?: string | null
         }
         Relationships: []
+      }
+      stock_groups: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      stock_movements: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          group_id: string
+          id: string
+          notes: string | null
+          quantity: number
+          reference_id: string | null
+          restaurant_id: string
+          type: Database["public"]["Enums"]["stock_movement_type"]
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          group_id: string
+          id?: string
+          notes?: string | null
+          quantity: number
+          reference_id?: string | null
+          restaurant_id: string
+          type: Database["public"]["Enums"]["stock_movement_type"]
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          group_id?: string
+          id?: string
+          notes?: string | null
+          quantity?: number
+          reference_id?: string | null
+          restaurant_id?: string
+          type?: Database["public"]["Enums"]["stock_movement_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "stock_groups"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       supply_order_item_options: {
         Row: {
@@ -1323,6 +1468,7 @@ export type Database = {
           price: number
           quantity_step: number
           sort_order: number
+          stock_group_id: string | null
           total_quantity: number | null
           unit: string
           updated_at: string
@@ -1338,6 +1484,7 @@ export type Database = {
           price?: number
           quantity_step?: number
           sort_order?: number
+          stock_group_id?: string | null
           total_quantity?: number | null
           unit?: string
           updated_at?: string
@@ -1353,12 +1500,21 @@ export type Database = {
           price?: number
           quantity_step?: number
           sort_order?: number
+          stock_group_id?: string | null
           total_quantity?: number | null
           unit?: string
           updated_at?: string
           variant_group_name?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "supply_products_stock_group_id_fkey"
+            columns: ["stock_group_id"]
+            isOneToOne: false
+            referencedRelation: "stock_groups"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -1386,6 +1542,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_stock_delta: {
+        Args: {
+          _delta: number
+          _group_id: string
+          _notes: string
+          _reference: string
+          _restaurant_id: string
+          _type: Database["public"]["Enums"]["stock_movement_type"]
+        }
+        Returns: undefined
+      }
       credit_loyalty_points: { Args: { _tx_id: string }; Returns: undefined }
       has_role: {
         Args: {
@@ -1437,6 +1604,11 @@ export type Database = {
         | "awaiting_pickup"
       order_type: "delivery" | "pickup" | "pdv"
       payment_method: "cash" | "pix" | "card_on_delivery"
+      stock_movement_type:
+        | "supply_delivery"
+        | "order_consumption"
+        | "order_revert"
+        | "manual_adjust"
       supply_order_status: "pending" | "accepted" | "shipped" | "delivered"
     }
     CompositeTypes: {
@@ -1585,6 +1757,12 @@ export const Constants = {
       ],
       order_type: ["delivery", "pickup", "pdv"],
       payment_method: ["cash", "pix", "card_on_delivery"],
+      stock_movement_type: [
+        "supply_delivery",
+        "order_consumption",
+        "order_revert",
+        "manual_adjust",
+      ],
       supply_order_status: ["pending", "accepted", "shipped", "delivered"],
     },
   },

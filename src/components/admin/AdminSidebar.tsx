@@ -1,4 +1,4 @@
-import { ChefHat, Store, Package, ShoppingBag, ChevronDown, BarChart3, Users, Megaphone, Ticket, BookOpen, Send, Plug } from "lucide-react";
+import { ChefHat, Store, Package, ShoppingBag, ChevronDown, BarChart3, Users, Megaphone, Ticket, BookOpen, Send, Plug, Boxes } from "lucide-react";
 import { useState } from "react";
 import {
   Sidebar,
@@ -25,7 +25,8 @@ export type AdminView =
   | "marketing:bulk"
   | "settings:integrations"
   | "supply:catalog"
-  | "supply:orders";
+  | "supply:orders"
+  | "stock";
 
 export function AdminSidebar({ active, onChange }: { active: AdminView; onChange: (v: AdminView) => void }) {
   const { state } = useSidebar();
@@ -166,6 +167,17 @@ export function AdminSidebar({ active, onChange }: { active: AdminView; onChange
                   </CollapsibleContent>
                 </SidebarMenuItem>
               </Collapsible>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={active === "stock"}
+                  onClick={() => onChange("stock")}
+                  tooltip="Estoque"
+                >
+                  <Boxes className="h-4 w-4" />
+                  <span>Estoque</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

@@ -22,6 +22,7 @@ import { AdminOverviewPanel } from "@/components/admin/AdminOverviewPanel";
 import { AdminCustomersPanel } from "@/components/admin/AdminCustomersPanel";
 import { AdminCouponsPanel } from "@/components/admin/AdminCouponsPanel";
 import { AdminMenuPanel } from "@/components/admin/AdminMenuPanel";
+import { AdminStockPanel } from "@/components/admin/AdminStockPanel";
 import { BulkCampaignsPanel } from "@/components/dashboard/BulkCampaignsPanel";
 import { EvolutionIntegrationCard } from "@/components/dashboard/EvolutionIntegrationCard";
 import { useQueryClient } from "@tanstack/react-query";
@@ -143,6 +144,7 @@ export default function MasterAdmin() {
     "settings:integrations": "Integrações",
     "supply:catalog": "Catálogo de insumos",
     "supply:orders": "Pedidos de insumos recebidos",
+    stock: "Estoque",
   };
 
   return (
@@ -306,6 +308,7 @@ export default function MasterAdmin() {
             )}
             {view === "supply:catalog" && <SupplyCatalogTab />}
             {view === "supply:orders" && <SupplyOrdersTab />}
+            {view === "stock" && <AdminStockPanel />}
           </main>
         </SidebarInset>
 

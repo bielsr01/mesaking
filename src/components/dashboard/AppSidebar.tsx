@@ -1,4 +1,4 @@
-import { ChefHat, LayoutDashboard, ShoppingBag, UtensilsCrossed, Settings, Store, Printer, Plug, ChevronDown, Users, Megaphone, Ticket, Award, Send, ClipboardList, Package, Receipt, Bike } from "lucide-react";
+import { ChefHat, LayoutDashboard, ShoppingBag, UtensilsCrossed, Settings, Store, Printer, Plug, ChevronDown, Users, Megaphone, Ticket, Award, Send, ClipboardList, Package, Receipt, Bike, Boxes } from "lucide-react";
 import { useState } from "react";
 import {
   Sidebar,
@@ -31,6 +31,7 @@ export type DashboardView =
   | "settings:printers"
   | "settings:integrations"
   | "supply-orders"
+  | "stock"
   | "expenses";
 
 const mainItems: { id: DashboardView; title: string; icon: any }[] = [
@@ -197,6 +198,17 @@ export function AppSidebar({
                 >
                   <Package className="h-4 w-4" />
                   <span>Pedido de Insumos</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={active === "stock"}
+                  onClick={() => onChange("stock")}
+                  tooltip="Estoque"
+                >
+                  <Boxes className="h-4 w-4" />
+                  <span>Estoque</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
