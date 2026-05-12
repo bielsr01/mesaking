@@ -143,20 +143,41 @@ function ManualAdjustDialog({
 }: {
   restaurantId: string; group: StockGroup; currentQty: number; onSaved: () => void;
 }) {
+  const allowed = {
+    add: group.allow_add ?? true,
+    subtract: group.allow_subtract ?? true,
+    set: group.allow_set ?? true,
+  };
+  const onlySubtract = allowed.subtract && !allowed.add && !allowed.set;
+  const initialMode: "add" | "subtract" | "set" =
+    allowed.add ? "add" : allowed.subtract ? "subtract" : "set";
+
   const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState<"add" | "set">("add");
+  const [mode, setMode] = useState<"add" | "subtract" | "set">(initialMode);
   const [value, setValue] = useState<string>("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
+  useEffect(() => { if (open) setMode(initialMode); }, [open]);
+
+  const num = Math.trunc(Number(value) || 0);
+  const delta =
+    mode === "add" ? num :
+    mode === "subtract" ? -num :
+    num - currentQty;
+  const resultQty = currentQty + delta;
+  const notesRequired = mode === "subtract" || mode === "set";
+  const wouldGoNegative = mode === "subtract" && resultQty < 0;
+
   const submit = async () => {
-    const num = Number(value);
-    if (!Number.isFinite(num)) return toast.error("Informe um número");
-    const delta = mode === "add" ? Math.trunc(num) : Math.trunc(num) - currentQty;
+    if (!Number.isFinite(Number(value)) || value === "") return toast.error("Informe um número");
+    if (mode !== "set" && num <= 0) return toast.error("Informe uma quantidade positiva");
     if (delta === 0) return toast.error("Sem alteração");
+    if (notesRequired && !notes.trim()) return toast.error("Preencha as observações");
+    if (wouldGoNegative) return toast.error("Este grupo não pode ficar negativo");
+
     setSaving(true);
     try {
-      // Upsert stock
       const { data: existing } = await supabase.from("restaurant_stock")
         .select("id,quantity").eq("restaurant_id", restaurantId).eq("group_id", group.id).maybeSingle();
       if (existing) {
@@ -171,7 +192,8 @@ function ManualAdjustDialog({
       }
       const { error: mvErr } = await supabase.from("stock_movements").insert({
         restaurant_id: restaurantId, group_id: group.id, quantity: delta,
-        type: "manual_adjust", notes: notes || (mode === "set" ? `Ajuste para ${num}` : null),
+        type: "manual_adjust",
+        notes: notes.trim() || (mode === "set" ? `Ajuste para ${num}` : null),
       });
       if (mvErr) throw mvErr;
       toast.success("Estoque ajustado");
@@ -184,6 +206,11 @@ function ManualAdjustDialog({
     }
   };
 
+  const valueLabel =
+    mode === "add" ? "Quantidade a somar" :
+    mode === "subtract" ? "Digite a quantidade a ser subtraída" :
+    "Novo total";
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -193,24 +220,54 @@ function ManualAdjustDialog({
         <DialogHeader><DialogTitle>Ajuste manual — {group.name}</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div className="text-sm text-muted-foreground">Saldo atual: <span className="font-bold text-foreground">{currentQty}</span></div>
-          <div className="flex gap-2">
-            <Button type="button" size="sm" variant={mode === "add" ? "default" : "outline"} onClick={() => setMode("add")}>Somar/Subtrair</Button>
-            <Button type="button" size="sm" variant={mode === "set" ? "default" : "outline"} onClick={() => setMode("set")}>Definir total</Button>
-          </div>
+          {!onlySubtract && (
+            <div className="flex flex-wrap gap-2">
+              {allowed.add && (
+                <Button type="button" size="sm" variant={mode === "add" ? "default" : "outline"} onClick={() => setMode("add")}>Somar</Button>
+              )}
+              {allowed.subtract && (
+                <Button type="button" size="sm" variant={mode === "subtract" ? "default" : "outline"} onClick={() => setMode("subtract")}>Subtrair</Button>
+              )}
+              {allowed.set && (
+                <Button type="button" size="sm" variant={mode === "set" ? "default" : "outline"} onClick={() => setMode("set")}>Definir total</Button>
+              )}
+            </div>
+          )}
           <div>
-            <Label>{mode === "add" ? "Valor (use negativo para subtrair)" : "Novo total"}</Label>
-            <Input type="number" step="1" value={value} onChange={(e) => setValue(e.target.value)} placeholder="0" />
-            {mode === "add" && value !== "" && (
-              <p className="text-xs text-muted-foreground mt-1">Resultado: {currentQty + Math.trunc(Number(value) || 0)}</p>
+            <Label>{valueLabel}</Label>
+            <Input
+              type="number"
+              step="1"
+              min={mode === "set" ? undefined : 0}
+              value={value}
+              onChange={(e) => {
+                const v = e.target.value;
+                setValue(mode === "set" ? v : v.replace(/^-/, ""));
+              }}
+              placeholder="0"
+            />
+            {value !== "" && (
+              <p className={`text-xs mt-1 ${wouldGoNegative ? "text-destructive" : "text-muted-foreground"}`}>
+                Resultado: {resultQty}
+                {wouldGoNegative && " — não permitido para este grupo"}
+              </p>
             )}
           </div>
           <div>
-            <Label>Observação (opcional)</Label>
-            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Ex.: contagem física" />
+            <Label>Observação {notesRequired ? <span className="text-destructive">*</span> : "(opcional)"}</Label>
+            <Textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={2}
+              placeholder={notesRequired ? "Obrigatório: descreva o motivo" : "Ex.: contagem física"}
+              required={notesRequired}
+            />
           </div>
         </div>
         <DialogFooter>
-          <Button onClick={submit} disabled={saving || value === ""}>{saving ? "Salvando..." : "Salvar ajuste"}</Button>
+          <Button onClick={submit} disabled={saving || value === "" || wouldGoNegative}>
+            {saving ? "Salvando..." : "Salvar ajuste"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
