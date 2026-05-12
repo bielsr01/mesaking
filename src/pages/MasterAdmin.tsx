@@ -160,7 +160,7 @@ export default function MasterAdmin() {
       return toast.error((data as any)?.error ?? error?.message ?? "Erro ao criar");
     }
     if (createPin) {
-      const newId = (data as any)?.restaurant_id ?? (data as any)?.id;
+      const newId = (data as any)?.restaurant?.id ?? (data as any)?.restaurant_id;
       if (newId) {
         await (supabase as any).from("restaurant_master_pins").upsert({ restaurant_id: newId, pin: createPin });
       }
