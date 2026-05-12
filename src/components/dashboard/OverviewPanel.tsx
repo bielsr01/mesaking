@@ -388,20 +388,15 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
       </Tabs>
 
       {/* KPI grid */}
-      {source === "ifood" && (
-        <div className="text-xs text-muted-foreground -mb-1">
-          iFood é registrado manualmente: somente valores financeiros estão disponíveis. Demais métricas aparecem desabilitadas.
-        </div>
-      )}
       <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-        <Kpi icon={DollarSign} label="Valor das vendas" value={brl(source === "ifood" ? ifoodCur.gross : grossCur)} delta={source === "ifood" ? undefined : revenueGrowth} />
-        <Kpi icon={Receipt} label="Total faturamento" value={brl(source === "ifood" ? ifoodCur.net : netCur)} sub={source === "ifood" ? undefined : `Descontos ${brl(discountCur)}`} />
-        <Kpi icon={Truck} label="Taxas, serviços e ajustes" value={`- ${brl(source === "ifood" ? ifoodCur.fees : serviceFeeCur)}`} negative />
-        <Kpi icon={ShoppingBag} label="Pedidos" value={ordersCountCur.toString()} delta={ordersGrowth} disabled={source === "ifood"} />
-        <Kpi icon={TrendingUp} label="Ticket médio" value={brl(ticketCur)} delta={ticketGrowth} disabled={source === "ifood"} />
-        <Kpi icon={Tag} label="Cupons aplicados" value={`${couponOrders.length}`} sub={`Impacto ${couponImpactPct.toFixed(1)}%`} disabled={source === "ifood"} />
-        <Kpi icon={Users} label="Novos clientes" value={newCustomers.toString()} sub={`${recurringPct.toFixed(0)}% recorrentes`} disabled={source === "ifood"} />
-        <Kpi icon={RefreshCw} label="Taxa de recompra" value={`${repurchaseRate.toFixed(1)}%`} sub={`Freq. ${purchaseFreq.toFixed(1)} ped./cliente`} disabled={source === "ifood"} />
+        <Kpi icon={DollarSign} label="Valor das vendas" value={brl(grossCur)} delta={revenueGrowth} />
+        <Kpi icon={Receipt} label="Total faturamento" value={brl(netCur)} sub={`Descontos ${brl(discountCur)}`} />
+        <Kpi icon={Truck} label="Taxas, serviços e ajustes" value={`- ${brl(serviceFeeCur)}`} negative />
+        <Kpi icon={ShoppingBag} label="Pedidos" value={ordersCountCur.toString()} delta={ordersGrowth} />
+        <Kpi icon={TrendingUp} label="Ticket médio" value={brl(ticketCur)} delta={ticketGrowth} />
+        <Kpi icon={Tag} label="Cupons aplicados" value={`${couponOrders.length}`} sub={`Impacto ${couponImpactPct.toFixed(1)}%`} />
+        <Kpi icon={Users} label="Novos clientes" value={newCustomers.toString()} sub={`${recurringPct.toFixed(0)}% recorrentes`} />
+        <Kpi icon={RefreshCw} label="Taxa de recompra" value={`${repurchaseRate.toFixed(1)}%`} sub={`Freq. ${purchaseFreq.toFixed(1)} ped./cliente`} />
       </div>
 
       {/* Comparativos automáticos */}
