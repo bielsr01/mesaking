@@ -59,12 +59,15 @@ const RECIP_BADGE: Record<string, string> = {
 };
 
 export function BulkCampaignsPanel({
-  scope, restaurantId,
-}: { scope: "restaurant" | "admin"; restaurantId?: string }) {
+  scope, restaurantId, restaurantIds, onRestaurantIdsChange,
+}: { scope: "restaurant" | "admin"; restaurantId?: string; restaurantIds?: string[]; onRestaurantIdsChange?: (ids: string[]) => void; }) {
   const qc = useQueryClient();
   const restaurantsQ = useRestaurants();
   const allRest = restaurantsQ.data ?? [];
-  const [adminFilter, setAdminFilter] = useState<string[]>([]);
+  const [internalAdminFilter, setInternalAdminFilter] = useState<string[]>([]);
+  const adminFilter = restaurantIds ?? internalAdminFilter;
+  const setAdminFilter = onRestaurantIdsChange ?? setInternalAdminFilter;
+  const isControlled = !!restaurantIds;
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
 
@@ -127,7 +130,7 @@ export function BulkCampaignsPanel({
 
   return (
     <div className="space-y-4">
-      {scope === "admin" && (
+      {scope === "admin" && !isControlled && (
         <Card><CardContent className="p-4">
           <RestaurantMultiSelect all={allRest} selected={adminFilter} onChange={setAdminFilter} />
         </CardContent></Card>
