@@ -41,6 +41,7 @@ export function ExpensesPanel({ restaurantId }: { restaurantId: string }) {
 
   const [selectedCatId, setSelectedCatId] = useState<string>("");
   const [descValue, setDescValue] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const { data: cats = [] } = useQuery({
     queryKey: ["expense_categories", "restaurant"],
