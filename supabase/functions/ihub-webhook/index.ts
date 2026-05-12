@@ -161,6 +161,21 @@ async function handlePlaced(integration: any, ev: IHubEvent) {
   const benefits = Number(total.benefits ?? 0);
   const additionalFees = Number(total.additionalFees ?? 0);
   const orderAmount = Number(total.orderAmount ?? subtotal + deliveryFee + additionalFees - benefits);
+
+  // Breakdown de subsídio (cupons): IFOOD vs MERCHANT
+  let ifoodSubsidy = 0;
+  let merchantSubsidy = 0;
+  const benefitsArr = Array.isArray(od?.benefits) ? od.benefits : [];
+  for (const b of benefitsArr) {
+    const sv = Array.isArray(b?.sponsorshipValues) ? b.sponsorshipValues : [];
+    for (const s of sv) {
+      const name = String(s?.name ?? "").toUpperCase();
+      const v = Number(s?.value ?? 0);
+      if (!isFinite(v) || v <= 0) continue;
+      if (name === "IFOOD") ifoodSubsidy += v;
+      else if (name === "MERCHANT") merchantSubsidy += v;
+    }
+  }
   const changeFor = extractChangeFor(od);
   const lat = addr?.coordinates?.latitude ?? addr?.latitude ?? null;
   const lng = addr?.coordinates?.longitude ?? addr?.longitude ?? null;
