@@ -366,7 +366,6 @@ export default function MasterAdmin() {
                   </div>
                   <div className="space-y-2 col-span-2 pt-2 border-t">
                     <Label className="text-base">Acesso do gerente</Label>
-                    {loadingEdit && <p className="text-xs text-muted-foreground">Carregando dados do gerente...</p>}
                   </div>
                   <div className="space-y-2 col-span-2">
                     <Label>Nome do gerente</Label>
