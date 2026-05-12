@@ -324,6 +324,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   };
 
   const deliveryCount = orders.filter((o) => o.order_type !== "pdv").length;
+  const deliveryPendingCount = orders.filter((o) => o.order_type !== "pdv" && o.status === "pending").length;
   const pdvCount = orders.filter((o) => o.order_type === "pdv").length;
 
   // PDV: em preparo + entregues
