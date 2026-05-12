@@ -376,6 +376,22 @@ function GroupDialog({
             <Label>Nome do grupo</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Sabores" />
           </div>
+          <div className="space-y-2">
+            <Label>Foto do grupo (opcional)</Label>
+            <div className="flex items-center gap-3">
+              {imageUrl ? (
+                <img src={imageUrl} alt="Foto do grupo" className="w-16 h-16 rounded object-cover border" />
+              ) : (
+                <div className="w-16 h-16 rounded border bg-muted flex items-center justify-center text-xs text-muted-foreground">Sem foto</div>
+              )}
+              <div className="flex-1 flex flex-wrap gap-2">
+                <Input type="file" accept="image/*" disabled={uploading} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.currentTarget.value = ""; }} />
+                {imageUrl && (
+                  <Button type="button" size="sm" variant="outline" onClick={() => setImageUrl(null)}>Remover</Button>
+                )}
+              </div>
+            </div>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label>Mínimo a escolher</Label>
