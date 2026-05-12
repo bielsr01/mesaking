@@ -180,8 +180,6 @@ function AdminStockGroups() {
               <DialogFooter><Button type="submit">Salvar</Button></DialogFooter>
             </form>
           </DialogContent>
-            </form>
-          </DialogContent>
         </Dialog>
       </div>
       <Card>
