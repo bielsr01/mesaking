@@ -59,6 +59,8 @@ interface Order {
   delivery_latitude: number | null;
   delivery_longitude: number | null;
   external_source?: string | null;
+  external_order_id?: string | null;
+  external_display_id?: string | null;
 }
 
 interface Item {
