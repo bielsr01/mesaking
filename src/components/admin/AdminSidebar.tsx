@@ -162,11 +162,11 @@ export function AdminSidebar({ active, onChange, supplyBadge = 0 }: { active: Ad
                       </SidebarMenuSubItem>
                       <SidebarMenuSubItem>
                         <SidebarMenuSubButton asChild isActive={active === "supply:orders"}>
-                          <button type="button" onClick={() => onChange("supply:orders")} className="w-full text-left flex items-center gap-2">
-                            <ShoppingBag className="h-4 w-4" />
-                            <span>Pedidos recebidos</span>
+                          <button type="button" onClick={() => onChange("supply:orders")} className="w-full text-left flex items-center gap-1.5 min-w-0">
+                            <ShoppingBag className="h-4 w-4 shrink-0" />
+                            <span className="flex-1 min-w-0 truncate whitespace-nowrap">Pedidos recebidos</span>
                             {supplyBadge > 0 && (
-                              <span className="ml-auto min-w-[20px] h-5 px-1.5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold grid place-items-center">
+                              <span className="shrink-0 min-w-[16px] h-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold grid place-items-center leading-none">
                                 {supplyBadge > 9 ? "9+" : supplyBadge}
                               </span>
                             )}
