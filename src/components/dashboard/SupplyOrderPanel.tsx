@@ -9,7 +9,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Minus, Plus, ArrowLeft, Plus as PlusIcon, Clock, Truck, Package, Check } from "lucide-react";
+import { Minus, Plus, ArrowLeft, Plus as PlusIcon, Clock, Truck, Package, Check, Pencil, X } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { brl } from "@/lib/format";
 
@@ -24,7 +28,7 @@ type SupplyOrder = {
   id: string; restaurant_id: string; status: "pending"|"accepted"|"shipped"|"delivered";
   total: number; notes: string | null; created_at: string;
   supply_order_items?: {
-    id: string; product_name: string; unit_price: number; quantity: number; unit: string | null;
+    id: string; product_id: string | null; product_name: string; unit_price: number; quantity: number; unit: string | null;
     supply_order_item_options?: { id: string; option_name: string; quantity: number }[];
   }[];
 };
@@ -49,6 +53,7 @@ export function SupplyOrderPanel({ restaurantId }: { restaurantId: string }) {
   const [dist, setDist] = useState<Record<string, Record<string, number>>>({});
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [filter, setFilter] = useState<"pending"|"accepted"|"shipped"|"delivered"|"all">("pending");
 
   const { data: products = [] } = useQuery({
@@ -149,21 +154,54 @@ export function SupplyOrderPanel({ restaurantId }: { restaurantId: string }) {
       if (e3) { setSubmitting(false); return toast.error(e3.message); }
     }
 
+    // If editing, delete the previous pending order
+    if (editingId) {
+      const { error: delErr } = await supabase.from("supply_orders").delete().eq("id", editingId);
+      if (delErr) { setSubmitting(false); return toast.error("Erro ao atualizar: " + delErr.message); }
+    }
+
     setSubmitting(false);
-    setCart({}); setDist({}); setNotes("");
-    toast.success("Pedido enviado!");
+    setCart({}); setDist({}); setNotes(""); setEditingId(null);
+    toast.success(editingId ? "Pedido atualizado!" : "Pedido enviado!");
     qc.invalidateQueries({ queryKey: ["supply_orders", restaurantId] });
     setView("history");
+  };
+
+  const startEdit = (o: SupplyOrder) => {
+    const newCart: Record<string, number> = {};
+    const newDist: Record<string, Record<string, number>> = {};
+    (o.supply_order_items ?? []).forEach((it) => {
+      if (!it.product_id) return;
+      newCart[it.product_id] = it.quantity;
+      if (it.supply_order_item_options && it.supply_order_item_options.length > 0) {
+        newDist[it.product_id] = {};
+        it.supply_order_item_options.forEach((op) => {
+          newDist[it.product_id][op.option_name] = op.quantity;
+        });
+      }
+    });
+    setCart(newCart);
+    setDist(newDist);
+    setNotes(o.notes ?? "");
+    setEditingId(o.id);
+    setView("new");
+  };
+
+  const cancelOrder = async (id: string) => {
+    const { error } = await supabase.from("supply_orders").delete().eq("id", id);
+    if (error) return toast.error("Erro ao cancelar: " + error.message);
+    toast.success("Pedido cancelado");
+    qc.invalidateQueries({ queryKey: ["supply_orders", restaurantId] });
   };
 
   if (view === "new") {
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-2">
-          <Button variant="ghost" size="sm" onClick={() => setView("history")}>
+          <Button variant="ghost" size="sm" onClick={() => { setView("history"); setEditingId(null); setCart({}); setDist({}); setNotes(""); }}>
             <ArrowLeft className="w-4 h-4 mr-1" />Voltar
           </Button>
-          <h2 className="text-lg font-semibold">Novo pedido</h2>
+          <h2 className="text-lg font-semibold">{editingId ? "Editar pedido" : "Novo pedido"}</h2>
           <div className="w-20" />
         </div>
 
@@ -285,7 +323,7 @@ export function SupplyOrderPanel({ restaurantId }: { restaurantId: string }) {
                   <span>Total</span><span>{brl(total)}</span>
                 </div>
                 <Button className="w-full" onClick={async () => { await submitOrder(); }} disabled={submitting || total === 0}>
-                  {submitting ? "Enviando..." : "Enviar pedido"}
+                  {submitting ? (editingId ? "Salvando..." : "Enviando...") : (editingId ? "Salvar alterações" : "Enviar pedido")}
                 </Button>
               </CardContent>
             </Card>
@@ -368,6 +406,32 @@ export function SupplyOrderPanel({ restaurantId }: { restaurantId: string }) {
                     ))}
                   </div>
                   {o.notes && <div className="text-xs text-muted-foreground italic">"{o.notes}"</div>}
+                  {o.status === "pending" && (
+                    <div className="flex gap-2 pt-2">
+                      <Button size="sm" variant="outline" onClick={() => startEdit(o)}>
+                        <Pencil className="w-3.5 h-3.5 mr-1" />Editar
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button size="sm" variant="destructive">
+                            <X className="w-3.5 h-3.5 mr-1" />Cancelar
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Cancelar pedido?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Esta ação não pode ser desfeita. O pedido será removido permanentemente.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Voltar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => cancelOrder(o.id)}>Confirmar cancelamento</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  )}
                 </CardContent>
                 <div className="border-t bg-muted/20 px-5 py-4">
                   <div className="text-xs font-semibold text-foreground mb-3">Acompanhamento</div>
