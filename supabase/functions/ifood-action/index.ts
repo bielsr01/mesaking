@@ -154,4 +154,10 @@ Deno.serve(async (req) => {
   return new Response(JSON.stringify({ ok: true, ihub: parsed }), {
     status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+  } catch (e: any) {
+    console.error("ifood-action unexpected error", e);
+    return new Response(JSON.stringify({ ok: false, error: e?.message ?? "Erro inesperado" }), {
+      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 });
