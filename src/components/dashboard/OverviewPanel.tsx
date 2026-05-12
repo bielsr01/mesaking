@@ -93,13 +93,7 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
   const [custom, setCustom] = useState<DateRange | undefined>();
   const [source, setSource] = useState<SourceFilter>("all");
 
-  const ifoodAllowedPresets: Preset[] = ["lastmonth", "month", "custom"];
-  const handleSourceChange = (v: SourceFilter) => {
-    setSource(v);
-    if (v === "ifood" && !ifoodAllowedPresets.includes(preset)) {
-      setPreset("lastmonth");
-    }
-  };
+  const handleSourceChange = (v: SourceFilter) => setSource(v);
 
   const range = useMemo(() => rangeFor(preset, custom), [preset, custom]);
   const prevRange = useMemo(() => {
@@ -113,7 +107,7 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
     queryFn: async () => {
       const { data } = await sb
         .from("orders")
-        .select("id, created_at, total, subtotal, discount, delivery_fee, service_fee, coupon_code, status, order_type, payment_method, external_source, customer_phone, customer_name")
+        .select("id, restaurant_id, created_at, total, subtotal, discount, delivery_fee, service_fee, coupon_code, status, order_type, payment_method, external_source, customer_phone, customer_name, ifood_subsidy, merchant_subsidy")
         .in("restaurant_id", ids)
         .gte("created_at", prevRange.from.toISOString())
         .lte("created_at", range.to.toISOString())
