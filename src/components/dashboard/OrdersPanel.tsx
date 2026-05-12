@@ -613,19 +613,21 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                   {!["delivered", "cancelled"].includes(o.status) && (
                     <>
                       {next && !(o.external_source === "ifood" && next === "delivered") ? (
-                        <Button size="sm" className="flex-1" onClick={() => advance(o)}>
-                          {o.status === "pending"
-                            ? "✓ Aceitar pedido"
-                            : o.external_source === "ifood" && next === "out_for_delivery"
-                              ? "🛵 Enviar para entrega"
-                              : `→ ${orderStatusLabel[next]}`}
+                        <Button size="sm" className="flex-1" onClick={() => advance(o)} disabled={!!pendingAction[o.id]}>
+                          {pendingAction[o.id]
+                            ? "Enviando…"
+                            : o.status === "pending"
+                              ? "✓ Aceitar pedido"
+                              : o.external_source === "ifood" && next === "out_for_delivery"
+                                ? "🛵 Enviar para entrega"
+                                : `→ ${orderStatusLabel[next]}`}
                         </Button>
                       ) : o.external_source === "ifood" && o.status === "out_for_delivery" ? (
                         <div className="flex-1 text-xs text-muted-foreground italic flex items-center px-2">
                           Aguardando confirmação de entrega pelo iFood…
                         </div>
                       ) : null}
-                      <Button size="sm" variant="outline" onClick={() => setCancelTarget(o)} aria-label="Cancelar pedido"><X className="w-4 h-4" /></Button>
+                      <Button size="sm" variant="outline" onClick={() => setCancelTarget(o)} disabled={!!pendingAction[o.id]} aria-label="Cancelar pedido"><X className="w-4 h-4" /></Button>
                     </>
                   )}
                   <Button
