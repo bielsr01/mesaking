@@ -262,6 +262,11 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const advance = async (o: Order) => {
     const next = getNextStatus(o.status, o.order_type) as Order["status"] | null;
     if (!next) return;
+  const advance = async (o: Order) => {
+    if (pendingAction[o.id]) return; // evita duplo-clique / corrida com outro pedido
+    const next = getNextStatus(o.status, o.order_type) as Order["status"] | null;
+    if (!next) return;
+    setPending(o.id, true);
     const prevStatus = o.status;
     patchOrder(o.id, { status: next });
 
@@ -269,20 +274,26 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     // No iFood, "delivered" é atualizado automaticamente pelo webhook (CONCLUDED) — não enviamos ação.
     if (o.external_source === "ifood") {
       if (next === "delivered") {
-        // não dispara ação manual; espera webhook do iFood
         patchOrder(o.id, { status: prevStatus });
         toast.info("Pedidos do iFood são marcados como entregues automaticamente pelo iFood.");
+        setPending(o.id, false);
+        return;
+      }
+      // Defesa: precisa ter external_order_id para mandar a ação só desse pedido
+      if (!o.external_order_id) {
+        patchOrder(o.id, { status: prevStatus });
+        toast.error("Pedido iFood sem external_order_id — não é possível enviar a ação.");
+        setPending(o.id, false);
         return;
       }
       const actionMap: Record<string, string> = {
-        // pending → preparing: confirma o pedido (PLACED → CONFIRMED)
         preparing: "confirm",
         awaiting_pickup: "readyToPickup",
-        // preparing → out_for_delivery: despacha
         out_for_delivery: "dispatch",
       };
       const action = actionMap[next];
       if (action) {
+        console.info("[ifood-action] enviando", { orderId: o.id, externalOrderId: o.external_order_id, customer: o.customer_name, action });
         const { data: fnData, error: fnErr } = await supabase.functions.invoke("ifood-action", {
           body: { orderId: o.id, action },
         });
@@ -292,9 +303,9 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
           if (!transient) {
             patchOrder(o.id, { status: prevStatus });
             toast.error(`iFood: ${fnData?.error ?? fnErr?.message ?? "falha"}`);
+            setPending(o.id, false);
             return;
           }
-          // Erros 5xx do iHub costumam ser falsos-positivos; segue silenciosamente.
         }
       }
     }
@@ -304,8 +315,9 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
       patchOrder(o.id, { status: prevStatus });
       toast.error(error.message);
     } else {
-      toast.success(`Pedido movido para "${orderStatusLabel[next]}"`);
+      toast.success(`Pedido #${o.order_number} → "${orderStatusLabel[next]}"`);
     }
+    setPending(o.id, false);
   };
 
   const cancel = async (o: Order) => {
