@@ -24,6 +24,7 @@ export interface OptionGroup {
   max_select: number;
   sort_order: number;
   is_active: boolean;
+  image_url?: string | null;
 }
 export interface OptionItem {
   id: string;
