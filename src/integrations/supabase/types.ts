@@ -1561,6 +1561,7 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          expense_category_id: string | null
           id: string
           image_url: string | null
           is_active: boolean
@@ -1577,6 +1578,7 @@ export type Database = {
         Insert: {
           created_at?: string
           description?: string | null
+          expense_category_id?: string | null
           id?: string
           image_url?: string | null
           is_active?: boolean
@@ -1593,6 +1595,7 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string | null
+          expense_category_id?: string | null
           id?: string
           image_url?: string | null
           is_active?: boolean
@@ -1607,6 +1610,13 @@ export type Database = {
           variant_group_name?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "supply_products_expense_category_id_fkey"
+            columns: ["expense_category_id"]
+            isOneToOne: false
+            referencedRelation: "expense_categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "supply_products_stock_group_id_fkey"
             columns: ["stock_group_id"]

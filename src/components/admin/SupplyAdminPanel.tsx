@@ -20,8 +20,10 @@ type SupplyProduct = {
   price: number; image_url: string | null; is_active: boolean; sort_order: number;
   variant_group_name: string | null; total_quantity: number | null; quantity_step: number;
   stock_group_id: string | null;
+  expense_category_id: string | null;
 };
 type StockGroup = { id: string; name: string };
+type ExpenseCategory = { id: string; name: string };
 type SupplyOption = { id: string; product_id: string; name: string; sort_order: number; is_active: boolean };
 type Restaurant = { id: string; name: string; slug: string };
 type SupplyOrder = {
@@ -270,6 +272,7 @@ export function SupplyCatalogTab() {
   const [options, setOptions] = useState<{ id?: string; name: string }[]>([]);
   const [newOpt, setNewOpt] = useState("");
   const [stockGroupId, setStockGroupId] = useState<string>("");
+  const [expenseCategoryId, setExpenseCategoryId] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
   const { data: stockGroups = [] } = useQuery({
@@ -277,6 +280,15 @@ export function SupplyCatalogTab() {
     queryFn: async () => {
       const { data } = await supabase.from("stock_groups").select("id,name").eq("is_active", true).order("sort_order");
       return (data ?? []) as StockGroup[];
+    },
+  });
+
+  const { data: expenseCategories = [] } = useQuery({
+    queryKey: ["expense_categories_restaurant_admin"],
+    queryFn: async () => {
+      const { data } = await supabase.from("expense_categories")
+        .select("id,name").eq("scope", "restaurant").eq("is_active", true).order("name");
+      return (data ?? []) as ExpenseCategory[];
     },
   });
 
@@ -303,6 +315,7 @@ export function SupplyCatalogTab() {
     setEditing(null);
     setHasVariants(false); setGroupName(""); setTotalQty(""); setStep(50); setOptions([]); setNewOpt("");
     setStockGroupId("");
+    setExpenseCategoryId("");
     setOpen(true);
   };
   const openEdit = (p: SupplyProduct) => {
@@ -315,6 +328,7 @@ export function SupplyCatalogTab() {
     setOptions((optsByProduct[p.id] ?? []).map(o => ({ id: o.id, name: o.name })));
     setNewOpt("");
     setStockGroupId(p.stock_group_id ?? "");
+    setExpenseCategoryId(p.expense_category_id ?? "");
     setOpen(true);
   };
 
@@ -333,6 +347,7 @@ export function SupplyCatalogTab() {
       total_quantity: hasVariants && totalQty !== "" ? Number(totalQty) : null,
       quantity_step: hasVariants ? Math.max(1, Number(step) || 50) : 50,
       stock_group_id: stockGroupId || null,
+      expense_category_id: expenseCategoryId || null,
     };
     if (!payload.name) return toast.error("Nome obrigatório");
     if (hasVariants) {
@@ -423,6 +438,19 @@ export function SupplyCatalogTab() {
                   {stockGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
                 </select>
                 <p className="text-xs text-muted-foreground mt-1">Quando o pedido for marcado como entregue, a quantidade entra automaticamente neste grupo no estoque do restaurante.</p>
+              </div>
+
+              <div>
+                <Label>Vincular à categoria de despesa</Label>
+                <select
+                  value={expenseCategoryId}
+                  onChange={(e) => setExpenseCategoryId(e.target.value)}
+                  className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="">Não vincular a despesa</option>
+                  {expenseCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+                <p className="text-xs text-muted-foreground mt-1">Se vinculado, ao marcar o pedido como entregue será criada automaticamente uma despesa para o restaurante com a descrição igual ao nome deste insumo.</p>
               </div>
 
               <div className="rounded-lg border p-3 space-y-3 bg-muted/30">
