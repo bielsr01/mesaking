@@ -267,6 +267,7 @@ export function SupplyCatalogTab() {
   const [step, setStep] = useState<number>(50);
   const [options, setOptions] = useState<{ id?: string; name: string }[]>([]);
   const [newOpt, setNewOpt] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const { data: products = [] } = useQuery({
     queryKey: ["admin_supply_products"],
@@ -306,6 +307,7 @@ export function SupplyCatalogTab() {
 
   const save = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (saving) return;
     const fd = new FormData(e.currentTarget);
     const payload = {
       name: String(fd.get("name") || "").trim(),
@@ -325,34 +327,40 @@ export function SupplyCatalogTab() {
       if (options.filter(o => o.name.trim()).length === 0) return toast.error("Cadastre ao menos uma opção");
     }
 
-    let productId = editing?.id;
-    if (editing) {
-      const { error } = await supabase.from("supply_products").update(payload).eq("id", editing.id);
-      if (error) return toast.error(error.message);
-    } else {
-      const { data, error } = await supabase.from("supply_products").insert(payload).select().single();
-      if (error || !data) return toast.error(error?.message ?? "Erro");
-      productId = data.id;
-    }
+    setSaving(true);
+    try {
+      let productId = editing?.id;
+      if (editing) {
+        const { error } = await supabase.from("supply_products").update(payload).eq("id", editing.id);
+        if (error) { toast.error(error.message); return; }
+      } else {
+        const { data, error } = await supabase.from("supply_products").insert(payload).select().single();
+        if (error || !data) { toast.error(error?.message ?? "Erro"); return; }
+        productId = data.id;
+      }
 
-    if (productId) {
-      // Replace options
-      await supabase.from("supply_product_options").delete().eq("product_id", productId);
-      if (hasVariants && options.length) {
-        const rows = options.filter(o => o.name.trim()).map((o, i) => ({
-          product_id: productId!, name: o.name.trim(), sort_order: i, is_active: true,
-        }));
-        if (rows.length) {
-          const { error } = await supabase.from("supply_product_options").insert(rows);
-          if (error) return toast.error(error.message);
+      if (productId) {
+        await supabase.from("supply_product_options").delete().eq("product_id", productId);
+        if (hasVariants && options.length) {
+          const rows = options.filter(o => o.name.trim()).map((o, i) => ({
+            product_id: productId!, name: o.name.trim(), sort_order: i, is_active: true,
+          }));
+          if (rows.length) {
+            const { error } = await supabase.from("supply_product_options").insert(rows);
+            if (error) { toast.error(error.message); return; }
+          }
         }
       }
-    }
 
-    toast.success("Salvo");
-    setOpen(false); setEditing(null);
-    qc.invalidateQueries({ queryKey: ["admin_supply_products"] });
-    qc.invalidateQueries({ queryKey: ["admin_supply_options"] });
+      toast.success("Salvo");
+      setOpen(false); setEditing(null);
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["admin_supply_products"] }),
+        qc.invalidateQueries({ queryKey: ["admin_supply_options"] }),
+      ]);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const remove = async (id: string) => {
@@ -377,9 +385,9 @@ export function SupplyCatalogTab() {
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }}>
+        <Dialog open={open} onOpenChange={(v) => { if (saving) return; setOpen(v); if (!v) setEditing(null); }}>
           <DialogTrigger asChild><Button onClick={openNew}><Plus className="w-4 h-4 mr-2" />Novo insumo</Button></DialogTrigger>
-          <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-h-[90vh] overflow-y-auto" onPointerDownOutside={(e) => { if (saving) e.preventDefault(); }} onEscapeKeyDown={(e) => { if (saving) e.preventDefault(); }}>
             <DialogHeader><DialogTitle>{editing ? "Editar" : "Novo"} insumo</DialogTitle></DialogHeader>
             <form onSubmit={save} className="space-y-3">
               <div><Label>Nome</Label><Input name="name" defaultValue={editing?.name} required maxLength={120} /></div>
@@ -439,8 +447,16 @@ export function SupplyCatalogTab() {
                 )}
               </div>
 
-              <DialogFooter><Button type="submit">Salvar</Button></DialogFooter>
+              <DialogFooter><Button type="submit" disabled={saving}>{saving ? "Salvando..." : "Salvar"}</Button></DialogFooter>
             </form>
+            {saving && (
+              <div className="absolute inset-0 z-50 flex items-center justify-center rounded-lg bg-background/70 backdrop-blur-sm cursor-wait">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  Salvando...
+                </div>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
       </div>
