@@ -1,0 +1,1 @@
+ALTER TABLE public.option_groups ADD COLUMN IF NOT EXISTS image_url TEXT;
