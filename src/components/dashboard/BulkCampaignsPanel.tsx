@@ -591,7 +591,7 @@ function CampaignDialog({
                 <PopoverTrigger asChild>
                   <Button variant="outline" size="sm">
                     <Filter className="w-4 h-4 mr-1" /> Filtros
-                    {(typeFilters.size + statusFilters.size) > 0 && <Badge variant="secondary" className="ml-2">{typeFilters.size + statusFilters.size}</Badge>}
+                    {(typeFilters.size + statusFilters.size + restaurantFilters.size) > 0 && <Badge variant="secondary" className="ml-2">{typeFilters.size + statusFilters.size + restaurantFilters.size}</Badge>}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-72" align="start">
