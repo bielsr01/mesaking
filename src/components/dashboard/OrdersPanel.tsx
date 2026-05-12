@@ -222,12 +222,16 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
         if (row?.order_type === "pdv") {
           setChannel("pdv");
           setFilter("preparing");
+        } else if (row?.external_source === "ifood") {
+          setChannel("ifood");
+          setIfoodView("orders");
+          setFilter("pending");
         } else {
           setChannel((cur) => {
             if (cur !== "delivery") setDeliveryBlink(true);
             return cur;
           });
-          setFilter((cur) => (cur === "pending" ? cur : cur));
+          setFilter("pending");
         }
         qc.invalidateQueries({ queryKey: ordersKey(restaurantId) });
       })
