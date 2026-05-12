@@ -24,6 +24,7 @@ export interface OptionGroup {
   max_select: number;
   sort_order: number;
   is_active: boolean;
+  image_url?: string | null;
 }
 export interface OptionItem {
   id: string;
@@ -268,6 +269,8 @@ function GroupDialog({
   const [name, setName] = useState("");
   const [minS, setMinS] = useState(0);
   const [maxS, setMaxS] = useState(1);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [rows, setRows] = useState<{ id?: string; name: string; extra_price: string; toDelete?: boolean }[]>([]);
   const [busy, setBusy] = useState(false);
 
@@ -276,6 +279,7 @@ function GroupDialog({
       setName(editing?.name ?? "");
       setMinS(editing?.min_select ?? 0);
       setMaxS(editing?.max_select ?? 1);
+      setImageUrl(editing?.image_url ?? null);
       setRows(
         existingItems.length > 0
           ? existingItems.map((i) => ({ id: i.id, name: i.name, extra_price: String(Number(i.extra_price) || 0) }))
@@ -284,6 +288,25 @@ function GroupDialog({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, editing?.id]);
+
+  const handleFile = async (file: File) => {
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) return toast.error("Imagem muito grande (máx 5MB)");
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `${restaurantId}/option-groups/${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage.from("menu-images").upload(path, file, { upsert: true, contentType: file.type });
+      if (error) throw error;
+      const { data } = supabase.storage.from("menu-images").getPublicUrl(path);
+      setImageUrl(data.publicUrl);
+      toast.success("Imagem carregada");
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const addRow = () => setRows((r) => [...r, { name: "", extra_price: "0" }]);
   const updateRow = (idx: number, patch: Partial<{ name: string; extra_price: string }>) =>
@@ -302,12 +325,12 @@ function GroupDialog({
       let groupId = editing?.id;
       if (editing) {
         const { error } = await supabase.from("option_groups").update({
-          name: name.trim(), min_select: minS, max_select: maxS,
+          name: name.trim(), min_select: minS, max_select: maxS, image_url: imageUrl,
         }).eq("id", editing.id);
         if (error) throw error;
       } else {
         const { data, error } = await supabase.from("option_groups").insert({
-          restaurant_id: restaurantId, name: name.trim(), min_select: minS, max_select: maxS,
+          restaurant_id: restaurantId, name: name.trim(), min_select: minS, max_select: maxS, image_url: imageUrl,
         }).select("id").single();
         if (error) throw error;
         groupId = data.id;
@@ -352,6 +375,22 @@ function GroupDialog({
           <div className="space-y-2">
             <Label>Nome do grupo</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Sabores" />
+          </div>
+          <div className="space-y-2">
+            <Label>Foto do grupo (opcional)</Label>
+            <div className="flex items-center gap-3">
+              {imageUrl ? (
+                <img src={imageUrl} alt="Foto do grupo" className="w-16 h-16 rounded object-cover border" />
+              ) : (
+                <div className="w-16 h-16 rounded border bg-muted flex items-center justify-center text-xs text-muted-foreground">Sem foto</div>
+              )}
+              <div className="flex-1 flex flex-wrap gap-2">
+                <Input type="file" accept="image/*" disabled={uploading} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.currentTarget.value = ""; }} />
+                {imageUrl && (
+                  <Button type="button" size="sm" variant="outline" onClick={() => setImageUrl(null)}>Remover</Button>
+                )}
+              </div>
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">

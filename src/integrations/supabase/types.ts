@@ -762,6 +762,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          image_url: string | null
           is_active: boolean
           max_select: number
           min_select: number
@@ -773,6 +774,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          image_url?: string | null
           is_active?: boolean
           max_select?: number
           min_select?: number
@@ -784,6 +786,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          image_url?: string | null
           is_active?: boolean
           max_select?: number
           min_select?: number
