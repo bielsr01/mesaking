@@ -71,7 +71,7 @@ export default function MasterAdmin() {
 
   const openEdit = async (r: Restaurant) => {
     setShowEditPwd(false);
-    setLoadingEdit(true);
+    setLoadingEditId(r.id);
     try {
       const { data, error } = await supabase.functions.invoke("admin-update-restaurant", { body: { restaurant_id: r.id, mode: "fetch" } });
       if (error || (data as any)?.error) {
@@ -82,7 +82,7 @@ export default function MasterAdmin() {
       setEditManager({ email: m.email ?? "", full_name: m.full_name ?? "" });
       setEditing(r);
     } finally {
-      setLoadingEdit(false);
+      setLoadingEditId(null);
     }
   };
 
