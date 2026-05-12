@@ -37,6 +37,8 @@ export function AdminOwnExpensesPanel() {
   const [selectedCatId, setSelectedCatId] = useState<string>("__free__");
   const [freeCatName, setFreeCatName] = useState("");
   const [descValue, setDescValue] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [savingCat, setSavingCat] = useState(false);
 
   const { data: cats = [] } = useQuery({
     queryKey: ["expense_categories", "admin"],
