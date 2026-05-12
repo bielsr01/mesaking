@@ -254,7 +254,7 @@ function ManualAdjustDialog({
             )}
           </div>
           <div>
-            <Label>Observação {notesRequired ? <span className="text-destructive">*</span> : "(opcional)"}</Label>
+            <Label>Motivo do ajuste <span className="text-destructive">*</span></Label>
             <Textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
