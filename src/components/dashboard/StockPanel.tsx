@@ -54,6 +54,33 @@ export function StockPanel({ restaurantId }: { restaurantId: string }) {
     },
   });
 
+  const orderRefIds = Array.from(new Set(
+    movements.filter(m => (m.type === "order_consumption" || m.type === "order_revert") && m.reference_id).map(m => m.reference_id as string)
+  ));
+
+  const { data: orderInfo = {} } = useQuery({
+    queryKey: ["stock_movement_orders", restaurantId, orderRefIds.join(",")],
+    enabled: orderRefIds.length > 0,
+    queryFn: async () => {
+      const { data: orders } = await supabase
+        .from("orders")
+        .select("id,order_number,customer_name,customer_phone")
+        .in("id", orderRefIds);
+      const { data: items } = await supabase
+        .from("order_items")
+        .select("order_id,product_name,quantity")
+        .in("order_id", orderRefIds);
+      const map: Record<string, { number: number; name: string; phone: string; items: { name: string; qty: number }[] }> = {};
+      (orders ?? []).forEach((o: any) => {
+        map[o.id] = { number: o.order_number, name: o.customer_name, phone: o.customer_phone, items: [] };
+      });
+      (items ?? []).forEach((it: any) => {
+        if (map[it.order_id]) map[it.order_id].items.push({ name: it.product_name, qty: it.quantity });
+      });
+      return map;
+    },
+  });
+
   useEffect(() => {
     const ch = supabase.channel(`stock-${restaurantId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "restaurant_stock", filter: `restaurant_id=eq.${restaurantId}` },
@@ -66,6 +93,25 @@ export function StockPanel({ restaurantId }: { restaurantId: string }) {
 
   const stockMap = Object.fromEntries(stock.map(s => [s.group_id, s]));
   const groupMap = Object.fromEntries(groups.map(g => [g.id, g]));
+
+  const describeMovement = (m: Movement): { title: string; subtitle?: string } => {
+    if ((m.type === "order_consumption" || m.type === "order_revert") && m.reference_id) {
+      const info = (orderInfo as any)[m.reference_id];
+      if (info) {
+        const itemsTxt = info.items.map((i: any) => `${i.qty}x ${i.name}`).join(", ");
+        const head = m.type === "order_consumption" ? "Pedido aceito" : "Pedido revertido";
+        const customer = [info.name, info.phone].filter(Boolean).join(" ");
+        return {
+          title: `${head} #${info.number}${customer ? ` — ${customer}` : ""}`,
+          subtitle: itemsTxt || undefined,
+        };
+      }
+    }
+    return { title: movementLabel[m.type] ?? m.type, subtitle: m.notes ?? undefined };
+  };
+
+  const incoming = movements.filter(m => m.quantity > 0);
+  const outgoing = movements.filter(m => m.quantity < 0);
 
   return (
     <Tabs defaultValue="balance" className="space-y-4">
