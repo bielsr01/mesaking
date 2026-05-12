@@ -348,20 +348,48 @@ export default function MasterAdmin() {
         </SidebarInset>
 
         <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Editar restaurante</DialogTitle></DialogHeader>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Editar restaurante</DialogTitle>
+              <DialogDescription>Atualize os dados do restaurante e o acesso do gerente. Deixe a senha em branco para mantê-la.</DialogDescription>
+            </DialogHeader>
             {editing && (
               <form onSubmit={handleEdit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Nome</Label>
-                  <Input name="name" defaultValue={editing.name} required />
-                </div>
-                <div className="space-y-2">
-                  <Label>Slug</Label>
-                  <Input name="slug" defaultValue={editing.slug} required />
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2 col-span-2">
+                    <Label>Nome do restaurante</Label>
+                    <Input name="name" defaultValue={editing.name} required />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label>Slug (URL pública)</Label>
+                    <Input name="slug" defaultValue={editing.slug} required />
+                    <p className="text-xs text-muted-foreground">/r/{editing.slug}</p>
+                  </div>
+                  <div className="space-y-2 col-span-2 pt-2 border-t">
+                    <Label className="text-base">Acesso do gerente</Label>
+                    {loadingEdit && <p className="text-xs text-muted-foreground">Carregando dados do gerente...</p>}
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label>Nome do gerente</Label>
+                    <Input name="manager_name" defaultValue={editManager.full_name} key={`mn-${editing.id}-${editManager.full_name}`} />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label>Email (login)</Label>
+                    <Input name="manager_email" type="email" defaultValue={editManager.email} key={`me-${editing.id}-${editManager.email}`} />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label>Nova senha <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+                    <div className="relative">
+                      <Input name="manager_password" type={showEditPwd ? "text" : "password"} minLength={6} placeholder="Deixe em branco para manter a senha atual" className="pr-10" />
+                      <button type="button" onClick={() => setShowEditPwd((s) => !s)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1} aria-label={showEditPwd ? "Ocultar senha" : "Mostrar senha"}>
+                        {showEditPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Por segurança, a senha atual não pode ser exibida — apenas redefinida.</p>
+                  </div>
                 </div>
                 <DialogFooter>
-                  <Button type="submit" disabled={busy}>{busy ? "Salvando..." : "Salvar"}</Button>
+                  <Button type="submit" disabled={busy || loadingEdit}>{busy ? "Salvando..." : "Salvar alterações"}</Button>
                 </DialogFooter>
               </form>
             )}
