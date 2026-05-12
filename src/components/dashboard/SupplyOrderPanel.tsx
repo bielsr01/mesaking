@@ -323,7 +323,7 @@ export function SupplyOrderPanel({ restaurantId }: { restaurantId: string }) {
                   <span>Total</span><span>{brl(total)}</span>
                 </div>
                 <Button className="w-full" onClick={async () => { await submitOrder(); }} disabled={submitting || total === 0}>
-                  {submitting ? "Enviando..." : "Enviar pedido"}
+                  {submitting ? (editingId ? "Salvando..." : "Enviando...") : (editingId ? "Salvar alterações" : "Enviar pedido")}
                 </Button>
               </CardContent>
             </Card>
