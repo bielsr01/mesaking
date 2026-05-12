@@ -83,6 +83,7 @@ const FILTERS = [
   { value: "out_for_delivery", label: "Em entrega" },
   { value: "awaiting_pickup", label: "Aguardando retirada" },
   { value: "delivered", label: "Entregues" },
+  { value: "cancelled", label: "Cancelados" },
   { value: "active", label: "Ativos" },
   { value: "all", label: "Todos" },
 ];
@@ -95,7 +96,7 @@ export async function fetchOrders(restaurantId: string): Promise<{ orders: Order
     .select("*")
     .eq("restaurant_id", restaurantId)
     .order("created_at", { ascending: false })
-    .limit(100);
+    .limit(500);
   const orders = (data ?? []) as Order[];
   const ids = orders.map((o) => o.id);
   const grouped: Record<string, Item[]> = {};
@@ -369,6 +370,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     out_for_delivery: channelOrders.filter((o) => o.status === "out_for_delivery").length,
     awaiting_pickup: channelOrders.filter((o) => o.status === "awaiting_pickup").length,
     delivered: channelOrders.filter((o) => o.status === "delivered").length,
+    cancelled: channelOrders.filter((o) => o.status === "cancelled").length,
     active: channelOrders.filter((o) => !["delivered", "cancelled"].includes(o.status)).length,
     all: channelOrders.length,
   };
@@ -379,9 +381,9 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const ifoodCount = orders.filter((o) => o.external_source === "ifood").length;
   const ifoodPendingCount = orders.filter((o) => o.external_source === "ifood" && o.status === "pending").length;
 
-  // PDV: em preparo + entregues
+  // PDV: em preparo + entregues + cancelados + todos
   const visibleFilters = channel === "pdv"
-    ? FILTERS.filter((f) => ["preparing", "delivered", "all"].includes(f.value))
+    ? FILTERS.filter((f) => ["preparing", "delivered", "cancelled", "all"].includes(f.value))
     : FILTERS;
 
   return (
