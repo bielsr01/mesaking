@@ -47,6 +47,9 @@ const createSchema = z.object({
 const editSchema = z.object({
   name: z.string().trim().min(2).max(80),
   slug: z.string().trim().min(2).max(60).regex(/^[a-z0-9-]+$/),
+  manager_name: z.string().trim().min(2).max(100).optional().or(z.literal("")),
+  manager_email: z.string().trim().email().max(255).optional().or(z.literal("")),
+  manager_password: z.string().min(6).max(72).optional().or(z.literal("")),
 });
 
 export default function MasterAdmin() {
