@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Tag, Receipt } from "lucide-react";
+import { Plus, Pencil, Trash2, Tag, Receipt, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { brl } from "@/lib/format";
 
