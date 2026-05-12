@@ -238,7 +238,7 @@ export function AdminOwnExpensesPanel() {
                     <div><Label>Data</Label><Input name="expense_date" type="date" defaultValue={editing?.expense_date ?? todayISO()} required /></div>
                   </div>
                   <div><Label>Observações</Label><Textarea name="notes" defaultValue={editing?.notes ?? ""} rows={2} maxLength={500} /></div>
-                  <DialogFooter><Button type="submit">{editing ? "Salvar" : "Adicionar"}</Button></DialogFooter>
+                  <DialogFooter><Button type="submit" disabled={saving}>{saving && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}{editing ? "Salvar" : "Adicionar"}</Button></DialogFooter>
                 </form>
               </DialogContent>
             </Dialog>
