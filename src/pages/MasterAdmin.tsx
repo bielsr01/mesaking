@@ -25,6 +25,7 @@ import { AdminMenuPanel } from "@/components/admin/AdminMenuPanel";
 import { AdminStockPanel } from "@/components/admin/AdminStockPanel";
 import { AdminExpenseStoresPanel } from "@/components/admin/AdminExpenseStoresPanel";
 import { AdminOwnExpensesPanel } from "@/components/admin/AdminOwnExpensesPanel";
+import { AdminFinancePanel } from "@/components/admin/AdminFinancePanel";
 import { BulkCampaignsPanel } from "@/components/dashboard/BulkCampaignsPanel";
 import { EvolutionIntegrationCard } from "@/components/dashboard/EvolutionIntegrationCard";
 import { useQueryClient } from "@tanstack/react-query";
@@ -176,6 +177,7 @@ export default function MasterAdmin() {
     stock: "Estoque",
     "expenses:admin": "Despesas Admin",
     "expenses:stores": "Despesas das lojas",
+    finance: "Receitas - Despesas",
   };
 
   const supplyPendingCount = usePendingSupplyOrdersCount();
@@ -349,6 +351,7 @@ export default function MasterAdmin() {
             {view === "stock" && <AdminStockPanel />}
             {view === "expenses:admin" && <AdminOwnExpensesPanel />}
             {view === "expenses:stores" && <AdminExpenseStoresPanel />}
+            {view === "finance" && <AdminFinancePanel />}
           </main>
         </SidebarInset>
 
