@@ -326,24 +326,20 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
   const compareAll = compareOrdersQ.data ?? [];
   const compareFiltered = source === "all"
     ? compareAll
-    : source === "ifood"
-      ? []
-      : compareAll.filter((o) => classifySource(o) === source);
+    : compareAll.filter((o) => classifySource(o) === source);
   const today = startOfDay(new Date());
   const yesterday = startOfDay(subDays(new Date(), 1));
   const lastWeekSame = startOfDay(subDays(new Date(), 7));
   const dayOrders = (d: Date) => compareFiltered.filter((o) => format(new Date(o.created_at), "yyyy-MM-dd") === format(d, "yyyy-MM-dd"));
-  const sumDayIfood = (d: Date) => includeIfood ? sumIfood(startOfDay(d), endOfDay(d)).gross : 0;
-  const todayRev = sum(dayOrders(today), "total") + sumDayIfood(today);
-  const yRev = sum(dayOrders(yesterday), "total") + sumDayIfood(yesterday);
-  const lwRev = sum(dayOrders(lastWeekSame), "total") + sumDayIfood(lastWeekSame);
+  const sumDayGross = (arr: any[]) => arr.reduce((s, o) => s + Number(o.total || 0) - (o.external_source === "ifood" ? Number(o.service_fee || 0) : 0), 0);
+  const todayRev = sumDayGross(dayOrders(today));
+  const yRev = sumDayGross(dayOrders(yesterday));
+  const lwRev = sumDayGross(dayOrders(lastWeekSame));
   const monthStart = startOfMonth(new Date());
-  const monthCur = sum(compareFiltered.filter((o) => new Date(o.created_at) >= monthStart), "total")
-    + (includeIfood ? sumIfood(monthStart, endOfDay(new Date())).gross : 0);
+  const monthCur = sumDayGross(compareFiltered.filter((o) => new Date(o.created_at) >= monthStart));
   const monthPrevStart = startOfMonth(subDays(monthStart, 1));
   const monthPrevEnd = endOfMonth(monthPrevStart);
-  const monthPrev = sum(compareFiltered.filter((o) => { const d = new Date(o.created_at); return d >= monthPrevStart && d <= monthPrevEnd; }), "total")
-    + (includeIfood ? sumIfood(monthPrevStart, monthPrevEnd).gross : 0);
+  const monthPrev = sumDayGross(compareFiltered.filter((o) => { const d = new Date(o.created_at); return d >= monthPrevStart && d <= monthPrevEnd; }));
 
   return (
     <div className="space-y-4 animate-fade-in">
