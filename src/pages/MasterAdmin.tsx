@@ -387,7 +387,7 @@ export default function MasterAdmin() {
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button type="submit" disabled={busy || loadingEdit}>{busy ? "Salvando..." : "Salvar alterações"}</Button>
+                  <Button type="submit" disabled={busy}>{busy ? "Salvando..." : "Salvar alterações"}</Button>
                 </DialogFooter>
               </form>
             )}
