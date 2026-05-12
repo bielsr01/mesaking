@@ -348,21 +348,16 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
         <CardContent className="p-4 flex flex-wrap items-center gap-3">
           <CalendarIcon className="w-4 h-4 text-muted-foreground" />
           <div className="flex flex-wrap gap-1">
-            {presets.map((p) => {
-              const disabled = source === "ifood" && !ifoodAllowedPresets.includes(p.id);
-              return (
-                <Button
-                  key={p.id}
-                  size="sm"
-                  variant={preset === p.id ? "default" : "outline"}
-                  onClick={() => setPreset(p.id)}
-                  disabled={disabled}
-                  className={disabled ? "opacity-40" : ""}
-                >
-                  {p.label}
-                </Button>
-              );
-            })}
+            {presets.map((p) => (
+              <Button
+                key={p.id}
+                size="sm"
+                variant={preset === p.id ? "default" : "outline"}
+                onClick={() => setPreset(p.id)}
+              >
+                {p.label}
+              </Button>
+            ))}
           </div>
           {preset === "custom" && (
             <Popover>
@@ -393,20 +388,15 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
       </Tabs>
 
       {/* KPI grid */}
-      {source === "ifood" && (
-        <div className="text-xs text-muted-foreground -mb-1">
-          iFood é registrado manualmente: somente valores financeiros estão disponíveis. Demais métricas aparecem desabilitadas.
-        </div>
-      )}
       <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-        <Kpi icon={DollarSign} label="Valor das vendas" value={brl(source === "ifood" ? ifoodCur.gross : grossCur)} delta={source === "ifood" ? undefined : revenueGrowth} />
-        <Kpi icon={Receipt} label="Total faturamento" value={brl(source === "ifood" ? ifoodCur.net : netCur)} sub={source === "ifood" ? undefined : `Descontos ${brl(discountCur)}`} />
-        <Kpi icon={Truck} label="Taxas, serviços e ajustes" value={`- ${brl(source === "ifood" ? ifoodCur.fees : serviceFeeCur)}`} negative />
-        <Kpi icon={ShoppingBag} label="Pedidos" value={ordersCountCur.toString()} delta={ordersGrowth} disabled={source === "ifood"} />
-        <Kpi icon={TrendingUp} label="Ticket médio" value={brl(ticketCur)} delta={ticketGrowth} disabled={source === "ifood"} />
-        <Kpi icon={Tag} label="Cupons aplicados" value={`${couponOrders.length}`} sub={`Impacto ${couponImpactPct.toFixed(1)}%`} disabled={source === "ifood"} />
-        <Kpi icon={Users} label="Novos clientes" value={newCustomers.toString()} sub={`${recurringPct.toFixed(0)}% recorrentes`} disabled={source === "ifood"} />
-        <Kpi icon={RefreshCw} label="Taxa de recompra" value={`${repurchaseRate.toFixed(1)}%`} sub={`Freq. ${purchaseFreq.toFixed(1)} ped./cliente`} disabled={source === "ifood"} />
+        <Kpi icon={DollarSign} label="Valor das vendas" value={brl(grossCur)} delta={revenueGrowth} />
+        <Kpi icon={Receipt} label="Total faturamento" value={brl(netCur)} sub={`Descontos ${brl(discountCur)}`} />
+        <Kpi icon={Truck} label="Taxas, serviços e ajustes" value={`- ${brl(serviceFeeCur)}`} negative />
+        <Kpi icon={ShoppingBag} label="Pedidos" value={ordersCountCur.toString()} delta={ordersGrowth} />
+        <Kpi icon={TrendingUp} label="Ticket médio" value={brl(ticketCur)} delta={ticketGrowth} />
+        <Kpi icon={Tag} label="Cupons aplicados" value={`${couponOrders.length}`} sub={`Impacto ${couponImpactPct.toFixed(1)}%`} />
+        <Kpi icon={Users} label="Novos clientes" value={newCustomers.toString()} sub={`${recurringPct.toFixed(0)}% recorrentes`} />
+        <Kpi icon={RefreshCw} label="Taxa de recompra" value={`${repurchaseRate.toFixed(1)}%`} sub={`Freq. ${purchaseFreq.toFixed(1)} ped./cliente`} />
       </div>
 
       {/* Comparativos automáticos */}
@@ -417,7 +407,7 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
       </div>
 
       {/* Service breakdown */}
-      <div className={`grid gap-3 lg:grid-cols-3 ${source === "ifood" ? "opacity-40 pointer-events-none" : ""}`}>
+      <div className="grid gap-3 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader><CardTitle className="text-base">Análise de pedidos por tipo</CardTitle></CardHeader>
           <CardContent>
@@ -460,44 +450,6 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
       </div>
 
       {/* Progress chart */}
-      {source === "ifood" ? (
-        <Card>
-          <CardHeader><CardTitle className="text-base">Faturamento iFood por mês</CardTitle></CardHeader>
-          <CardContent style={{ height: 280 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={(ifoodQ.data ?? [])
-                .slice()
-                .sort((a, b) => a.date_from.localeCompare(b.date_from))
-                .map((r) => ({
-                  mes: format(new Date(r.date_from + "T00:00"), "MMM/yy", { locale: ptBR }),
-                  vendas: Number(r.gross_revenue || 0),
-                  faturamento: Number(r.net_revenue || 0),
-                  taxas: Number(r.fees || 0),
-                }))}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="mes" />
-                <YAxis />
-                <RTooltip
-                  formatter={(v: any, name: any) => [brl(Number(v)), name]}
-                  content={({ active, payload, label }: any) => {
-                    if (!active || !payload?.length) return null;
-                    const d = payload[0].payload;
-                    return (
-                      <div className="rounded-md border bg-background px-3 py-2 text-xs shadow-md space-y-1">
-                        <div className="font-medium">{label}</div>
-                        <div className="flex justify-between gap-4"><span className="text-muted-foreground">Vendas</span><span>{brl(d.vendas)}</span></div>
-                        <div className="flex justify-between gap-4"><span className="text-muted-foreground">Faturamento</span><span className="text-emerald-600">{brl(d.faturamento)}</span></div>
-                        <div className="flex justify-between gap-4"><span className="text-muted-foreground">Taxas/Ajustes</span><span className="text-red-600">- {brl(d.taxas)}</span></div>
-                      </div>
-                    );
-                  }}
-                />
-                <Line type="monotone" dataKey="faturamento" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} name="Faturamento" />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      ) : (
       <div>
       <Card>
         <CardHeader><CardTitle className="text-base">Progresso dos pedidos</CardTitle></CardHeader>
@@ -658,7 +610,6 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
         </Card>
       </div>
       </div>
-      )}
     </div>
   );
 }
