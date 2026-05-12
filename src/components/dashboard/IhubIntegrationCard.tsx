@@ -300,3 +300,78 @@ export function IhubIntegrationCard({ restaurantId }: { restaurantId: string }) 
     </>
   );
 }
+
+function IhubEventsViewer({ restaurantId }: { restaurantId: string }) {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const { data: events, isFetching, refetch } = useQuery({
+    queryKey: ["ihub-events", restaurantId],
+    queryFn: async () => {
+      const { data, error } = await sb
+        .from("ihub_events")
+        .select("*")
+        .eq("restaurant_id", restaurantId)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  return (
+    <div className="space-y-2 rounded-md border p-3">
+      <div className="flex items-center justify-between">
+        <Label className="text-sm">Eventos recebidos do webhook</Label>
+        <Button type="button" variant="ghost" size="sm" onClick={() => refetch()} disabled={isFetching}>
+          {isFetching ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+          <span className="ml-1 text-xs">Atualizar</span>
+        </Button>
+      </div>
+      <p className="text-xs text-muted-foreground">Últimos 50 eventos recebidos do iHub/iFood. Clique em um evento para ver o payload completo.</p>
+
+      {!events || events.length === 0 ? (
+        <p className="text-xs text-muted-foreground italic py-2">Nenhum evento recebido ainda.</p>
+      ) : (
+        <div className="space-y-1 max-h-[320px] overflow-y-auto">
+          {events.map((ev: any) => {
+            const isOpen = expandedId === ev.id;
+            return (
+              <div key={ev.id} className="rounded border bg-muted/30 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setExpandedId(isOpen ? null : ev.id)}
+                  className="w-full flex items-center gap-2 px-2 py-1.5 text-left hover:bg-muted/60"
+                >
+                  {isOpen ? <ChevronDown className="w-3 h-3 shrink-0" /> : <ChevronRight className="w-3 h-3 shrink-0" />}
+                  <span className="font-mono text-[10px] text-muted-foreground shrink-0">
+                    {new Date(ev.created_at).toLocaleString("pt-BR")}
+                  </span>
+                  <Badge variant={ev.processed ? "default" : ev.error ? "destructive" : "secondary"} className="text-[10px] py-0 h-4">
+                    {ev.full_code || ev.code || "?"}
+                  </Badge>
+                  {ev.order_id && <span className="font-mono text-[10px] truncate">#{ev.order_id.slice(0, 8)}</span>}
+                  {ev.error && <span className="text-destructive truncate">{ev.error}</span>}
+                </button>
+                {isOpen && (
+                  <div className="border-t p-2 space-y-1">
+                    <div className="grid grid-cols-2 gap-1 text-[10px]">
+                      <div><strong>event_id:</strong> <code>{ev.event_id ?? "-"}</code></div>
+                      <div><strong>merchant:</strong> <code>{ev.merchant_id ?? "-"}</code></div>
+                      <div><strong>processed:</strong> {String(ev.processed)}</div>
+                      <div><strong>order_id:</strong> <code>{ev.order_id ?? "-"}</code></div>
+                    </div>
+                    {ev.error && (
+                      <div className="text-destructive text-[10px]"><strong>erro:</strong> {ev.error}</div>
+                    )}
+                    <pre className="bg-background border rounded p-2 overflow-x-auto text-[10px] max-h-64">
+{JSON.stringify(ev.payload, null, 2)}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
