@@ -108,6 +108,7 @@ export default function ManagerDashboard() {
     restaurant?.id,
     view === "orders"
   );
+  const pendingOrdersCount = usePendingOrdersCount(restaurant?.id);
 
   const refetchRestaurant = () => qc.invalidateQueries({ queryKey: ["managerRestaurant", user?.id] });
 
