@@ -283,6 +283,8 @@ export function IhubIntegrationCard({ restaurantId }: { restaurantId: string }) 
                 {data.last_event_code ? ` — ${data.last_event_code}` : ""}
               </p>
             )}
+
+            <IhubEventsViewer restaurantId={restaurantId} />
           </div>
 
           <DialogFooter>
