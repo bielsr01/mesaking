@@ -108,15 +108,6 @@ export function ExpensesPanel({ restaurantId }: { restaurantId: string }) {
   const monthTotal = expenses.filter(e => e.expense_date >= monthStartISO() && e.expense_date <= monthEndISO()).reduce((s, e) => s + Number(e.amount), 0);
   const grandTotal = expenses.reduce((s, e) => s + Number(e.amount), 0);
 
-  const byCategory = useMemo(() => {
-    const map: Record<string, { count: number; total: number }> = {};
-    filtered.forEach(e => {
-      const k = e.category_id ? (catsById[e.category_id]?.name ?? e.category ?? "Sem categoria") : (e.category || "Sem categoria");
-      map[k] ??= { count: 0, total: 0 };
-      map[k].count++; map[k].total += Number(e.amount);
-    });
-    return Object.entries(map).sort((a, b) => b[1].total - a[1].total);
-  }, [filtered, catsById]);
 
   const openNew = () => {
     setEditing(null);
