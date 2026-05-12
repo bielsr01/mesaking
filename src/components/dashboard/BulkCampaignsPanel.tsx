@@ -402,9 +402,10 @@ function CampaignDialog({
         }
         toast.success("Campanha atualizada");
       } else {
+        const useAdmin = scope === "admin" && senderMode === "admin";
         const { data: camp, error } = await sb.from("bulk_campaigns").insert({
-          restaurant_id: scope === "admin" ? targetRestaurant : restaurantIds[0],
-          is_admin: false,
+          restaurant_id: useAdmin ? null : (scope === "admin" ? targetRestaurant : restaurantIds[0]),
+          is_admin: useAdmin,
           name, message_text: text, media_url: mediaUrl || null,
           interval_seconds: interval,
           pause_after_messages: pauseAfter,
