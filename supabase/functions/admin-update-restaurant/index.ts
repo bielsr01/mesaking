@@ -56,9 +56,6 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ restaurant: r, manager }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    if (false) {
-      return new Response(JSON.stringify({ error: "restaurant_id obrigatório" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
     if (slug && !/^[a-z0-9-]{2,60}$/.test(slug)) {
       return new Response(JSON.stringify({ error: "Slug inválido" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
