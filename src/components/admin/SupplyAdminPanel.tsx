@@ -440,6 +440,19 @@ export function SupplyCatalogTab() {
                 <p className="text-xs text-muted-foreground mt-1">Quando o pedido for marcado como entregue, a quantidade entra automaticamente neste grupo no estoque do restaurante.</p>
               </div>
 
+              <div>
+                <Label>Vincular à categoria de despesa</Label>
+                <select
+                  value={expenseCategoryId}
+                  onChange={(e) => setExpenseCategoryId(e.target.value)}
+                  className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="">Não vincular a despesa</option>
+                  {expenseCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+                <p className="text-xs text-muted-foreground mt-1">Se vinculado, ao marcar o pedido como entregue será criada automaticamente uma despesa para o restaurante com a descrição igual ao nome deste insumo.</p>
+              </div>
+
               <div className="rounded-lg border p-3 space-y-3 bg-muted/30">
                 <div className="flex items-center justify-between">
                   <div>
