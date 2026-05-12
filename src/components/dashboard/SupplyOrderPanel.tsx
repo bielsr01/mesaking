@@ -154,11 +154,44 @@ export function SupplyOrderPanel({ restaurantId }: { restaurantId: string }) {
       if (e3) { setSubmitting(false); return toast.error(e3.message); }
     }
 
+    // If editing, delete the previous pending order
+    if (editingId) {
+      const { error: delErr } = await supabase.from("supply_orders").delete().eq("id", editingId);
+      if (delErr) { setSubmitting(false); return toast.error("Erro ao atualizar: " + delErr.message); }
+    }
+
     setSubmitting(false);
-    setCart({}); setDist({}); setNotes("");
-    toast.success("Pedido enviado!");
+    setCart({}); setDist({}); setNotes(""); setEditingId(null);
+    toast.success(editingId ? "Pedido atualizado!" : "Pedido enviado!");
     qc.invalidateQueries({ queryKey: ["supply_orders", restaurantId] });
     setView("history");
+  };
+
+  const startEdit = (o: SupplyOrder) => {
+    const newCart: Record<string, number> = {};
+    const newDist: Record<string, Record<string, number>> = {};
+    (o.supply_order_items ?? []).forEach((it) => {
+      if (!it.product_id) return;
+      newCart[it.product_id] = it.quantity;
+      if (it.supply_order_item_options && it.supply_order_item_options.length > 0) {
+        newDist[it.product_id] = {};
+        it.supply_order_item_options.forEach((op) => {
+          newDist[it.product_id][op.option_name] = op.quantity;
+        });
+      }
+    });
+    setCart(newCart);
+    setDist(newDist);
+    setNotes(o.notes ?? "");
+    setEditingId(o.id);
+    setView("new");
+  };
+
+  const cancelOrder = async (id: string) => {
+    const { error } = await supabase.from("supply_orders").delete().eq("id", id);
+    if (error) return toast.error("Erro ao cancelar: " + error.message);
+    toast.success("Pedido cancelado");
+    qc.invalidateQueries({ queryKey: ["supply_orders", restaurantId] });
   };
 
   if (view === "new") {
