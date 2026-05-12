@@ -272,12 +272,12 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
       };
       const action = actionMap[next];
       if (action) {
-        const { error: fnErr } = await supabase.functions.invoke("ifood-action", {
+        const { data: fnData, error: fnErr } = await supabase.functions.invoke("ifood-action", {
           body: { orderId: o.id, action },
         });
-        if (fnErr) {
+        if (fnErr || (fnData && fnData.ok === false)) {
           patchOrder(o.id, { status: prevStatus });
-          toast.error(`iFood: ${fnErr.message}`);
+          toast.error(`iFood: ${fnData?.error ?? fnErr?.message ?? "falha"}`);
           return;
         }
       }
