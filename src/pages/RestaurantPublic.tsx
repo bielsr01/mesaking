@@ -578,7 +578,6 @@ export default function RestaurantPublic() {
 
       <footer className="container py-6 text-center text-xs text-muted-foreground" />
     </div>
-    </div>
   );
 }
 
