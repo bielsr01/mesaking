@@ -27,6 +27,7 @@ import { useNewOrderNotifications } from "@/hooks/useNewOrderNotifications";
 import { usePendingOrdersCount } from "@/hooks/usePendingCounts";
 import { SupplyOrderPanel } from "@/components/dashboard/SupplyOrderPanel";
 import { ExpensesPanel } from "@/components/dashboard/ExpensesPanel";
+import { FinancePanel } from "@/components/dashboard/FinancePanel";
 import { OverviewPanel } from "@/components/dashboard/OverviewPanel";
 import { StockPanel } from "@/components/dashboard/StockPanel";
 import { IfoodPanel } from "@/components/dashboard/IfoodPanel";
@@ -150,6 +151,7 @@ export default function ManagerDashboard() {
     "supply-orders": "Pedido de Insumos",
     stock: "Estoque",
     expenses: "Cadastro de despesas",
+    finance: "Receitas - Despesas",
   };
 
   return (
@@ -269,6 +271,11 @@ export default function ManagerDashboard() {
             {view === "expenses" && (
               <LazyView viewKey={view} variant="list">
                 <ExpensesPanel restaurantId={restaurant.id} />
+              </LazyView>
+            )}
+            {view === "finance" && (
+              <LazyView viewKey={view} variant="stats">
+                <FinancePanel restaurantIds={[restaurant.id]} />
               </LazyView>
             )}
           </main>
