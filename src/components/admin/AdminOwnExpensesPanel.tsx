@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Tag, Receipt } from "lucide-react";
+import { Plus, Pencil, Trash2, Tag, Receipt, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { brl } from "@/lib/format";
 
@@ -37,6 +37,8 @@ export function AdminOwnExpensesPanel() {
   const [selectedCatId, setSelectedCatId] = useState<string>("__free__");
   const [freeCatName, setFreeCatName] = useState("");
   const [descValue, setDescValue] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [savingCat, setSavingCat] = useState(false);
 
   const { data: cats = [] } = useQuery({
     queryKey: ["expense_categories", "admin"],
@@ -90,6 +92,7 @@ export function AdminOwnExpensesPanel() {
 
   const save = async (ev: React.FormEvent<HTMLFormElement>) => {
     ev.preventDefault();
+    if (saving) return;
     const fd = new FormData(ev.currentTarget);
     const cat = selectedCatId !== "__free__" ? catsById[selectedCatId] : null;
     const categoryName = cat ? cat.name : freeCatName.trim();
@@ -106,12 +109,17 @@ export function AdminOwnExpensesPanel() {
       created_by: user?.id ?? null,
     };
     if (payload.amount <= 0) return toast.error("Valor deve ser maior que zero");
-    const op = editing ? supabase.from("admin_expenses").update(payload).eq("id", editing.id) : supabase.from("admin_expenses").insert(payload);
-    const { error } = await op;
-    if (error) return toast.error(error.message);
-    toast.success("Salvo");
-    setOpen(false); setEditing(null);
-    qc.invalidateQueries({ queryKey: ["admin_expenses"] });
+    setSaving(true);
+    try {
+      const op = editing ? supabase.from("admin_expenses").update(payload).eq("id", editing.id) : supabase.from("admin_expenses").insert(payload);
+      const { error } = await op;
+      if (error) { toast.error(error.message); return; }
+      toast.success("Salvo");
+      setOpen(false); setEditing(null);
+      qc.invalidateQueries({ queryKey: ["admin_expenses"] });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const remove = async (id: string) => {
@@ -123,6 +131,7 @@ export function AdminOwnExpensesPanel() {
 
   const saveCat = async (ev: React.FormEvent<HTMLFormElement>) => {
     ev.preventDefault();
+    if (savingCat) return;
     const fd = new FormData(ev.currentTarget);
     const payload = {
       name: String(fd.get("name") || "").trim(),
@@ -131,11 +140,16 @@ export function AdminOwnExpensesPanel() {
       requires_description: false,
     };
     if (!payload.name) return toast.error("Nome obrigatório");
-    const op = editingCat ? supabase.from("expense_categories").update(payload).eq("id", editingCat.id) : supabase.from("expense_categories").insert(payload);
-    const { error } = await op;
-    if (error) return toast.error(error.message);
-    toast.success("Salvo"); setCatOpen(false); setEditingCat(null);
-    qc.invalidateQueries({ queryKey: ["expense_categories"] });
+    setSavingCat(true);
+    try {
+      const op = editingCat ? supabase.from("expense_categories").update(payload).eq("id", editingCat.id) : supabase.from("expense_categories").insert(payload);
+      const { error } = await op;
+      if (error) { toast.error(error.message); return; }
+      toast.success("Salvo"); setCatOpen(false); setEditingCat(null);
+      qc.invalidateQueries({ queryKey: ["expense_categories"] });
+    } finally {
+      setSavingCat(false);
+    }
   };
 
   const removeCat = async (id: string) => {
@@ -163,7 +177,7 @@ export function AdminOwnExpensesPanel() {
                     <Switch name="is_active" defaultChecked={editingCat?.is_active ?? true} id="cat-active" />
                     <Label htmlFor="cat-active" className="cursor-pointer">Ativa</Label>
                   </div>
-                  <DialogFooter><Button type="submit">{editingCat ? "Salvar" : "Adicionar"}</Button></DialogFooter>
+                  <DialogFooter><Button type="submit" disabled={savingCat}>{savingCat && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}{editingCat ? "Salvar" : "Adicionar"}</Button></DialogFooter>
                 </form>
               </DialogContent>
             </Dialog>
@@ -224,7 +238,7 @@ export function AdminOwnExpensesPanel() {
                     <div><Label>Data</Label><Input name="expense_date" type="date" defaultValue={editing?.expense_date ?? todayISO()} required /></div>
                   </div>
                   <div><Label>Observações</Label><Textarea name="notes" defaultValue={editing?.notes ?? ""} rows={2} maxLength={500} /></div>
-                  <DialogFooter><Button type="submit">{editing ? "Salvar" : "Adicionar"}</Button></DialogFooter>
+                  <DialogFooter><Button type="submit" disabled={saving}>{saving && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}{editing ? "Salvar" : "Adicionar"}</Button></DialogFooter>
                 </form>
               </DialogContent>
             </Dialog>

@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Tag } from "lucide-react";
+import { Plus, Pencil, Trash2, Tag, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { brl } from "@/lib/format";
 
@@ -25,6 +25,7 @@ export function AdminExpenseStoresPanel() {
   const qc = useQueryClient();
   const [catOpen, setCatOpen] = useState(false);
   const [editingCat, setEditingCat] = useState<Cat | null>(null);
+  const [savingCat, setSavingCat] = useState(false);
   const [restaurantFilter, setRestaurantFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [from, setFrom] = useState(monthStartISO());
@@ -80,6 +81,7 @@ export function AdminExpenseStoresPanel() {
 
   const saveCat = async (ev: React.FormEvent<HTMLFormElement>) => {
     ev.preventDefault();
+    if (savingCat) return;
     const fd = new FormData(ev.currentTarget);
     const payload = {
       name: String(fd.get("name") || "").trim(),
@@ -89,14 +91,19 @@ export function AdminExpenseStoresPanel() {
       scope: "restaurant" as const,
     };
     if (!payload.name) return toast.error("Nome obrigatório");
-    const op = editingCat
-      ? supabase.from("expense_categories").update(payload).eq("id", editingCat.id)
-      : supabase.from("expense_categories").insert(payload);
-    const { error } = await op;
-    if (error) return toast.error(error.message);
-    toast.success("Salvo");
-    setCatOpen(false); setEditingCat(null);
-    qc.invalidateQueries({ queryKey: ["expense_categories"] });
+    setSavingCat(true);
+    try {
+      const op = editingCat
+        ? supabase.from("expense_categories").update(payload).eq("id", editingCat.id)
+        : supabase.from("expense_categories").insert(payload);
+      const { error } = await op;
+      if (error) { toast.error(error.message); return; }
+      toast.success("Salvo");
+      setCatOpen(false); setEditingCat(null);
+      qc.invalidateQueries({ queryKey: ["expense_categories"] });
+    } finally {
+      setSavingCat(false);
+    }
   };
 
   const removeCat = async (id: string) => {
@@ -129,7 +136,7 @@ export function AdminExpenseStoresPanel() {
                     <Switch name="is_active" defaultChecked={editingCat?.is_active ?? true} id="is-active" />
                     <Label htmlFor="is-active" className="cursor-pointer">Ativa</Label>
                   </div>
-                  <DialogFooter><Button type="submit">{editingCat ? "Salvar" : "Adicionar"}</Button></DialogFooter>
+                  <DialogFooter><Button type="submit" disabled={savingCat}>{savingCat && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}{editingCat ? "Salvar" : "Adicionar"}</Button></DialogFooter>
                 </form>
               </DialogContent>
             </Dialog>

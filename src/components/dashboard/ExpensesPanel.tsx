@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Download, Receipt } from "lucide-react";
+import { Plus, Pencil, Trash2, Download, Receipt, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { brl } from "@/lib/format";
 
@@ -41,6 +41,7 @@ export function ExpensesPanel({ restaurantId }: { restaurantId: string }) {
 
   const [selectedCatId, setSelectedCatId] = useState<string>("");
   const [descValue, setDescValue] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const { data: cats = [] } = useQuery({
     queryKey: ["expense_categories", "restaurant"],
@@ -107,15 +108,6 @@ export function ExpensesPanel({ restaurantId }: { restaurantId: string }) {
   const monthTotal = expenses.filter(e => e.expense_date >= monthStartISO() && e.expense_date <= monthEndISO()).reduce((s, e) => s + Number(e.amount), 0);
   const grandTotal = expenses.reduce((s, e) => s + Number(e.amount), 0);
 
-  const byCategory = useMemo(() => {
-    const map: Record<string, { count: number; total: number }> = {};
-    filtered.forEach(e => {
-      const k = e.category_id ? (catsById[e.category_id]?.name ?? e.category ?? "Sem categoria") : (e.category || "Sem categoria");
-      map[k] ??= { count: 0, total: 0 };
-      map[k].count++; map[k].total += Number(e.amount);
-    });
-    return Object.entries(map).sort((a, b) => b[1].total - a[1].total);
-  }, [filtered, catsById]);
 
   const openNew = () => {
     setEditing(null);
@@ -132,6 +124,7 @@ export function ExpensesPanel({ restaurantId }: { restaurantId: string }) {
 
   const save = async (ev: React.FormEvent<HTMLFormElement>) => {
     ev.preventDefault();
+    if (saving) return;
     const fd = new FormData(ev.currentTarget);
     const cat = selectedCatId ? catsById[selectedCatId] : null;
     if (!cat) return toast.error("Selecione uma categoria");
@@ -148,14 +141,19 @@ export function ExpensesPanel({ restaurantId }: { restaurantId: string }) {
       created_by: user?.id ?? null,
     };
     if (payload.amount <= 0) return toast.error("Valor deve ser maior que zero");
-    const op = editing
-      ? supabase.from("expenses").update(payload).eq("id", editing.id)
-      : supabase.from("expenses").insert(payload);
-    const { error } = await op;
-    if (error) return toast.error(error.message);
-    toast.success("Salvo");
-    setOpen(false); setEditing(null);
-    qc.invalidateQueries({ queryKey: ["expenses", restaurantId] });
+    setSaving(true);
+    try {
+      const op = editing
+        ? supabase.from("expenses").update(payload).eq("id", editing.id)
+        : supabase.from("expenses").insert(payload);
+      const { error } = await op;
+      if (error) { toast.error(error.message); return; }
+      toast.success("Salvo");
+      setOpen(false); setEditing(null);
+      qc.invalidateQueries({ queryKey: ["expenses", restaurantId] });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const remove = async (id: string) => {
@@ -236,7 +234,7 @@ export function ExpensesPanel({ restaurantId }: { restaurantId: string }) {
                         <div><Label>Data</Label><Input name="expense_date" type="date" defaultValue={editing?.expense_date ?? todayISO()} required /></div>
                       </div>
                       <div><Label>Observações</Label><Textarea name="notes" defaultValue={editing?.notes ?? ""} rows={2} maxLength={500} /></div>
-                      <DialogFooter><Button type="submit">{editing ? "Salvar" : "Adicionar"}</Button></DialogFooter>
+                      <DialogFooter><Button type="submit" disabled={saving}>{saving && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}{editing ? "Salvar" : "Adicionar"}</Button></DialogFooter>
                     </form>
                   )}
                 </DialogContent>
@@ -279,19 +277,6 @@ export function ExpensesPanel({ restaurantId }: { restaurantId: string }) {
             <div><Label className="text-xs">Até</Label><Input type="date" value={to} onChange={(e) => { setTo(e.target.value); setPreset("custom"); }} /></div>
           </div>
 
-          {byCategory.length > 0 && (
-            <div className="rounded-lg border bg-muted/30 p-3">
-              <div className="text-xs font-semibold mb-2">Resumo por categoria</div>
-              <div className="grid gap-1 sm:grid-cols-2 lg:grid-cols-3">
-                {byCategory.map(([cat, v]) => (
-                  <div key={cat} className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">{cat} ({v.count})</span>
-                    <span className="font-semibold">{brl(v.total)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
 
