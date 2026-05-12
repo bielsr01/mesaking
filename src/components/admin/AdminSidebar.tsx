@@ -28,7 +28,7 @@ export type AdminView =
   | "supply:orders"
   | "stock";
 
-export function AdminSidebar({ active, onChange }: { active: AdminView; onChange: (v: AdminView) => void }) {
+export function AdminSidebar({ active, onChange, supplyBadge = 0 }: { active: AdminView; onChange: (v: AdminView) => void; supplyBadge?: number }) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const supplyActive = active.startsWith("supply:");
