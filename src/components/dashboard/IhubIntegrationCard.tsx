@@ -228,6 +228,9 @@ export function IhubIntegrationCard({ restaurantId }: { restaurantId: string }) 
                 <div className="space-y-2">
                   <div className="rounded bg-muted p-2 text-xs space-y-1">
                     <div><strong>userCode:</strong> <code>{userCodeData.userCode}</code></div>
+                    {userCodeData.authorizationCodeVerifier && (
+                      <div><strong>verificador:</strong> <code>{userCodeData.authorizationCodeVerifier}</code></div>
+                    )}
                     {userCodeData.verificationUrlComplete && (
                       <a href={userCodeData.verificationUrlComplete} target="_blank" rel="noreferrer"
                          className="inline-flex items-center gap-1 text-primary underline">
