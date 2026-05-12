@@ -210,6 +210,19 @@ async function handlePlaced(integration: any, ev: IHubEvent) {
 async function handleStatus(integration: any, ev: IHubEvent) {
   const newStatus = mapStatus(ev.fullCode);
   if (!newStatus || !ev.orderId) return;
+  // Busca status atual para evitar regressão (ex.: CONFIRMED chegando depois de DISPATCHED)
+  const { data: cur } = await supabase
+    .from("orders")
+    .select("status")
+    .eq("restaurant_id", integration.restaurant_id)
+    .eq("external_source", "ifood")
+    .eq("external_order_id", ev.orderId)
+    .maybeSingle();
+  if (cur && newStatus !== "cancelled") {
+    const curRank = STATUS_ORDER[cur.status] ?? -1;
+    const newRank = STATUS_ORDER[newStatus] ?? -1;
+    if (newRank < curRank) return; // ignora evento que regrediria o status
+  }
   await supabase
     .from("orders")
     .update({ status: newStatus, updated_at: new Date().toISOString() })
