@@ -207,6 +207,19 @@ export function IhubIntegrationCard({ restaurantId }: { restaurantId: string }) 
               </p>
             </div>
 
+            <div className="space-y-2">
+              <Label>merchantId da loja no iFood</Label>
+              <Input
+                value={merchantIdInput}
+                onChange={(e) => setMerchantIdInput(e.target.value)}
+                placeholder="UUID do merchant (ex: f01d84c0-0091-43ba-a17b-e0134c22fa72)"
+                className="font-mono text-xs"
+              />
+              <p className="text-xs text-muted-foreground">
+                Necessário para vincular/testar a loja. Você encontra esse ID no painel do iFood.
+              </p>
+            </div>
+
             <div className="flex items-center justify-between rounded-md border p-3">
               <div>
                 <Label className="cursor-pointer">Integração ativa</Label>
