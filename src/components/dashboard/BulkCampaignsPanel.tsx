@@ -73,16 +73,17 @@ export function BulkCampaignsPanel({
 
   const { data: campaigns, isLoading } = useQuery({
     queryKey: ["bulk-campaigns", scope, filterKey],
-    enabled: scope === "restaurant" ? !!restaurantId : adminFilter.length > 0,
+    enabled: scope === "restaurant" ? !!restaurantId : true,
     refetchInterval: 5000,
     queryFn: async () => {
       let q = sb.from("bulk_campaigns").select("*").order("created_at", { ascending: false }).limit(200);
       if (scope === "restaurant") {
         q = q.eq("restaurant_id", restaurantId);
-      } else {
-        // Admin: includes both admin-owned campaigns AND those of selected restaurants
+      } else if (adminFilter.length > 0) {
         const ids = adminFilter.map((id) => `"${id}"`).join(",");
         q = q.or(`is_admin.eq.true,restaurant_id.in.(${ids})`);
+      } else {
+        q = q.eq("is_admin", true);
       }
       const { data } = await q;
       return data ?? [];
