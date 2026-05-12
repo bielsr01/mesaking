@@ -450,44 +450,6 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
       </div>
 
       {/* Progress chart */}
-      {source === "ifood" ? (
-        <Card>
-          <CardHeader><CardTitle className="text-base">Faturamento iFood por mês</CardTitle></CardHeader>
-          <CardContent style={{ height: 280 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={(ifoodQ.data ?? [])
-                .slice()
-                .sort((a, b) => a.date_from.localeCompare(b.date_from))
-                .map((r) => ({
-                  mes: format(new Date(r.date_from + "T00:00"), "MMM/yy", { locale: ptBR }),
-                  vendas: Number(r.gross_revenue || 0),
-                  faturamento: Number(r.net_revenue || 0),
-                  taxas: Number(r.fees || 0),
-                }))}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="mes" />
-                <YAxis />
-                <RTooltip
-                  formatter={(v: any, name: any) => [brl(Number(v)), name]}
-                  content={({ active, payload, label }: any) => {
-                    if (!active || !payload?.length) return null;
-                    const d = payload[0].payload;
-                    return (
-                      <div className="rounded-md border bg-background px-3 py-2 text-xs shadow-md space-y-1">
-                        <div className="font-medium">{label}</div>
-                        <div className="flex justify-between gap-4"><span className="text-muted-foreground">Vendas</span><span>{brl(d.vendas)}</span></div>
-                        <div className="flex justify-between gap-4"><span className="text-muted-foreground">Faturamento</span><span className="text-emerald-600">{brl(d.faturamento)}</span></div>
-                        <div className="flex justify-between gap-4"><span className="text-muted-foreground">Taxas/Ajustes</span><span className="text-red-600">- {brl(d.taxas)}</span></div>
-                      </div>
-                    );
-                  }}
-                />
-                <Line type="monotone" dataKey="faturamento" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} name="Faturamento" />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      ) : (
       <div>
       <Card>
         <CardHeader><CardTitle className="text-base">Progresso dos pedidos</CardTitle></CardHeader>
