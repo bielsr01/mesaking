@@ -152,14 +152,22 @@ export default function MasterAdmin() {
     const obj = Object.fromEntries(fd);
     const parsed = createSchema.safeParse(obj);
     if (!parsed.success) return toast.error(parsed.error.issues[0].message);
+    if (createPin && !/^\d{6}$/.test(createPin)) return toast.error("A senha mestra deve ter 6 dígitos numéricos");
     setBusy(true);
     const { data, error } = await supabase.functions.invoke("admin-create-restaurant", { body: parsed.data });
-    setBusy(false);
     if (error || (data as any)?.error) {
+      setBusy(false);
       return toast.error((data as any)?.error ?? error?.message ?? "Erro ao criar");
     }
+    if (createPin) {
+      const newId = (data as any)?.restaurant_id ?? (data as any)?.id;
+      if (newId) {
+        await (supabase as any).from("restaurant_master_pins").upsert({ restaurant_id: newId, pin: createPin });
+      }
+    }
+    setBusy(false);
     toast.success(`Restaurante criado e gerente cadastrado!`);
-    setCreateOpen(false); setName(""); setSlug("");
+    setCreateOpen(false); setName(""); setSlug(""); setCreatePin("");
     load();
   };
 
