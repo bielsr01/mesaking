@@ -166,7 +166,7 @@ function ManualAdjustDialog({
     mode === "subtract" ? -num :
     num - currentQty;
   const resultQty = currentQty + delta;
-  const notesRequired = mode === "subtract" || mode === "set";
+  const notesRequired = true;
   const wouldGoNegative = mode === "subtract" && resultQty < 0;
 
   const submit = async () => {
