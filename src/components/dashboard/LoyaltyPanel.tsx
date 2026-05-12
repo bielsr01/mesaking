@@ -379,8 +379,10 @@ export function LoyaltyPanel({ restaurantId }: { restaurantId: string }) {
               <div className="space-y-1"><Label>Pontos</Label><Input type="number" min="0" step="1" value={newPoints} onChange={(e) => setNewPoints(e.target.value)} /></div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setMemberDialog(false)}>Cancelar</Button>
-              <Button onClick={saveMember}>{editingMember ? "Salvar" : "Cadastrar"}</Button>
+              <Button variant="outline" onClick={() => setMemberDialog(false)} disabled={savingMember}>Cancelar</Button>
+              <Button onClick={saveMember} disabled={savingMember}>
+                {savingMember ? "Salvando..." : editingMember ? "Salvar" : "Cadastrar"}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
