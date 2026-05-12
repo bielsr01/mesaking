@@ -204,9 +204,25 @@ export function SupplyOrderPanel({ restaurantId }: { restaurantId: string }) {
                           <div className="flex justify-between text-xs">
                             <span className="font-medium">{p.variant_group_name}</span>
                             <span className={remaining === 0 ? "text-green-600 font-semibold" : remaining < 0 ? "text-destructive font-semibold" : "text-muted-foreground"}>
-                              {currentSum} / {expectedTotal} {remaining !== 0 && `(${remaining > 0 ? "+" : ""}${remaining})`}
+                              {currentSum} / {expectedTotal}
                             </span>
                           </div>
+                          {remaining < 0 ? (
+                            <div
+                              key={currentSum}
+                              className="text-xs font-semibold text-destructive animate-shake"
+                            >
+                              Você selecionou uma quantidade maior que a do seu pedido, por favor ajuste. Diminua {Math.abs(remaining)} {Math.abs(remaining) === 1 ? "unidade" : "unidades"} para ficar ok.
+                            </div>
+                          ) : remaining > 0 ? (
+                            <div className="text-xs text-muted-foreground">
+                              Selecione a quantidade de cada item abaixo. Faltam {remaining}.
+                            </div>
+                          ) : (
+                            <div className="text-xs text-green-600 font-semibold">
+                              Quantidade ajustada corretamente.
+                            </div>
+                          )}
                           {opts.map(op => {
                             const v = dist[p.id]?.[op.name] ?? 0;
                             return (
