@@ -389,11 +389,27 @@ function GroupDialog({
 
           <div className="space-y-2">
             <Label>Itens</Label>
+            <p className="text-xs text-muted-foreground">A foto é opcional e aparece para o cliente no cardápio.</p>
             {rows.map((r, idx) => r.toDelete ? null : (
-              <div key={idx} className="flex gap-2 items-center">
-                <Input className="flex-1" placeholder="Nome (ex: Catupiry)" value={r.name} onChange={(e) => updateRow(idx, { name: e.target.value })} />
-                <Input className="w-28" type="number" step="0.01" min="0" placeholder="0,00" value={r.extra_price} onChange={(e) => updateRow(idx, { extra_price: e.target.value })} />
-                <Button size="icon" variant="ghost" onClick={() => removeRow(idx)}><X className="w-4 h-4" /></Button>
+              <div key={idx} className="flex gap-2 items-start border rounded-md p-2">
+                <label className="relative w-14 h-14 shrink-0 rounded-md border bg-muted overflow-hidden cursor-pointer flex items-center justify-center text-[10px] text-muted-foreground text-center">
+                  {r.image_url ? (
+                    <img src={r.image_url} alt={r.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <span>{uploadingIdx === idx ? "..." : "+ foto"}</span>
+                  )}
+                  <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadItemImage(idx, f); e.currentTarget.value = ""; }} />
+                </label>
+                <div className="flex-1 flex flex-col gap-2">
+                  <div className="flex gap-2 items-center">
+                    <Input className="flex-1" placeholder="Nome (ex: Catupiry)" value={r.name} onChange={(e) => updateRow(idx, { name: e.target.value })} />
+                    <Input className="w-24" type="number" step="0.01" min="0" placeholder="0,00" value={r.extra_price} onChange={(e) => updateRow(idx, { extra_price: e.target.value })} />
+                    <Button size="icon" variant="ghost" onClick={() => removeRow(idx)}><X className="w-4 h-4" /></Button>
+                  </div>
+                  {r.image_url && (
+                    <button type="button" className="self-start text-xs text-muted-foreground hover:text-destructive" onClick={() => updateRow(idx, { image_url: null })}>Remover foto</button>
+                  )}
+                </div>
               </div>
             ))}
             <Button size="sm" variant="outline" onClick={addRow}><Plus className="w-3.5 h-3.5 mr-1" />Adicionar item</Button>
