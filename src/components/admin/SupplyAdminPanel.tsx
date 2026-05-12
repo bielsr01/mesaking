@@ -272,6 +272,7 @@ export function SupplyCatalogTab() {
   const [options, setOptions] = useState<{ id?: string; name: string }[]>([]);
   const [newOpt, setNewOpt] = useState("");
   const [stockGroupId, setStockGroupId] = useState<string>("");
+  const [expenseCategoryId, setExpenseCategoryId] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
   const { data: stockGroups = [] } = useQuery({
@@ -279,6 +280,15 @@ export function SupplyCatalogTab() {
     queryFn: async () => {
       const { data } = await supabase.from("stock_groups").select("id,name").eq("is_active", true).order("sort_order");
       return (data ?? []) as StockGroup[];
+    },
+  });
+
+  const { data: expenseCategories = [] } = useQuery({
+    queryKey: ["expense_categories_restaurant_admin"],
+    queryFn: async () => {
+      const { data } = await supabase.from("expense_categories")
+        .select("id,name").eq("scope", "restaurant").eq("is_active", true).order("name");
+      return (data ?? []) as ExpenseCategory[];
     },
   });
 
