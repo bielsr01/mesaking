@@ -273,8 +273,13 @@ function CampaignDialog({
   }, [search]);
   const [typeFilters, setTypeFilters] = useState<Set<ClientType>>(new Set());
   const [statusFilters, setStatusFilters] = useState<Set<ClientStatus>>(new Set());
+  const [restaurantFilters, setRestaurantFilters] = useState<Set<string>>(new Set());
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [removedRecipientIds, setRemovedRecipientIds] = useState<Set<string>>(new Set());
+  // Sender mode in admin scope: "admin" uses admin's own integration; "restaurant" uses a specific store's integration
+  const [senderMode, setSenderMode] = useState<"admin" | "restaurant">(
+    campaign?.is_admin ? "admin" : "restaurant"
+  );
   const [targetRestaurant, setTargetRestaurant] = useState<string>(
     campaign?.restaurant_id ?? (scope === "restaurant" ? restaurantIds[0] : "")
   );
