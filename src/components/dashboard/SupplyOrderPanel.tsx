@@ -9,7 +9,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Minus, Plus, ArrowLeft, Plus as PlusIcon, Clock, Truck, Package, Check } from "lucide-react";
+import { Minus, Plus, ArrowLeft, Plus as PlusIcon, Clock, Truck, Package, Check, Pencil, X } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { brl } from "@/lib/format";
 
