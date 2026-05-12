@@ -177,7 +177,7 @@ export function AdminOwnExpensesPanel() {
                     <Switch name="is_active" defaultChecked={editingCat?.is_active ?? true} id="cat-active" />
                     <Label htmlFor="cat-active" className="cursor-pointer">Ativa</Label>
                   </div>
-                  <DialogFooter><Button type="submit">{editingCat ? "Salvar" : "Adicionar"}</Button></DialogFooter>
+                  <DialogFooter><Button type="submit" disabled={savingCat}>{savingCat && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}{editingCat ? "Salvar" : "Adicionar"}</Button></DialogFooter>
                 </form>
               </DialogContent>
             </Dialog>
