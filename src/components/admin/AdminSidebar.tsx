@@ -24,6 +24,7 @@ export type AdminView =
   | "marketing:coupons"
   | "marketing:bulk"
   | "settings:integrations"
+  | "settings:ifood-fees"
   | "supply:catalog"
   | "supply:orders"
   | "stock"
@@ -37,9 +38,11 @@ export function AdminSidebar({ active, onChange, supplyBadge = 0 }: { active: Ad
   const supplyActive = active.startsWith("supply:");
   const marketingActive = active.startsWith("marketing:");
   const expensesActive = active.startsWith("expenses:");
+  const settingsActive = active.startsWith("settings:");
   const [supplyOpen, setSupplyOpen] = useState(supplyActive);
   const [marketingOpen, setMarketingOpen] = useState(marketingActive);
   const [expensesOpen, setExpensesOpen] = useState(expensesActive);
+  const [settingsOpen, setSettingsOpen] = useState(settingsActive);
 
   return (
     <Sidebar collapsible="icon">
