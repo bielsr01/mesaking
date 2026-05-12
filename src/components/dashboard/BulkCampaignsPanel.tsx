@@ -334,6 +334,7 @@ function CampaignDialog({
 
   const filtered = (customers ?? []).filter((c: any) => {
     if (existingCustomerIds.has(c.id)) return false;
+    if (restaurantFilters.size > 0 && !restaurantFilters.has(c.restaurant_id)) return false;
     if (search.trim()) {
       const q = search.toLowerCase();
       if (!(c.name?.toLowerCase().includes(q) || unmaskPhone(c.phone || "").includes(unmaskPhone(search)))) return false;
@@ -348,6 +349,7 @@ function CampaignDialog({
   const clearAll = () => setPicked(new Set());
   const toggleType = (t: ClientType) => { const n = new Set(typeFilters); n.has(t) ? n.delete(t) : n.add(t); setTypeFilters(n); };
   const toggleStatus = (s: ClientStatus) => { const n = new Set(statusFilters); n.has(s) ? n.delete(s) : n.add(s); setStatusFilters(n); };
+  const toggleRestaurant = (id: string) => { const n = new Set(restaurantFilters); n.has(id) ? n.delete(id) : n.add(id); setRestaurantFilters(n); };
 
   const toggleRemoveRecipient = (rid: string) => {
     const n = new Set(removedRecipientIds);
