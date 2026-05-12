@@ -162,7 +162,15 @@ export default function MasterAdmin() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => window.location.reload()}><RefreshCw className="w-4 h-4 mr-2" />Atualizar</Button>
+                <Button variant="outline" size="sm" disabled={refreshing} onClick={async () => {
+                  setRefreshing(true);
+                  try {
+                    await Promise.all([qc.invalidateQueries(), load()]);
+                    toast.success("Dados atualizados");
+                  } finally {
+                    setRefreshing(false);
+                  }
+                }}><RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />{refreshing ? "Atualizando..." : "Atualizar"}</Button>
                 <Button variant="ghost" size="sm" onClick={signOut}><LogOut className="w-4 h-4 mr-2" />Sair</Button>
               </div>
             </div>
