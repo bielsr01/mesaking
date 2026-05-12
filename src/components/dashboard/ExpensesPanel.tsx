@@ -286,19 +286,6 @@ export function ExpensesPanel({ restaurantId }: { restaurantId: string }) {
             <div><Label className="text-xs">Até</Label><Input type="date" value={to} onChange={(e) => { setTo(e.target.value); setPreset("custom"); }} /></div>
           </div>
 
-          {byCategory.length > 0 && (
-            <div className="rounded-lg border bg-muted/30 p-3">
-              <div className="text-xs font-semibold mb-2">Resumo por categoria</div>
-              <div className="grid gap-1 sm:grid-cols-2 lg:grid-cols-3">
-                {byCategory.map(([cat, v]) => (
-                  <div key={cat} className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">{cat} ({v.count})</span>
-                    <span className="font-semibold">{brl(v.total)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
 
