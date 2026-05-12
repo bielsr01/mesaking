@@ -166,7 +166,7 @@ function ManualAdjustDialog({
     mode === "subtract" ? -num :
     num - currentQty;
   const resultQty = currentQty + delta;
-  const notesRequired = mode === "subtract" || mode === "set";
+  const notesRequired = true;
   const wouldGoNegative = mode === "subtract" && resultQty < 0;
 
   const submit = async () => {
@@ -254,7 +254,7 @@ function ManualAdjustDialog({
             )}
           </div>
           <div>
-            <Label>Observação {notesRequired ? <span className="text-destructive">*</span> : "(opcional)"}</Label>
+            <Label>Motivo do ajuste <span className="text-destructive">*</span></Label>
             <Textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
