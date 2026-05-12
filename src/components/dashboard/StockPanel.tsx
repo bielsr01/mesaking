@@ -135,15 +135,17 @@ export function StockPanel({ restaurantId }: { restaurantId: string }) {
                 </CardHeader>
                 <CardContent className="flex items-end justify-between">
                   <div className={`text-3xl font-bold ${negative ? "text-destructive" : ""}`}>{qty}</div>
-                  <ManualAdjustDialog
-                    restaurantId={restaurantId}
-                    group={g}
-                    currentQty={qty}
-                    onSaved={() => {
-                      qc.invalidateQueries({ queryKey: ["restaurant_stock", restaurantId] });
-                      qc.invalidateQueries({ queryKey: ["stock_movements", restaurantId] });
-                    }}
-                  />
+                  {(g.allow_add || g.allow_subtract || g.allow_set) && (
+                    <ManualAdjustDialog
+                      restaurantId={restaurantId}
+                      group={g}
+                      currentQty={qty}
+                      onSaved={() => {
+                        qc.invalidateQueries({ queryKey: ["restaurant_stock", restaurantId] });
+                        qc.invalidateQueries({ queryKey: ["stock_movements", restaurantId] });
+                      }}
+                    />
+                  )}
                 </CardContent>
               </Card>
             );
