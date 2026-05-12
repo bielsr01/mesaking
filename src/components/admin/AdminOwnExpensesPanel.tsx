@@ -70,13 +70,13 @@ export function AdminOwnExpensesPanel() {
 
   const openNew = () => {
     setEditing(null);
-    setSelectedCatId("__free__"); setFreeCatName(""); setDescValue("");
+    setSelectedCatId(""); setFreeCatName(""); setDescValue("");
     setOpen(true);
   };
   const openEdit = (e: AdminExpense) => {
     setEditing(e);
-    setSelectedCatId(e.category_id ?? "__free__");
-    setFreeCatName(e.category_id ? "" : (e.category ?? ""));
+    setSelectedCatId(e.category_id ?? "");
+    setFreeCatName("");
     setDescValue(e.description ?? "");
     setOpen(true);
   };
@@ -94,9 +94,9 @@ export function AdminOwnExpensesPanel() {
     ev.preventDefault();
     if (saving) return;
     const fd = new FormData(ev.currentTarget);
-    const cat = selectedCatId !== "__free__" ? catsById[selectedCatId] : null;
-    const categoryName = cat ? cat.name : freeCatName.trim();
-    if (!categoryName) return toast.error("Selecione ou digite uma categoria");
+    const cat = catsById[selectedCatId];
+    if (!cat) return toast.error("Selecione uma categoria");
+    const categoryName = cat.name;
     const description = descValue.trim();
     if (!description) return toast.error("Descrição obrigatória");
     const payload = {
