@@ -133,6 +133,7 @@ export function ExpensesPanel({ restaurantId }: { restaurantId: string }) {
 
   const save = async (ev: React.FormEvent<HTMLFormElement>) => {
     ev.preventDefault();
+    if (saving) return;
     const fd = new FormData(ev.currentTarget);
     const cat = selectedCatId ? catsById[selectedCatId] : null;
     if (!cat) return toast.error("Selecione uma categoria");
@@ -149,14 +150,19 @@ export function ExpensesPanel({ restaurantId }: { restaurantId: string }) {
       created_by: user?.id ?? null,
     };
     if (payload.amount <= 0) return toast.error("Valor deve ser maior que zero");
-    const op = editing
-      ? supabase.from("expenses").update(payload).eq("id", editing.id)
-      : supabase.from("expenses").insert(payload);
-    const { error } = await op;
-    if (error) return toast.error(error.message);
-    toast.success("Salvo");
-    setOpen(false); setEditing(null);
-    qc.invalidateQueries({ queryKey: ["expenses", restaurantId] });
+    setSaving(true);
+    try {
+      const op = editing
+        ? supabase.from("expenses").update(payload).eq("id", editing.id)
+        : supabase.from("expenses").insert(payload);
+      const { error } = await op;
+      if (error) { toast.error(error.message); return; }
+      toast.success("Salvo");
+      setOpen(false); setEditing(null);
+      qc.invalidateQueries({ queryKey: ["expenses", restaurantId] });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const remove = async (id: string) => {
