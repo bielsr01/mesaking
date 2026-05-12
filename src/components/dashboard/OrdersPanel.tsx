@@ -261,14 +261,21 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     const prevStatus = o.status;
     patchOrder(o.id, { status: next });
 
-    // For iFood orders, forward the action to iHub first
+    // For iFood orders, forward the action to iHub first.
+    // No iFood, "delivered" é atualizado automaticamente pelo webhook (CONCLUDED) — não enviamos ação.
     if (o.external_source === "ifood") {
+      if (next === "delivered") {
+        // não dispara ação manual; espera webhook do iFood
+        patchOrder(o.id, { status: prevStatus });
+        toast.info("Pedidos do iFood são marcados como entregues automaticamente pelo iFood.");
+        return;
+      }
       const actionMap: Record<string, string> = {
-        accepted: "confirm",
-        preparing: "startPreparation",
+        // pending → preparing: confirma o pedido (PLACED → CONFIRMED)
+        preparing: "confirm",
         awaiting_pickup: "readyToPickup",
+        // preparing → out_for_delivery: despacha
         out_for_delivery: "dispatch",
-        delivered: "dispatch", // CONCLUDED is auto in iFood; fall back
       };
       const action = actionMap[next];
       if (action) {
