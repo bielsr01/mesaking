@@ -62,11 +62,30 @@ function formatIfoodPhone(customer: any): string {
 function mapPayment(od: any): string {
   const methods = od?.payments?.methods ?? od?.paymentMethods ?? [];
   const m = Array.isArray(methods) && methods.length > 0 ? methods[0] : null;
-  const type = String(m?.method ?? m?.type ?? "").toUpperCase();
-  if (type.includes("CASH")) return "cash";
-  if (type.includes("PIX")) return "pix";
-  if (type.includes("CREDIT") || type.includes("DEBIT") || type.includes("CARD")) return "card";
+  if (!m) return "card";
+  const method = String(m?.method ?? "").toUpperCase();
+  const type = String(m?.type ?? "").toUpperCase();
+  const combined = `${method} ${type}`;
+  if (combined.includes("CASH") || combined.includes("DINHEIRO")) return "cash";
+  if (combined.includes("PIX")) return "pix";
+  // Cartão (crédito, débito, carteira digital, voucher, online)
+  if (
+    combined.includes("CREDIT") || combined.includes("DEBIT") || combined.includes("CARD") ||
+    combined.includes("WALLET") || combined.includes("VOUCHER") || combined.includes("MEAL_VOUCHER") ||
+    combined.includes("FOOD_VOUCHER") || combined.includes("ONLINE")
+  ) return "card";
   return "card";
+}
+
+// Troco para (somente quando paga em dinheiro)
+function extractChangeFor(od: any): number | null {
+  const methods = od?.payments?.methods ?? od?.paymentMethods ?? [];
+  const m = Array.isArray(methods) && methods.length > 0 ? methods[0] : null;
+  if (!m) return null;
+  const cf = m?.cash?.changeFor ?? m?.changeFor ?? m?.cashChangeFor ?? null;
+  if (cf == null) return null;
+  const n = Number(cf);
+  return isFinite(n) && n > 0 ? n : null;
 }
 
 // Itens com sub-itens (grupos de opções) achatados na coluna notes
