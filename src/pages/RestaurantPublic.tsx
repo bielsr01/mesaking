@@ -539,7 +539,7 @@ export default function RestaurantPublic() {
                                 onChange={() => toggleOpt(g, it.id)}
                               />
                               {it.image_url && (
-                                <img src={it.image_url} alt={it.name} loading="lazy" className="w-12 h-12 rounded-md object-cover border" />
+                                <img src={it.image_url} alt={it.name} loading="lazy" className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg object-cover border flex-shrink-0" />
                               )}
                               <span className="flex-1 text-sm">{it.name}</span>
                               {it.extra_price > 0 && (
