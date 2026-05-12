@@ -318,6 +318,7 @@ export default function MasterAdmin() {
                                 {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                               </button>
                             </div>
+                          </div>
                           <div className="space-y-2 col-span-2 pt-2 border-t">
                             <Label>Senha mestra do restaurante <span className="text-muted-foreground font-normal">(6 dígitos, opcional)</span></Label>
                             <Input
