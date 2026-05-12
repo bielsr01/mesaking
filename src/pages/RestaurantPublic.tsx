@@ -576,9 +576,8 @@ export default function RestaurantPublic() {
         restaurant={restaurant}
       />
 
-      <footer className="container py-6 text-center text-xs text-muted-foreground">
-        <Link to="/" className="hover:underline">Powered by MesaPro</Link>
-      </footer>
+      <footer className="container py-6 text-center text-xs text-muted-foreground" />
+    </div>
     </div>
   );
 }
