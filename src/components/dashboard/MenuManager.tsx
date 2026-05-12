@@ -90,6 +90,7 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
   const [defaultCat, setDefaultCat] = useState<string | null>(null);
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
   const [stockConsumption, setStockConsumption] = useState<StockConsumption[]>([]);
+  const [loadingProdId, setLoadingProdId] = useState<string | null>(null);
 
   const { data: stockGroups = [] } = useQuery({
     queryKey: ["stock_groups_active"],
@@ -100,16 +101,31 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
     staleTime: 60_000,
   });
 
-  // Load product->groups when editing
+  // Reset extra fields when opening dialog for a NEW product
   useEffect(() => {
-    if (prodOpen && editingProd) {
-      fetchProductGroupIds(editingProd.id).then(setSelectedGroupIds);
-      fetchStockConsumption(editingProd.id).then(setStockConsumption);
-    } else if (prodOpen && !editingProd) {
+    if (prodOpen && !editingProd) {
       setSelectedGroupIds([]);
       setStockConsumption([]);
     }
   }, [prodOpen, editingProd]);
+
+  const openProductEdit = async (p: Product) => {
+    setLoadingProdId(p.id);
+    try {
+      const [groupIds, consumption] = await Promise.all([
+        fetchProductGroupIds(p.id),
+        fetchStockConsumption(p.id),
+      ]);
+      setSelectedGroupIds(groupIds);
+      setStockConsumption(consumption);
+      setEditingProd(p);
+      setProdOpen(true);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao carregar produto");
+    } finally {
+      setLoadingProdId(null);
+    }
+  };
 
   const saveCategory = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
