@@ -412,6 +412,19 @@ export function SupplyCatalogTab() {
               </div>
               <div><Label>URL da imagem (opcional)</Label><Input name="image_url" defaultValue={editing?.image_url ?? ""} /></div>
 
+              <div>
+                <Label>Grupo de estoque</Label>
+                <select
+                  value={stockGroupId}
+                  onChange={(e) => setStockGroupId(e.target.value)}
+                  className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="">Não vincular ao estoque</option>
+                  {stockGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+                </select>
+                <p className="text-xs text-muted-foreground mt-1">Quando o pedido for marcado como entregue, a quantidade entra automaticamente neste grupo no estoque do restaurante.</p>
+              </div>
+
               <div className="rounded-lg border p-3 space-y-3 bg-muted/30">
                 <div className="flex items-center justify-between">
                   <div>
