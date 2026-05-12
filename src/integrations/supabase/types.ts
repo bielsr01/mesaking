@@ -1732,6 +1732,10 @@ export type Database = {
         }
         Returns: string
       }
+      verify_restaurant_master_pin: {
+        Args: { _pin: string; _restaurant_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "master_admin" | "manager" | "customer"
