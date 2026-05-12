@@ -81,6 +81,7 @@ export function AdminExpenseStoresPanel() {
 
   const saveCat = async (ev: React.FormEvent<HTMLFormElement>) => {
     ev.preventDefault();
+    if (savingCat) return;
     const fd = new FormData(ev.currentTarget);
     const payload = {
       name: String(fd.get("name") || "").trim(),
@@ -90,14 +91,19 @@ export function AdminExpenseStoresPanel() {
       scope: "restaurant" as const,
     };
     if (!payload.name) return toast.error("Nome obrigatório");
-    const op = editingCat
-      ? supabase.from("expense_categories").update(payload).eq("id", editingCat.id)
-      : supabase.from("expense_categories").insert(payload);
-    const { error } = await op;
-    if (error) return toast.error(error.message);
-    toast.success("Salvo");
-    setCatOpen(false); setEditingCat(null);
-    qc.invalidateQueries({ queryKey: ["expense_categories"] });
+    setSavingCat(true);
+    try {
+      const op = editingCat
+        ? supabase.from("expense_categories").update(payload).eq("id", editingCat.id)
+        : supabase.from("expense_categories").insert(payload);
+      const { error } = await op;
+      if (error) { toast.error(error.message); return; }
+      toast.success("Salvo");
+      setCatOpen(false); setEditingCat(null);
+      qc.invalidateQueries({ queryKey: ["expense_categories"] });
+    } finally {
+      setSavingCat(false);
+    }
   };
 
   const removeCat = async (id: string) => {
