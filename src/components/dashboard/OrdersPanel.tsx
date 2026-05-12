@@ -117,6 +117,9 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const [pdvOpen, setPdvOpen] = useState(false);
   const [deliveryBlink, setDeliveryBlink] = useState(false);
   const [ifoodView, setIfoodView] = useState<"orders" | "events">("orders");
+  const [pendingAction, setPendingAction] = useState<Record<string, boolean>>({});
+  const setPending = (id: string, v: boolean) =>
+    setPendingAction((m) => ({ ...m, [id]: v }));
 
   const doPrint = (o: Order, mode: TicketMode) => {
     const html = buildTicketHtml(
