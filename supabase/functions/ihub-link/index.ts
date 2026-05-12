@@ -105,8 +105,11 @@ Deno.serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      // Per docs: link-merchant only needs domain + authorizationCode + authorizationCodeVerifier.
-      // The merchant is identified by the iFood authorization itself.
+      if (!manualMerchantId) {
+        return new Response(JSON.stringify({ error: "merchantId é obrigatório" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       const r = await fetch(`${IHUB_BASE}/auth/link-merchant`, {
         method: "POST",
         headers: { ...authHdr, "Content-Type": "application/json" },
@@ -114,6 +117,7 @@ Deno.serve(async (req) => {
           domain,
           authorizationCode,
           authorizationCodeVerifier,
+          merchantId: manualMerchantId,
         }),
       });
       const text = await r.text();
