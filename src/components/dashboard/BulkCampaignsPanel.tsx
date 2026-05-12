@@ -77,8 +77,13 @@ export function BulkCampaignsPanel({
     refetchInterval: 5000,
     queryFn: async () => {
       let q = sb.from("bulk_campaigns").select("*").order("created_at", { ascending: false }).limit(200);
-      if (scope === "restaurant") q = q.eq("restaurant_id", restaurantId);
-      else q = q.in("restaurant_id", adminFilter);
+      if (scope === "restaurant") {
+        q = q.eq("restaurant_id", restaurantId);
+      } else {
+        // Admin: includes both admin-owned campaigns AND those of selected restaurants
+        const ids = adminFilter.map((id) => `"${id}"`).join(",");
+        q = q.or(`is_admin.eq.true,restaurant_id.in.(${ids})`);
+      }
       const { data } = await q;
       return data ?? [];
     },
