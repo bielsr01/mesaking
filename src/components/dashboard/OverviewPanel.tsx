@@ -407,7 +407,7 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
       </div>
 
       {/* Service breakdown */}
-      <div className={`grid gap-3 lg:grid-cols-3 ${source === "ifood" ? "opacity-40 pointer-events-none" : ""}`}>
+      <div className="grid gap-3 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader><CardTitle className="text-base">Análise de pedidos por tipo</CardTitle></CardHeader>
           <CardContent>
