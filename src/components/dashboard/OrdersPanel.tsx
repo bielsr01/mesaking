@@ -83,6 +83,7 @@ const FILTERS = [
   { value: "out_for_delivery", label: "Em entrega" },
   { value: "awaiting_pickup", label: "Aguardando retirada" },
   { value: "delivered", label: "Entregues" },
+  { value: "cancelled", label: "Cancelados" },
   { value: "active", label: "Ativos" },
   { value: "all", label: "Todos" },
 ];
