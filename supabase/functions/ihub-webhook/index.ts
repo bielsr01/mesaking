@@ -27,10 +27,12 @@ type IHubEvent = {
 };
 
 // Map iHub fullCode -> internal order status
+// CONFIRMED é mapeado direto para "preparing" porque, no nosso fluxo, ao aceitar
+// o pedido o restaurante já está iniciando o preparo (não temos passo "accepted" separado).
 function mapStatus(fullCode?: string): string | null {
   switch (fullCode) {
     case "PLACED": return "pending";
-    case "CONFIRMED": return "accepted";
+    case "CONFIRMED": return "preparing";
     case "PREPARATION_STARTED": return "preparing";
     case "READY_TO_PICKUP": return "awaiting_pickup";
     case "DISPATCHED": return "out_for_delivery";
@@ -39,6 +41,17 @@ function mapStatus(fullCode?: string): string | null {
     default: return null;
   }
 }
+
+// Ordem de progresso para evitar regressões (webhook fora de ordem não puxa status pra trás)
+const STATUS_ORDER: Record<string, number> = {
+  pending: 0,
+  accepted: 1,
+  preparing: 2,
+  awaiting_pickup: 3,
+  out_for_delivery: 3,
+  delivered: 4,
+  cancelled: 5,
+};
 
 // iFood orderType -> nosso order_type
 function mapOrderType(od: any): "delivery" | "pickup" {
