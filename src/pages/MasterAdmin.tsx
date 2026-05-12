@@ -24,6 +24,7 @@ import { AdminCouponsPanel } from "@/components/admin/AdminCouponsPanel";
 import { AdminMenuPanel } from "@/components/admin/AdminMenuPanel";
 import { BulkCampaignsPanel } from "@/components/dashboard/BulkCampaignsPanel";
 import { EvolutionIntegrationCard } from "@/components/dashboard/EvolutionIntegrationCard";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface Restaurant {
   id: string;
