@@ -36,6 +36,7 @@ export function IhubIntegrationCard({ restaurantId }: { restaurantId: string }) 
   const [linking, setLinking] = useState(false);
   const [userCodeData, setUserCodeData] = useState<any>(null);
   const [authCode, setAuthCode] = useState("");
+  const [merchantIdInput, setMerchantIdInput] = useState("");
 
   const formatFunctionError = (payload: any, fallback: string) => {
     if (!payload) return fallback;
@@ -81,6 +82,10 @@ export function IhubIntegrationCard({ restaurantId }: { restaurantId: string }) 
       toast.error("Cole o authorizationCode retornado pelo iFood");
       return;
     }
+    if (!merchantIdInput.trim()) {
+      toast.error("Informe o merchantId da loja no iFood");
+      return;
+    }
     setLinking(true);
     try {
       // Garante que token/domain estão salvos antes de vincular
@@ -91,6 +96,7 @@ export function IhubIntegrationCard({ restaurantId }: { restaurantId: string }) 
           restaurantId,
           authorizationCode: authCode.trim(),
           authorizationCodeVerifier: userCodeData.authorizationCodeVerifier,
+          merchantId: merchantIdInput.trim(),
         },
       });
       if (error) throw error;
@@ -98,6 +104,7 @@ export function IhubIntegrationCard({ restaurantId }: { restaurantId: string }) 
       toast.success(`Loja vinculada: ${res.merchantName ?? res.merchantId ?? "OK"}`);
       setUserCodeData(null);
       setAuthCode("");
+      setMerchantIdInput("");
       qc.invalidateQueries({ queryKey: ["ihub-integration", restaurantId] });
       setOpen(false);
     } catch (e: any) {
@@ -243,12 +250,17 @@ export function IhubIntegrationCard({ restaurantId }: { restaurantId: string }) 
                     onChange={(e) => setAuthCode(e.target.value)}
                     placeholder="Cole o authorizationCode retornado pelo iFood"
                   />
+                  <Input
+                    value={merchantIdInput}
+                    onChange={(e) => setMerchantIdInput(e.target.value)}
+                    placeholder="merchantId da loja no iFood (UUID)"
+                  />
                   <div className="flex gap-2">
                     <Button type="button" size="sm" onClick={handleLinkMerchant} disabled={linking}>
                       {linking ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <CheckCircle2 className="w-4 h-4 mr-1" />}
                       Vincular e ativar
                     </Button>
-                    <Button type="button" variant="ghost" size="sm" onClick={() => { setUserCodeData(null); setAuthCode(""); }}>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => { setUserCodeData(null); setAuthCode(""); setMerchantIdInput(""); }}>
                       Cancelar
                     </Button>
                   </div>
