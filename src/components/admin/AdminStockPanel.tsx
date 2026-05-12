@@ -9,10 +9,14 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Pencil, Boxes, Layers } from "lucide-react";
 import { toast } from "sonner";
 
-type StockGroup = { id: string; name: string; is_active: boolean; sort_order: number };
+type StockGroup = {
+  id: string; name: string; is_active: boolean; sort_order: number;
+  allow_add: boolean; allow_subtract: boolean; allow_set: boolean;
+};
 type Restaurant = { id: string; name: string; slug: string };
 type StockRow = { restaurant_id: string; group_id: string; quantity: number };
 
@@ -119,8 +123,14 @@ function AdminStockGroups() {
     const payload = {
       name: String(fd.get("name") || "").trim(),
       sort_order: Number(fd.get("sort_order") || 0),
+      allow_add: fd.get("allow_add") === "on",
+      allow_subtract: fd.get("allow_subtract") === "on",
+      allow_set: fd.get("allow_set") === "on",
     };
     if (!payload.name) return toast.error("Informe o nome");
+    if (!payload.allow_add && !payload.allow_subtract && !payload.allow_set) {
+      return toast.error("Habilite ao menos um tipo de ajuste");
+    }
     if (editing) {
       const { error } = await supabase.from("stock_groups").update(payload).eq("id", editing.id);
       if (error) return toast.error(error.message);
@@ -150,6 +160,23 @@ function AdminStockGroups() {
             <form onSubmit={save} className="space-y-3">
               <div><Label>Nome</Label><Input name="name" defaultValue={editing?.name} required /></div>
               <div><Label>Ordem</Label><Input name="sort_order" type="number" defaultValue={editing?.sort_order ?? 0} /></div>
+              <div className="space-y-2">
+                <Label>Ajustes manuais permitidos no estoque</Label>
+                <div className="space-y-2 rounded-md border p-3">
+                  <label className="flex items-center gap-2 text-sm">
+                    <Checkbox name="allow_add" defaultChecked={editing?.allow_add ?? true} />
+                    Permitir <strong>somar</strong> (entrada)
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <Checkbox name="allow_subtract" defaultChecked={editing?.allow_subtract ?? true} />
+                    Permitir <strong>subtrair</strong> (saída) — não permite ficar negativo
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <Checkbox name="allow_set" defaultChecked={editing?.allow_set ?? true} />
+                    Permitir <strong>definir total</strong>
+                  </label>
+                </div>
+              </div>
               <DialogFooter><Button type="submit">Salvar</Button></DialogFooter>
             </form>
           </DialogContent>
