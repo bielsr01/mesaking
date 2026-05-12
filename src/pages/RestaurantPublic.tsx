@@ -538,6 +538,9 @@ export default function RestaurantPublic() {
                                 checked={checked}
                                 onChange={() => toggleOpt(g, it.id)}
                               />
+                              {it.image_url && (
+                                <img src={it.image_url} alt={it.name} loading="lazy" className="w-12 h-12 rounded-md object-cover border" />
+                              )}
                               <span className="flex-1 text-sm">{it.name}</span>
                               {it.extra_price > 0 && (
                                 <span className="text-sm font-semibold text-primary">+ {brl(it.extra_price)}</span>
