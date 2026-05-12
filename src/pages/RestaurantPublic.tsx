@@ -68,7 +68,7 @@ export default function RestaurantPublic() {
       if (!g) return; // group inactive or not in this restaurant
       const og: OptionGroup = {
         id: g.id, name: g.name, min_select: g.min_select, max_select: g.max_select, sort_order: l.sort_order ?? 0,
-        items: (itemsByGroup.get(g.id) ?? []).map((it) => ({ id: it.id, name: it.name, extra_price: Number(it.extra_price) })),
+        items: (itemsByGroup.get(g.id) ?? []).map((it) => ({ id: it.id, name: it.name, extra_price: Number(it.extra_price), image_url: it.image_url ?? null })),
       };
       const arr = idx[l.product_id] ?? [];
       arr.push(og);
