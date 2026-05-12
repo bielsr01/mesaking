@@ -150,12 +150,14 @@ export function BulkCampaignsPanel({
           </Button>
         </CardHeader>
         <CardContent>
-          {scope === "admin" && adminFilter.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">Selecione ao menos um restaurante.</div>
-          ) : isLoading ? (
+          {isLoading ? (
             <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
           ) : (campaigns ?? []).length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">Nenhuma campanha ainda.</div>
+            <div className="text-center py-12 text-muted-foreground">
+              {scope === "admin" && adminFilter.length === 0
+                ? "Nenhuma campanha. Selecione restaurantes para criar uma nova ou ver campanhas das lojas."
+                : "Nenhuma campanha ainda."}
+            </div>
           ) : (
             <div className="border rounded-lg overflow-x-auto">
               <Table>
