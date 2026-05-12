@@ -34,9 +34,29 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { restaurant_id, name, slug, manager_name, manager_email, manager_password } = body ?? {};
+    const { restaurant_id, name, slug, manager_name, manager_email, manager_password, mode } = body ?? {};
 
     if (!restaurant_id) {
+      return new Response(JSON.stringify({ error: "restaurant_id obrigatório" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    if (mode === "fetch") {
+      const { data: r } = await admin.from("restaurants").select("id, name, slug, owner_id").eq("id", restaurant_id).maybeSingle();
+      if (!r) return new Response(JSON.stringify({ error: "Restaurante não encontrado" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      let manager: { email: string | null; full_name: string | null } = { email: null, full_name: null };
+      if (r.owner_id) {
+        const { data: u } = await admin.auth.admin.getUserById(r.owner_id);
+        manager.email = u?.user?.email ?? null;
+        manager.full_name = (u?.user?.user_metadata as any)?.full_name ?? null;
+        if (!manager.full_name) {
+          const { data: p } = await admin.from("profiles").select("full_name").eq("id", r.owner_id).maybeSingle();
+          manager.full_name = p?.full_name ?? null;
+        }
+      }
+      return new Response(JSON.stringify({ restaurant: r, manager }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    if (false) {
       return new Response(JSON.stringify({ error: "restaurant_id obrigatório" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     if (slug && !/^[a-z0-9-]{2,60}$/.test(slug)) {
