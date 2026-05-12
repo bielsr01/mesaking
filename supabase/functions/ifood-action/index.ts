@@ -137,9 +137,15 @@ Deno.serve(async (req) => {
   try { parsed = JSON.parse(text); } catch {}
 
   if (!resp.ok) {
-    console.error("iHub action error", resp.status, parsed);
-    return new Response(JSON.stringify({ error: parsed?.message ?? "iHub error", status: resp.status, detail: parsed }), {
-      status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    console.error("iHub action error", resp.status, "payload:", payload, "response:", parsed);
+    // Return 200 so the supabase-js client can read the body (it treats non-2xx as FunctionsHttpError)
+    return new Response(JSON.stringify({
+      ok: false,
+      error: parsed?.message ?? parsed?.error ?? "Falha ao enviar ação para o iFood",
+      ihub_status: resp.status,
+      detail: parsed,
+    }), {
+      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
