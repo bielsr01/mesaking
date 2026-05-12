@@ -380,6 +380,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
           setChannel(nv);
           if (nv === "pdv") setFilter("preparing");
           else if (nv === "delivery") { setFilter("pending"); setDeliveryBlink(false); }
+          else if (nv === "ifood") { setFilter("pending"); setIfoodView("orders"); }
         }}>
           <TabsList>
             <TabsTrigger value="pdv" className="gap-2">
@@ -390,8 +391,9 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
               <Bike className="w-4 h-4" /> Delivery / Retirada
               <Badge variant={deliveryPendingCount > 0 ? "destructive" : "secondary"} className="h-5 min-w-5 px-1.5 text-xs">{deliveryPendingCount > 0 ? deliveryPendingCount : deliveryCount}</Badge>
             </TabsTrigger>
-            <TabsTrigger value="ifood" className="gap-2">
+            <TabsTrigger value="ifood" className={`gap-2 ${ifoodPendingCount > 0 ? "animate-pulse text-destructive ring-2 ring-destructive" : ""}`}>
               <Utensils className="w-4 h-4" /> iFood
+              <Badge variant={ifoodPendingCount > 0 ? "destructive" : "secondary"} className="h-5 min-w-5 px-1.5 text-xs">{ifoodPendingCount > 0 ? ifoodPendingCount : ifoodCount}</Badge>
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -403,7 +405,16 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
         )}
       </div>
 
-      {channel === "ifood" ? (
+      {channel === "ifood" && (
+        <Tabs value={ifoodView} onValueChange={(v) => setIfoodView(v as "orders" | "events")}>
+          <TabsList>
+            <TabsTrigger value="orders">Pedidos iFood</TabsTrigger>
+            <TabsTrigger value="events">Histórico de webhooks</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      )}
+
+      {channel === "ifood" && ifoodView === "events" ? (
         <IfoodEventsTab restaurantId={restaurantId} />
       ) : (
       <>
