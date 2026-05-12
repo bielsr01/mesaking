@@ -448,17 +448,31 @@ function CampaignDialog({
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Promoção de quarta" />
             </div>
             {!isEdit && scope === "admin" && (
-              <div className="space-y-2 col-span-2">
-                <Label>Restaurante (envio será feito pela instância dele)</Label>
-                <RSelect value={targetRestaurant} onValueChange={setTargetRestaurant}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>
-                    {restaurantIds.map((id) => (
-                      <SelectItem key={id} value={id}>{restNameById.get(id) ?? id}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </RSelect>
-              </div>
+              <>
+                <div className="space-y-2 col-span-2">
+                  <Label>Enviar usando a integração de</Label>
+                  <RSelect value={senderMode} onValueChange={(v) => setSenderMode(v as "admin" | "restaurant")}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">Minha integração (Admin)</SelectItem>
+                      <SelectItem value="restaurant">Integração de um restaurante</SelectItem>
+                    </SelectContent>
+                  </RSelect>
+                </div>
+                {senderMode === "restaurant" && (
+                  <div className="space-y-2 col-span-2">
+                    <Label>Restaurante (envio será feito pela instância dele)</Label>
+                    <RSelect value={targetRestaurant} onValueChange={setTargetRestaurant}>
+                      <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                      <SelectContent>
+                        {restaurantIds.map((id) => (
+                          <SelectItem key={id} value={id}>{restNameById.get(id) ?? id}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </RSelect>
+                  </div>
+                )}
+              </>
             )}
             <div className="space-y-2 col-span-2">
               <Label>Mensagem</Label>
