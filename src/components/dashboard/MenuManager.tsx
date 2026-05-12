@@ -500,12 +500,13 @@ function CategoryGroup({
 }
 
 function SortableProductCard({
-  product: p, onEdit, onToggle, onRemove,
+  product: p, onEdit, onToggle, onRemove, loading,
 }: {
   product: Product;
   onEdit: (p: Product) => void;
   onToggle: (p: Product) => void;
   onRemove: (p: Product) => void;
+  loading?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: p.id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
