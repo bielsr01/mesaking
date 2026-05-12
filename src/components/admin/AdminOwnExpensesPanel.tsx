@@ -221,17 +221,13 @@ export function AdminOwnExpensesPanel() {
                 <form onSubmit={save} className="space-y-3">
                   <div>
                     <Label>Categoria</Label>
-                    <Select value={selectedCatId} onValueChange={setSelectedCatId}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                    <Select value={selectedCatId === "__free__" ? "" : selectedCatId} onValueChange={setSelectedCatId}>
+                      <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                       <SelectContent>
                         {cats.filter(c => c.is_active).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                        <SelectItem value="__free__">Outra (digitar)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                  {selectedCatId === "__free__" && (
-                    <div><Label>Nome da categoria</Label><Input value={freeCatName} onChange={(e) => setFreeCatName(e.target.value)} required /></div>
-                  )}
                   <div><Label>Descrição</Label><Input value={descValue} onChange={(e) => setDescValue(e.target.value)} required maxLength={200} /></div>
                   <div className="grid grid-cols-2 gap-3">
                     <div><Label>Valor (R$)</Label><Input name="amount" type="number" step="0.01" min="0" defaultValue={editing?.amount ?? ""} required /></div>
