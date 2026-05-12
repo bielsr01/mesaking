@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertTriangle, Package, History, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 
-type StockGroup = { id: string; name: string; is_active: boolean };
+type StockGroup = { id: string; name: string; is_active: boolean; allow_add: boolean; allow_subtract: boolean; allow_set: boolean };
 type StockRow = { id: string; group_id: string; quantity: number; updated_at: string };
 type Movement = {
   id: string; group_id: string; quantity: number; type: string;
