@@ -35,8 +35,10 @@ export function AdminSidebar({ active, onChange, supplyBadge = 0 }: { active: Ad
   const collapsed = state === "collapsed";
   const supplyActive = active.startsWith("supply:");
   const marketingActive = active.startsWith("marketing:");
+  const expensesActive = active.startsWith("expenses:");
   const [supplyOpen, setSupplyOpen] = useState(supplyActive);
   const [marketingOpen, setMarketingOpen] = useState(marketingActive);
+  const [expensesOpen, setExpensesOpen] = useState(expensesActive);
 
   return (
     <Sidebar collapsible="icon">
