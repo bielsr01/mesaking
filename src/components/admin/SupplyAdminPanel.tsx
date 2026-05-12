@@ -267,6 +267,7 @@ export function SupplyCatalogTab() {
   const [step, setStep] = useState<number>(50);
   const [options, setOptions] = useState<{ id?: string; name: string }[]>([]);
   const [newOpt, setNewOpt] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const { data: products = [] } = useQuery({
     queryKey: ["admin_supply_products"],
