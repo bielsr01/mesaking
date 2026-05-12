@@ -115,6 +115,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const [printTarget, setPrintTarget] = useState<Order | null>(null);
   const [pdvOpen, setPdvOpen] = useState(false);
   const [deliveryBlink, setDeliveryBlink] = useState(false);
+  const [ifoodView, setIfoodView] = useState<"orders" | "events">("orders");
 
   const doPrint = (o: Order, mode: TicketMode) => {
     const html = buildTicketHtml(
