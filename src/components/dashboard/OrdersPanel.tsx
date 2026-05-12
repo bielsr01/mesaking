@@ -260,9 +260,6 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   };
 
   const advance = async (o: Order) => {
-    const next = getNextStatus(o.status, o.order_type) as Order["status"] | null;
-    if (!next) return;
-  const advance = async (o: Order) => {
     if (pendingAction[o.id]) return; // evita duplo-clique / corrida com outro pedido
     const next = getNextStatus(o.status, o.order_type) as Order["status"] | null;
     if (!next) return;
