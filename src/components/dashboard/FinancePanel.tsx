@@ -29,7 +29,7 @@ export function FinancePanel({ restaurantIds }: { restaurantIds: string[] }) {
   const enabled = restaurantIds.length > 0;
 
   const ordersQ = useQuery({
-    queryKey: ["finance-orders", restaurantIds.slice().sort().join(","), month],
+    queryKey: ["finance-orders", restaurantIds.slice().sort().join(","), periodKey],
     queryFn: async () => {
       const { data } = await sb
         .from("orders")
@@ -44,7 +44,7 @@ export function FinancePanel({ restaurantIds }: { restaurantIds: string[] }) {
   });
 
   const expensesQ = useQuery({
-    queryKey: ["finance-expenses", restaurantIds.slice().sort().join(","), month],
+    queryKey: ["finance-expenses", restaurantIds.slice().sort().join(","), periodKey],
     queryFn: async () => {
       const { data } = await sb
         .from("expenses")
