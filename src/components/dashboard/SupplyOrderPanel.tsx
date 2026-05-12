@@ -28,7 +28,7 @@ type SupplyOrder = {
   id: string; restaurant_id: string; status: "pending"|"accepted"|"shipped"|"delivered";
   total: number; notes: string | null; created_at: string;
   supply_order_items?: {
-    id: string; product_name: string; unit_price: number; quantity: number; unit: string | null;
+    id: string; product_id: string | null; product_name: string; unit_price: number; quantity: number; unit: string | null;
     supply_order_item_options?: { id: string; option_name: string; quantity: number }[];
   }[];
 };
