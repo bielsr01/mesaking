@@ -28,7 +28,7 @@ export type AdminView =
   | "supply:orders"
   | "stock";
 
-export function AdminSidebar({ active, onChange }: { active: AdminView; onChange: (v: AdminView) => void }) {
+export function AdminSidebar({ active, onChange, supplyBadge = 0 }: { active: AdminView; onChange: (v: AdminView) => void; supplyBadge?: number }) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const supplyActive = active.startsWith("supply:");
@@ -142,7 +142,12 @@ export function AdminSidebar({ active, onChange }: { active: AdminView; onChange
                     <SidebarMenuButton isActive={supplyActive} tooltip="Pedido de Insumos">
                       <Package className="h-4 w-4" />
                       <span>Pedido de Insumos</span>
-                      <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                      {supplyBadge > 0 && (
+                        <span className="ml-auto min-w-[20px] h-5 px-1.5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold grid place-items-center">
+                          {supplyBadge > 9 ? "9+" : supplyBadge}
+                        </span>
+                      )}
+                      <ChevronDown className="ml-1 h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
                     </SidebarMenuButton>
                   </CollapsibleTrigger>
                   <CollapsibleContent>
@@ -160,6 +165,11 @@ export function AdminSidebar({ active, onChange }: { active: AdminView; onChange
                           <button type="button" onClick={() => onChange("supply:orders")} className="w-full text-left flex items-center gap-2">
                             <ShoppingBag className="h-4 w-4" />
                             <span>Pedidos recebidos</span>
+                            {supplyBadge > 0 && (
+                              <span className="ml-auto min-w-[20px] h-5 px-1.5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold grid place-items-center">
+                                {supplyBadge > 9 ? "9+" : supplyBadge}
+                              </span>
+                            )}
                           </button>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>

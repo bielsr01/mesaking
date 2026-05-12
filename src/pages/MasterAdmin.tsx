@@ -26,6 +26,7 @@ import { AdminStockPanel } from "@/components/admin/AdminStockPanel";
 import { BulkCampaignsPanel } from "@/components/dashboard/BulkCampaignsPanel";
 import { EvolutionIntegrationCard } from "@/components/dashboard/EvolutionIntegrationCard";
 import { useQueryClient } from "@tanstack/react-query";
+import { usePendingSupplyOrdersCount } from "@/hooks/usePendingCounts";
 
 interface Restaurant {
   id: string;
@@ -147,10 +148,12 @@ export default function MasterAdmin() {
     stock: "Estoque",
   };
 
+  const supplyPendingCount = usePendingSupplyOrdersCount();
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-muted/30">
-        <AdminSidebar active={view} onChange={setView} />
+        <AdminSidebar active={view} onChange={setView} supplyBadge={supplyPendingCount} />
         <SidebarInset className="flex-1 flex flex-col">
           <header className="bg-background border-b sticky top-0 z-30">
             <div className="h-16 px-4 flex items-center justify-between gap-2">

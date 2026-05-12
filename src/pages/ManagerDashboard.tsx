@@ -24,6 +24,7 @@ import { AppSidebar, DashboardView } from "@/components/dashboard/AppSidebar";
 import { NotificationsBell } from "@/components/dashboard/NotificationsBell";
 import { LazyView } from "@/components/dashboard/LazyView";
 import { useNewOrderNotifications } from "@/hooks/useNewOrderNotifications";
+import { usePendingOrdersCount } from "@/hooks/usePendingCounts";
 import { SupplyOrderPanel } from "@/components/dashboard/SupplyOrderPanel";
 import { ExpensesPanel } from "@/components/dashboard/ExpensesPanel";
 import { OverviewPanel } from "@/components/dashboard/OverviewPanel";
@@ -107,6 +108,7 @@ export default function ManagerDashboard() {
     restaurant?.id,
     view === "orders"
   );
+  const pendingOrdersCount = usePendingOrdersCount(restaurant?.id);
 
   const refetchRestaurant = () => qc.invalidateQueries({ queryKey: ["managerRestaurant", user?.id] });
 
@@ -156,8 +158,8 @@ export default function ManagerDashboard() {
         <AppSidebar
           active={view}
           onChange={setView}
-          ordersBadge={view === "orders" ? 0 : unreadCount}
-          ordersBlinking={view !== "orders" && unreadCount > 0}
+          ordersBadge={pendingOrdersCount}
+          ordersBlinking={pendingOrdersCount > 0}
         />
 
         <div className="flex-1 flex flex-col min-w-0">
