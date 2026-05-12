@@ -64,6 +64,28 @@ export default function MasterAdmin() {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showPwd, setShowPwd] = useState(false);
+  const [showEditPwd, setShowEditPwd] = useState(false);
+  const [editManager, setEditManager] = useState<{ email: string; full_name: string }>({ email: "", full_name: "" });
+  const [loadingEdit, setLoadingEdit] = useState(false);
+
+  const openEdit = async (r: Restaurant) => {
+    setEditing(r);
+    setEditManager({ email: "", full_name: "" });
+    setShowEditPwd(false);
+    setLoadingEdit(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-update-restaurant", { body: { restaurant_id: r.id, mode: "fetch" } });
+      if (error || (data as any)?.error) {
+        toast.error((data as any)?.error ?? error?.message ?? "Erro ao carregar dados");
+      } else {
+        const m = (data as any)?.manager ?? {};
+        setEditManager({ email: m.email ?? "", full_name: m.full_name ?? "" });
+      }
+    } finally {
+      setLoadingEdit(false);
+    }
+  };
 
   const load = async () => {
     const { data } = await supabase.from("restaurants").select("id,name,slug,is_open,owner_id").order("created_at", { ascending: false });
