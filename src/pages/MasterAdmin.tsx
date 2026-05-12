@@ -27,7 +27,7 @@ import { AdminExpenseStoresPanel } from "@/components/admin/AdminExpenseStoresPa
 import { AdminOwnExpensesPanel } from "@/components/admin/AdminOwnExpensesPanel";
 import { AdminFinancePanel } from "@/components/admin/AdminFinancePanel";
 import { AdminIfoodFeesPanel } from "@/components/admin/AdminIfoodFeesPanel";
-import { BulkCampaignsPanel } from "@/components/dashboard/BulkCampaignsPanel";
+import { AdminBulkCampaignsPanel } from "@/components/admin/AdminBulkCampaignsPanel";
 import { EvolutionIntegrationCard } from "@/components/dashboard/EvolutionIntegrationCard";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePendingSupplyOrdersCount } from "@/hooks/usePendingCounts";
