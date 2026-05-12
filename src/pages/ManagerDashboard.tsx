@@ -158,8 +158,8 @@ export default function ManagerDashboard() {
         <AppSidebar
           active={view}
           onChange={setView}
-          ordersBadge={view === "orders" ? 0 : unreadCount}
-          ordersBlinking={view !== "orders" && unreadCount > 0}
+          ordersBadge={pendingOrdersCount}
+          ordersBlinking={pendingOrdersCount > 0}
         />
 
         <div className="flex-1 flex flex-col min-w-0">
