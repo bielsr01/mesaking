@@ -208,6 +208,8 @@ async function handlePlaced(integration: any, ev: IHubEvent) {
       external_source: "ifood",
       external_order_id: ev.orderId,
       external_display_id: od.displayId ?? null,
+      ifood_subsidy: ifoodSubsidy,
+      merchant_subsidy: merchantSubsidy,
     })
     .select("id")
     .single();
