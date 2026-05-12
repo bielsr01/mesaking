@@ -367,7 +367,7 @@ function CampaignDialog({
 
     if (!isEdit && newChosen.length === 0) return toast.error("Selecione ao menos 1 contato");
     if (isEdit && newTotal === 0) return toast.error("A campanha precisa ter ao menos 1 contato");
-    if (!isEdit && scope === "admin" && !targetRestaurant) return toast.error("Selecione o restaurante para a campanha");
+    if (!isEdit && scope === "admin" && senderMode === "restaurant" && !targetRestaurant) return toast.error("Selecione o restaurante para a campanha");
 
     setSaving(true);
     try {
