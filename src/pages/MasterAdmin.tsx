@@ -213,6 +213,7 @@ export default function MasterAdmin() {
     "marketing:coupons": "Cupons de desconto",
     "marketing:bulk": "Envio em massa",
     "settings:integrations": "Integrações",
+    "settings:ifood-fees": "Configurações iFood",
     "supply:catalog": "Catálogo de insumos",
     "supply:orders": "Pedidos de insumos recebidos",
     stock: "Estoque",
