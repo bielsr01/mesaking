@@ -30,7 +30,7 @@ import { ExpensesPanel } from "@/components/dashboard/ExpensesPanel";
 import { FinancePanel } from "@/components/dashboard/FinancePanel";
 import { OverviewPanel } from "@/components/dashboard/OverviewPanel";
 import { StockPanel } from "@/components/dashboard/StockPanel";
-import { IfoodPanel } from "@/components/dashboard/IfoodPanel";
+
 import { BulkCampaignsPanel } from "@/components/dashboard/BulkCampaignsPanel";
 import { ManualOverride, OpeningHours } from "@/lib/hours";
 
