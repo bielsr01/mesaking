@@ -27,7 +27,7 @@ import { AdminExpenseStoresPanel } from "@/components/admin/AdminExpenseStoresPa
 import { AdminOwnExpensesPanel } from "@/components/admin/AdminOwnExpensesPanel";
 import { AdminFinancePanel } from "@/components/admin/AdminFinancePanel";
 import { AdminIfoodFeesPanel } from "@/components/admin/AdminIfoodFeesPanel";
-import { AdminBulkCampaignsPanel } from "@/components/admin/AdminBulkCampaignsPanel";
+import { BulkCampaignsPanel } from "@/components/dashboard/BulkCampaignsPanel";
 import { EvolutionIntegrationCard } from "@/components/dashboard/EvolutionIntegrationCard";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePendingSupplyOrdersCount } from "@/hooks/usePendingCounts";
@@ -396,7 +396,7 @@ export default function MasterAdmin() {
             {view === "menu" && <AdminMenuPanel />}
             {view === "customers" && <AdminCustomersPanel />}
             {view === "marketing:coupons" && <AdminCouponsPanel />}
-            {view === "marketing:bulk" && <AdminBulkCampaignsPanel />}
+            {view === "marketing:bulk" && <BulkCampaignsPanel scope="admin" />}
             {view === "settings:integrations" && (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <EvolutionIntegrationCard scope="admin" />
