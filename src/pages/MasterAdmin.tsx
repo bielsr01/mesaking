@@ -70,18 +70,17 @@ export default function MasterAdmin() {
   const [loadingEdit, setLoadingEdit] = useState(false);
 
   const openEdit = async (r: Restaurant) => {
-    setEditing(r);
-    setEditManager({ email: "", full_name: "" });
     setShowEditPwd(false);
     setLoadingEdit(true);
     try {
       const { data, error } = await supabase.functions.invoke("admin-update-restaurant", { body: { restaurant_id: r.id, mode: "fetch" } });
       if (error || (data as any)?.error) {
         toast.error((data as any)?.error ?? error?.message ?? "Erro ao carregar dados");
-      } else {
-        const m = (data as any)?.manager ?? {};
-        setEditManager({ email: m.email ?? "", full_name: m.full_name ?? "" });
+        return;
       }
+      const m = (data as any)?.manager ?? {};
+      setEditManager({ email: m.email ?? "", full_name: m.full_name ?? "" });
+      setEditing(r);
     } finally {
       setLoadingEdit(false);
     }
@@ -303,7 +302,7 @@ export default function MasterAdmin() {
                                 <span className="text-xs text-muted-foreground">{r.is_open ? "Ativo" : "Inativo"}</span>
                               </div>
                               <Button asChild variant="outline" size="sm"><Link to={`/r/${r.slug}`} target="_blank"><ExternalLink className="w-4 h-4" /></Link></Button>
-                              <Button variant="outline" size="sm" onClick={() => openEdit(r)}><Pencil className="w-4 h-4" /></Button>
+                              <Button variant="outline" size="sm" disabled={loadingEdit} onClick={() => openEdit(r)}>{loadingEdit ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Pencil className="w-4 h-4" />}</Button>
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                   <Button variant="outline" size="sm" className="text-destructive hover:text-destructive"><Trash2 className="w-4 h-4" /></Button>
