@@ -33,6 +33,7 @@ export interface OptionItem {
   extra_price: number;
   sort_order: number;
   is_active: boolean;
+  image_url?: string | null;
 }
 
 export const optionKeys = {
