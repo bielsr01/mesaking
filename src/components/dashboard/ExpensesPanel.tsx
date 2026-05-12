@@ -299,14 +299,15 @@ export function ExpensesPanel({ restaurantId }: { restaurantId: string }) {
                 {filtered.map(e => {
                   const catName = e.category_id ? (catsById[e.category_id]?.name ?? e.category) : e.category;
                   const cat = e.category_id ? catsById[e.category_id] : null;
-                  const showDesc = cat ? cat.requires_description : !!e.description;
+                  const hasDistinctDesc = !!e.description && e.description !== catName;
+                  const showNotes = e.notes && !e.notes.startsWith("supply_order");
                   return (
                     <TableRow key={e.id}>
                       <TableCell className="whitespace-nowrap">{new Date(e.expense_date + "T00:00:00").toLocaleDateString("pt-BR")}</TableCell>
                       <TableCell className="font-medium">{catName ?? "—"}</TableCell>
                       <TableCell>
-                        {showDesc && e.description && e.description !== catName ? <div>{e.description}</div> : <span className="text-muted-foreground">—</span>}
-                        {e.notes && <div className="text-xs text-muted-foreground">{e.notes}</div>}
+                        {hasDistinctDesc ? <div>{e.description}</div> : <span className="text-muted-foreground">—</span>}
+                        {showNotes && <div className="text-xs text-muted-foreground">{e.notes}</div>}
                       </TableCell>
                       <TableCell className="text-right font-semibold">{brl(Number(e.amount))}</TableCell>
                       <TableCell>
