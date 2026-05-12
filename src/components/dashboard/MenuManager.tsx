@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Image as ImageIcon, GripVertical } from "lucide-react";
+import { Plus, Pencil, Trash2, Image as ImageIcon, GripVertical, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { brl } from "@/lib/format";
 import { OptionGroupsManager, fetchGroups, optionKeys, OptionGroup } from "./OptionGroupsManager";
@@ -90,6 +90,7 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
   const [defaultCat, setDefaultCat] = useState<string | null>(null);
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
   const [stockConsumption, setStockConsumption] = useState<StockConsumption[]>([]);
+  const [loadingProdId, setLoadingProdId] = useState<string | null>(null);
 
   const { data: stockGroups = [] } = useQuery({
     queryKey: ["stock_groups_active"],
@@ -100,16 +101,31 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
     staleTime: 60_000,
   });
 
-  // Load product->groups when editing
+  // Reset extra fields when opening dialog for a NEW product
   useEffect(() => {
-    if (prodOpen && editingProd) {
-      fetchProductGroupIds(editingProd.id).then(setSelectedGroupIds);
-      fetchStockConsumption(editingProd.id).then(setStockConsumption);
-    } else if (prodOpen && !editingProd) {
+    if (prodOpen && !editingProd) {
       setSelectedGroupIds([]);
       setStockConsumption([]);
     }
   }, [prodOpen, editingProd]);
+
+  const openProductEdit = async (p: Product) => {
+    setLoadingProdId(p.id);
+    try {
+      const [groupIds, consumption] = await Promise.all([
+        fetchProductGroupIds(p.id),
+        fetchStockConsumption(p.id),
+      ]);
+      setSelectedGroupIds(groupIds);
+      setStockConsumption(consumption);
+      setEditingProd(p);
+      setProdOpen(true);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao carregar produto");
+    } finally {
+      setLoadingProdId(null);
+    }
+  };
 
   const saveCategory = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -392,7 +408,8 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
                     products={list}
                     restaurantId={restaurantId}
                     qc={qc}
-                    onEdit={(p) => { setEditingProd(p); setProdOpen(true); }}
+                    onEdit={openProductEdit}
+                    loadingId={loadingProdId}
                     onToggle={toggleProd}
                     onRemove={removeProd}
                   />
@@ -407,7 +424,8 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
                     products={orphans}
                     restaurantId={restaurantId}
                     qc={qc}
-                    onEdit={(p) => { setEditingProd(p); setProdOpen(true); }}
+                    onEdit={openProductEdit}
+                    loadingId={loadingProdId}
                     onToggle={toggleProd}
                     onRemove={removeProd}
                   />
@@ -426,7 +444,7 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
 }
 
 function CategoryGroup({
-  title, products, restaurantId, qc, onEdit, onToggle, onRemove,
+  title, products, restaurantId, qc, onEdit, onToggle, onRemove, loadingId,
 }: {
   title: string;
   products: Product[];
@@ -435,6 +453,7 @@ function CategoryGroup({
   onEdit: (p: Product) => void;
   onToggle: (p: Product) => void;
   onRemove: (p: Product) => void;
+  loadingId?: string | null;
 }) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   const ids = products.map((p) => p.id);
@@ -471,7 +490,7 @@ function CategoryGroup({
         <SortableContext items={ids} strategy={verticalListSortingStrategy}>
           <div className="space-y-2">
             {products.map((p) => (
-              <SortableProductCard key={p.id} product={p} onEdit={onEdit} onToggle={onToggle} onRemove={onRemove} />
+              <SortableProductCard key={p.id} product={p} onEdit={onEdit} onToggle={onToggle} onRemove={onRemove} loading={loadingId === p.id} />
             ))}
           </div>
         </SortableContext>
@@ -481,12 +500,13 @@ function CategoryGroup({
 }
 
 function SortableProductCard({
-  product: p, onEdit, onToggle, onRemove,
+  product: p, onEdit, onToggle, onRemove, loading,
 }: {
   product: Product;
   onEdit: (p: Product) => void;
   onToggle: (p: Product) => void;
   onRemove: (p: Product) => void;
+  loading?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: p.id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
@@ -511,7 +531,7 @@ function SortableProductCard({
           <div className="text-sm font-semibold text-primary mt-0.5">{brl(p.price)}</div>
         </div>
         <Switch checked={p.is_active} onCheckedChange={() => onToggle(p)} />
-        <Button size="icon" variant="ghost" onClick={() => onEdit(p)}><Pencil className="w-4 h-4" /></Button>
+        <Button size="icon" variant="ghost" disabled={loading} onClick={() => onEdit(p)}>{loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Pencil className="w-4 h-4" />}</Button>
         <Button size="icon" variant="ghost" onClick={() => onRemove(p)}><Trash2 className="w-4 h-4" /></Button>
       </CardContent>
     </Card>

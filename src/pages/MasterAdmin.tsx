@@ -67,11 +67,11 @@ export default function MasterAdmin() {
   const [showPwd, setShowPwd] = useState(false);
   const [showEditPwd, setShowEditPwd] = useState(false);
   const [editManager, setEditManager] = useState<{ email: string; full_name: string }>({ email: "", full_name: "" });
-  const [loadingEdit, setLoadingEdit] = useState(false);
+  const [loadingEditId, setLoadingEditId] = useState<string | null>(null);
 
   const openEdit = async (r: Restaurant) => {
     setShowEditPwd(false);
-    setLoadingEdit(true);
+    setLoadingEditId(r.id);
     try {
       const { data, error } = await supabase.functions.invoke("admin-update-restaurant", { body: { restaurant_id: r.id, mode: "fetch" } });
       if (error || (data as any)?.error) {
@@ -82,7 +82,7 @@ export default function MasterAdmin() {
       setEditManager({ email: m.email ?? "", full_name: m.full_name ?? "" });
       setEditing(r);
     } finally {
-      setLoadingEdit(false);
+      setLoadingEditId(null);
     }
   };
 
@@ -302,7 +302,7 @@ export default function MasterAdmin() {
                                 <span className="text-xs text-muted-foreground">{r.is_open ? "Ativo" : "Inativo"}</span>
                               </div>
                               <Button asChild variant="outline" size="sm"><Link to={`/r/${r.slug}`} target="_blank"><ExternalLink className="w-4 h-4" /></Link></Button>
-                              <Button variant="outline" size="sm" disabled={loadingEdit} onClick={() => openEdit(r)}>{loadingEdit ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Pencil className="w-4 h-4" />}</Button>
+                              <Button variant="outline" size="sm" disabled={loadingEditId === r.id} onClick={() => openEdit(r)}>{loadingEditId === r.id ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Pencil className="w-4 h-4" />}</Button>
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                   <Button variant="outline" size="sm" className="text-destructive hover:text-destructive"><Trash2 className="w-4 h-4" /></Button>
@@ -366,7 +366,6 @@ export default function MasterAdmin() {
                   </div>
                   <div className="space-y-2 col-span-2 pt-2 border-t">
                     <Label className="text-base">Acesso do gerente</Label>
-                    {loadingEdit && <p className="text-xs text-muted-foreground">Carregando dados do gerente...</p>}
                   </div>
                   <div className="space-y-2 col-span-2">
                     <Label>Nome do gerente</Label>
@@ -388,7 +387,7 @@ export default function MasterAdmin() {
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button type="submit" disabled={busy || loadingEdit}>{busy ? "Salvando..." : "Salvar alterações"}</Button>
+                  <Button type="submit" disabled={busy}>{busy ? "Salvando..." : "Salvar alterações"}</Button>
                 </DialogFooter>
               </form>
             )}
