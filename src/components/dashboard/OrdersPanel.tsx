@@ -259,6 +259,29 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     if (!next) return;
     const prevStatus = o.status;
     patchOrder(o.id, { status: next });
+
+    // For iFood orders, forward the action to iHub first
+    if (o.external_source === "ifood") {
+      const actionMap: Record<string, string> = {
+        accepted: "confirm",
+        preparing: "startPreparation",
+        awaiting_pickup: "readyToPickup",
+        out_for_delivery: "dispatch",
+        delivered: "dispatch", // CONCLUDED is auto in iFood; fall back
+      };
+      const action = actionMap[next];
+      if (action) {
+        const { error: fnErr } = await supabase.functions.invoke("ifood-action", {
+          body: { orderId: o.id, action },
+        });
+        if (fnErr) {
+          patchOrder(o.id, { status: prevStatus });
+          toast.error(`iFood: ${fnErr.message}`);
+          return;
+        }
+      }
+    }
+
     const { error } = await supabase.from("orders").update({ status: next }).eq("id", o.id);
     if (error) {
       patchOrder(o.id, { status: prevStatus });
@@ -271,6 +294,16 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const cancel = async (o: Order) => {
     const prevStatus = o.status;
     patchOrder(o.id, { status: "cancelled" });
+    if (o.external_source === "ifood") {
+      const { error: fnErr } = await supabase.functions.invoke("ifood-action", {
+        body: { orderId: o.id, action: "cancel", cancelReason: "Cancelado pelo restaurante" },
+      });
+      if (fnErr) {
+        patchOrder(o.id, { status: prevStatus });
+        toast.error(`iFood: ${fnErr.message}`);
+        return;
+      }
+    }
     const { error } = await supabase.from("orders").update({ status: "cancelled" }).eq("id", o.id);
     if (error) {
       patchOrder(o.id, { status: prevStatus });
