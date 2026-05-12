@@ -128,9 +128,6 @@ function AdminStockGroups() {
       allow_set: fd.get("allow_set") === "on",
     };
     if (!payload.name) return toast.error("Informe o nome");
-    if (!payload.allow_add && !payload.allow_subtract && !payload.allow_set) {
-      return toast.error("Habilite ao menos um tipo de ajuste");
-    }
     if (editing) {
       const { error } = await supabase.from("stock_groups").update(payload).eq("id", editing.id);
       if (error) return toast.error(error.message);
