@@ -120,7 +120,7 @@ function buildItemsForOrderItems(od: any) {
 async function handlePlaced(integration: any, ev: IHubEvent) {
   const od = ev.order_details ?? {};
   const customer = od.customer ?? {};
-  const addr = od.deliveryAddress ?? od.takeoutAddress ?? {};
+  
   const total = od.total ?? {};
   const orderType = mapOrderType(od);
   const phone = formatIfoodPhone(customer);
