@@ -9,34 +9,27 @@ import { Banknote, CreditCard, QrCode, TrendingUp, TrendingDown, Receipt, Wallet
 
 const sb = supabase as any;
 
-function monthOptions(count = 12) {
-  const now = new Date();
-  const opts: { value: string; label: string }[] = [];
-  for (let i = 0; i < count; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    const label = d.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
-    opts.push({ value, label: label.charAt(0).toUpperCase() + label.slice(1) });
-  }
-  return opts;
-}
+const MONTH_NAMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+const YEARS = [2026, 2027, 2028];
 
-function rangeFor(monthValue: string) {
-  const [y, m] = monthValue.split("-").map(Number);
-  const start = new Date(y, m - 1, 1, 0, 0, 0, 0);
-  const end = new Date(y, m, 1, 0, 0, 0, 0);
+function rangeFor(year: number, month: number) {
+  const start = new Date(year, month - 1, 1, 0, 0, 0, 0);
+  const end = new Date(year, month, 1, 0, 0, 0, 0);
   return { startISO: start.toISOString(), endISO: end.toISOString(), startDate: start.toISOString().slice(0, 10), endDate: end.toISOString().slice(0, 10) };
 }
 
 export function FinancePanel({ restaurantIds }: { restaurantIds: string[] }) {
-  const months = useMemo(() => monthOptions(12), []);
-  const [month, setMonth] = useState(months[0].value);
-  const { startISO, endISO, startDate, endDate } = useMemo(() => rangeFor(month), [month]);
+  const now = new Date();
+  const defaultYear = YEARS.includes(now.getFullYear()) ? now.getFullYear() : YEARS[0];
+  const [month, setMonthN] = useState<number>(now.getMonth() + 1);
+  const [year, setYear] = useState<number>(defaultYear);
+  const { startISO, endISO, startDate, endDate } = useMemo(() => rangeFor(year, month), [year, month]);
+  const periodKey = `${year}-${String(month).padStart(2, "0")}`;
 
   const enabled = restaurantIds.length > 0;
 
   const ordersQ = useQuery({
-    queryKey: ["finance-orders", restaurantIds.slice().sort().join(","), month],
+    queryKey: ["finance-orders", restaurantIds.slice().sort().join(","), periodKey],
     queryFn: async () => {
       const { data } = await sb
         .from("orders")
@@ -51,7 +44,7 @@ export function FinancePanel({ restaurantIds }: { restaurantIds: string[] }) {
   });
 
   const expensesQ = useQuery({
-    queryKey: ["finance-expenses", restaurantIds.slice().sort().join(","), month],
+    queryKey: ["finance-expenses", restaurantIds.slice().sort().join(","), periodKey],
     queryFn: async () => {
       const { data } = await sb
         .from("expenses")
@@ -87,11 +80,19 @@ export function FinancePanel({ restaurantIds }: { restaurantIds: string[] }) {
       <Card>
         <CardContent className="p-4 flex flex-wrap items-center gap-3">
           <span className="text-sm font-medium">Período:</span>
-          <Select value={month} onValueChange={setMonth}>
-            <SelectTrigger className="w-[220px]"><SelectValue /></SelectTrigger>
+          <Select value={String(month)} onValueChange={(v) => setMonthN(Number(v))}>
+            <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {months.map((m) => (
-                <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+              {MONTH_NAMES.map((name, i) => (
+                <SelectItem key={i + 1} value={String(i + 1)}>{name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
+            <SelectTrigger className="w-[120px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {YEARS.map((y) => (
+                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
               ))}
             </SelectContent>
           </Select>
