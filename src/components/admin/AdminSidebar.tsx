@@ -1,4 +1,4 @@
-import { ChefHat, Store, Package, ShoppingBag, ChevronDown, BarChart3, Users, Megaphone, Ticket, BookOpen, Send, Plug, Boxes, Receipt, LineChart } from "lucide-react";
+import { ChefHat, Store, Package, ShoppingBag, ChevronDown, BarChart3, Users, Megaphone, Ticket, BookOpen, Send, Plug, Boxes, Receipt, LineChart, Bike } from "lucide-react";
 import { useState } from "react";
 import {
   Sidebar,
@@ -24,6 +24,7 @@ export type AdminView =
   | "marketing:coupons"
   | "marketing:bulk"
   | "settings:integrations"
+  | "settings:ifood-fees"
   | "supply:catalog"
   | "supply:orders"
   | "stock"
@@ -37,9 +38,11 @@ export function AdminSidebar({ active, onChange, supplyBadge = 0 }: { active: Ad
   const supplyActive = active.startsWith("supply:");
   const marketingActive = active.startsWith("marketing:");
   const expensesActive = active.startsWith("expenses:");
+  const settingsActive = active.startsWith("settings:");
   const [supplyOpen, setSupplyOpen] = useState(supplyActive);
   const [marketingOpen, setMarketingOpen] = useState(marketingActive);
   const [expensesOpen, setExpensesOpen] = useState(expensesActive);
+  const [settingsOpen, setSettingsOpen] = useState(settingsActive);
 
   return (
     <Sidebar collapsible="icon">
@@ -130,16 +133,37 @@ export function AdminSidebar({ active, onChange, supplyBadge = 0 }: { active: Ad
                 </SidebarMenuItem>
               </Collapsible>
 
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  isActive={active === "settings:integrations"}
-                  onClick={() => onChange("settings:integrations")}
-                  tooltip="Integrações"
-                >
-                  <Plug className="h-4 w-4" />
-                  <span>Integrações</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              <Collapsible open={settingsOpen || collapsed} onOpenChange={setSettingsOpen} asChild>
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton isActive={settingsActive} tooltip="Integrações">
+                      <Plug className="h-4 w-4" />
+                      <span>Integrações</span>
+                      <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={active === "settings:integrations"}>
+                          <button type="button" onClick={() => onChange("settings:integrations")} className="w-full text-left flex items-center gap-2">
+                            <Plug className="h-4 w-4" />
+                            <span>Conexões</span>
+                          </button>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={active === "settings:ifood-fees"}>
+                          <button type="button" onClick={() => onChange("settings:ifood-fees")} className="w-full text-left flex items-center gap-2">
+                            <Bike className="h-4 w-4" />
+                            <span>Configurações iFood</span>
+                          </button>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
 
               <Collapsible open={supplyOpen || collapsed} onOpenChange={setSupplyOpen} asChild>
                 <SidebarMenuItem>

@@ -469,6 +469,42 @@ export type Database = {
           },
         ]
       }
+      ifood_fee_settings: {
+        Row: {
+          anticipation_enabled: boolean
+          anticipation_pct: number
+          card_enabled: boolean
+          card_pct: number
+          commission_enabled: boolean
+          commission_pct: number
+          created_at: string
+          restaurant_id: string
+          updated_at: string
+        }
+        Insert: {
+          anticipation_enabled?: boolean
+          anticipation_pct?: number
+          card_enabled?: boolean
+          card_pct?: number
+          commission_enabled?: boolean
+          commission_pct?: number
+          created_at?: string
+          restaurant_id: string
+          updated_at?: string
+        }
+        Update: {
+          anticipation_enabled?: boolean
+          anticipation_pct?: number
+          card_enabled?: boolean
+          card_pct?: number
+          commission_enabled?: boolean
+          commission_pct?: number
+          created_at?: string
+          restaurant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ifood_sales: {
         Row: {
           created_at: string
@@ -910,7 +946,9 @@ export type Database = {
           external_order_id: string | null
           external_source: string | null
           id: string
+          ifood_subsidy: number
           loyalty_opt_in: boolean
+          merchant_subsidy: number
           order_number: number
           order_type: Database["public"]["Enums"]["order_type"]
           payment_method: Database["public"]["Enums"]["payment_method"]
@@ -945,7 +983,9 @@ export type Database = {
           external_order_id?: string | null
           external_source?: string | null
           id?: string
+          ifood_subsidy?: number
           loyalty_opt_in?: boolean
+          merchant_subsidy?: number
           order_number: number
           order_type?: Database["public"]["Enums"]["order_type"]
           payment_method: Database["public"]["Enums"]["payment_method"]
@@ -980,7 +1020,9 @@ export type Database = {
           external_order_id?: string | null
           external_source?: string | null
           id?: string
+          ifood_subsidy?: number
           loyalty_opt_in?: boolean
+          merchant_subsidy?: number
           order_number?: number
           order_type?: Database["public"]["Enums"]["order_type"]
           payment_method?: Database["public"]["Enums"]["payment_method"]

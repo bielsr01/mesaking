@@ -26,6 +26,7 @@ import { AdminStockPanel } from "@/components/admin/AdminStockPanel";
 import { AdminExpenseStoresPanel } from "@/components/admin/AdminExpenseStoresPanel";
 import { AdminOwnExpensesPanel } from "@/components/admin/AdminOwnExpensesPanel";
 import { AdminFinancePanel } from "@/components/admin/AdminFinancePanel";
+import { AdminIfoodFeesPanel } from "@/components/admin/AdminIfoodFeesPanel";
 import { BulkCampaignsPanel } from "@/components/dashboard/BulkCampaignsPanel";
 import { EvolutionIntegrationCard } from "@/components/dashboard/EvolutionIntegrationCard";
 import { useQueryClient } from "@tanstack/react-query";
@@ -213,6 +214,7 @@ export default function MasterAdmin() {
     "marketing:coupons": "Cupons de desconto",
     "marketing:bulk": "Envio em massa",
     "settings:integrations": "Integrações",
+    "settings:ifood-fees": "Configurações iFood",
     "supply:catalog": "Catálogo de insumos",
     "supply:orders": "Pedidos de insumos recebidos",
     stock: "Estoque",
@@ -400,6 +402,7 @@ export default function MasterAdmin() {
                 <EvolutionIntegrationCard scope="admin" />
               </div>
             )}
+            {view === "settings:ifood-fees" && <AdminIfoodFeesPanel />}
             {view === "supply:catalog" && <SupplyCatalogTab />}
             {view === "supply:orders" && <SupplyOrdersTab />}
             {view === "stock" && <AdminStockPanel />}

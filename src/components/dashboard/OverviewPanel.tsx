@@ -78,6 +78,7 @@ function rangeFor(preset: Preset, custom?: DateRange): { from: Date; to: Date } 
 }
 
 function classifySource(o: any): SourceFilter {
+  if (o.external_source === "ifood") return "ifood";
   if (o.payment_method === "card_on_delivery" && o.order_type === "pdv") return "pdv";
   if (o.order_type === "pdv") return "pdv";
   return "web";
@@ -92,13 +93,7 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
   const [custom, setCustom] = useState<DateRange | undefined>();
   const [source, setSource] = useState<SourceFilter>("all");
 
-  const ifoodAllowedPresets: Preset[] = ["lastmonth", "month", "custom"];
-  const handleSourceChange = (v: SourceFilter) => {
-    setSource(v);
-    if (v === "ifood" && !ifoodAllowedPresets.includes(preset)) {
-      setPreset("lastmonth");
-    }
-  };
+  const handleSourceChange = (v: SourceFilter) => setSource(v);
 
   const range = useMemo(() => rangeFor(preset, custom), [preset, custom]);
   const prevRange = useMemo(() => {
@@ -112,7 +107,7 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
     queryFn: async () => {
       const { data } = await sb
         .from("orders")
-        .select("id, created_at, total, subtotal, discount, delivery_fee, service_fee, coupon_code, status, order_type, payment_method, external_source, customer_phone, customer_name")
+        .select("id, restaurant_id, created_at, total, subtotal, discount, delivery_fee, service_fee, coupon_code, status, order_type, payment_method, external_source, customer_phone, customer_name, ifood_subsidy, merchant_subsidy")
         .in("restaurant_id", ids)
         .gte("created_at", prevRange.from.toISOString())
         .lte("created_at", range.to.toISOString())
@@ -148,17 +143,16 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
     staleTime: 60_000,
   });
 
-  const ifoodQ = useQuery({
-    queryKey: ["overview-ifood-all", idsKey],
+  const feesQ = useQuery({
+    queryKey: ["overview-ifood-fees", idsKey],
     enabled: ids.length > 0,
     queryFn: async () => {
-      const { data } = await sb
-        .from("ifood_sales")
-        .select("date_from, date_to, orders_count, gross_revenue, net_revenue, fees")
-        .in("restaurant_id", ids);
-      return (data ?? []) as any[];
+      const { data } = await sb.from("ifood_fee_settings").select("*").in("restaurant_id", ids);
+      const map = new Map<string, any>();
+      (data ?? []).forEach((r: any) => map.set(r.restaurant_id, r));
+      return map;
     },
-    staleTime: 30_000,
+    staleTime: 60_000,
   });
 
   // Separate query covering month-to-date + previous month for the Compare cards,
@@ -174,7 +168,7 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
     queryFn: async () => {
       const { data } = await sb
         .from("orders")
-        .select("id, created_at, total, order_type, payment_method, external_source")
+        .select("id, restaurant_id, created_at, total, subtotal, delivery_fee, service_fee, order_type, payment_method, external_source, ifood_subsidy, merchant_subsidy")
         .in("restaurant_id", ids)
         .gte("created_at", compareWindow.from.toISOString())
         .lte("created_at", compareWindow.to.toISOString())
@@ -184,54 +178,47 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
     staleTime: 30_000,
   });
 
-  // Aggregate iFood entries overlapping a date range
-  const sumIfood = (from: Date, to: Date) => {
-    const fromS = format(from, "yyyy-MM-dd");
-    const toS = format(to, "yyyy-MM-dd");
-    const rows = (ifoodQ.data ?? []).filter((r) => r.date_from <= toS && r.date_to >= fromS);
-    return rows.reduce(
-      (a, r) => ({
-        orders: a.orders + Number(r.orders_count || 0),
-        gross: a.gross + Number(r.gross_revenue || 0),
-        net: a.net + Number(r.net_revenue || 0),
-        fees: a.fees + Number(r.fees || 0),
-      }),
-      { orders: 0, gross: 0, net: 0, fees: 0 }
-    );
+  // Calcula taxa iFood por pedido conforme regras (ver src/lib/ifoodFees.ts)
+  const ifoodFeeForOrder = (o: any): number => {
+    if (o.external_source !== "ifood") return 0;
+    const s = feesQ.data?.get(o.restaurant_id);
+    if (!s) return 0;
+    const base = Math.max(0, Number(o.subtotal || 0) + Number(o.delivery_fee || 0) - Number(o.merchant_subsidy || 0));
+    let pct = 0;
+    if (s.commission_enabled) pct += Number(s.commission_pct || 0);
+    if (s.card_enabled) pct += Number(s.card_pct || 0);
+    if (s.anticipation_enabled) pct += Number(s.anticipation_pct || 0);
+    return (base * pct) / 100;
   };
-  const ifoodCur = sumIfood(range.from, range.to);
-  const ifoodPrev = sumIfood(prevRange.from, prevRange.to);
-  const includeIfood = source === "all" || source === "ifood";
 
   const all = ordersQ.data ?? [];
-  const filteredAll = source === "all" ? all : source === "ifood" ? [] : all.filter((o) => classifySource(o) === source);
-  const inRange = (o: any) => {
-    const d = new Date(o.created_at);
-    return d >= range.from && d <= range.to;
-  };
-  const inPrev = (o: any) => {
-    const d = new Date(o.created_at);
-    return d >= prevRange.from && d <= prevRange.to;
-  };
+  const filteredAll = source === "all" ? all : all.filter((o) => classifySource(o) === source);
+  const inRange = (o: any) => { const d = new Date(o.created_at); return d >= range.from && d <= range.to; };
+  const inPrev = (o: any) => { const d = new Date(o.created_at); return d >= prevRange.from && d <= prevRange.to; };
   const cur = filteredAll.filter(inRange);
   const prev = filteredAll.filter(inPrev);
 
   const sum = (arr: any[], k: string) => arr.reduce((s, o) => s + Number(o[k] || 0), 0);
-  const baseGrossCur = sum(cur, "total");
-  const baseGrossPrev = sum(prev, "total");
+  // Para iFood, exclui service_fee (R$0,99 cobrada do cliente, iFood não repassa)
+  const sumGross = (arr: any[]) => arr.reduce((s, o) => s + Number(o.total || 0) - (o.external_source === "ifood" ? Number(o.service_fee || 0) : 0), 0);
+  const sumIfoodFees = (arr: any[]) => arr.reduce((s, o) => s + ifoodFeeForOrder(o), 0);
+  const baseGrossCur = sumGross(cur);
+  const baseGrossPrev = sumGross(prev);
   const baseOrdersCur = cur.length;
   const baseOrdersPrev = prev.length;
-
-  const grossCur = baseGrossCur + (includeIfood ? ifoodCur.gross : 0);
-  const grossPrev = baseGrossPrev + (includeIfood ? ifoodPrev.gross : 0);
-  const ordersCountCur = baseOrdersCur + (includeIfood ? ifoodCur.orders : 0);
-  const ordersCountPrev = baseOrdersPrev + (includeIfood ? ifoodPrev.orders : 0);
+  const grossCur = baseGrossCur;
+  const grossPrev = baseGrossPrev;
+  const ordersCountCur = baseOrdersCur;
+  const ordersCountPrev = baseOrdersPrev;
 
   const subtotalCur = sum(cur, "subtotal");
   const discountCur = sum(cur, "discount");
   const deliveryFeeCur = sum(cur, "delivery_fee");
-  const serviceFeeCur = sum(cur, "service_fee") + (includeIfood ? ifoodCur.fees : 0);
-  const netCur = grossCur - discountCur - (includeIfood ? ifoodCur.fees : 0);
+  const ifoodFeesCur = sumIfoodFees(cur);
+  // service_fee do iFood (R$0,99) é cobrada do cliente — não entra como taxa do restaurante
+  const nonIfoodServiceFee = cur.reduce((s, o) => s + (o.external_source === "ifood" ? 0 : Number(o.service_fee || 0)), 0);
+  const serviceFeeCur = nonIfoodServiceFee + ifoodFeesCur;
+  const netCur = grossCur - discountCur - ifoodFeesCur - nonIfoodServiceFee;
   const ticketCur = ordersCountCur ? grossCur / ordersCountCur : 0;
   const ticketPrev = ordersCountPrev ? grossPrev / ordersCountPrev : 0;
 
@@ -339,24 +326,20 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
   const compareAll = compareOrdersQ.data ?? [];
   const compareFiltered = source === "all"
     ? compareAll
-    : source === "ifood"
-      ? []
-      : compareAll.filter((o) => classifySource(o) === source);
+    : compareAll.filter((o) => classifySource(o) === source);
   const today = startOfDay(new Date());
   const yesterday = startOfDay(subDays(new Date(), 1));
   const lastWeekSame = startOfDay(subDays(new Date(), 7));
   const dayOrders = (d: Date) => compareFiltered.filter((o) => format(new Date(o.created_at), "yyyy-MM-dd") === format(d, "yyyy-MM-dd"));
-  const sumDayIfood = (d: Date) => includeIfood ? sumIfood(startOfDay(d), endOfDay(d)).gross : 0;
-  const todayRev = sum(dayOrders(today), "total") + sumDayIfood(today);
-  const yRev = sum(dayOrders(yesterday), "total") + sumDayIfood(yesterday);
-  const lwRev = sum(dayOrders(lastWeekSame), "total") + sumDayIfood(lastWeekSame);
+  const sumDayGross = (arr: any[]) => arr.reduce((s, o) => s + Number(o.total || 0) - (o.external_source === "ifood" ? Number(o.service_fee || 0) : 0), 0);
+  const todayRev = sumDayGross(dayOrders(today));
+  const yRev = sumDayGross(dayOrders(yesterday));
+  const lwRev = sumDayGross(dayOrders(lastWeekSame));
   const monthStart = startOfMonth(new Date());
-  const monthCur = sum(compareFiltered.filter((o) => new Date(o.created_at) >= monthStart), "total")
-    + (includeIfood ? sumIfood(monthStart, endOfDay(new Date())).gross : 0);
+  const monthCur = sumDayGross(compareFiltered.filter((o) => new Date(o.created_at) >= monthStart));
   const monthPrevStart = startOfMonth(subDays(monthStart, 1));
   const monthPrevEnd = endOfMonth(monthPrevStart);
-  const monthPrev = sum(compareFiltered.filter((o) => { const d = new Date(o.created_at); return d >= monthPrevStart && d <= monthPrevEnd; }), "total")
-    + (includeIfood ? sumIfood(monthPrevStart, monthPrevEnd).gross : 0);
+  const monthPrev = sumDayGross(compareFiltered.filter((o) => { const d = new Date(o.created_at); return d >= monthPrevStart && d <= monthPrevEnd; }));
 
   return (
     <div className="space-y-4 animate-fade-in">
