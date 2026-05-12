@@ -332,7 +332,9 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
 
   const channelOrders = orders.filter((o) => {
     if (channel === "pdv") return o.order_type === "pdv";
-    return o.order_type !== "pdv";
+    if (channel === "ifood") return o.external_source === "ifood";
+    // delivery: tudo que não é pdv e não é ifood
+    return o.order_type !== "pdv" && o.external_source !== "ifood";
   });
 
   const filtered = channelOrders.filter((o) => {
@@ -358,9 +360,11 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     all: channelOrders.length,
   };
 
-  const deliveryCount = orders.filter((o) => o.order_type !== "pdv").length;
-  const deliveryPendingCount = orders.filter((o) => o.order_type !== "pdv" && o.status === "pending").length;
+  const deliveryCount = orders.filter((o) => o.order_type !== "pdv" && o.external_source !== "ifood").length;
+  const deliveryPendingCount = orders.filter((o) => o.order_type !== "pdv" && o.external_source !== "ifood" && o.status === "pending").length;
   const pdvCount = orders.filter((o) => o.order_type === "pdv").length;
+  const ifoodCount = orders.filter((o) => o.external_source === "ifood").length;
+  const ifoodPendingCount = orders.filter((o) => o.external_source === "ifood" && o.status === "pending").length;
 
   // PDV: em preparo + entregues
   const visibleFilters = channel === "pdv"
