@@ -76,16 +76,18 @@ function mapPayment(od: any): string {
   const methods = od?.payments?.methods ?? od?.paymentMethods ?? [];
   const m = Array.isArray(methods) && methods.length > 0 ? methods[0] : null;
   if (!m) return "card_on_delivery";
+  // Pago online (pré-pago) no iFood => loja não recebe na entrega
+  const prepaid = m?.prepaid === true || String(m?.type ?? "").toUpperCase() === "ONLINE";
+  if (prepaid) return "online";
   const method = String(m?.method ?? "").toUpperCase();
   const type = String(m?.type ?? "").toUpperCase();
   const combined = `${method} ${type}`;
   if (combined.includes("CASH") || combined.includes("DINHEIRO")) return "cash";
   if (combined.includes("PIX")) return "pix";
-  // Cartão (crédito, débito, carteira digital, voucher, online)
   if (
     combined.includes("CREDIT") || combined.includes("DEBIT") || combined.includes("CARD") ||
     combined.includes("WALLET") || combined.includes("VOUCHER") || combined.includes("MEAL_VOUCHER") ||
-    combined.includes("FOOD_VOUCHER") || combined.includes("ONLINE")
+    combined.includes("FOOD_VOUCHER")
   ) return "card_on_delivery";
   return "card_on_delivery";
 }
