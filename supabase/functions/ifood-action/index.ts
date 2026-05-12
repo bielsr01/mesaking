@@ -28,10 +28,12 @@ Deno.serve(async (req) => {
     });
   }
 
+  try {
+
   const authHeader = req.headers.get("Authorization") ?? "";
   if (!authHeader) {
-    return new Response(JSON.stringify({ error: "Missing auth" }), {
-      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    return new Response(JSON.stringify({ ok: false, error: "Missing auth" }), {
+      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
@@ -137,13 +139,25 @@ Deno.serve(async (req) => {
   try { parsed = JSON.parse(text); } catch {}
 
   if (!resp.ok) {
-    console.error("iHub action error", resp.status, parsed);
-    return new Response(JSON.stringify({ error: parsed?.message ?? "iHub error", status: resp.status, detail: parsed }), {
-      status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    console.error("iHub action error", resp.status, "payload:", payload, "response:", parsed);
+    // Return 200 so the supabase-js client can read the body (it treats non-2xx as FunctionsHttpError)
+    return new Response(JSON.stringify({
+      ok: false,
+      error: parsed?.message ?? parsed?.error ?? "Falha ao enviar ação para o iFood",
+      ihub_status: resp.status,
+      detail: parsed,
+    }), {
+      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
   return new Response(JSON.stringify({ ok: true, ihub: parsed }), {
     status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+  } catch (e: any) {
+    console.error("ifood-action unexpected error", e);
+    return new Response(JSON.stringify({ ok: false, error: e?.message ?? "Erro inesperado" }), {
+      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 });
