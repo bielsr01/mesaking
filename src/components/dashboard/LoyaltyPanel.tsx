@@ -87,6 +87,9 @@ export function LoyaltyPanel({ restaurantId }: { restaurantId: string }) {
   const [search, setSearch] = useState("");
   const [historyMember, setHistoryMember] = useState<Member | null>(null);
   const [savingMember, setSavingMember] = useState(false);
+  const [pinPromptOpen, setPinPromptOpen] = useState(false);
+  const [pinValue, setPinValue] = useState("");
+  const [pinVerifying, setPinVerifying] = useState(false);
 
   const openCreate = () => {
     setEditingMember(null);
