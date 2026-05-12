@@ -27,6 +27,7 @@ import { useNewOrderNotifications } from "@/hooks/useNewOrderNotifications";
 import { SupplyOrderPanel } from "@/components/dashboard/SupplyOrderPanel";
 import { ExpensesPanel } from "@/components/dashboard/ExpensesPanel";
 import { OverviewPanel } from "@/components/dashboard/OverviewPanel";
+import { StockPanel } from "@/components/dashboard/StockPanel";
 import { IfoodPanel } from "@/components/dashboard/IfoodPanel";
 import { BulkCampaignsPanel } from "@/components/dashboard/BulkCampaignsPanel";
 import { ManualOverride, OpeningHours } from "@/lib/hours";
@@ -145,6 +146,7 @@ export default function ManagerDashboard() {
     "settings:printers": "Impressões",
     "settings:integrations": "Integrações",
     "supply-orders": "Pedido de Insumos",
+    stock: "Estoque",
     expenses: "Cadastro de despesas",
   };
 
@@ -255,6 +257,11 @@ export default function ManagerDashboard() {
             {view === "supply-orders" && (
               <LazyView viewKey={view} variant="list">
                 <SupplyOrderPanel restaurantId={restaurant.id} />
+              </LazyView>
+            )}
+            {view === "stock" && (
+              <LazyView viewKey={view} variant="list">
+                <StockPanel restaurantId={restaurant.id} />
               </LazyView>
             )}
             {view === "expenses" && (
