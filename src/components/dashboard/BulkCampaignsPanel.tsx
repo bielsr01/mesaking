@@ -261,6 +261,11 @@ function CampaignDialog({
   const [pauseAfter, setPauseAfter] = useState(campaign?.pause_after_messages ?? 0);
   const [pauseMinutes, setPauseMinutes] = useState(campaign?.pause_duration_minutes ?? 0);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(t);
+  }, [search]);
   const [typeFilters, setTypeFilters] = useState<Set<ClientType>>(new Set());
   const [statusFilters, setStatusFilters] = useState<Set<ClientStatus>>(new Set());
   const [picked, setPicked] = useState<Set<string>>(new Set());
