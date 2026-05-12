@@ -73,12 +73,18 @@ export function BulkCampaignsPanel({
 
   const { data: campaigns, isLoading } = useQuery({
     queryKey: ["bulk-campaigns", scope, filterKey],
-    enabled: scope === "restaurant" ? !!restaurantId : adminFilter.length > 0,
+    enabled: scope === "restaurant" ? !!restaurantId : true,
     refetchInterval: 5000,
     queryFn: async () => {
       let q = sb.from("bulk_campaigns").select("*").order("created_at", { ascending: false }).limit(200);
-      if (scope === "restaurant") q = q.eq("restaurant_id", restaurantId);
-      else q = q.in("restaurant_id", adminFilter);
+      if (scope === "restaurant") {
+        q = q.eq("restaurant_id", restaurantId);
+      } else if (adminFilter.length > 0) {
+        const ids = adminFilter.map((id) => `"${id}"`).join(",");
+        q = q.or(`is_admin.eq.true,restaurant_id.in.(${ids})`);
+      } else {
+        q = q.eq("is_admin", true);
+      }
       const { data } = await q;
       return data ?? [];
     },
@@ -144,12 +150,14 @@ export function BulkCampaignsPanel({
           </Button>
         </CardHeader>
         <CardContent>
-          {scope === "admin" && adminFilter.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">Selecione ao menos um restaurante.</div>
-          ) : isLoading ? (
+          {isLoading ? (
             <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
           ) : (campaigns ?? []).length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">Nenhuma campanha ainda.</div>
+            <div className="text-center py-12 text-muted-foreground">
+              {scope === "admin" && adminFilter.length === 0
+                ? "Nenhuma campanha. Selecione restaurantes para criar uma nova ou ver campanhas das lojas."
+                : "Nenhuma campanha ainda."}
+            </div>
           ) : (
             <div className="border rounded-lg overflow-x-auto">
               <Table>
@@ -169,7 +177,7 @@ export function BulkCampaignsPanel({
                     return (
                       <TableRow key={c.id}>
                         <TableCell className="font-medium">{c.name}</TableCell>
-                        {scope === "admin" && <TableCell><Badge variant="outline">{restNameById.get(c.restaurant_id) ?? "—"}</Badge></TableCell>}
+                        {scope === "admin" && <TableCell>{c.is_admin ? <Badge>Admin</Badge> : <Badge variant="outline">{restNameById.get(c.restaurant_id) ?? "—"}</Badge>}</TableCell>}
                         <TableCell>
                           <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_BADGE[c.status]}`}>{STATUS_LABEL[c.status]}</span>
                           {c.status === "running" && isAutoPaused && (
@@ -268,8 +276,13 @@ function CampaignDialog({
   }, [search]);
   const [typeFilters, setTypeFilters] = useState<Set<ClientType>>(new Set());
   const [statusFilters, setStatusFilters] = useState<Set<ClientStatus>>(new Set());
+  const [restaurantFilters, setRestaurantFilters] = useState<Set<string>>(new Set());
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [removedRecipientIds, setRemovedRecipientIds] = useState<Set<string>>(new Set());
+  // Sender mode in admin scope: "admin" uses admin's own integration; "restaurant" uses a specific store's integration
+  const [senderMode, setSenderMode] = useState<"admin" | "restaurant">(
+    campaign?.is_admin ? "admin" : "restaurant"
+  );
   const [targetRestaurant, setTargetRestaurant] = useState<string>(
     campaign?.restaurant_id ?? (scope === "restaurant" ? restaurantIds[0] : "")
   );
@@ -324,6 +337,7 @@ function CampaignDialog({
 
   const filtered = (customers ?? []).filter((c: any) => {
     if (existingCustomerIds.has(c.id)) return false;
+    if (restaurantFilters.size > 0 && !restaurantFilters.has(c.restaurant_id)) return false;
     if (search.trim()) {
       const q = search.toLowerCase();
       if (!(c.name?.toLowerCase().includes(q) || unmaskPhone(c.phone || "").includes(unmaskPhone(search)))) return false;
@@ -338,6 +352,7 @@ function CampaignDialog({
   const clearAll = () => setPicked(new Set());
   const toggleType = (t: ClientType) => { const n = new Set(typeFilters); n.has(t) ? n.delete(t) : n.add(t); setTypeFilters(n); };
   const toggleStatus = (s: ClientStatus) => { const n = new Set(statusFilters); n.has(s) ? n.delete(s) : n.add(s); setStatusFilters(n); };
+  const toggleRestaurant = (id: string) => { const n = new Set(restaurantFilters); n.has(id) ? n.delete(id) : n.add(id); setRestaurantFilters(n); };
 
   const toggleRemoveRecipient = (rid: string) => {
     const n = new Set(removedRecipientIds);
@@ -355,7 +370,7 @@ function CampaignDialog({
 
     if (!isEdit && newChosen.length === 0) return toast.error("Selecione ao menos 1 contato");
     if (isEdit && newTotal === 0) return toast.error("A campanha precisa ter ao menos 1 contato");
-    if (!isEdit && scope === "admin" && !targetRestaurant) return toast.error("Selecione o restaurante para a campanha");
+    if (!isEdit && scope === "admin" && senderMode === "restaurant" && !targetRestaurant) return toast.error("Selecione o restaurante para a campanha");
 
     setSaving(true);
     try {
@@ -390,9 +405,10 @@ function CampaignDialog({
         }
         toast.success("Campanha atualizada");
       } else {
+        const useAdmin = scope === "admin" && senderMode === "admin";
         const { data: camp, error } = await sb.from("bulk_campaigns").insert({
-          restaurant_id: scope === "admin" ? targetRestaurant : restaurantIds[0],
-          is_admin: false,
+          restaurant_id: useAdmin ? null : (scope === "admin" ? targetRestaurant : restaurantIds[0]),
+          is_admin: useAdmin,
           name, message_text: text, media_url: mediaUrl || null,
           interval_seconds: interval,
           pause_after_messages: pauseAfter,
@@ -435,17 +451,31 @@ function CampaignDialog({
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Promoção de quarta" />
             </div>
             {!isEdit && scope === "admin" && (
-              <div className="space-y-2 col-span-2">
-                <Label>Restaurante (envio será feito pela instância dele)</Label>
-                <RSelect value={targetRestaurant} onValueChange={setTargetRestaurant}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>
-                    {restaurantIds.map((id) => (
-                      <SelectItem key={id} value={id}>{restNameById.get(id) ?? id}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </RSelect>
-              </div>
+              <>
+                <div className="space-y-2 col-span-2">
+                  <Label>Enviar usando a integração de</Label>
+                  <RSelect value={senderMode} onValueChange={(v) => setSenderMode(v as "admin" | "restaurant")}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">Minha integração (Admin)</SelectItem>
+                      <SelectItem value="restaurant">Integração de um restaurante</SelectItem>
+                    </SelectContent>
+                  </RSelect>
+                </div>
+                {senderMode === "restaurant" && (
+                  <div className="space-y-2 col-span-2">
+                    <Label>Restaurante (envio será feito pela instância dele)</Label>
+                    <RSelect value={targetRestaurant} onValueChange={setTargetRestaurant}>
+                      <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                      <SelectContent>
+                        {restaurantIds.map((id) => (
+                          <SelectItem key={id} value={id}>{restNameById.get(id) ?? id}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </RSelect>
+                  </div>
+                )}
+              </>
             )}
             <div className="space-y-2 col-span-2">
               <Label>Mensagem</Label>
@@ -564,7 +594,7 @@ function CampaignDialog({
                 <PopoverTrigger asChild>
                   <Button variant="outline" size="sm">
                     <Filter className="w-4 h-4 mr-1" /> Filtros
-                    {(typeFilters.size + statusFilters.size) > 0 && <Badge variant="secondary" className="ml-2">{typeFilters.size + statusFilters.size}</Badge>}
+                    {(typeFilters.size + statusFilters.size + restaurantFilters.size) > 0 && <Badge variant="secondary" className="ml-2">{typeFilters.size + statusFilters.size + restaurantFilters.size}</Badge>}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-72" align="start">
@@ -587,8 +617,21 @@ function CampaignDialog({
                         </label>
                       ))}
                     </div>
-                    {(typeFilters.size + statusFilters.size > 0) && (
-                      <Button variant="ghost" size="sm" className="w-full" onClick={() => { setTypeFilters(new Set()); setStatusFilters(new Set()); }}>
+                    {scope === "admin" && restaurantIds.length > 1 && (
+                      <div>
+                        <div className="text-xs font-semibold uppercase text-muted-foreground mb-2">Restaurante</div>
+                        <div className="max-h-40 overflow-y-auto space-y-1">
+                          {restaurantIds.map((id) => (
+                            <label key={id} className="flex items-center gap-2 text-sm cursor-pointer">
+                              <Checkbox checked={restaurantFilters.has(id)} onCheckedChange={() => toggleRestaurant(id)} />
+                              <span className="truncate">{restNameById.get(id) ?? id}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {(typeFilters.size + statusFilters.size + restaurantFilters.size > 0) && (
+                      <Button variant="ghost" size="sm" className="w-full" onClick={() => { setTypeFilters(new Set()); setStatusFilters(new Set()); setRestaurantFilters(new Set()); }}>
                         <X className="w-4 h-4 mr-1" /> Limpar filtros
                       </Button>
                     )}
