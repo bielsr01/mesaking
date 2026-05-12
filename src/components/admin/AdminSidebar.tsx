@@ -1,4 +1,4 @@
-import { ChefHat, Store, Package, ShoppingBag, ChevronDown, BarChart3, Users, Megaphone, Ticket, BookOpen, Send, Plug, Boxes } from "lucide-react";
+import { ChefHat, Store, Package, ShoppingBag, ChevronDown, BarChart3, Users, Megaphone, Ticket, BookOpen, Send, Plug, Boxes, Receipt } from "lucide-react";
 import { useState } from "react";
 import {
   Sidebar,
@@ -26,7 +26,9 @@ export type AdminView =
   | "settings:integrations"
   | "supply:catalog"
   | "supply:orders"
-  | "stock";
+  | "stock"
+  | "expenses:admin"
+  | "expenses:stores";
 
 export function AdminSidebar({ active, onChange, supplyBadge = 0 }: { active: AdminView; onChange: (v: AdminView) => void; supplyBadge?: number }) {
   const { state } = useSidebar();
