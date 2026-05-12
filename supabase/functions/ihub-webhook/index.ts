@@ -62,11 +62,30 @@ function formatIfoodPhone(customer: any): string {
 function mapPayment(od: any): string {
   const methods = od?.payments?.methods ?? od?.paymentMethods ?? [];
   const m = Array.isArray(methods) && methods.length > 0 ? methods[0] : null;
-  const type = String(m?.method ?? m?.type ?? "").toUpperCase();
-  if (type.includes("CASH")) return "cash";
-  if (type.includes("PIX")) return "pix";
-  if (type.includes("CREDIT") || type.includes("DEBIT") || type.includes("CARD")) return "card";
-  return "card";
+  if (!m) return "card_on_delivery";
+  const method = String(m?.method ?? "").toUpperCase();
+  const type = String(m?.type ?? "").toUpperCase();
+  const combined = `${method} ${type}`;
+  if (combined.includes("CASH") || combined.includes("DINHEIRO")) return "cash";
+  if (combined.includes("PIX")) return "pix";
+  // Cartão (crédito, débito, carteira digital, voucher, online)
+  if (
+    combined.includes("CREDIT") || combined.includes("DEBIT") || combined.includes("CARD") ||
+    combined.includes("WALLET") || combined.includes("VOUCHER") || combined.includes("MEAL_VOUCHER") ||
+    combined.includes("FOOD_VOUCHER") || combined.includes("ONLINE")
+  ) return "card_on_delivery";
+  return "card_on_delivery";
+}
+
+// Troco para (somente quando paga em dinheiro)
+function extractChangeFor(od: any): number | null {
+  const methods = od?.payments?.methods ?? od?.paymentMethods ?? [];
+  const m = Array.isArray(methods) && methods.length > 0 ? methods[0] : null;
+  if (!m) return null;
+  const cf = m?.cash?.changeFor ?? m?.changeFor ?? m?.cashChangeFor ?? null;
+  if (cf == null) return null;
+  const n = Number(cf);
+  return isFinite(n) && n > 0 ? n : null;
 }
 
 // Itens com sub-itens (grupos de opções) achatados na coluna notes
@@ -101,7 +120,7 @@ function buildItemsForOrderItems(od: any) {
 async function handlePlaced(integration: any, ev: IHubEvent) {
   const od = ev.order_details ?? {};
   const customer = od.customer ?? {};
-  const addr = od.deliveryAddress ?? od.takeoutAddress ?? {};
+  
   const total = od.total ?? {};
   const orderType = mapOrderType(od);
   const phone = formatIfoodPhone(customer);
@@ -116,10 +135,22 @@ async function handlePlaced(integration: any, ev: IHubEvent) {
     .maybeSingle();
   if (existing) return existing.id;
 
+  // iFood payload v2: endereço fica em delivery.deliveryAddress / takeout.takeoutAddress
+  const addr =
+    od?.delivery?.deliveryAddress ??
+    od?.deliveryAddress ??
+    od?.takeout?.takeoutAddress ??
+    od?.takeoutAddress ??
+    {};
+
   const subtotal = Number(total.subTotal ?? total.subtotal ?? 0);
-  const deliveryFee = Number(total.deliveryFee ?? 0);
+  const deliveryFee = Number(total.deliveryFee ?? od?.delivery?.deliveryFee ?? 0);
   const benefits = Number(total.benefits ?? 0);
-  const orderAmount = Number(total.orderAmount ?? subtotal + deliveryFee - benefits);
+  const additionalFees = Number(total.additionalFees ?? 0);
+  const orderAmount = Number(total.orderAmount ?? subtotal + deliveryFee + additionalFees - benefits);
+  const changeFor = extractChangeFor(od);
+  const lat = addr?.coordinates?.latitude ?? addr?.latitude ?? null;
+  const lng = addr?.coordinates?.longitude ?? addr?.longitude ?? null;
 
   const { data, error } = await supabase
     .from("orders")
@@ -134,14 +165,16 @@ async function handlePlaced(integration: any, ev: IHubEvent) {
       address_state: orderType === "delivery" ? (addr.state ?? null) : null,
       address_cep: orderType === "delivery" ? (addr.postalCode ?? null) : null,
       address_complement: orderType === "delivery" ? (addr.complement ?? null) : null,
-      address_notes: orderType === "delivery" ? (addr.reference ?? null) : null,
-      delivery_latitude: addr?.coordinates?.latitude ?? null,
-      delivery_longitude: addr?.coordinates?.longitude ?? null,
+      address_notes: orderType === "delivery" ? (addr.reference ?? addr.formattedAddress ?? null) : null,
+      delivery_latitude: orderType === "delivery" ? lat : null,
+      delivery_longitude: orderType === "delivery" ? lng : null,
       subtotal,
       delivery_fee: deliveryFee,
+      service_fee: additionalFees,
       discount: benefits,
       total: orderAmount,
       payment_method: mapPayment(od),
+      change_for: changeFor,
       status: "pending",
       order_type: orderType,
       external_source: "ifood",
