@@ -135,9 +135,11 @@ export default function MasterAdmin() {
     const parsed = editSchema.safeParse(Object.fromEntries(fd));
     if (!parsed.success) return toast.error(parsed.error.issues[0].message);
     setBusy(true);
-    const { error } = await supabase.from("restaurants").update(parsed.data).eq("id", editing.id);
+    const { data, error } = await supabase.functions.invoke("admin-update-restaurant", {
+      body: { restaurant_id: editing.id, ...parsed.data },
+    });
     setBusy(false);
-    if (error) return toast.error(error.message);
+    if (error || (data as any)?.error) return toast.error((data as any)?.error ?? error?.message ?? "Erro");
     toast.success("Atualizado");
     setEditing(null);
     load();
