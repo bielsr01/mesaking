@@ -298,7 +298,7 @@ export function ExpensesPanel({ restaurantId }: { restaurantId: string }) {
               <TableBody>
                 {filtered.map(e => {
                   const catName = e.category_id ? (catsById[e.category_id]?.name ?? e.category) : e.category;
-                  const cat = e.category_id ? catsById[e.category_id] : null;
+                  
                   const hasDistinctDesc = !!e.description && e.description !== catName;
                   const showNotes = e.notes && !e.notes.startsWith("supply_order");
                   return (
