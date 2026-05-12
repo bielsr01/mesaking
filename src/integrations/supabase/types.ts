@@ -1238,6 +1238,9 @@ export type Database = {
       }
       stock_groups: {
         Row: {
+          allow_add: boolean
+          allow_set: boolean
+          allow_subtract: boolean
           created_at: string
           id: string
           is_active: boolean
@@ -1246,6 +1249,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          allow_add?: boolean
+          allow_set?: boolean
+          allow_subtract?: boolean
           created_at?: string
           id?: string
           is_active?: boolean
@@ -1254,6 +1260,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          allow_add?: boolean
+          allow_set?: boolean
+          allow_subtract?: boolean
           created_at?: string
           id?: string
           is_active?: boolean
