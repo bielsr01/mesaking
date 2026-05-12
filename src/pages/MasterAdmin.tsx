@@ -362,6 +362,7 @@ export default function MasterAdmin() {
                               </div>
                               <Button asChild variant="outline" size="sm"><Link to={`/r/${r.slug}`} target="_blank"><ExternalLink className="w-4 h-4" /></Link></Button>
                               <Button variant="outline" size="sm" disabled={loadingEditId === r.id} onClick={() => openEdit(r)}>{loadingEditId === r.id ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Pencil className="w-4 h-4" />}</Button>
+                              <Button variant="outline" size="sm" onClick={() => openPinDialog(r)} title="Senha mestra"><KeyRound className="w-4 h-4" /></Button>
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                   <Button variant="outline" size="sm" className="text-destructive hover:text-destructive"><Trash2 className="w-4 h-4" /></Button>
