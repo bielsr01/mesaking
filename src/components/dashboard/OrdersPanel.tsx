@@ -283,9 +283,17 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
           body: { orderId: o.id, action },
         });
         if (fnErr || (fnData && fnData.ok === false)) {
-          patchOrder(o.id, { status: prevStatus });
-          toast.error(`iFood: ${fnData?.error ?? fnErr?.message ?? "falha"}`);
-          return;
+          // O iHub costuma retornar 5xx mesmo quando o iFood já aceitou a ação.
+          // Tratamos como aviso e seguimos atualizando localmente — o webhook reconcilia.
+          const ihubStatus = fnData?.ihub_status;
+          const transient = !ihubStatus || ihubStatus >= 500;
+          if (transient) {
+            toast.warning("iFood respondeu com erro temporário, mas o status foi atualizado. Aguarde a confirmação do webhook.");
+          } else {
+            patchOrder(o.id, { status: prevStatus });
+            toast.error(`iFood: ${fnData?.error ?? fnErr?.message ?? "falha"}`);
+            return;
+          }
         }
       }
     }
@@ -476,8 +484,21 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                       {new Date(o.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" })}
                       {" às "}
                       {new Date(o.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                      <Phone className="w-3 h-3 ml-2" />{formatPhone(o.customer_phone)}
-                      {waLink(o.customer_phone) && (
+                      <Phone className="w-3 h-3 ml-2" />
+                      {o.external_source === "ifood"
+                        ? (() => {
+                            const raw = String(o.customer_phone ?? "");
+                            const digits = raw.replace(/\D/g, "");
+                            const locMatch = raw.match(/(?:cód[^\w]*|localizador[^\w]*)([A-Za-z0-9]+)/i);
+                            const loc = locMatch?.[1] ?? digits.slice(11);
+                            const base = digits.slice(0, 11) || digits;
+                            const masked = base.length >= 10
+                              ? `${base.slice(0, 4)} ${base.slice(4, 7)} ${base.slice(7, 11)}`
+                              : base;
+                            return loc ? `${masked} (cód: ${loc})` : masked;
+                          })()
+                        : formatPhone(o.customer_phone)}
+                      {o.external_source !== "ifood" && waLink(o.customer_phone) && (
                         <a
                           href={waLink(o.customer_phone)!}
                           target="_blank"
@@ -537,12 +558,24 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                   ))}
                 </div>
 
-                <div className="border-t pt-3 flex justify-between items-center">
+                <div className="border-t pt-3 flex justify-between items-start gap-2">
                   <div className="text-xs text-muted-foreground">
                     {paymentLabel[o.payment_method]}
                     {o.change_for ? ` • troco p/ ${brl(o.change_for)}` : ""}
                   </div>
-                  <div className="text-lg font-bold">{brl(o.total)}</div>
+                  <div className="text-right">
+                    <div className="text-lg font-bold">{brl(o.total)}</div>
+                    {(Number(o.delivery_fee) > 0 || Number(o.service_fee ?? 0) > 0) && (
+                      <div className="text-[11px] text-destructive leading-tight mt-0.5 space-y-0.5">
+                        {Number(o.delivery_fee) > 0 && (
+                          <div>Taxa de entrega: {brl(Number(o.delivery_fee))}</div>
+                        )}
+                        {Number(o.service_fee ?? 0) > 0 && (
+                          <div>Taxas da plataforma: {brl(Number(o.service_fee))}</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex gap-2 pt-1">
