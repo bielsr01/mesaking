@@ -206,33 +206,21 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
   const baseGrossPrev = sumGross(prev);
   const baseOrdersCur = cur.length;
   const baseOrdersPrev = prev.length;
-  const inRange = (o: any) => {
-    const d = new Date(o.created_at);
-    return d >= range.from && d <= range.to;
-  };
-  const inPrev = (o: any) => {
-    const d = new Date(o.created_at);
-    return d >= prevRange.from && d <= prevRange.to;
-  };
-  const cur = filteredAll.filter(inRange);
-  const prev = filteredAll.filter(inPrev);
-
-  const sum = (arr: any[], k: string) => arr.reduce((s, o) => s + Number(o[k] || 0), 0);
-  const baseGrossCur = sum(cur, "total");
-  const baseGrossPrev = sum(prev, "total");
-  const baseOrdersCur = cur.length;
-  const baseOrdersPrev = prev.length;
-
-  const grossCur = baseGrossCur + (includeIfood ? ifoodCur.gross : 0);
-  const grossPrev = baseGrossPrev + (includeIfood ? ifoodPrev.gross : 0);
-  const ordersCountCur = baseOrdersCur + (includeIfood ? ifoodCur.orders : 0);
-  const ordersCountPrev = baseOrdersPrev + (includeIfood ? ifoodPrev.orders : 0);
+  const grossCur = baseGrossCur;
+  const grossPrev = baseGrossPrev;
+  const ordersCountCur = baseOrdersCur;
+  const ordersCountPrev = baseOrdersPrev;
 
   const subtotalCur = sum(cur, "subtotal");
   const discountCur = sum(cur, "discount");
   const deliveryFeeCur = sum(cur, "delivery_fee");
-  const serviceFeeCur = sum(cur, "service_fee") + (includeIfood ? ifoodCur.fees : 0);
-  const netCur = grossCur - discountCur - (includeIfood ? ifoodCur.fees : 0);
+  const ifoodFeesCur = sumIfoodFees(cur);
+  // service_fee do iFood (R$0,99) é cobrada do cliente — não entra como taxa do restaurante
+  const nonIfoodServiceFee = cur.reduce((s, o) => s + (o.external_source === "ifood" ? 0 : Number(o.service_fee || 0)), 0);
+  const serviceFeeCur = nonIfoodServiceFee + ifoodFeesCur;
+  const netCur = grossCur - discountCur - ifoodFeesCur - nonIfoodServiceFee;
+  const ticketCur = ordersCountCur ? grossCur / ordersCountCur : 0;
+  const ticketPrev = ordersCountPrev ? grossPrev / ordersCountPrev : 0;
   const ticketCur = ordersCountCur ? grossCur / ordersCountCur : 0;
   const ticketPrev = ordersCountPrev ? grossPrev / ordersCountPrev : 0;
 
