@@ -484,8 +484,21 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                       {new Date(o.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" })}
                       {" às "}
                       {new Date(o.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                      <Phone className="w-3 h-3 ml-2" />{formatPhone(o.customer_phone)}
-                      {waLink(o.customer_phone) && (
+                      <Phone className="w-3 h-3 ml-2" />
+                      {o.external_source === "ifood"
+                        ? (() => {
+                            const raw = String(o.customer_phone ?? "");
+                            const digits = raw.replace(/\D/g, "");
+                            const locMatch = raw.match(/(?:cód[^\w]*|localizador[^\w]*)([A-Za-z0-9]+)/i);
+                            const loc = locMatch?.[1] ?? digits.slice(11);
+                            const base = digits.slice(0, 11) || digits;
+                            const masked = base.length >= 10
+                              ? `${base.slice(0, 4)} ${base.slice(4, 7)} ${base.slice(7, 11)}`
+                              : base;
+                            return loc ? `${masked} (cód: ${loc})` : masked;
+                          })()
+                        : formatPhone(o.customer_phone)}
+                      {o.external_source !== "ifood" && waLink(o.customer_phone) && (
                         <a
                           href={waLink(o.customer_phone)!}
                           target="_blank"
