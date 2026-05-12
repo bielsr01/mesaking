@@ -135,10 +135,22 @@ async function handlePlaced(integration: any, ev: IHubEvent) {
     .maybeSingle();
   if (existing) return existing.id;
 
+  // iFood payload v2: endereço fica em delivery.deliveryAddress / takeout.takeoutAddress
+  const addr =
+    od?.delivery?.deliveryAddress ??
+    od?.deliveryAddress ??
+    od?.takeout?.takeoutAddress ??
+    od?.takeoutAddress ??
+    {};
+
   const subtotal = Number(total.subTotal ?? total.subtotal ?? 0);
-  const deliveryFee = Number(total.deliveryFee ?? 0);
+  const deliveryFee = Number(total.deliveryFee ?? od?.delivery?.deliveryFee ?? 0);
   const benefits = Number(total.benefits ?? 0);
-  const orderAmount = Number(total.orderAmount ?? subtotal + deliveryFee - benefits);
+  const additionalFees = Number(total.additionalFees ?? 0);
+  const orderAmount = Number(total.orderAmount ?? subtotal + deliveryFee + additionalFees - benefits);
+  const changeFor = extractChangeFor(od);
+  const lat = addr?.coordinates?.latitude ?? addr?.latitude ?? null;
+  const lng = addr?.coordinates?.longitude ?? addr?.longitude ?? null;
 
   const { data, error } = await supabase
     .from("orders")
@@ -153,14 +165,16 @@ async function handlePlaced(integration: any, ev: IHubEvent) {
       address_state: orderType === "delivery" ? (addr.state ?? null) : null,
       address_cep: orderType === "delivery" ? (addr.postalCode ?? null) : null,
       address_complement: orderType === "delivery" ? (addr.complement ?? null) : null,
-      address_notes: orderType === "delivery" ? (addr.reference ?? null) : null,
-      delivery_latitude: addr?.coordinates?.latitude ?? null,
-      delivery_longitude: addr?.coordinates?.longitude ?? null,
+      address_notes: orderType === "delivery" ? (addr.reference ?? addr.formattedAddress ?? null) : null,
+      delivery_latitude: orderType === "delivery" ? lat : null,
+      delivery_longitude: orderType === "delivery" ? lng : null,
       subtotal,
       delivery_fee: deliveryFee,
+      service_fee: additionalFees,
       discount: benefits,
       total: orderAmount,
       payment_method: mapPayment(od),
+      change_for: changeFor,
       status: "pending",
       order_type: orderType,
       external_source: "ifood",
