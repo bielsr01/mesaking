@@ -180,8 +180,17 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
       );
     }
 
+    // Sync stock consumption rules
+    await supabase.from("product_stock_consumption").delete().eq("product_id", productId);
+    const validConsumption = stockConsumption.filter(c => c.group_id && c.quantity_per_unit > 0);
+    if (validConsumption.length) {
+      await supabase.from("product_stock_consumption").insert(
+        validConsumption.map(c => ({ product_id: productId, group_id: c.group_id, quantity_per_unit: c.quantity_per_unit }))
+      );
+    }
+
     toast.success("Produto salvo");
-    setProdOpen(false); setEditingProd(null); setSelectedGroupIds([]); reload();
+    setProdOpen(false); setEditingProd(null); setSelectedGroupIds([]); setStockConsumption([]); reload();
   };
 
   const toggleProd = async (p: Product) => {
@@ -235,7 +244,7 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
               </form>
             </DialogContent>
           </Dialog>
-          <Dialog open={prodOpen} onOpenChange={(o) => { setProdOpen(o); if (!o) { setEditingProd(null); setSelectedGroupIds([]); } }}>
+          <Dialog open={prodOpen} onOpenChange={(o) => { setProdOpen(o); if (!o) { setEditingProd(null); setSelectedGroupIds([]); setStockConsumption([]); } }}>
             <DialogTrigger asChild><Button onClick={() => setDefaultCat(categories[0]?.id ?? null)} disabled={categories.length === 0}><Plus className="w-4 h-4 mr-1" />Produto</Button></DialogTrigger>
             <DialogContent className="max-h-[90vh] overflow-y-auto">
               <DialogHeader><DialogTitle>{editingProd ? "Editar" : "Novo"} produto</DialogTitle></DialogHeader>
@@ -269,6 +278,49 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
                       selectedIds={selectedGroupIds}
                       onChange={setSelectedGroupIds}
                     />
+                  )}
+                </div>
+
+                <div className="space-y-2 border-t pt-3">
+                  <Label>Consumo de estoque</Label>
+                  <p className="text-xs text-muted-foreground">Quando este produto for vendido, descontar do estoque do(s) grupo(s) abaixo.</p>
+                  {stockGroups.length === 0 ? (
+                    <p className="text-xs text-muted-foreground italic">Nenhum grupo de estoque cadastrado pelo administrador.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {stockConsumption.map((c, idx) => (
+                        <div key={idx} className="flex gap-2 items-end">
+                          <div className="flex-1">
+                            <select
+                              value={c.group_id}
+                              onChange={(e) => setStockConsumption(arr => arr.map((x, i) => i === idx ? { ...x, group_id: e.target.value } : x))}
+                              className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+                            >
+                              <option value="">Selecione o grupo</option>
+                              {stockGroups.map(g => (
+                                <option key={g.id} value={g.id}
+                                  disabled={stockConsumption.some((sc, i) => i !== idx && sc.group_id === g.id)}
+                                >{g.name}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="w-28">
+                            <Input
+                              type="number" min="0" step="1"
+                              value={c.quantity_per_unit}
+                              onChange={(e) => setStockConsumption(arr => arr.map((x, i) => i === idx ? { ...x, quantity_per_unit: Number(e.target.value) || 0 } : x))}
+                              placeholder="Qtde"
+                            />
+                          </div>
+                          <Button type="button" variant="ghost" size="icon" onClick={() => setStockConsumption(arr => arr.filter((_, i) => i !== idx))}>
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </Button>
+                        </div>
+                      ))}
+                      <Button type="button" variant="outline" size="sm" onClick={() => setStockConsumption(arr => [...arr, { group_id: "", quantity_per_unit: 1 }])}>
+                        <Plus className="w-4 h-4 mr-1" />Adicionar grupo
+                      </Button>
+                    </div>
                   )}
                 </div>
 
