@@ -263,11 +263,6 @@ export function IhubIntegrationCard({ restaurantId }: { restaurantId: string }) 
                     onChange={(e) => setAuthCode(e.target.value)}
                     placeholder="Cole o authorizationCode retornado pelo iFood"
                   />
-                  <Input
-                    value={merchantIdInput}
-                    onChange={(e) => setMerchantIdInput(e.target.value)}
-                    placeholder="merchantId da loja no iFood (UUID)"
-                  />
                   <div className="flex gap-2">
                     <Button type="button" size="sm" onClick={handleLinkMerchant} disabled={linking}>
                       {linking ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <CheckCircle2 className="w-4 h-4 mr-1" />}
