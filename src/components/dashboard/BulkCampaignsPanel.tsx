@@ -174,7 +174,7 @@ export function BulkCampaignsPanel({
                     return (
                       <TableRow key={c.id}>
                         <TableCell className="font-medium">{c.name}</TableCell>
-                        {scope === "admin" && <TableCell><Badge variant="outline">{restNameById.get(c.restaurant_id) ?? "—"}</Badge></TableCell>}
+                        {scope === "admin" && <TableCell>{c.is_admin ? <Badge>Admin</Badge> : <Badge variant="outline">{restNameById.get(c.restaurant_id) ?? "—"}</Badge>}</TableCell>}
                         <TableCell>
                           <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_BADGE[c.status]}`}>{STATUS_LABEL[c.status]}</span>
                           {c.status === "running" && isAutoPaused && (
