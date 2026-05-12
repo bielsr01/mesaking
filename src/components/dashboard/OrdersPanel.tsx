@@ -346,9 +346,9 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
               <Store className="w-4 h-4" /> PDV (Balcão)
               <Badge variant="secondary" className="h-5 min-w-5 px-1.5 text-xs">{pdvCount}</Badge>
             </TabsTrigger>
-            <TabsTrigger value="delivery" className={`gap-2 ${deliveryBlink ? "animate-pulse text-destructive ring-2 ring-destructive" : ""}`}>
+            <TabsTrigger value="delivery" className={`gap-2 ${deliveryPendingCount > 0 ? "animate-pulse text-destructive ring-2 ring-destructive" : ""}`}>
               <Bike className="w-4 h-4" /> Delivery / Retirada
-              <Badge variant={deliveryBlink ? "destructive" : "secondary"} className="h-5 min-w-5 px-1.5 text-xs">{deliveryCount}</Badge>
+              <Badge variant={deliveryPendingCount > 0 ? "destructive" : "secondary"} className="h-5 min-w-5 px-1.5 text-xs">{deliveryPendingCount > 0 ? deliveryPendingCount : deliveryCount}</Badge>
             </TabsTrigger>
             <TabsTrigger value="ifood" className="gap-2">
               <Utensils className="w-4 h-4" /> iFood
