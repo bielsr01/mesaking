@@ -266,7 +266,12 @@ export default function MasterAdmin() {
                           </div>
                           <div className="space-y-2">
                             <Label>Senha</Label>
-                            <Input name="manager_password" type="password" minLength={6} required />
+                            <div className="relative">
+                              <Input name="manager_password" type={showPwd ? "text" : "password"} minLength={6} required className="pr-10" />
+                              <button type="button" onClick={() => setShowPwd((s) => !s)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1} aria-label={showPwd ? "Ocultar senha" : "Mostrar senha"}>
+                                {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              </button>
+                            </div>
                           </div>
                         </div>
                         <DialogFooter>
