@@ -401,6 +401,7 @@ export default function MasterAdmin() {
                 <EvolutionIntegrationCard scope="admin" />
               </div>
             )}
+            {view === "settings:ifood-fees" && <AdminIfoodFeesPanel />}
             {view === "supply:catalog" && <SupplyCatalogTab />}
             {view === "supply:orders" && <SupplyOrdersTab />}
             {view === "stock" && <AdminStockPanel />}
