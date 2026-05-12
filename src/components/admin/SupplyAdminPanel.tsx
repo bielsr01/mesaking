@@ -20,8 +20,10 @@ type SupplyProduct = {
   price: number; image_url: string | null; is_active: boolean; sort_order: number;
   variant_group_name: string | null; total_quantity: number | null; quantity_step: number;
   stock_group_id: string | null;
+  expense_category_id: string | null;
 };
 type StockGroup = { id: string; name: string };
+type ExpenseCategory = { id: string; name: string };
 type SupplyOption = { id: string; product_id: string; name: string; sort_order: number; is_active: boolean };
 type Restaurant = { id: string; name: string; slug: string };
 type SupplyOrder = {
