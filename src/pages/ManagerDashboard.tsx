@@ -223,11 +223,6 @@ export default function ManagerDashboard() {
                 <OrdersPanel restaurantId={restaurant.id} />
               </LazyView>
             )}
-            {view === "ifood" && (
-              <LazyView viewKey={view} variant="list">
-                <IfoodPanel restaurantId={restaurant.id} />
-              </LazyView>
-            )}
             {view === "menu" && (
               <LazyView viewKey={view} variant="list">
                 <MenuManager restaurantId={restaurant.id} />
