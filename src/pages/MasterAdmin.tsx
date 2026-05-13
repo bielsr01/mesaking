@@ -76,40 +76,6 @@ export default function MasterAdmin() {
   const [showEditPwd, setShowEditPwd] = useState(false);
   const [editManager, setEditManager] = useState<{ email: string; full_name: string }>({ email: "", full_name: "" });
   const [loadingEditId, setLoadingEditId] = useState<string | null>(null);
-  const [pinDialog, setPinDialog] = useState<Restaurant | null>(null);
-  const [pinValue, setPinValue] = useState("");
-  const [pinExisting, setPinExisting] = useState<string | null>(null);
-  const [pinShow, setPinShow] = useState(false);
-  const [pinLoading, setPinLoading] = useState(false);
-  const [pinSaving, setPinSaving] = useState(false);
-  const [createPin, setCreatePin] = useState("");
-
-  const openPinDialog = async (r: Restaurant) => {
-    setPinDialog(r);
-    setPinShow(false);
-    setPinValue("");
-    setPinExisting(null);
-    setPinLoading(true);
-    const { data } = await (supabase as any).from("restaurant_master_pins").select("pin").eq("restaurant_id", r.id).maybeSingle();
-    setPinExisting(data?.pin ?? null);
-    setPinValue(data?.pin ?? "");
-    setPinLoading(false);
-  };
-
-  const savePin = async () => {
-    if (!pinDialog) return;
-    if (!/^\d{6}$/.test(pinValue)) return toast.error("A senha mestra deve ter 6 dígitos numéricos");
-    setPinSaving(true);
-    const { error } = await (supabase as any).from("restaurant_master_pins").upsert({
-      restaurant_id: pinDialog.id, pin: pinValue,
-    }, { onConflict: "restaurant_id" });
-    setPinSaving(false);
-    if (error) return toast.error(error.message);
-    toast.success(pinExisting ? "Senha mestra atualizada" : "Senha mestra cadastrada");
-    setPinExisting(pinValue);
-    setPinDialog(null);
-  };
-
   const openEdit = async (r: Restaurant) => {
     setShowEditPwd(false);
     setLoadingEditId(r.id);
