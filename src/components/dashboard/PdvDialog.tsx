@@ -31,7 +31,7 @@ interface CartLine {
   unit_price: number; // base + extras
   base_price: number;
   quantity: number;
-  options?: { groupName: string; itemName: string; extraPrice: number }[];
+  options?: { groupName: string; itemName: string; extraPrice: number; optionItemId?: string }[];
   notes?: string;
 }
 
@@ -231,7 +231,7 @@ export function PdvDialog({
 
   const addLine = (
     p: typeof products[number],
-    options: { groupName: string; itemName: string; extraPrice: number }[],
+    options: { groupName: string; itemName: string; extraPrice: number; optionItemId?: string }[],
     qty: number,
     notes: string,
   ) => {
@@ -378,11 +378,31 @@ export function PdvDialog({
 
       // Background: persist items + loyalty + customer; sem bloquear o usuário
       (async () => {
-        const { error: itErr } = await supabase.from("order_items").insert(itemsPayload);
+        const { data: insertedItems, error: itErr } = await supabase
+          .from("order_items").insert(itemsPayload).select("id");
         if (itErr) {
           toast.error("Erro ao salvar itens do pedido");
           qc.invalidateQueries({ queryKey: ordersKey(restaurantId) });
           return;
+        }
+
+        // Persist option selections so stock trigger can deduct option-linked stock
+        const optionRows: any[] = [];
+        cart.forEach((l, ix) => {
+          const orderItemId = insertedItems?.[ix]?.id;
+          if (!orderItemId) return;
+          (l.options ?? []).forEach((o) => {
+            optionRows.push({
+              order_item_id: orderItemId,
+              option_item_id: o.optionItemId ?? null,
+              group_name: o.groupName,
+              item_name: o.itemName,
+              extra_price: Number(o.extraPrice) || 0,
+            });
+          });
+        });
+        if (optionRows.length) {
+          await supabase.from("order_item_options" as any).insert(optionRows);
         }
 
         if (loyaltyOptIn && loyaltySettings?.enabled && phoneDigits.length >= 10) {
@@ -443,11 +463,11 @@ export function PdvDialog({
       const cnt = (pickSelected[g.id] ?? []).length;
       if (cnt < g.min_select) { toast.error(`Selecione ao menos ${g.min_select} em "${g.name}"`); return; }
     }
-    const opts: { groupName: string; itemName: string; extraPrice: number }[] = [];
+    const opts: { groupName: string; itemName: string; extraPrice: number; optionItemId?: string }[] = [];
     grs.forEach((g) => {
       (pickSelected[g.id] ?? []).forEach((iid) => {
         const it = g.items.find((x) => x.id === iid);
-        if (it) opts.push({ groupName: g.name, itemName: it.name, extraPrice: it.extra_price });
+        if (it) opts.push({ groupName: g.name, itemName: it.name, extraPrice: it.extra_price, optionItemId: it.id });
       });
     });
     addLine(pickProduct, opts, pickQty, pickNotes.trim());

@@ -248,7 +248,7 @@ export default function RestaurantPublic() {
     productGroups.forEach((g) => {
       (selectedOpts[g.id] ?? []).forEach((itemId) => {
         const it = g.items.find((x) => x.id === itemId);
-        if (it) opts.push({ groupName: g.name, itemName: it.name, extraPrice: it.extra_price });
+        if (it) opts.push({ groupName: g.name, itemName: it.name, extraPrice: it.extra_price, optionItemId: it.id });
       });
     });
     cart.add(restaurant.id, {

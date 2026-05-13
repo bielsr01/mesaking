@@ -4,6 +4,7 @@ export interface CartItemOption {
   groupName: string;
   itemName: string;
   extraPrice: number;
+  optionItemId?: string;
 }
 
 export interface CartItem {
