@@ -134,6 +134,7 @@ export function ExpensesPanel({ restaurantId }: { restaurantId: string }) {
 
   const save = async (ev: React.FormEvent<HTMLFormElement>) => {
     ev.preventDefault();
+    if (!canEdit) return toast.error("Sem permissão para salvar despesa");
     if (saving) return;
     const fd = new FormData(ev.currentTarget);
     const cat = selectedCatId ? catsById[selectedCatId] : null;
@@ -176,6 +177,7 @@ export function ExpensesPanel({ restaurantId }: { restaurantId: string }) {
   };
 
   const remove = async (id: string) => {
+    if (!canEdit) return toast.error("Sem permissão para excluir despesa");
     if (!confirm("Excluir esta despesa?")) return;
     const { error } = await supabase.from("expenses").delete().eq("id", id);
     if (error) return toast.error(error.message);
