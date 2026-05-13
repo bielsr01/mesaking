@@ -80,6 +80,7 @@ const fromLocalInput = (v: string) => {
 export function CouponsPanel({ restaurantId }: { restaurantId: string }) {
   const { can } = usePermissions(restaurantId);
   const canEdit = can("marketing.coupons.edit");
+  const canMetrics = can("marketing.coupons.metrics");
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Partial<Coupon> | null>(null);
