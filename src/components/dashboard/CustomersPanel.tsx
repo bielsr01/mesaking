@@ -165,6 +165,7 @@ export function CustomersPanel({ restaurantId }: { restaurantId: string }) {
   };
 
   const save = async () => {
+    if (!canEdit) return toast.error("Sem permissão para salvar cliente");
     if (form.name.trim().length < 2) return toast.error("Informe o nome");
     if (unmaskPhone(form.phone).length < 10) return toast.error("Telefone inválido");
     setBusy(true);
@@ -199,6 +200,7 @@ export function CustomersPanel({ restaurantId }: { restaurantId: string }) {
   };
 
   const confirmDelete = async () => {
+    if (!canDelete) return toast.error("Sem permissão para excluir cliente");
     if (!deleteId) return;
     const { error } = await supabase.from("customers" as any).delete().eq("id", deleteId);
     if (error) return toast.error(error.message);
