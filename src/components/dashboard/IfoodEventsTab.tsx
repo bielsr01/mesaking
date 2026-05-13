@@ -37,7 +37,7 @@ export function IfoodEventsTab({ restaurantId }: Props) {
         .select("*")
         .eq("restaurant_id", restaurantId)
         .order("created_at", { ascending: false })
-        .limit(50);
+        .limit(200);
       if (error) throw error;
       return (data ?? []) as IhubEvent[];
     },
