@@ -357,6 +357,24 @@ export function SupplyCatalogTab() {
     setOpen(true);
   };
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return toast.error("Selecione uma imagem");
+    setUploadingImg(true);
+    try {
+      const path = `supply/${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
+      const { error: upErr } = await supabase.storage.from("menu-images").upload(path, file, { upsert: true });
+      if (upErr) { toast.error(upErr.message); return; }
+      const { data: pub } = supabase.storage.from("menu-images").getPublicUrl(path);
+      setImgUrl(pub.publicUrl);
+      toast.success("Imagem enviada");
+    } finally {
+      setUploadingImg(false);
+      e.target.value = "";
+    }
+  };
+
   const save = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (saving) return;
