@@ -99,7 +99,7 @@ export const EMPTY_PERMISSIONS: Permissions = {
   },
   menu: { view: false, edit: false },
   customers: { view: false, create: false, edit: false, delete: false },
-  marketing: { coupons: { view: false, edit: false }, bulk: { view: false, edit: false } },
+  marketing: { coupons: { view: false, edit: false, metrics: false }, bulk: { view: false, edit: false } },
   loyalty: {
     view: false,
     toggle_program: false,
