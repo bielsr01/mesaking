@@ -248,12 +248,16 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
           <TabsList>
             <TabsTrigger value="settings">Configurações</TabsTrigger>
             <TabsTrigger value="members">Cadastro</TabsTrigger>
-            <TabsTrigger value="credit">Creditar Pontos</TabsTrigger>
-            <TabsTrigger value="rewards">Resgatar Pontos</TabsTrigger>
+            {canCredit && <TabsTrigger value="credit">Creditar Pontos</TabsTrigger>}
+            {canRewardsView && <TabsTrigger value="rewards">Resgatar Pontos</TabsTrigger>}
           </TabsList>
 
+          {canRewardsView && (
           <TabsContent value="rewards">
             <LoyaltyRewardsTab restaurantId={restaurantId} />
+          </TabsContent>
+          )}
+          <TabsContent value="rewards-placeholder" />
           </TabsContent>
 
           {/* Settings */}
