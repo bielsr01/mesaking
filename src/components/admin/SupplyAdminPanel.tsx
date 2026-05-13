@@ -470,7 +470,24 @@ export function SupplyCatalogTab() {
                 <div><Label>Preço</Label><Input name="price" type="number" step="0.01" min="0" defaultValue={editing?.price ?? 0} required /></div>
                 <div><Label>Unidade</Label><Input name="unit" defaultValue={editing?.unit ?? "un"} placeholder="un, kg, cx..." /></div>
               </div>
-              <div><Label>URL da imagem (opcional)</Label><Input name="image_url" defaultValue={editing?.image_url ?? ""} /></div>
+              <div className="space-y-2">
+                <Label>Imagem do insumo (opcional)</Label>
+                <div className="flex items-center gap-2">
+                  <Input name="image_url" value={imgUrl} onChange={(e) => setImgUrl(e.target.value)} placeholder="Cole a URL da imagem..." />
+                  <label className="shrink-0">
+                    <input type="file" accept="image/*" className="sr-only" onChange={handleImageUpload} disabled={uploadingImg} />
+                    <Button type="button" variant="outline" size="sm" asChild disabled={uploadingImg}>
+                      <span>{uploadingImg ? "Enviando..." : "Upload"}</span>
+                    </Button>
+                  </label>
+                </div>
+                {imgUrl && (
+                  <div className="flex items-center gap-2">
+                    <img src={imgUrl} alt="Preview" className="w-16 h-16 rounded object-cover border" />
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setImgUrl("")}>Remover</Button>
+                  </div>
+                )}
+              </div>
 
               <div>
                 <Label>Grupo de estoque</Label>
