@@ -28,7 +28,8 @@ export type AdminView =
   | "settings:ifood-fees"
   | "supply:catalog"
   | "supply:orders"
-  | "stock"
+  | "stock:admin"
+  | "stock:restaurants"
   | "expenses:admin"
   | "expenses:stores"
   | "finance:admin"
@@ -42,11 +43,13 @@ export function AdminSidebar({ active, onChange, supplyBadge = 0 }: { active: Ad
   const expensesActive = active.startsWith("expenses:");
   const settingsActive = active.startsWith("settings:");
   const financeActive = active.startsWith("finance:");
+  const stockActive = active.startsWith("stock:");
   const [supplyOpen, setSupplyOpen] = useState(supplyActive);
   const [marketingOpen, setMarketingOpen] = useState(marketingActive);
   const [expensesOpen, setExpensesOpen] = useState(expensesActive);
   const [settingsOpen, setSettingsOpen] = useState(settingsActive);
   const [financeOpen, setFinanceOpen] = useState(financeActive);
+  const [stockOpen, setStockOpen] = useState(stockActive);
 
   return (
     <Sidebar collapsible="icon">
@@ -222,16 +225,37 @@ export function AdminSidebar({ active, onChange, supplyBadge = 0 }: { active: Ad
                 </SidebarMenuItem>
               </Collapsible>
 
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  isActive={active === "stock"}
-                  onClick={() => onChange("stock")}
-                  tooltip="Estoque"
-                >
-                  <Boxes className="h-4 w-4" />
-                  <span>Estoque</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              <Collapsible open={stockOpen || collapsed} onOpenChange={setStockOpen} asChild>
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton isActive={stockActive} tooltip="Estoque">
+                      <Boxes className="h-4 w-4" />
+                      <span>Estoque</span>
+                      <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={active === "stock:admin"}>
+                          <button type="button" onClick={() => onChange("stock:admin")} className="w-full text-left flex items-center gap-2">
+                            <Boxes className="h-4 w-4" />
+                            <span>Admin</span>
+                          </button>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={active === "stock:restaurants"}>
+                          <button type="button" onClick={() => onChange("stock:restaurants")} className="w-full text-left flex items-center gap-2">
+                            <Store className="h-4 w-4" />
+                            <span>Restaurantes</span>
+                          </button>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
 
               <Collapsible open={expensesOpen || collapsed} onOpenChange={setExpensesOpen} asChild>
                 <SidebarMenuItem>
