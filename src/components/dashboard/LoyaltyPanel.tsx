@@ -33,7 +33,7 @@ type Tx = {
   orders?: { order_number: number; status: string; total: number; created_at: string };
 };
 
-export function LoyaltyPanel({ restaurantId }: { restaurantId: string }) {
+export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: string; isAdmin?: boolean }) {
   const qc = useQueryClient();
   const [metricsOpen, setMetricsOpen] = useState(false);
 
