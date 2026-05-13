@@ -257,8 +257,6 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
             <LoyaltyRewardsTab restaurantId={restaurantId} />
           </TabsContent>
           )}
-          <TabsContent value="rewards-placeholder" />
-          </TabsContent>
 
           {/* Settings */}
           <TabsContent value="settings" className="space-y-4 pt-4 max-w-md">
