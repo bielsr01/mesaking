@@ -30,6 +30,8 @@ import { ExpensesPanel } from "@/components/dashboard/ExpensesPanel";
 import { FinancePanel } from "@/components/dashboard/FinancePanel";
 import { OverviewPanel } from "@/components/dashboard/OverviewPanel";
 import { StockPanel } from "@/components/dashboard/StockPanel";
+import { AccessManagementPanel } from "@/components/dashboard/AccessManagementPanel";
+import { usePermissions } from "@/hooks/usePermissions";
 
 import { BulkCampaignsPanel } from "@/components/dashboard/BulkCampaignsPanel";
 import { ManualOverride, OpeningHours } from "@/lib/hours";
@@ -111,6 +113,34 @@ export default function ManagerDashboard() {
     view === "orders"
   );
   const pendingOrdersCount = usePendingOrdersCount(restaurant?.id);
+  const { permissions, isFullAccess } = usePermissions(restaurant?.id);
+
+  // Redirect view if user lacks permission for the current view
+  useEffect(() => {
+    if (isFullAccess) return;
+    const allowed: Record<DashboardView, boolean> = {
+      overview: !!permissions.overview.view,
+      orders: !!permissions.orders.view,
+      menu: !!permissions.menu.view,
+      customers: !!permissions.customers.view,
+      "marketing:coupons": !!permissions.marketing.coupons.view,
+      "marketing:bulk": !!permissions.marketing.bulk.view,
+      "marketing:loyalty": !!permissions.loyalty.view,
+      "settings:order-config": !!permissions.settings.view,
+      "settings:business": !!permissions.settings.view,
+      "settings:printers": !!permissions.settings.view,
+      "settings:integrations": !!permissions.settings.view,
+      "settings:access": !!permissions.access_management.view,
+      "supply-orders": !!permissions.supply_orders.view,
+      stock: !!permissions.stock.view,
+      expenses: !!permissions.expenses.view,
+      finance: !!permissions.finance.view,
+    };
+    if (!allowed[view]) {
+      const fallback = (Object.keys(allowed) as DashboardView[]).find((k) => allowed[k]);
+      if (fallback) setView(fallback);
+    }
+  }, [isFullAccess, permissions, view]);
 
   const refetchRestaurant = () => qc.invalidateQueries({ queryKey: ["managerRestaurant", user?.id] });
 
@@ -139,7 +169,6 @@ export default function ManagerDashboard() {
   const titleByView: Record<DashboardView, string> = {
     overview: "Visão geral",
     orders: "Pedidos",
-    
     menu: "Cardápio",
     customers: "Clientes",
     "marketing:coupons": "Cupons de desconto",
@@ -149,6 +178,7 @@ export default function ManagerDashboard() {
     "settings:business": "Informações do negócio",
     "settings:printers": "Impressões",
     "settings:integrations": "Integrações",
+    "settings:access": "Gestão de Acessos",
     "supply-orders": "Pedido de Insumos",
     stock: "Estoque",
     expenses: "Cadastro de despesas",
@@ -163,6 +193,8 @@ export default function ManagerDashboard() {
           onChange={setView}
           ordersBadge={pendingOrdersCount}
           ordersBlinking={pendingOrdersCount > 0}
+          permissions={permissions}
+          isFullAccess={isFullAccess}
         />
 
         <div className="flex-1 flex flex-col min-w-0">
@@ -253,6 +285,11 @@ export default function ManagerDashboard() {
             {view === "settings:integrations" && (
               <LazyView viewKey={view} variant="form">
                 <IntegrationsPanel restaurantId={restaurant.id} />
+              </LazyView>
+            )}
+            {view === "settings:access" && (
+              <LazyView viewKey={view} variant="form">
+                <AccessManagementPanel restaurantId={restaurant.id} />
               </LazyView>
             )}
             {view === "supply-orders" && (
