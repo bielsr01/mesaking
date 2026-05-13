@@ -27,6 +27,7 @@ import { AdminExpenseStoresPanel } from "@/components/admin/AdminExpenseStoresPa
 import { AdminOwnExpensesPanel } from "@/components/admin/AdminOwnExpensesPanel";
 import { AdminLoyaltyPanel } from "@/components/admin/AdminLoyaltyPanel";
 import { AdminFinancePanel } from "@/components/admin/AdminFinancePanel";
+import { AdminFinanceAdminPanel } from "@/components/admin/AdminFinanceAdminPanel";
 import { AdminIfoodFeesPanel } from "@/components/admin/AdminIfoodFeesPanel";
 import { BulkCampaignsPanel } from "@/components/dashboard/BulkCampaignsPanel";
 import { EvolutionIntegrationCard } from "@/components/dashboard/EvolutionIntegrationCard";
@@ -223,7 +224,8 @@ export default function MasterAdmin() {
     stock: "Estoque",
     "expenses:admin": "Despesas Admin",
     "expenses:stores": "Despesas das lojas",
-    finance: "Receitas - Despesas",
+    "finance:admin": "Receitas - Despesas / Admin",
+    "finance:restaurants": "Receitas - Despesas / Restaurantes",
   };
 
   const supplyPendingCount = usePendingSupplyOrdersCount();
@@ -413,7 +415,8 @@ export default function MasterAdmin() {
             {view === "stock" && <AdminStockPanel />}
             {view === "expenses:admin" && <AdminOwnExpensesPanel />}
             {view === "expenses:stores" && <AdminExpenseStoresPanel />}
-            {view === "finance" && <AdminFinancePanel />}
+            {view === "finance:restaurants" && <AdminFinancePanel />}
+            {view === "finance:admin" && <AdminFinanceAdminPanel />}
           </main>
         </SidebarInset>
 
