@@ -25,6 +25,7 @@ import { AdminMenuPanel } from "@/components/admin/AdminMenuPanel";
 import { AdminStockPanel } from "@/components/admin/AdminStockPanel";
 import { AdminExpenseStoresPanel } from "@/components/admin/AdminExpenseStoresPanel";
 import { AdminOwnExpensesPanel } from "@/components/admin/AdminOwnExpensesPanel";
+import { AdminLoyaltyPanel } from "@/components/admin/AdminLoyaltyPanel";
 import { AdminFinancePanel } from "@/components/admin/AdminFinancePanel";
 import { AdminIfoodFeesPanel } from "@/components/admin/AdminIfoodFeesPanel";
 import { BulkCampaignsPanel } from "@/components/dashboard/BulkCampaignsPanel";
