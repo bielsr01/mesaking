@@ -443,7 +443,7 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
       </div>
 
       <div className="border-t pt-6">
-        <OptionGroupsManager restaurantId={restaurantId} />
+        <OptionGroupsManager restaurantId={restaurantId} canEdit={canEdit} />
       </div>
     </div>
   );
@@ -493,7 +493,7 @@ function CategoryGroup({
   return (
     <div className="space-y-2">
       <h3 className="text-sm font-semibold uppercase text-muted-foreground tracking-wide px-1">{title}</h3>
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <DndContext sensors={canEdit ? sensors : []} collisionDetection={closestCenter} onDragEnd={canEdit ? handleDragEnd : undefined}>
         <SortableContext items={ids} strategy={verticalListSortingStrategy}>
           <div className="space-y-2">
             {products.map((p) => (
@@ -654,7 +654,7 @@ function SortableCategoriesList({
   };
 
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+    <DndContext sensors={canEdit ? sensors : []} collisionDetection={closestCenter} onDragEnd={canEdit ? handleDragEnd : undefined}>
       <SortableContext items={ids} strategy={verticalListSortingStrategy}>
         {categories.map((c) => (
           <SortableCategoryRow key={c.id} category={c} onToggle={onToggle} onEdit={onEdit} onRemove={onRemove} canEdit={canEdit} />
