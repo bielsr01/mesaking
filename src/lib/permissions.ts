@@ -193,6 +193,11 @@ export function mergePermissions(partial: any): Permissions {
       if (parent && getPerm(base as Permissions, parent)) setPerm(base, child, true);
     }
   }
+  for (const [child, source] of Object.entries(LEGACY_INHERIT_OVERRIDES)) {
+    if (!pathDefined(partial, child) && getPerm(base as Permissions, source)) {
+      setPerm(base, child, true);
+    }
+  }
   for (const [child, parent] of Object.entries(PERMISSION_DEPENDENCIES)) {
     if (!getPerm(base, parent)) setPerm(base, child, false);
   }
