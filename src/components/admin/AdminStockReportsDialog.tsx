@@ -227,19 +227,24 @@ export function AdminStockReportsDialog({
                                 <tr>
                                   <th className="p-2">Data</th>
                                   <th className="p-2">Tipo</th>
+                                  <th className="p-2">Loja</th>
                                   <th className="p-2">Observação</th>
                                   <th className="p-2 text-right">Qtd</th>
                                 </tr>
                               </thead>
                               <tbody>
-                                {sd.items.map(m => (
-                                  <tr key={m.id} className="border-t">
-                                    <td className="p-2 whitespace-nowrap">{fmt(m.created_at)}</td>
-                                    <td className="p-2"><Badge variant="outline" className="text-[10px]">{typeLabel[m.type]}</Badge></td>
-                                    <td className="p-2 text-muted-foreground">{m.notes ?? "—"}</td>
-                                    <td className="p-2 text-right font-bold tabular-nums text-destructive">{m.quantity}</td>
-                                  </tr>
-                                ))}
+                                {sd.items.map(m => {
+                                  const restName = m.type === "supply_delivery" && m.reference_id ? (restaurantMap[m.reference_id] ?? "—") : "—";
+                                  return (
+                                    <tr key={m.id} className="border-t">
+                                      <td className="p-2 whitespace-nowrap">{fmt(m.created_at)}</td>
+                                      <td className="p-2"><Badge variant="outline" className="text-[10px]">{typeLabel[m.type]}</Badge></td>
+                                      <td className="p-2 font-medium">{restName}</td>
+                                      <td className="p-2 text-muted-foreground">{m.notes ?? "—"}</td>
+                                      <td className="p-2 text-right font-bold tabular-nums text-destructive">{m.quantity}</td>
+                                    </tr>
+                                  );
+                                })}
                               </tbody>
                             </table>
                           </div>
