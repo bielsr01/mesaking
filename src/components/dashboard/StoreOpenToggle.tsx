@@ -154,19 +154,47 @@ export function StoreOpenToggle({ restaurantId, openingHours, manualOverride, on
         <Switch checked={open} onCheckedChange={handleToggle} disabled={busy} />
       </div>
 
-      {/* Confirmar abertura fora do horário */}
+      {/* Opções de abertura fora do horário */}
       <Dialog open={openDialog} onOpenChange={setOpenDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Abrir fora do horário?</DialogTitle>
+            <DialogTitle>Abrir fora do horário</DialogTitle>
             <DialogDescription>
-              No momento o restaurante está fora do horário de funcionamento configurado.
-              Deseja abrir a loja mesmo assim? Ela ficará aberta até você fechar manualmente.
+              O restaurante está fora do horário de funcionamento configurado. Por quanto tempo deseja manter aberto? Ao expirar, o sistema fecha automaticamente.
             </DialogDescription>
           </DialogHeader>
+
+          <RadioGroup value={openMode} onValueChange={(v) => setOpenMode(v as any)} className="space-y-3 py-2">
+            <div className="flex items-center gap-3">
+              <RadioGroupItem value="minutes" id="om" />
+              <Label htmlFor="om" className="flex-1">Por alguns minutos</Label>
+              <Input
+                type="number" min={1} className="w-24"
+                value={openMinutes}
+                onChange={(e) => setOpenMinutes(e.target.value)}
+                onFocus={() => setOpenMode("minutes")}
+              />
+              <span className="text-sm text-muted-foreground">min</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <RadioGroupItem value="until" id="ou" />
+              <Label htmlFor="ou" className="flex-1">Até um horário específico</Label>
+              <Input
+                type="time" className="w-32"
+                value={openUntilTime}
+                onChange={(e) => setOpenUntilTime(e.target.value)}
+                onFocus={() => setOpenMode("until")}
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              <RadioGroupItem value="today" id="ot" />
+              <Label htmlFor="ot" className="flex-1">Abrir pelo resto do dia</Label>
+            </div>
+          </RadioGroup>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenDialog(false)}>Cancelar</Button>
-            <Button onClick={confirmOpen} disabled={busy}>Sim, abrir agora</Button>
+            <Button onClick={confirmOpen} disabled={busy}>Confirmar abertura</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
