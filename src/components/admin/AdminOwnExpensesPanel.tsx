@@ -15,7 +15,7 @@ import { Plus, Pencil, Trash2, Tag, Receipt, Loader2, Download, Eye, X } from "l
 import { toast } from "sonner";
 import { brl, todayISOBR, monthStartISOBR, monthEndISOBR } from "@/lib/format";
 
-type Cat = { id: string; name: string; requires_description: boolean; is_active: boolean };
+type Cat = { id: string; name: string; requires_description: boolean; is_active: boolean; sort_order: number };
 type AdminExpense = { id: string; description: string; category: string | null; category_id: string | null; amount: number; expense_date: string; notes: string | null; receipt_url: string | null };
 
 const todayISO = () => todayISOBR();
