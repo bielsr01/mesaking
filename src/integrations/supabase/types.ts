@@ -64,6 +64,115 @@ export type Database = {
           },
         ]
       }
+      admin_stock_groups: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      admin_stock_movements: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          quantity: number
+          reference_id: string | null
+          subgroup_id: string
+          type: Database["public"]["Enums"]["admin_stock_movement_type"]
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          quantity: number
+          reference_id?: string | null
+          subgroup_id: string
+          type: Database["public"]["Enums"]["admin_stock_movement_type"]
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          quantity?: number
+          reference_id?: string | null
+          subgroup_id?: string
+          type?: Database["public"]["Enums"]["admin_stock_movement_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_stock_movements_subgroup_id_fkey"
+            columns: ["subgroup_id"]
+            isOneToOne: false
+            referencedRelation: "admin_stock_subgroups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admin_stock_subgroups: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          is_active: boolean
+          name: string
+          quantity: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          is_active?: boolean
+          name: string
+          quantity?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          quantity?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_stock_subgroups_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "admin_stock_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bulk_campaign_recipients: {
         Row: {
           campaign_id: string
@@ -1610,6 +1719,7 @@ export type Database = {
       }
       supply_product_options: {
         Row: {
+          admin_stock_subgroup_id: string | null
           created_at: string
           id: string
           is_active: boolean
@@ -1618,6 +1728,7 @@ export type Database = {
           sort_order: number
         }
         Insert: {
+          admin_stock_subgroup_id?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
@@ -1626,6 +1737,7 @@ export type Database = {
           sort_order?: number
         }
         Update: {
+          admin_stock_subgroup_id?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
@@ -1634,6 +1746,13 @@ export type Database = {
           sort_order?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "supply_product_options_admin_stock_subgroup_id_fkey"
+            columns: ["admin_stock_subgroup_id"]
+            isOneToOne: false
+            referencedRelation: "admin_stock_subgroups"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "supply_product_options_product_id_fkey"
             columns: ["product_id"]
@@ -1645,6 +1764,7 @@ export type Database = {
       }
       supply_products: {
         Row: {
+          admin_stock_group_id: string | null
           created_at: string
           description: string | null
           expense_category_id: string | null
@@ -1662,6 +1782,7 @@ export type Database = {
           variant_group_name: string | null
         }
         Insert: {
+          admin_stock_group_id?: string | null
           created_at?: string
           description?: string | null
           expense_category_id?: string | null
@@ -1679,6 +1800,7 @@ export type Database = {
           variant_group_name?: string | null
         }
         Update: {
+          admin_stock_group_id?: string | null
           created_at?: string
           description?: string | null
           expense_category_id?: string | null
@@ -1696,6 +1818,13 @@ export type Database = {
           variant_group_name?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "supply_products_admin_stock_group_id_fkey"
+            columns: ["admin_stock_group_id"]
+            isOneToOne: false
+            referencedRelation: "admin_stock_groups"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "supply_products_expense_category_id_fkey"
             columns: ["expense_category_id"]
@@ -1738,6 +1867,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_admin_stock_delta: {
+        Args: {
+          _delta: number
+          _notes: string
+          _reference: string
+          _subgroup_id: string
+          _type: Database["public"]["Enums"]["admin_stock_movement_type"]
+        }
+        Returns: undefined
+      }
       apply_stock_delta: {
         Args: {
           _delta: number
@@ -1786,6 +1925,11 @@ export type Database = {
       }
     }
     Enums: {
+      admin_stock_movement_type:
+        | "manual_set"
+        | "manual_add"
+        | "manual_subtract"
+        | "supply_delivery"
       app_role: "master_admin" | "manager" | "customer"
       bulk_campaign_status:
         | "draft"
@@ -1937,6 +2081,12 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      admin_stock_movement_type: [
+        "manual_set",
+        "manual_add",
+        "manual_subtract",
+        "supply_delivery",
+      ],
       app_role: ["master_admin", "manager", "customer"],
       bulk_campaign_status: [
         "draft",

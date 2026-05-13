@@ -21,10 +21,13 @@ type SupplyProduct = {
   variant_group_name: string | null; total_quantity: number | null; quantity_step: number;
   stock_group_id: string | null;
   expense_category_id: string | null;
+  admin_stock_group_id: string | null;
 };
 type StockGroup = { id: string; name: string };
 type ExpenseCategory = { id: string; name: string };
-type SupplyOption = { id: string; product_id: string; name: string; sort_order: number; is_active: boolean };
+type AdminStockGroup = { id: string; name: string };
+type AdminStockSubgroup = { id: string; group_id: string; name: string };
+type SupplyOption = { id: string; product_id: string; name: string; sort_order: number; is_active: boolean; admin_stock_subgroup_id: string | null };
 type Restaurant = { id: string; name: string; slug: string };
 type SupplyOrder = {
   id: string; restaurant_id: string; status: "pending"|"accepted"|"shipped"|"delivered";
@@ -269,10 +272,11 @@ export function SupplyCatalogTab() {
   const [groupName, setGroupName] = useState("");
   const [totalQty, setTotalQty] = useState<number | "">("");
   const [step, setStep] = useState<number>(50);
-  const [options, setOptions] = useState<{ id?: string; name: string }[]>([]);
+  const [options, setOptions] = useState<{ id?: string; name: string; admin_stock_subgroup_id: string | null }[]>([]);
   const [newOpt, setNewOpt] = useState("");
   const [stockGroupId, setStockGroupId] = useState<string>("");
   const [expenseCategoryId, setExpenseCategoryId] = useState<string>("");
+  const [adminStockGroupId, setAdminStockGroupId] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
   const { data: stockGroups = [] } = useQuery({
@@ -289,6 +293,21 @@ export function SupplyCatalogTab() {
       const { data } = await supabase.from("expense_categories")
         .select("id,name").eq("scope", "restaurant").eq("is_active", true).order("name");
       return (data ?? []) as ExpenseCategory[];
+    },
+  });
+
+  const { data: adminGroups = [] } = useQuery({
+    queryKey: ["admin_stock_groups_active"],
+    queryFn: async () => {
+      const { data } = await supabase.from("admin_stock_groups").select("id,name").eq("is_active", true).order("sort_order").order("name");
+      return (data ?? []) as AdminStockGroup[];
+    },
+  });
+  const { data: adminSubgroups = [] } = useQuery({
+    queryKey: ["admin_stock_subgroups_active"],
+    queryFn: async () => {
+      const { data } = await supabase.from("admin_stock_subgroups").select("id,group_id,name").eq("is_active", true).order("sort_order").order("name");
+      return (data ?? []) as AdminStockSubgroup[];
     },
   });
 
@@ -316,6 +335,7 @@ export function SupplyCatalogTab() {
     setHasVariants(false); setGroupName(""); setTotalQty(""); setStep(50); setOptions([]); setNewOpt("");
     setStockGroupId("");
     setExpenseCategoryId("");
+    setAdminStockGroupId("");
     setOpen(true);
   };
   const openEdit = (p: SupplyProduct) => {
@@ -325,10 +345,11 @@ export function SupplyCatalogTab() {
     setGroupName(p.variant_group_name ?? "");
     setTotalQty(p.total_quantity ?? "");
     setStep(p.quantity_step ?? 50);
-    setOptions((optsByProduct[p.id] ?? []).map(o => ({ id: o.id, name: o.name })));
+    setOptions((optsByProduct[p.id] ?? []).map(o => ({ id: o.id, name: o.name, admin_stock_subgroup_id: o.admin_stock_subgroup_id ?? null })));
     setNewOpt("");
     setStockGroupId(p.stock_group_id ?? "");
     setExpenseCategoryId(p.expense_category_id ?? "");
+    setAdminStockGroupId(p.admin_stock_group_id ?? "");
     setOpen(true);
   };
 
@@ -348,6 +369,7 @@ export function SupplyCatalogTab() {
       quantity_step: hasVariants ? Math.max(1, Number(step) || 50) : 50,
       stock_group_id: stockGroupId || null,
       expense_category_id: expenseCategoryId || null,
+      admin_stock_group_id: adminStockGroupId || null,
     };
     if (!payload.name) return toast.error("Nome obrigatório");
     if (hasVariants) {
@@ -373,6 +395,7 @@ export function SupplyCatalogTab() {
         if (hasVariants && options.length) {
           const rows = options.filter(o => o.name.trim()).map((o, i) => ({
             product_id: productId!, name: o.name.trim(), sort_order: i, is_active: true,
+            admin_stock_subgroup_id: o.admin_stock_subgroup_id || null,
           }));
           if (rows.length) {
             const { error } = await supabase.from("supply_product_options").insert(rows);
@@ -407,7 +430,7 @@ export function SupplyCatalogTab() {
   const addOption = () => {
     const v = newOpt.trim();
     if (!v) return;
-    setOptions(o => [...o, { name: v }]);
+    setOptions(o => [...o, { name: v, admin_stock_subgroup_id: null }]);
     setNewOpt("");
   };
 
@@ -438,6 +461,19 @@ export function SupplyCatalogTab() {
                   {stockGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
                 </select>
                 <p className="text-xs text-muted-foreground mt-1">Quando o pedido for marcado como entregue, a quantidade entra automaticamente neste grupo no estoque do restaurante.</p>
+              </div>
+
+              <div>
+                <Label>Grupo do estoque admin (fábrica)</Label>
+                <select
+                  value={adminStockGroupId}
+                  onChange={(e) => setAdminStockGroupId(e.target.value)}
+                  className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="">Não vincular ao estoque admin</option>
+                  {adminGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+                </select>
+                <p className="text-xs text-muted-foreground mt-1">Quando o pedido for entregue, cada opção (sabor) descontará a quantidade pedida do subgrupo correspondente no estoque admin.</p>
               </div>
 
               <div>
@@ -487,14 +523,30 @@ export function SupplyCatalogTab() {
                         <Button type="button" variant="outline" onClick={addOption}>Adicionar</Button>
                       </div>
                       {options.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {options.map((o, i) => (
-                            <Badge key={i} variant="secondary" className="gap-1 pr-1">
-                              {o.name}
-                              <button type="button" onClick={() => setOptions(arr => arr.filter((_, idx) => idx !== i))}
-                                className="hover:bg-destructive/20 rounded p-0.5"><X className="w-3 h-3" /></button>
-                            </Badge>
-                          ))}
+                        <div className="space-y-2 mt-2">
+                          {options.map((o, i) => {
+                            const availSubs = adminSubgroups.filter(s => !adminStockGroupId || s.group_id === adminStockGroupId);
+                            return (
+                              <div key={i} className="flex items-center gap-2 rounded-md border bg-background p-2">
+                                <span className="font-medium text-sm flex-1 truncate">{o.name}</span>
+                                <select
+                                  value={o.admin_stock_subgroup_id ?? ""}
+                                  onChange={(e) => {
+                                    const v = e.target.value || null;
+                                    setOptions(arr => arr.map((x, idx) => idx === i ? { ...x, admin_stock_subgroup_id: v } : x));
+                                  }}
+                                  disabled={!adminStockGroupId}
+                                  className="h-8 rounded-md border border-input bg-background px-2 text-xs flex-1 disabled:opacity-60"
+                                  title={adminStockGroupId ? "Vincular a um subgrupo do estoque admin" : "Selecione antes o grupo do estoque admin"}
+                                >
+                                  <option value="">{adminStockGroupId ? "Sem vínculo" : "Selecione o grupo admin"}</option>
+                                  {availSubs.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                </select>
+                                <button type="button" onClick={() => setOptions(arr => arr.filter((_, idx) => idx !== i))}
+                                  className="hover:bg-destructive/20 rounded p-1"><X className="w-3 h-3" /></button>
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
                     </div>
