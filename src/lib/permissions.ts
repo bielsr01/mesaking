@@ -98,7 +98,7 @@ export const EMPTY_PERMISSIONS: Permissions = {
     create_pdv_order: false,
   },
   menu: { view: false, edit: false },
-  customers: { view: false, edit: false, delete: false },
+  customers: { view: false, create: false, edit: false, delete: false },
   marketing: { coupons: { view: false, edit: false }, bulk: { view: false, edit: false } },
   loyalty: {
     view: false,
