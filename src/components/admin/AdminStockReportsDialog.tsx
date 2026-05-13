@@ -40,6 +40,7 @@ export function AdminStockReportsDialog({
   const [groupId, setGroupId] = useState<string>("");
   const [subId, setSubId] = useState<string>("");
   const [movements, setMovements] = useState<Movement[]>([]);
+  const [restaurantMap, setRestaurantMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
   const subsByGroup = useMemo(() => {
@@ -59,8 +60,26 @@ export function AdminStockReportsDialog({
         .from("admin_stock_movements")
         .select("*")
         .order("created_at", { ascending: false });
+      const movs = (data ?? []) as Movement[];
+      const refIds = Array.from(new Set(movs.filter(m => m.type === "supply_delivery" && m.reference_id).map(m => m.reference_id as string)));
+      let restMap: Record<string, string> = {};
+      if (refIds.length) {
+        const { data: ords } = await supabase
+          .from("supply_orders")
+          .select("id, restaurant_id")
+          .in("id", refIds);
+        const rIds = Array.from(new Set((ords ?? []).map((o: any) => o.restaurant_id).filter(Boolean)));
+        const { data: rests } = rIds.length
+          ? await supabase.from("restaurants").select("id, name").in("id", rIds)
+          : { data: [] as any[] };
+        const nameById: Record<string, string> = Object.fromEntries((rests ?? []).map((r: any) => [r.id, r.name]));
+        (ords ?? []).forEach((o: any) => {
+          restMap[o.id] = nameById[o.restaurant_id] ?? "—";
+        });
+      }
       if (!cancelled) {
-        setMovements((data ?? []) as Movement[]);
+        setMovements(movs);
+        setRestaurantMap(restMap);
         setLoading(false);
       }
     })();
@@ -208,19 +227,24 @@ export function AdminStockReportsDialog({
                                 <tr>
                                   <th className="p-2">Data</th>
                                   <th className="p-2">Tipo</th>
+                                  <th className="p-2">Loja</th>
                                   <th className="p-2">Observação</th>
                                   <th className="p-2 text-right">Qtd</th>
                                 </tr>
                               </thead>
                               <tbody>
-                                {sd.items.map(m => (
-                                  <tr key={m.id} className="border-t">
-                                    <td className="p-2 whitespace-nowrap">{fmt(m.created_at)}</td>
-                                    <td className="p-2"><Badge variant="outline" className="text-[10px]">{typeLabel[m.type]}</Badge></td>
-                                    <td className="p-2 text-muted-foreground">{m.notes ?? "—"}</td>
-                                    <td className="p-2 text-right font-bold tabular-nums text-destructive">{m.quantity}</td>
-                                  </tr>
-                                ))}
+                                {sd.items.map(m => {
+                                  const restName = m.type === "supply_delivery" && m.reference_id ? (restaurantMap[m.reference_id] ?? "—") : "—";
+                                  return (
+                                    <tr key={m.id} className="border-t">
+                                      <td className="p-2 whitespace-nowrap">{fmt(m.created_at)}</td>
+                                      <td className="p-2"><Badge variant="outline" className="text-[10px]">{typeLabel[m.type]}</Badge></td>
+                                      <td className="p-2 font-medium">{restName}</td>
+                                      <td className="p-2 text-muted-foreground">{m.notes ?? "—"}</td>
+                                      <td className="p-2 text-right font-bold tabular-nums text-destructive">{m.quantity}</td>
+                                    </tr>
+                                  );
+                                })}
                               </tbody>
                             </table>
                           </div>
