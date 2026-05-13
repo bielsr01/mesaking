@@ -217,7 +217,7 @@ export function CustomersPanel({ restaurantId }: { restaurantId: string }) {
               Cadastre, edite e gerencie seus clientes. Quem faz pedido pelo delivery é salvo automaticamente.
             </CardDescription>
           </div>
-          <Button onClick={openNew}><Plus className="w-4 h-4 mr-1" /> Novo cliente</Button>
+          {canEdit && <Button onClick={openNew}><Plus className="w-4 h-4 mr-1" /> Novo cliente</Button>}
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
