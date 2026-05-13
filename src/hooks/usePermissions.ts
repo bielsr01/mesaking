@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { FULL_PERMISSIONS, Permissions, mergePermissions, getPerm } from "@/lib/permissions";
+import { EMPTY_PERMISSIONS, FULL_PERMISSIONS, Permissions, mergePermissions, getPerm } from "@/lib/permissions";
 
 export function usePermissions(restaurantId?: string): {
   permissions: Permissions;
@@ -9,7 +9,7 @@ export function usePermissions(restaurantId?: string): {
   loading: boolean;
   can: (path: string) => boolean;
 } {
-  const { user, isMasterAdmin } = useAuth();
+  const { user, isMasterAdmin, rolesLoading } = useAuth();
 
   const { data, isLoading } = useQuery({
     queryKey: ["userPermissions", restaurantId, user?.id],
@@ -19,12 +19,13 @@ export function usePermissions(restaurantId?: string): {
       if (!restaurantId || !user?.id) return { perms: FULL_PERMISSIONS, full: true };
       const { data: rest } = await supabase.from("restaurants").select("owner_id").eq("id", restaurantId).maybeSingle();
       if (rest?.owner_id === user.id) return { perms: FULL_PERMISSIONS, full: true };
-      const { data: mem } = await supabase
+      const { data: mem, error: memError } = await supabase
         .from("restaurant_members")
         .select("access_group_id")
         .eq("restaurant_id", restaurantId)
         .eq("user_id", user.id)
         .maybeSingle();
+      if (memError) throw memError;
       if (!mem) return { perms: FULL_PERMISSIONS, full: true };
       const groupId = (mem as any).access_group_id as string | null;
       if (!groupId) return { perms: FULL_PERMISSIONS, full: true };
@@ -40,8 +41,9 @@ export function usePermissions(restaurantId?: string): {
   if (isMasterAdmin) {
     return { permissions: FULL_PERMISSIONS, isFullAccess: true, loading: false, can: () => true };
   }
-  const isFull = data?.full ?? true;
-  const perms = data?.perms ?? FULL_PERMISSIONS;
+  const loading = rolesLoading || isLoading || (!!restaurantId && !!user?.id && data === undefined);
+  const isFull = loading ? false : data?.full ?? false;
+  const perms = loading ? EMPTY_PERMISSIONS : data?.perms ?? EMPTY_PERMISSIONS;
   const can = (path: string) => (isFull ? true : !!getPerm(perms, path));
-  return { permissions: perms, isFullAccess: isFull, loading: isLoading, can };
+  return { permissions: perms, isFullAccess: isFull, loading, can };
 }
