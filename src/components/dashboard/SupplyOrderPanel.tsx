@@ -367,6 +367,7 @@ export function SupplyOrderPanel({ restaurantId }: { restaurantId: string }) {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h2 className="text-2xl font-bold">Meus pedidos</h2>
+        {canEdit && (
         <Button
           size="lg"
           onClick={() => setView("new")}
@@ -374,6 +375,7 @@ export function SupplyOrderPanel({ restaurantId }: { restaurantId: string }) {
         >
           <PlusIcon className="w-5 h-5 mr-2" />Novo pedido
         </Button>
+        )}
       </div>
 
       {orders.length === 0 ? (
