@@ -244,6 +244,7 @@ export default function MasterAdmin() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                <BrasiliaClock />
                 <Button variant="outline" size="sm" disabled={refreshing} onClick={async () => {
                   setRefreshing(true);
                   try {

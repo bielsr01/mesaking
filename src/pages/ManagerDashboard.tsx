@@ -175,6 +175,7 @@ export default function ManagerDashboard() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                <BrasiliaClock />
                 <Button
                   variant="ghost"
                   size="icon"
