@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Plus, Pencil, Trash2, Package, ShoppingBag, Truck, CheckCircle2, X, Store } from "lucide-react";
 import { toast } from "sonner";
 import { brl } from "@/lib/format";
@@ -107,6 +108,13 @@ export function SupplyOrdersTab() {
     const { error } = await supabase.from("supply_orders").update({ status, ...stamps }).eq("id", o.id);
     if (error) return toast.error(error.message);
     toast.success("Status atualizado");
+    qc.invalidateQueries({ queryKey: ["admin_supply_orders"] });
+  };
+
+  const deleteOrder = async (o: SupplyOrder) => {
+    const { error } = await supabase.from("supply_orders").delete().eq("id", o.id);
+    if (error) return toast.error(error.message);
+    toast.success("Pedido excluído");
     qc.invalidateQueries({ queryKey: ["admin_supply_orders"] });
   };
 
@@ -247,6 +255,29 @@ export function SupplyOrdersTab() {
                     <CheckCircle2 className="w-5 h-5" /> Pedido finalizado
                   </div>
                 )}
+                <div className="border-t bg-muted/10 px-4 py-2 flex justify-end">
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                        <Trash2 className="w-4 h-4 mr-1" /> Excluir pedido
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Excluir este pedido?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          O pedido de {r?.name ?? "restaurante removido"} no valor de {brl(Number(o.total))} será removido permanentemente, junto com seus itens. Esta ação não pode ser desfeita.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => deleteOrder(o)} className="bg-destructive hover:bg-destructive/90">
+                          Excluir
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
               </Card>
             );
           })}
