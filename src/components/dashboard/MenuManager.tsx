@@ -507,20 +507,21 @@ function CategoryGroup({
 }
 
 function SortableProductCard({
-  product: p, onEdit, onToggle, onRemove, loading,
+  product: p, onEdit, onToggle, onRemove, loading, canEdit = true,
 }: {
   product: Product;
   onEdit: (p: Product) => void;
   onToggle: (p: Product) => void;
   onRemove: (p: Product) => void;
   loading?: boolean;
+  canEdit?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: p.id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
   return (
     <Card ref={setNodeRef} style={style} className={!p.is_active ? "opacity-60" : ""}>
       <CardContent className="p-3 flex gap-3 items-center">
-        <button
+        {canEdit && <button
           type="button"
           className="touch-none cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-1"
           {...attributes}
@@ -528,7 +529,7 @@ function SortableProductCard({
           aria-label="Arrastar para reordenar"
         >
           <GripVertical className="w-5 h-5" />
-        </button>
+        </button>}
         <div className="w-16 h-16 rounded-lg bg-muted overflow-hidden grid place-items-center shrink-0">
           {p.image_url ? <img src={p.image_url} alt={p.name} loading="lazy" className="w-full h-full object-cover" /> : <ImageIcon className="w-6 h-6 text-muted-foreground" />}
         </div>
@@ -537,9 +538,9 @@ function SortableProductCard({
           {p.description && <div className="text-xs text-muted-foreground line-clamp-1">{p.description}</div>}
           <div className="text-sm font-semibold text-primary mt-0.5">{brl(p.price)}</div>
         </div>
-        <Switch checked={p.is_active} onCheckedChange={() => onToggle(p)} />
-        <Button size="icon" variant="ghost" disabled={loading} onClick={() => onEdit(p)}>{loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Pencil className="w-4 h-4" />}</Button>
-        <Button size="icon" variant="ghost" onClick={() => onRemove(p)}><Trash2 className="w-4 h-4" /></Button>
+        {canEdit && <Switch checked={p.is_active} onCheckedChange={() => onToggle(p)} />}
+        {canEdit && <Button size="icon" variant="ghost" disabled={loading} onClick={() => onEdit(p)}>{loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Pencil className="w-4 h-4" />}</Button>}
+        {canEdit && <Button size="icon" variant="ghost" onClick={() => onRemove(p)}><Trash2 className="w-4 h-4" /></Button>}
       </CardContent>
     </Card>
   );
