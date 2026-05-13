@@ -188,6 +188,11 @@ export function AdminOwnExpensesPanel() {
                 <DialogHeader><DialogTitle>{editingCat ? "Editar" : "Nova"} categoria</DialogTitle></DialogHeader>
                 <form onSubmit={saveCat} className="space-y-3">
                   <div><Label>Nome</Label><Input name="name" defaultValue={editingCat?.name} required /></div>
+                  <div><Label>Ordem</Label><Input name="sort_order" type="number" defaultValue={editingCat?.sort_order ?? 0} /></div>
+                  <div className="flex items-center gap-2">
+                    <Switch name="requires_description" defaultChecked={editingCat?.requires_description ?? false} id="req-desc-admin" />
+                    <Label htmlFor="req-desc-admin" className="cursor-pointer">Solicitar nome/descrição da despesa</Label>
+                  </div>
                   <div className="flex items-center gap-2">
                     <Switch name="is_active" defaultChecked={editingCat?.is_active ?? true} id="cat-active" />
                     <Label htmlFor="cat-active" className="cursor-pointer">Ativa</Label>
@@ -200,14 +205,15 @@ export function AdminOwnExpensesPanel() {
         </CardHeader>
         <CardContent className="p-0">
           {cats.length === 0 ? (
-            <div className="p-6 text-center text-sm text-muted-foreground">Nenhuma categoria. Você pode digitar livremente ao cadastrar uma despesa.</div>
+            <div className="p-6 text-center text-sm text-muted-foreground">Nenhuma categoria cadastrada.</div>
           ) : (
             <Table>
-              <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Status</TableHead><TableHead className="w-24" /></TableRow></TableHeader>
+              <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Solicita descrição</TableHead><TableHead>Status</TableHead><TableHead className="w-24" /></TableRow></TableHeader>
               <TableBody>
                 {cats.map(c => (
                   <TableRow key={c.id}>
                     <TableCell className="font-medium">{c.name}</TableCell>
+                    <TableCell>{c.requires_description ? "Sim" : "Não"}</TableCell>
                     <TableCell>{c.is_active ? "Ativa" : "Inativa"}</TableCell>
                     <TableCell>
                       <div className="flex justify-end gap-1">
