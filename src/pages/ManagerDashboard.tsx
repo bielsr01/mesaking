@@ -97,23 +97,22 @@ export default function ManagerDashboard() {
       if (!user?.id || !restaurant?.id) return null;
       const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
       let groupName = "";
-      if (isMasterAdmin) {
-        groupName = "Administrador Master";
-      } else {
-        const { data: rest } = await supabase.from("restaurants").select("owner_id").eq("id", restaurant.id).maybeSingle();
-        if (rest?.owner_id === user.id) {
-          groupName = "Proprietário";
+      const { data: member } = await supabase
+        .from("restaurant_members")
+        .select("access_group_id")
+        .eq("restaurant_id", restaurant.id)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (member?.access_group_id) {
+        const { data: group } = await supabase.from("access_groups").select("name").eq("id", member.access_group_id).maybeSingle();
+        groupName = group?.name ?? "";
+      }
+      if (!groupName) {
+        if (isMasterAdmin) {
+          groupName = "Administrador Master";
         } else {
-          const { data: member } = await supabase
-            .from("restaurant_members")
-            .select("access_group_id")
-            .eq("restaurant_id", restaurant.id)
-            .eq("user_id", user.id)
-            .maybeSingle();
-          if (member?.access_group_id) {
-            const { data: group } = await supabase.from("access_groups").select("name").eq("id", member.access_group_id).maybeSingle();
-            groupName = group?.name ?? "";
-          }
+          const { data: rest } = await supabase.from("restaurants").select("owner_id").eq("id", restaurant.id).maybeSingle();
+          if (rest?.owner_id === user.id) groupName = "Proprietário";
         }
       }
       return { fullName: profile?.full_name ?? user.email ?? "Usuário", groupName };
