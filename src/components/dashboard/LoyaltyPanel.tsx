@@ -520,12 +520,15 @@ function MemberHistoryDialog({
                   <TableCell className="font-mono">{t.orders?.order_number ? `#${t.orders.order_number}` : "—"}</TableCell>
                   <TableCell>
                     {(() => {
-                      if (t.type === "redeem") return <Badge variant="default">Resgatado</Badge>;
+                      if (t.type === "redeem") return <Badge className="bg-destructive text-destructive-foreground hover:bg-destructive">Resgatado</Badge>;
                       if (t.type === "manual") return <Badge variant="outline">Ajuste manual</Badge>;
-                      return <Badge variant={t.status === "credited" ? "default" : "secondary"}>{t.status === "credited" ? "Creditado" : "Pendente"}</Badge>;
+                      if (t.status === "credited") return <Badge className="bg-success text-success-foreground hover:bg-success">Creditado</Badge>;
+                      return <Badge variant="secondary">Pendente</Badge>;
                     })()}
                   </TableCell>
-                  <TableCell className="text-right font-bold">{t.points > 0 ? `+${t.points}` : t.points}</TableCell>
+                  <TableCell className={`text-right font-bold ${t.points > 0 ? "text-success" : "text-destructive"}`}>
+                    {t.points > 0 ? `+${t.points}` : t.points}
+                  </TableCell>
                 </TableRow>
               ))}
               {(historyQ.data ?? []).length === 0 && (
