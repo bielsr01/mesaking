@@ -214,6 +214,7 @@ export default function MasterAdmin() {
     customers: "Clientes",
     "marketing:coupons": "Cupons de desconto",
     "marketing:bulk": "Envio em massa",
+    "marketing:loyalty": "Programa de fidelidade",
     "settings:integrations": "Integrações",
     "settings:ifood-fees": "Configurações iFood",
     "supply:catalog": "Catálogo de insumos",
