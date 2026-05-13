@@ -385,6 +385,7 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
                 onToggle={toggleCat}
                 onEdit={(c) => { setEditingCat(c); setCatOpen(true); }}
                 onRemove={removeCat}
+                canEdit={canEdit}
               />
             )}
           </CardContent>
