@@ -110,7 +110,15 @@ export async function fetchOrders(restaurantId: string): Promise<{ orders: Order
 
 export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const qc = useQueryClient();
-  const [channel, setChannel] = useState<"delivery" | "pdv" | "ifood">("pdv");
+  const { can } = usePermissions(restaurantId);
+  const canPdv = can("orders.channels.pdv");
+  const canDelivery = can("orders.channels.delivery") || can("orders.channels.pickup");
+  const canIfood = can("orders.channels.ifood");
+  const canChangeStatus = can("orders.change_status");
+  const canEditOrders = can("orders.edit");
+  const canCreatePdv = can("orders.create_pdv_order");
+  const initialChannel: "delivery" | "pdv" | "ifood" = canPdv ? "pdv" : canDelivery ? "delivery" : canIfood ? "ifood" : "pdv";
+  const [channel, setChannel] = useState<"delivery" | "pdv" | "ifood">(initialChannel);
   const [filter, setFilter] = useState("pending");
   const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Order | null>(null);
@@ -121,6 +129,15 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const [pendingAction, setPendingAction] = useState<Record<string, boolean>>({});
   const setPending = (id: string, v: boolean) =>
     setPendingAction((m) => ({ ...m, [id]: v }));
+
+  // If current channel becomes forbidden, switch to first allowed
+  useEffect(() => {
+    const allowed = (channel === "pdv" && canPdv) || (channel === "delivery" && canDelivery) || (channel === "ifood" && canIfood);
+    if (allowed) return;
+    if (canPdv) setChannel("pdv");
+    else if (canDelivery) setChannel("delivery");
+    else if (canIfood) setChannel("ifood");
+  }, [channel, canPdv, canDelivery, canIfood]);
 
   const doPrint = (o: Order, mode: TicketMode) => {
     const html = buildTicketHtml(
