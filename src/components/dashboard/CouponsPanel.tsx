@@ -20,6 +20,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { brl } from "@/lib/format";
+import { usePermissions } from "@/hooks/usePermissions";
 
 type Coupon = {
   id: string;
