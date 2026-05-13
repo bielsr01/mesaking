@@ -399,6 +399,7 @@ export default function MasterAdmin() {
             {view === "customers" && <AdminCustomersPanel />}
             {view === "marketing:coupons" && <AdminCouponsPanel />}
             {view === "marketing:bulk" && <BulkCampaignsPanel scope="admin" />}
+            {view === "marketing:loyalty" && <AdminLoyaltyPanel />}
             {view === "settings:integrations" && (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <EvolutionIntegrationCard scope="admin" />
