@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Pencil, Trash2, Package, ShoppingBag, Truck, CheckCircle2, X, Store } from "lucide-react";
 import { toast } from "sonner";
@@ -491,40 +492,37 @@ export function SupplyCatalogTab() {
 
               <div>
                 <Label>Grupo de estoque</Label>
-                <select
-                  value={stockGroupId}
-                  onChange={(e) => setStockGroupId(e.target.value)}
-                  className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
-                >
-                  <option value="">Não vincular ao estoque</option>
-                  {stockGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-                </select>
+                <Select value={stockGroupId || "none"} onValueChange={(v) => setStockGroupId(v === "none" ? "" : v)}>
+                  <SelectTrigger><SelectValue placeholder="Não vincular ao estoque" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Não vincular ao estoque</SelectItem>
+                    {stockGroups.map(g => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
                 <p className="text-xs text-muted-foreground mt-1">Quando o pedido for marcado como entregue, a quantidade entra automaticamente neste grupo no estoque do restaurante.</p>
               </div>
 
               <div>
                 <Label>Grupo do estoque admin (fábrica)</Label>
-                <select
-                  value={adminStockGroupId}
-                  onChange={(e) => setAdminStockGroupId(e.target.value)}
-                  className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
-                >
-                  <option value="">Não vincular ao estoque admin</option>
-                  {adminGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-                </select>
+                <Select value={adminStockGroupId || "none"} onValueChange={(v) => setAdminStockGroupId(v === "none" ? "" : v)}>
+                  <SelectTrigger><SelectValue placeholder="Não vincular ao estoque admin" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Não vincular ao estoque admin</SelectItem>
+                    {adminGroups.map(g => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
                 <p className="text-xs text-muted-foreground mt-1">Quando o pedido for entregue, cada opção (sabor) descontará a quantidade pedida do subgrupo correspondente no estoque admin.</p>
               </div>
 
               <div>
                 <Label>Vincular à categoria de despesa</Label>
-                <select
-                  value={expenseCategoryId}
-                  onChange={(e) => setExpenseCategoryId(e.target.value)}
-                  className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
-                >
-                  <option value="">Não vincular a despesa</option>
-                  {expenseCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
+                <Select value={expenseCategoryId || "none"} onValueChange={(v) => setExpenseCategoryId(v === "none" ? "" : v)}>
+                  <SelectTrigger><SelectValue placeholder="Não vincular a despesa" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Não vincular a despesa</SelectItem>
+                    {expenseCategories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
                 <p className="text-xs text-muted-foreground mt-1">Se vinculado, ao marcar o pedido como entregue será criada automaticamente uma despesa para o restaurante com a descrição igual ao nome deste insumo.</p>
               </div>
 
@@ -568,19 +566,24 @@ export function SupplyCatalogTab() {
                             return (
                               <div key={i} className="flex items-center gap-2 rounded-md border bg-background p-2">
                                 <span className="font-medium text-sm flex-1 truncate">{o.name}</span>
-                                <select
-                                  value={o.admin_stock_subgroup_id ?? ""}
-                                  onChange={(e) => {
-                                    const v = e.target.value || null;
-                                    setOptions(arr => arr.map((x, idx) => idx === i ? { ...x, admin_stock_subgroup_id: v } : x));
-                                  }}
-                                  disabled={!adminStockGroupId}
-                                  className="h-8 rounded-md border border-input bg-background px-2 text-xs flex-1 disabled:opacity-60"
-                                  title={adminStockGroupId ? "Vincular a um subgrupo do estoque admin" : "Selecione antes o grupo do estoque admin"}
-                                >
-                                  <option value="">{adminStockGroupId ? "Sem vínculo" : "Selecione o grupo admin"}</option>
-                                  {availSubs.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                                </select>
+                                <div className="flex-1">
+                                  <Select
+                                    value={o.admin_stock_subgroup_id ?? "none"}
+                                    onValueChange={(val) => {
+                                      const v = val === "none" ? null : val;
+                                      setOptions(arr => arr.map((x, idx) => idx === i ? { ...x, admin_stock_subgroup_id: v } : x));
+                                    }}
+                                    disabled={!adminStockGroupId}
+                                  >
+                                    <SelectTrigger className="h-8 text-xs">
+                                      <SelectValue placeholder={adminStockGroupId ? "Sem vínculo" : "Selecione o grupo admin"} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="none">{adminStockGroupId ? "Sem vínculo" : "Selecione o grupo admin"}</SelectItem>
+                                      {availSubs.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
                                 <button type="button" onClick={() => setOptions(arr => arr.filter((_, idx) => idx !== i))}
                                   className="hover:bg-destructive/20 rounded p-1"><X className="w-3 h-3" /></button>
                               </div>

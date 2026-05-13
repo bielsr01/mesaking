@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -128,17 +129,23 @@ export function AdminStockReportsDialog({
           </div>
           <div>
             <Label>Grupo</Label>
-            <select value={groupId} onChange={(e) => setGroupId(e.target.value)} className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm">
-              <option value="">Todos</option>
-              {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-            </select>
+            <Select value={groupId || "all"} onValueChange={(v) => { setGroupId(v === "all" ? "" : v); setSubId(""); }}>
+              <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                {groups.map(g => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <Label>Subgrupo</Label>
-            <select value={subId} onChange={(e) => setSubId(e.target.value)} className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm" disabled={!groupId}>
-              <option value="">Todos</option>
-              {(groupId ? (subsByGroup[groupId] ?? []) : []).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
+            <Select value={subId || "all"} onValueChange={(v) => setSubId(v === "all" ? "" : v)} disabled={!groupId}>
+              <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                {(groupId ? (subsByGroup[groupId] ?? []) : []).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
