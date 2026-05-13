@@ -61,8 +61,64 @@ export const FULL_PERMISSIONS: Permissions = {
   access_management: { view: true },
 };
 
+export const EMPTY_PERMISSIONS: Permissions = {
+  overview: { view: false },
+  orders: {
+    view: false,
+    channels: { pdv: false, delivery: false, pickup: false, ifood: false },
+    edit: false,
+    change_status: false,
+    create_pdv_order: false,
+  },
+  menu: { view: false, edit: false },
+  customers: { view: false, edit: false, delete: false },
+  marketing: { coupons: { view: false, edit: false }, bulk: { view: false, edit: false } },
+  loyalty: {
+    view: false,
+    toggle_program: false,
+    credit_points: false,
+    redeem_points: false,
+    manual_adjust: false,
+    member_create: false,
+    member_delete: false,
+    rewards: { view: false, edit: false, delete: false },
+  },
+  settings: { view: false },
+  supply_orders: { view: false, edit: false },
+  stock: { view: false, edit: false },
+  expenses: { view: false },
+  finance: { view: false },
+  access_management: { view: false },
+};
+
+const PERMISSION_DEPENDENCIES: Record<string, string> = {
+  "orders.channels.pdv": "orders.view",
+  "orders.channels.delivery": "orders.view",
+  "orders.channels.pickup": "orders.view",
+  "orders.channels.ifood": "orders.view",
+  "orders.change_status": "orders.view",
+  "orders.edit": "orders.view",
+  "orders.create_pdv_order": "orders.channels.pdv",
+  "menu.edit": "menu.view",
+  "customers.edit": "customers.view",
+  "customers.delete": "customers.view",
+  "marketing.coupons.edit": "marketing.coupons.view",
+  "marketing.bulk.edit": "marketing.bulk.view",
+  "loyalty.toggle_program": "loyalty.view",
+  "loyalty.member_create": "loyalty.view",
+  "loyalty.member_delete": "loyalty.view",
+  "loyalty.credit_points": "loyalty.view",
+  "loyalty.redeem_points": "loyalty.view",
+  "loyalty.manual_adjust": "loyalty.view",
+  "loyalty.rewards.view": "loyalty.view",
+  "loyalty.rewards.edit": "loyalty.rewards.view",
+  "loyalty.rewards.delete": "loyalty.rewards.view",
+  "supply_orders.edit": "supply_orders.view",
+  "stock.edit": "stock.view",
+};
+
 export function mergePermissions(partial: any): Permissions {
-  const base: any = JSON.parse(JSON.stringify(FULL_PERMISSIONS));
+  const base: any = JSON.parse(JSON.stringify(EMPTY_PERMISSIONS));
   function merge(b: any, p: any) {
     if (!p || typeof p !== "object") return;
     for (const k of Object.keys(p)) {
@@ -74,7 +130,17 @@ export function mergePermissions(partial: any): Permissions {
     }
   }
   merge(base, partial);
+  for (const [child, parent] of Object.entries(PERMISSION_DEPENDENCIES)) {
+    if (!getPerm(base, parent)) setPerm(base, child, false);
+  }
   return base as Permissions;
+}
+
+function setPerm(perms: any, path: string, value: boolean) {
+  const keys = path.split(".");
+  let obj = perms;
+  for (let i = 0; i < keys.length - 1; i++) obj = obj[keys[i]];
+  obj[keys[keys.length - 1]] = value;
 }
 
 export function getPerm(perms: Permissions | undefined | null, path: string): any {
