@@ -30,6 +30,8 @@ import { ExpensesPanel } from "@/components/dashboard/ExpensesPanel";
 import { FinancePanel } from "@/components/dashboard/FinancePanel";
 import { OverviewPanel } from "@/components/dashboard/OverviewPanel";
 import { StockPanel } from "@/components/dashboard/StockPanel";
+import { AccessManagementPanel } from "@/components/dashboard/AccessManagementPanel";
+import { usePermissions } from "@/hooks/usePermissions";
 
 import { BulkCampaignsPanel } from "@/components/dashboard/BulkCampaignsPanel";
 import { ManualOverride, OpeningHours } from "@/lib/hours";
@@ -139,7 +141,6 @@ export default function ManagerDashboard() {
   const titleByView: Record<DashboardView, string> = {
     overview: "Visão geral",
     orders: "Pedidos",
-    
     menu: "Cardápio",
     customers: "Clientes",
     "marketing:coupons": "Cupons de desconto",
@@ -149,6 +150,7 @@ export default function ManagerDashboard() {
     "settings:business": "Informações do negócio",
     "settings:printers": "Impressões",
     "settings:integrations": "Integrações",
+    "settings:access": "Gestão de Acessos",
     "supply-orders": "Pedido de Insumos",
     stock: "Estoque",
     expenses: "Cadastro de despesas",
