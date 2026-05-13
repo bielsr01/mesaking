@@ -265,7 +265,7 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
                 <div className="font-medium">Ativar programa</div>
                 <p className="text-xs text-muted-foreground">Quando ativo, clientes podem optar por pontuar ao fazer pedido.</p>
               </div>
-              <Switch checked={enabled} onCheckedChange={setEnabled} />
+              <Switch checked={enabled} onCheckedChange={setEnabled} disabled={!canToggle} />
             </div>
             {isAdmin ? (
               <div className="space-y-2">
@@ -279,7 +279,7 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
                 <div className="font-bold text-lg">{pointsPerReal}</div>
               </div>
             )}
-            <Button onClick={saveSettings}>Salvar</Button>
+            {(canToggle || isAdmin) && <Button onClick={saveSettings}>Salvar</Button>}
           </TabsContent>
 
           {/* Members */}
