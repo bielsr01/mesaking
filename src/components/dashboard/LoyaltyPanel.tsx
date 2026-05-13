@@ -278,11 +278,18 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
               </div>
               <Switch checked={enabled} onCheckedChange={setEnabled} />
             </div>
-            <div className="space-y-2">
-              <Label>Pontos por R$ 1,00</Label>
-              <Input type="number" step="0.01" min="0" value={pointsPerReal} onChange={(e) => setPointsPerReal(e.target.value)} />
-              <p className="text-xs text-muted-foreground">Padrão: 1 ponto por real gasto.</p>
-            </div>
+            {isAdmin ? (
+              <div className="space-y-2">
+                <Label>Pontos por R$ 1,00</Label>
+                <Input type="number" step="0.01" min="0" value={pointsPerReal} onChange={(e) => setPointsPerReal(e.target.value)} />
+                <p className="text-xs text-muted-foreground">Configurável apenas pelo administrador. Padrão: 1 ponto por real gasto.</p>
+              </div>
+            ) : (
+              <div className="space-y-1 rounded-lg border bg-muted/30 p-3">
+                <div className="text-xs text-muted-foreground">Pontos por R$ 1,00 (definido pelo administrador)</div>
+                <div className="font-bold text-lg">{pointsPerReal}</div>
+              </div>
+            )}
             <Button onClick={saveSettings}>Salvar</Button>
           </TabsContent>
 
