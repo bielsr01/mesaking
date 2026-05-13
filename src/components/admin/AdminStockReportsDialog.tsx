@@ -40,6 +40,7 @@ export function AdminStockReportsDialog({
   const [groupId, setGroupId] = useState<string>("");
   const [subId, setSubId] = useState<string>("");
   const [movements, setMovements] = useState<Movement[]>([]);
+  const [restaurantMap, setRestaurantMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
   const subsByGroup = useMemo(() => {
@@ -59,8 +60,21 @@ export function AdminStockReportsDialog({
         .from("admin_stock_movements")
         .select("*")
         .order("created_at", { ascending: false });
+      const movs = (data ?? []) as Movement[];
+      const refIds = Array.from(new Set(movs.filter(m => m.type === "supply_delivery" && m.reference_id).map(m => m.reference_id as string)));
+      let restMap: Record<string, string> = {};
+      if (refIds.length) {
+        const { data: ords } = await supabase
+          .from("supply_orders")
+          .select("id, restaurants:restaurant_id(name)")
+          .in("id", refIds);
+        (ords ?? []).forEach((o: any) => {
+          restMap[o.id] = o.restaurants?.name ?? "—";
+        });
+      }
       if (!cancelled) {
-        setMovements((data ?? []) as Movement[]);
+        setMovements(movs);
+        setRestaurantMap(restMap);
         setLoading(false);
       }
     })();
