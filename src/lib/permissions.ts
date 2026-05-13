@@ -26,7 +26,7 @@ export type Permissions = {
   settings: { view: boolean };
   supply_orders: { view: boolean; edit: boolean };
   stock: { view: boolean; edit: boolean };
-  expenses: { view: boolean };
+  expenses: { view: boolean; edit: boolean };
   finance: { view: boolean };
   access_management: { view: boolean };
 };
@@ -56,7 +56,7 @@ export const FULL_PERMISSIONS: Permissions = {
   settings: { view: true },
   supply_orders: { view: true, edit: true },
   stock: { view: true, edit: true },
-  expenses: { view: true },
+  expenses: { view: true, edit: true },
   finance: { view: true },
   access_management: { view: true },
 };
@@ -86,7 +86,7 @@ export const EMPTY_PERMISSIONS: Permissions = {
   settings: { view: false },
   supply_orders: { view: false, edit: false },
   stock: { view: false, edit: false },
-  expenses: { view: false },
+  expenses: { view: false, edit: false },
   finance: { view: false },
   access_management: { view: false },
 };
@@ -115,6 +115,7 @@ const PERMISSION_DEPENDENCIES: Record<string, string> = {
   "loyalty.rewards.delete": "loyalty.rewards.view",
   "supply_orders.edit": "supply_orders.view",
   "stock.edit": "stock.view",
+  "expenses.edit": "expenses.view",
 };
 
 export function mergePermissions(partial: any): Permissions {
