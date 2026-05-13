@@ -97,6 +97,7 @@ const empty = {
 
 export function CustomersPanel({ restaurantId }: { restaurantId: string }) {
   const { can } = usePermissions(restaurantId);
+  const canCreate = can("customers.create");
   const canEdit = can("customers.edit");
   const canDelete = can("customers.delete");
   const qc = useQueryClient();
@@ -165,7 +166,7 @@ export function CustomersPanel({ restaurantId }: { restaurantId: string }) {
   };
 
   const save = async () => {
-    if (!canEdit) return toast.error("Sem permissão para salvar cliente");
+    if (editing ? !canEdit : !canCreate) return toast.error(editing ? "Sem permissão para editar cliente" : "Sem permissão para cadastrar cliente");
     if (form.name.trim().length < 2) return toast.error("Informe o nome");
     if (unmaskPhone(form.phone).length < 10) return toast.error("Telefone inválido");
     setBusy(true);
@@ -219,7 +220,7 @@ export function CustomersPanel({ restaurantId }: { restaurantId: string }) {
               Cadastre, edite e gerencie seus clientes. Quem faz pedido pelo delivery é salvo automaticamente.
             </CardDescription>
           </div>
-          {canEdit && <Button onClick={openNew}><Plus className="w-4 h-4 mr-1" /> Novo cliente</Button>}
+          {canCreate && <Button onClick={openNew}><Plus className="w-4 h-4 mr-1" /> Novo cliente</Button>}
         </div>
       </CardHeader>
       <CardContent className="space-y-4">

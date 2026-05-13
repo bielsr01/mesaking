@@ -22,7 +22,7 @@ export type Permissions = {
     create_pdv_order: boolean;
   };
   menu: { view: boolean; edit: boolean };
-  customers: { view: boolean; edit: boolean; delete: boolean };
+  customers: { view: boolean; create: boolean; edit: boolean; delete: boolean };
   marketing: {
     coupons: { view: boolean; edit: boolean };
     bulk: { view: boolean; edit: boolean };
@@ -63,7 +63,7 @@ export const FULL_PERMISSIONS: Permissions = {
     create_pdv_order: true,
   },
   menu: { view: true, edit: true },
-  customers: { view: true, edit: true, delete: true },
+  customers: { view: true, create: true, edit: true, delete: true },
   marketing: { coupons: { view: true, edit: true }, bulk: { view: true, edit: true } },
   loyalty: {
     view: true,
@@ -98,7 +98,7 @@ export const EMPTY_PERMISSIONS: Permissions = {
     create_pdv_order: false,
   },
   menu: { view: false, edit: false },
-  customers: { view: false, edit: false, delete: false },
+  customers: { view: false, create: false, edit: false, delete: false },
   marketing: { coupons: { view: false, edit: false }, bulk: { view: false, edit: false } },
   loyalty: {
     view: false,
@@ -130,6 +130,7 @@ const PERMISSION_DEPENDENCIES: Record<string, string> = {
   ...Object.fromEntries(DELIVERY_STATUSES.map((s) => [`orders.statuses.delivery.${s}`, "orders.channels.delivery"])),
   ...Object.fromEntries(IFOOD_STATUSES.map((s) => [`orders.statuses.ifood.${s}`, "orders.channels.ifood"])),
   "menu.edit": "menu.view",
+  "customers.create": "customers.view",
   "customers.edit": "customers.view",
   "customers.delete": "customers.view",
   "marketing.coupons.edit": "marketing.coupons.view",
@@ -158,6 +159,11 @@ const LEGACY_INHERIT_FROM_PARENT: string[] = [
   ...IFOOD_STATUSES.map((s) => `orders.statuses.ifood.${s}`),
 ];
 
+// Para chaves legadas onde queremos herdar de outro nó (não o "parent" das dependências).
+const LEGACY_INHERIT_OVERRIDES: Record<string, string> = {
+  "customers.create": "customers.edit",
+};
+
 function pathDefined(obj: any, path: string): boolean {
   const keys = path.split(".");
   let o = obj;
@@ -185,6 +191,11 @@ export function mergePermissions(partial: any): Permissions {
     if (!pathDefined(partial, child)) {
       const parent = PERMISSION_DEPENDENCIES[child];
       if (parent && getPerm(base as Permissions, parent)) setPerm(base, child, true);
+    }
+  }
+  for (const [child, source] of Object.entries(LEGACY_INHERIT_OVERRIDES)) {
+    if (!pathDefined(partial, child) && getPerm(base as Permissions, source)) {
+      setPerm(base, child, true);
     }
   }
   for (const [child, parent] of Object.entries(PERMISSION_DEPENDENCIES)) {

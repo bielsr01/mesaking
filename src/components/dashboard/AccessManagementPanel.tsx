@@ -55,6 +55,7 @@ const SECTIONS: Array<{ key: keyof Permissions; label: string; rows: Row[] }> = 
   ]},
   { key: "customers", label: "Clientes", rows: [
     { path: "customers.view", label: "Visualizar" },
+    { path: "customers.create", label: "Cadastrar novo cliente" },
     { path: "customers.edit", label: "Editar dados" },
     { path: "customers.delete", label: "Excluir cliente" },
   ]},
@@ -116,6 +117,7 @@ const PERMISSION_DEPENDENCIES: Record<string, string> = {
   "orders.edit": "orders.view",
   "orders.create_pdv_order": "orders.channels.pdv",
   "menu.edit": "menu.view",
+  "customers.create": "customers.view",
   "customers.edit": "customers.view",
   "customers.delete": "customers.view",
   "marketing.coupons.edit": "marketing.coupons.view",
