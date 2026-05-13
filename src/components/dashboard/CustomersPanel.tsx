@@ -19,6 +19,7 @@ import { formatPhone, unmaskPhone } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
+import { usePermissions } from "@/hooks/usePermissions";
 
 type ClientType = "elite" | "best" | "frequent" | "new" | "none";
 type ClientStatus = "active" | "inactive" | "sleeping" | "risk";
