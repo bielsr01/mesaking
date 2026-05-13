@@ -96,6 +96,7 @@ export function BulkCampaignsPanel({
   const restNameById = useMemo(() => { const m = new Map<string,string>(); allRest.forEach(r=>m.set(r.id,r.name)); return m; }, [allRest]);
 
   const setStatus = async (id: string, status: "running" | "paused") => {
+    if (!canEdit) return toast.error("Sem permissão para alterar campanha");
     const patch: any = { status };
     if (status === "running") patch.started_at = new Date().toISOString();
     const { error } = await sb.from("bulk_campaigns").update(patch).eq("id", id);
@@ -108,6 +109,7 @@ export function BulkCampaignsPanel({
   };
 
   const clearAutoPause = async (id: string) => {
+    if (!canEdit) return toast.error("Sem permissão para alterar campanha");
     const { error } = await sb.from("bulk_campaigns").update({ paused_until: null, sent_in_block: 0 }).eq("id", id);
     if (error) return toast.error(error.message);
     supabase.functions.invoke("bulk-campaign-worker", { body: {} }).catch(() => {});
@@ -116,6 +118,7 @@ export function BulkCampaignsPanel({
   };
 
   const remove = async (id: string) => {
+    if (!canEdit) return toast.error("Sem permissão para excluir campanha");
     const { error } = await sb.from("bulk_campaigns").delete().eq("id", id);
     if (error) return toast.error(error.message);
     toast.success("Removida");
@@ -123,6 +126,7 @@ export function BulkCampaignsPanel({
   };
 
   const handleEdit = async (c: any) => {
+    if (!canEdit) return toast.error("Sem permissão para editar campanha");
     if (c.status === "running") {
       if (!confirm("A campanha está em execução. Ela será pausada para edição. Continuar?")) return;
       const { error } = await sb.from("bulk_campaigns").update({ status: "paused" }).eq("id", c.id);
