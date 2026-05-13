@@ -10,13 +10,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Download, Receipt, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Download, Receipt, Loader2, Image as ImageIcon, Eye, X } from "lucide-react";
 import { toast } from "sonner";
 import { brl } from "@/lib/format";
 
 type Expense = {
   id: string; restaurant_id: string; description: string; category: string | null; category_id: string | null;
-  amount: number; expense_date: string; notes: string | null; created_at: string;
+  amount: number; expense_date: string; notes: string | null; created_at: string; receipt_url: string | null;
 };
 type Cat = { id: string; name: string; requires_description: boolean; is_active: boolean };
 
