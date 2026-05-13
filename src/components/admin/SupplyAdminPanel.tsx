@@ -464,6 +464,19 @@ export function SupplyCatalogTab() {
               </div>
 
               <div>
+                <Label>Grupo do estoque admin (fábrica)</Label>
+                <select
+                  value={adminStockGroupId}
+                  onChange={(e) => setAdminStockGroupId(e.target.value)}
+                  className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="">Não vincular ao estoque admin</option>
+                  {adminGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+                </select>
+                <p className="text-xs text-muted-foreground mt-1">Quando o pedido for entregue, cada opção (sabor) descontará a quantidade pedida do subgrupo correspondente no estoque admin.</p>
+              </div>
+
+              <div>
                 <Label>Vincular à categoria de despesa</Label>
                 <select
                   value={expenseCategoryId}
