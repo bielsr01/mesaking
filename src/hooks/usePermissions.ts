@@ -1,9 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { FULL_PERMISSIONS, Permissions, mergePermissions } from "@/lib/permissions";
+import { FULL_PERMISSIONS, Permissions, mergePermissions, getPerm } from "@/lib/permissions";
 
-export function usePermissions(restaurantId?: string): { permissions: Permissions; isFullAccess: boolean; loading: boolean } {
+export function usePermissions(restaurantId?: string): {
+  permissions: Permissions;
+  isFullAccess: boolean;
+  loading: boolean;
+  can: (path: string) => boolean;
+} {
   const { user, isMasterAdmin } = useAuth();
 
   const { data, isLoading } = useQuery({
@@ -12,10 +17,8 @@ export function usePermissions(restaurantId?: string): { permissions: Permission
     staleTime: 60_000,
     queryFn: async () => {
       if (!restaurantId || !user?.id) return { perms: FULL_PERMISSIONS, full: true };
-      // Owner?
       const { data: rest } = await supabase.from("restaurants").select("owner_id").eq("id", restaurantId).maybeSingle();
       if (rest?.owner_id === user.id) return { perms: FULL_PERMISSIONS, full: true };
-      // Member?
       const { data: mem } = await supabase
         .from("restaurant_members")
         .select("access_group_id")
@@ -34,10 +37,11 @@ export function usePermissions(restaurantId?: string): { permissions: Permission
     },
   });
 
-  if (isMasterAdmin) return { permissions: FULL_PERMISSIONS, isFullAccess: true, loading: false };
-  return {
-    permissions: data?.perms ?? FULL_PERMISSIONS,
-    isFullAccess: data?.full ?? true,
-    loading: isLoading,
-  };
+  if (isMasterAdmin) {
+    return { permissions: FULL_PERMISSIONS, isFullAccess: true, loading: false, can: () => true };
+  }
+  const isFull = data?.full ?? true;
+  const perms = data?.perms ?? FULL_PERMISSIONS;
+  const can = (path: string) => (isFull ? true : !!getPerm(perms, path));
+  return { permissions: perms, isFullAccess: isFull, loading: isLoading, can };
 }
