@@ -10,9 +10,11 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { BarChart3, Download } from "lucide-react";
+import { BarChart3, Download, Calendar as CalendarIcon } from "lucide-react";
 import { brl, todayISOBR, monthStartISOBR, isoDateBR, addDaysISO, ymdBR } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 
 type Restaurant = { id: string; name: string; slug: string };
 type Status = "pending" | "accepted" | "shipped" | "delivered" | "all";
