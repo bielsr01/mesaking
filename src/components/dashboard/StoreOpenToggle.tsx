@@ -95,31 +95,47 @@ export function StoreOpenToggle({ restaurantId, openingHours, manualOverride, on
   };
 
   const confirmClose = async () => {
-    let until: string | null = null;
-    const now = new Date();
-    if (closeMode === "minutes") {
-      const m = Math.max(1, parseInt(minutes) || 0);
-      until = new Date(now.getTime() + m * 60_000).toISOString();
-    } else if (closeMode === "until") {
-      const [h, mi] = untilTime.split(":").map(Number);
-      const d = new Date(now);
-      d.setHours(h, mi, 0, 0);
-      if (d.getTime() <= now.getTime()) d.setDate(d.getDate() + 1);
-      until = d.toISOString();
-    } else {
-      // dia todo: até 23:59:59 de hoje
-      const d = new Date(now);
-      d.setHours(23, 59, 59, 999);
-      until = d.toISOString();
-    }
+    const until = computeUntil(closeMode, minutes, untilTime);
     await persist({ type: "closed", until });
     setCloseDialog(false);
     toast.success("Loja fechada");
   };
 
+  // Auto-sync: quando override expira ou a janela de horário muda, atualiza is_open no banco
+  const lastSyncedRef = useRef<boolean>(open);
+  useEffect(() => { lastSyncedRef.current = open; }, []);
+  useEffect(() => {
+    const tick = async () => {
+      const computed = isOpenNow(openingHours, manualOverride);
+      const ovNow = getEffectiveOverride(manualOverride);
+      // Se o override expirou (ainda existe no banco mas já passou), limpar
+      if (manualOverride && !ovNow) {
+        await supabase
+          .from("restaurants")
+          .update({ manual_override: null, is_open: isWithinSchedule(openingHours) })
+          .eq("id", restaurantId);
+        onChanged();
+        return;
+      }
+      if (computed !== lastSyncedRef.current) {
+        lastSyncedRef.current = computed;
+        await supabase.from("restaurants").update({ is_open: computed }).eq("id", restaurantId);
+        onChanged();
+      }
+    };
+    const id = setInterval(tick, 30_000);
+    tick();
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restaurantId, JSON.stringify(openingHours), JSON.stringify(manualOverride)]);
+
   const ovLabel = () => {
     if (!ov) return null;
-    if (ov.type === "open" && !withinSchedule) return "Aberto manualmente";
+    if (ov.type === "open" && !withinSchedule) {
+      if (!ov.until) return "Aberto manualmente";
+      const d = new Date(ov.until);
+      return `Aberto até ${d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
+    }
     if (ov.type === "closed") {
       if (!ov.until) return "Fechado";
       const d = new Date(ov.until);
