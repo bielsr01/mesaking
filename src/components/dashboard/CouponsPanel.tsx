@@ -162,7 +162,7 @@ export function CouponsPanel({ restaurantId }: { restaurantId: string }) {
 
   const formatDiscount = (c: Coupon) => c.discount_type === "percent" ? `${Number(c.discount_value)}%` : brl(Number(c.discount_value));
 
-  if (showMetrics) {
+  if (showMetrics && canMetrics) {
     return <CouponMetrics restaurantId={restaurantId} onBack={() => setShowMetrics(false)} />;
   }
 
