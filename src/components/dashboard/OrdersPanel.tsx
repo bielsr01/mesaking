@@ -451,8 +451,9 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const channelOrders = orders.filter((o) => {
     if (channel === "pdv") return o.order_type === "pdv";
     if (channel === "ifood") return o.external_source === "ifood";
-    // delivery: tudo que não é pdv e não é ifood
-    return o.order_type !== "pdv" && o.external_source !== "ifood";
+    if (channel === "quero") return o.external_source === "quero";
+    // delivery: tudo que não é pdv e não é ifood/quero
+    return o.order_type !== "pdv" && o.external_source !== "ifood" && o.external_source !== "quero";
   });
 
   const filtered = channelOrders.filter((o) => {
