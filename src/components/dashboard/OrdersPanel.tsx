@@ -114,13 +114,15 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const canPdv = can("orders.channels.pdv");
   const canDelivery = can("orders.channels.delivery") || can("orders.channels.pickup");
   const canIfood = can("orders.channels.ifood");
+  const canQuero = can("orders.channels.quero");
   const canChangeStatus = can("orders.change_status");
   const canEditOrders = can("orders.edit");
   const canCreatePdv = can("orders.create_pdv_order");
-  const initialChannel: "delivery" | "pdv" | "ifood" = canPdv ? "pdv" : canDelivery ? "delivery" : canIfood ? "ifood" : "pdv";
-  const [channel, setChannel] = useState<"delivery" | "pdv" | "ifood">(initialChannel);
-  const statusKey = (ch: "delivery" | "pdv" | "ifood", s: string) => `orders.statuses.${ch}.${s}`;
-  const firstAllowedStatus = (ch: "delivery" | "pdv" | "ifood", preferred: string[]) => {
+  type Channel = "delivery" | "pdv" | "ifood" | "quero";
+  const initialChannel: Channel = canPdv ? "pdv" : canDelivery ? "delivery" : canIfood ? "ifood" : canQuero ? "quero" : "pdv";
+  const [channel, setChannel] = useState<Channel>(initialChannel);
+  const statusKey = (ch: Channel, s: string) => `orders.statuses.${ch}.${s}`;
+  const firstAllowedStatus = (ch: Channel, preferred: string[]) => {
     for (const p of preferred) if (can(statusKey(ch, p))) return p;
     const list = ch === "pdv" ? ["preparing", "delivered", "cancelled", "all"] : ["pending", "preparing", "out_for_delivery", "awaiting_pickup", "delivered", "cancelled", "active", "all"];
     return list.find((s) => can(statusKey(ch, s))) ?? (ch === "pdv" ? "preparing" : "pending");
@@ -138,12 +140,13 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
 
   // If current channel becomes forbidden, switch to first allowed
   useEffect(() => {
-    const allowed = (channel === "pdv" && canPdv) || (channel === "delivery" && canDelivery) || (channel === "ifood" && canIfood);
+    const allowed = (channel === "pdv" && canPdv) || (channel === "delivery" && canDelivery) || (channel === "ifood" && canIfood) || (channel === "quero" && canQuero);
     if (allowed) return;
     if (canPdv) setChannel("pdv");
     else if (canDelivery) setChannel("delivery");
     else if (canIfood) setChannel("ifood");
-  }, [channel, canPdv, canDelivery, canIfood]);
+    else if (canQuero) setChannel("quero");
+  }, [channel, canPdv, canDelivery, canIfood, canQuero]);
 
   const doPrint = (o: Order, mode: TicketMode) => {
     const html = buildTicketHtml(
