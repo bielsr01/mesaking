@@ -113,6 +113,7 @@ export default function ManagerDashboard() {
     view === "orders"
   );
   const pendingOrdersCount = usePendingOrdersCount(restaurant?.id);
+  const { permissions, isFullAccess } = usePermissions(restaurant?.id);
 
   const refetchRestaurant = () => qc.invalidateQueries({ queryKey: ["managerRestaurant", user?.id] });
 
@@ -165,6 +166,8 @@ export default function ManagerDashboard() {
           onChange={setView}
           ordersBadge={pendingOrdersCount}
           ordersBlinking={pendingOrdersCount > 0}
+          permissions={permissions}
+          isFullAccess={isFullAccess}
         />
 
         <div className="flex-1 flex flex-col min-w-0">
@@ -255,6 +258,11 @@ export default function ManagerDashboard() {
             {view === "settings:integrations" && (
               <LazyView viewKey={view} variant="form">
                 <IntegrationsPanel restaurantId={restaurant.id} />
+              </LazyView>
+            )}
+            {view === "settings:access" && (
+              <LazyView viewKey={view} variant="form">
+                <AccessManagementPanel restaurantId={restaurant.id} />
               </LazyView>
             )}
             {view === "supply-orders" && (
