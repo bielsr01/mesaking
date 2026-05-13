@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Pencil, Trash2, Tag, Receipt, Loader2, Download, Eye, X } from "lucide-react";
 import { toast } from "sonner";
-import { brl } from "@/lib/format";
+import { brl, todayISOBR, monthStartISOBR, monthEndISOBR } from "@/lib/format";
 
 type Cat = { id: string; name: string; requires_description: boolean; is_active: boolean };
 type AdminExpense = { id: string; description: string; category: string | null; category_id: string | null; amount: number; expense_date: string; notes: string | null; receipt_url: string | null };
