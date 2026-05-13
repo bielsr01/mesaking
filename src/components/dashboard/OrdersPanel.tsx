@@ -435,10 +435,16 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const ifoodCount = orders.filter((o) => o.external_source === "ifood").length;
   const ifoodPendingCount = orders.filter((o) => o.external_source === "ifood" && o.status === "pending").length;
 
-  // PDV: em preparo + entregues + cancelados + todos
-  const visibleFilters = channel === "pdv"
+  // Filtra abas de status conforme permissão por canal
+  const baseFilters = channel === "pdv"
     ? FILTERS.filter((f) => ["preparing", "delivered", "cancelled", "all"].includes(f.value))
     : FILTERS;
+  const visibleFilters = baseFilters.filter((f) => can(statusKey(channel, f.value)));
+
+  // Se o filtro atual não está permitido, escolhe o primeiro disponível
+  if (visibleFilters.length > 0 && !visibleFilters.find((f) => f.value === filter)) {
+    setTimeout(() => setFilter(visibleFilters[0].value), 0);
+  }
 
   return (
     <div className="space-y-4">
