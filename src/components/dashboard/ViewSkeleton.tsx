@@ -14,8 +14,8 @@ function LoadingHint() {
 export function ViewSkeleton({ variant = "list" }: { variant?: "list" | "form" | "stats" }) {
   if (variant === "stats") {
     return (
-      <div className="grid gap-4 md:grid-cols-3 animate-fade-in">
-        {[0, 1, 2].map((i) => (
+      <div className="space-y-3">
+        <LoadingHint />
           <Card key={i}>
             <CardContent className="pt-6 flex items-center gap-4">
               <Skeleton className="w-12 h-12 rounded-xl" />
