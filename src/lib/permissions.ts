@@ -24,7 +24,7 @@ export type Permissions = {
   menu: { view: boolean; edit: boolean };
   customers: { view: boolean; create: boolean; edit: boolean; delete: boolean };
   marketing: {
-    coupons: { view: boolean; edit: boolean };
+    coupons: { view: boolean; edit: boolean; metrics: boolean };
     bulk: { view: boolean; edit: boolean };
   };
   loyalty: {
