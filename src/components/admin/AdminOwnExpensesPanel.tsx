@@ -74,6 +74,7 @@ export function AdminOwnExpensesPanel() {
   const openNew = () => {
     setEditing(null);
     setSelectedCatId("__free__"); setFreeCatName(""); setDescValue("");
+    setReceiptFile(null); setReceiptUrl(null);
     setOpen(true);
   };
   const openEdit = (e: AdminExpense) => {
@@ -81,6 +82,7 @@ export function AdminOwnExpensesPanel() {
     setSelectedCatId(e.category_id ?? "__free__");
     setFreeCatName(e.category_id ? "" : (e.category ?? ""));
     setDescValue(e.description ?? "");
+    setReceiptFile(null); setReceiptUrl(e.receipt_url ?? null);
     setOpen(true);
   };
 
