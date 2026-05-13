@@ -443,11 +443,11 @@ export function PdvDialog({
       const cnt = (pickSelected[g.id] ?? []).length;
       if (cnt < g.min_select) { toast.error(`Selecione ao menos ${g.min_select} em "${g.name}"`); return; }
     }
-    const opts: { groupName: string; itemName: string; extraPrice: number }[] = [];
+    const opts: { groupName: string; itemName: string; extraPrice: number; optionItemId?: string }[] = [];
     grs.forEach((g) => {
       (pickSelected[g.id] ?? []).forEach((iid) => {
         const it = g.items.find((x) => x.id === iid);
-        if (it) opts.push({ groupName: g.name, itemName: it.name, extraPrice: it.extra_price });
+        if (it) opts.push({ groupName: g.name, itemName: it.name, extraPrice: it.extra_price, optionItemId: it.id });
       });
     });
     addLine(pickProduct, opts, pickQty, pickNotes.trim());
