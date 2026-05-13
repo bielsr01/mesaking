@@ -430,7 +430,7 @@ export function SupplyCatalogTab() {
   const addOption = () => {
     const v = newOpt.trim();
     if (!v) return;
-    setOptions(o => [...o, { name: v }]);
+    setOptions(o => [...o, { name: v, admin_stock_subgroup_id: null }]);
     setNewOpt("");
   };
 
