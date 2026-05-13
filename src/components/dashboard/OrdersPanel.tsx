@@ -441,10 +441,11 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     : FILTERS;
   const visibleFilters = baseFilters.filter((f) => can(statusKey(channel, f.value)));
 
-  // Se o filtro atual não está permitido, escolhe o primeiro disponível
-  if (visibleFilters.length > 0 && !visibleFilters.find((f) => f.value === filter)) {
-    setTimeout(() => setFilter(visibleFilters[0].value), 0);
-  }
+  useEffect(() => {
+    if (visibleFilters.length > 0 && !visibleFilters.find((f) => f.value === filter)) {
+      setFilter(visibleFilters[0].value);
+    }
+  }, [channel, filter, visibleFilters]);
 
   return (
     <div className="space-y-4">
