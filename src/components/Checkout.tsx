@@ -598,8 +598,27 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
         notes: fullNotes,
       };
     });
-    const { error: ie } = await supabase.from("order_items").insert(items);
+    const { data: insertedItems, error: ie } = await supabase.from("order_items").insert(items).select("id");
     if (ie) { setBusy(false); return toast.error(ie.message); }
+
+    // Persist selected option items so the stock trigger can deduct option-linked stock
+    const optionRows: any[] = [];
+    cart.items.forEach((i, ix) => {
+      const orderItemId = insertedItems?.[ix]?.id;
+      if (!orderItemId) return;
+      (i.options ?? []).forEach((o) => {
+        optionRows.push({
+          order_item_id: orderItemId,
+          option_item_id: o.optionItemId ?? null,
+          group_name: o.groupName,
+          item_name: o.itemName,
+          extra_price: Number(o.extraPrice) || 0,
+        });
+      });
+    });
+    if (optionRows.length) {
+      await supabase.from("order_item_options" as any).insert(optionRows);
+    }
 
     // Salva/atualiza cliente automaticamente via RPC (dedupe pelos dígitos do telefone)
     try {
