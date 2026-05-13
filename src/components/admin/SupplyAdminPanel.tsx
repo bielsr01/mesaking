@@ -296,6 +296,21 @@ export function SupplyCatalogTab() {
     },
   });
 
+  const { data: adminGroups = [] } = useQuery({
+    queryKey: ["admin_stock_groups_active"],
+    queryFn: async () => {
+      const { data } = await supabase.from("admin_stock_groups").select("id,name").eq("is_active", true).order("sort_order").order("name");
+      return (data ?? []) as AdminStockGroup[];
+    },
+  });
+  const { data: adminSubgroups = [] } = useQuery({
+    queryKey: ["admin_stock_subgroups_active"],
+    queryFn: async () => {
+      const { data } = await supabase.from("admin_stock_subgroups").select("id,group_id,name").eq("is_active", true).order("sort_order").order("name");
+      return (data ?? []) as AdminStockSubgroup[];
+    },
+  });
+
   const { data: products = [] } = useQuery({
     queryKey: ["admin_supply_products"],
     queryFn: async () => {
@@ -320,6 +335,7 @@ export function SupplyCatalogTab() {
     setHasVariants(false); setGroupName(""); setTotalQty(""); setStep(50); setOptions([]); setNewOpt("");
     setStockGroupId("");
     setExpenseCategoryId("");
+    setAdminStockGroupId("");
     setOpen(true);
   };
   const openEdit = (p: SupplyProduct) => {
@@ -329,10 +345,11 @@ export function SupplyCatalogTab() {
     setGroupName(p.variant_group_name ?? "");
     setTotalQty(p.total_quantity ?? "");
     setStep(p.quantity_step ?? 50);
-    setOptions((optsByProduct[p.id] ?? []).map(o => ({ id: o.id, name: o.name })));
+    setOptions((optsByProduct[p.id] ?? []).map(o => ({ id: o.id, name: o.name, admin_stock_subgroup_id: o.admin_stock_subgroup_id ?? null })));
     setNewOpt("");
     setStockGroupId(p.stock_group_id ?? "");
     setExpenseCategoryId(p.expense_category_id ?? "");
+    setAdminStockGroupId(p.admin_stock_group_id ?? "");
     setOpen(true);
   };
 
