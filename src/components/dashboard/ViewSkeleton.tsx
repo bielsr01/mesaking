@@ -1,21 +1,34 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Loader2 } from "lucide-react";
+
+function LoadingHint() {
+  return (
+    <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground py-2 animate-fade-in">
+      <Loader2 className="w-4 h-4 animate-spin" />
+      <span>Carregando...</span>
+    </div>
+  );
+}
 
 export function ViewSkeleton({ variant = "list" }: { variant?: "list" | "form" | "stats" }) {
   if (variant === "stats") {
     return (
-      <div className="grid gap-4 md:grid-cols-3 animate-fade-in">
-        {[0, 1, 2].map((i) => (
-          <Card key={i}>
-            <CardContent className="pt-6 flex items-center gap-4">
-              <Skeleton className="w-12 h-12 rounded-xl" />
-              <div className="space-y-2 flex-1">
-                <Skeleton className="h-6 w-24" />
-                <Skeleton className="h-3 w-32" />
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="space-y-3 animate-fade-in">
+        <LoadingHint />
+        <div className="grid gap-4 md:grid-cols-3">
+          {[0, 1, 2].map((i) => (
+            <Card key={i}>
+              <CardContent className="pt-6 flex items-center gap-4">
+                <Skeleton className="w-12 h-12 rounded-xl" />
+                <div className="space-y-2 flex-1">
+                  <Skeleton className="h-6 w-24" />
+                  <Skeleton className="h-3 w-32" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }
@@ -23,6 +36,7 @@ export function ViewSkeleton({ variant = "list" }: { variant?: "list" | "form" |
   if (variant === "form") {
     return (
       <div className="space-y-4 max-w-3xl animate-fade-in">
+        <LoadingHint />
         {[0, 1, 2].map((i) => (
           <Card key={i}>
             <CardHeader><Skeleton className="h-6 w-48" /></CardHeader>
@@ -40,6 +54,7 @@ export function ViewSkeleton({ variant = "list" }: { variant?: "list" | "form" |
   // list
   return (
     <div className="space-y-3 animate-fade-in">
+      <LoadingHint />
       {[0, 1, 2, 3].map((i) => (
         <Card key={i}>
           <CardContent className="p-4 flex items-center gap-4">
@@ -52,6 +67,16 @@ export function ViewSkeleton({ variant = "list" }: { variant?: "list" | "form" |
           </CardContent>
         </Card>
       ))}
+    </div>
+  );
+}
+
+/** Indicador de carregamento global reutilizável (compacto). */
+export function LoadingIndicator({ label = "Carregando..." }: { label?: string }) {
+  return (
+    <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground py-6 animate-fade-in">
+      <Loader2 className="w-4 h-4 animate-spin" />
+      <span>{label}</span>
     </div>
   );
 }
