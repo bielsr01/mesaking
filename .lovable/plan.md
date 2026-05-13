@@ -1,56 +1,67 @@
-## Contexto do que encontrei
+# Estoque do admin (fábrica) — grupos e subgrupos
 
-Olhei os logs do banco (`ihub_events`, `orders`) e o código que dispara as ações:
+## Objetivo
+Criar um controle de estoque próprio do admin/fábrica, organizado em **grupos** e **subgrupos**, alimentado manualmente, e que seja debitado automaticamente quando um pedido de insumo de algum restaurante for marcado como "entregue".
 
-- **Frontend** (`OrdersPanel.tsx`, função `advance`): o botão "Aceitar"/"Despachar" já manda **apenas** o `orderId` do pedido clicado: `supabase.functions.invoke("ifood-action", { body: { orderId: o.id, action } })`. A última requisição que apareceu na rede confirma isso (apenas 1 chamada com o id da Darlen).
-- **Edge function `ifood-action`**: resolve o `external_order_id` daquele 1 pedido e envia para o iHub um payload com `merchantId` + `orderId` específicos. Não há laço, não há "para todos".
-- **Webhook `ihub-webhook`**: ao receber `CONFIRMED`/`DISPATCHED`, atualiza `orders` filtrando por `restaurant_id + external_source='ifood' + external_order_id = ev.orderId`. Cada pedido tem `external_order_id` único no banco.
-- **O que os eventos mostram**: o pedido da Darlen recebeu CONFIRMED às 19:33 (≈2min após o PLACED) e o do Odon recebeu CONFIRMED às 19:37 (≈4min após o PLACED) — em **horários diferentes** e cada evento veio com o `orderId` correto. Ou seja, no banco os pedidos foram confirmados separadamente, em momentos distintos, vindo do **webhook do iFood** (não do clique manual).
+## 1. Submenu na aba Estoque (admin)
+No `AdminStockPanel` atual, adicionar uma terceira aba:
+- "Estoque das lojas" (já existe)
+- "Grupos de itens" (já existe — estoque das lojas)
+- **NOVO** "Estoque admin" — gestão da fábrica
 
-Isso indica que o "todos foram aceitos junto" provavelmente **não foi um clique nosso aceitando vários** — foi o iFood/iHub mandando CONFIRMED automaticamente para cada pedido (auto-aceite no portal do iFood, ou o lojista aceitou no app do iFood, ou regra de auto-confirm ativa no iHub). Precisamos confirmar isso com você antes de mexer no código.
+## 2. Estrutura de dados (novas tabelas)
 
-## O que proponho fazer
+```
+admin_stock_groups
+  id, name, sort_order, is_active
 
-### 1. Reforçar/auditar o caminho da ação por pedido (defensivo)
+admin_stock_subgroups
+  id, group_id (FK), name, sort_order, is_active
+  quantity (int, manual)         -- estoque atual desse sabor/variação
 
-Mesmo já estando correto, adicionar travas para garantir que **nunca** uma ação sem `orderId` específico seja aceita:
-
-- `supabase/functions/ifood-action/index.ts`: rejeitar com erro explícito se `externalOrderId` estiver vazio depois da resolução, e logar no console o par `(local orderId, external orderId, merchantId, action)` em toda chamada — para que dê para auditar no painel de logs.
-- `OrdersPanel.tsx`: bloquear o botão enquanto a ação está em andamento (estado `pendingAction[id]`) para evitar duplo clique e qualquer chance de race com outro pedido.
-
-### 2. Distinguir "aceito por mim" vs "aceito pelo iFood"
-
-Adicionar coluna `confirmed_by` (`'system' | 'ifood_webhook' | 'manual'`) ou registrar em `ihub_events`/`orders.metadata` a origem da transição. Na UI, mostrar um pequeno selo no card do pedido: "Confirmado pelo iFood" vs "Confirmado por você". Assim, na próxima vez você consegue identificar se foi o webhook ou o seu clique.
-
-### 3. Painel de auditoria por pedido
-
-No detalhe do pedido (já existe `IhubEventsViewer` global), adicionar um mini-timeline mostrando **só os eventos daquele pedido** (`external_order_id`), com hora, código e se veio do webhook ou da nossa ação. Resolve futuras dúvidas como esta na hora.
-
-### 4. Confirmar a hipótese antes de ir além
-
-Antes de eu implementar, preciso saber:
-
-- No portal do **iHub** existe alguma opção tipo "auto-confirmar pedidos" ligada? Se sim, isso explica 100% o que aconteceu (o iHub aceita sozinho assim que o PLACED chega).
-- Você tem o **app do iFood Gestor de Pedidos** aberto em outro dispositivo? Ele também pode aceitar automaticamente.
-- Você quer que o sistema **trave** a confirmação automática (mantenha em "pendente" até clique manual) ou só quer **enxergar a origem** da confirmação?
-
-## Detalhes técnicos (referência)
-
-```text
-Fluxo atual ao clicar Aceitar:
-  UI → ifood-action(orderId=local)
-         ↓ resolve external_order_id (1 linha)
-         → POST ihub /api/ifood/action { merchantId, orderId=external, action: "confirm" }
-  Webhook iHub → ihub-webhook
-         ↓ filtra orders por external_order_id (1 linha)
-         → UPDATE status
+admin_stock_movements
+  id, subgroup_id, quantity (+/-), type, reference_id, notes, created_at, created_by
+  (tipos: manual_set, manual_add, manual_subtract, supply_delivery)
 ```
 
-Nenhum ponto desse fluxo afeta múltiplos pedidos. A causa provável do sintoma é o iFood/iHub disparando CONFIRMED por conta própria.
+RLS: somente master_admin pode CRUD/ler.
 
-## Arquivos que serão tocados na implementação
+## 3. Vínculo no catálogo de insumos
+No formulário de "Novo/Editar insumo" (`SupplyCatalogTab`), **manter** os campos atuais (grupo de estoque do restaurante + categoria de despesa) e **adicionar**:
 
-- `supabase/functions/ifood-action/index.ts` — validação extra + log estruturado
-- `src/components/dashboard/OrdersPanel.tsx` — lock por pedido + selo de origem
-- `supabase/migrations/<nova>.sql` — coluna `confirmed_source` em `orders` (opcional, conforme sua resposta)
-- `src/components/dashboard/IhubEventsViewer*` — filtro por `external_order_id`
+- Campo "Grupo do estoque admin" (select com os grupos da fábrica)
+- Se o insumo tiver "Quantidade limitadora" ativada (subgrupos/sabores), cada **opção** (sabor) passa a ser linkada a um **subgrupo do estoque admin** ao invés de ser apenas texto livre.
+
+Schema:
+```
+supply_products: + admin_stock_group_id uuid null
+supply_product_options: + admin_stock_subgroup_id uuid null
+```
+
+O campo "opções" do pedido de insumo continua existindo (UX no pedido), mas agora cada opção referencia um subgrupo real.
+
+## 4. Dedução automática
+Estender o trigger `handle_supply_order_delivered`:
+Quando um pedido vira `delivered`:
+- Para cada item com `admin_stock_group_id` mas sem subgrupos: debita `quantity * total_quantity` do(s) subgrupo(s)? **Não** — se não há subgrupo, pulamos (admin não controla nesse nível).
+- Para cada item com opções (`supply_order_item_options`) cujo `admin_stock_subgroup_id` esteja vinculado: debita `option.quantity` do subgrupo correspondente, registrando movimento `supply_delivery` com `reference_id = supply_order_id`.
+
+## 5. UI da aba "Estoque admin"
+- Lista de grupos (com botão "Novo grupo")
+- Cada grupo expande mostrando seus subgrupos com:
+  - Nome
+  - Quantidade atual (destaque)
+  - Botões: + somar, − subtrair, ✎ definir total
+  - Cada ação abre um diálogo simples e registra em `admin_stock_movements`
+- Total por grupo no cabeçalho
+
+## 6. Arquivos
+- **Migration** (nova) — tabelas + colunas + trigger atualizado + RLS
+- `src/components/admin/AdminStockPanel.tsx` — adiciona aba "Estoque admin"
+- `src/components/admin/AdminStockAdmin.tsx` (novo) — CRUD grupos/subgrupos + ajustes manuais
+- `src/components/admin/SupplyAdminPanel.tsx` — adiciona selects de grupo admin (no produto) e subgrupo admin (em cada opção/sabor)
+
+## Notas
+- O campo "opções" continua exibindo o nome (sabor) no pedido — sem regressão visual no fluxo do restaurante.
+- O cardápio do restaurante (que produtos consomem do estoque dele) não muda.
+- Pedidos antigos sem vínculo de subgrupo simplesmente não debitam (sem erro).
