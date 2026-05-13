@@ -164,7 +164,7 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
 
   const saveMember = async () => {
     if (!newName.trim() || !newPhone.trim()) return toast.error("Preencha nome e telefone");
-    if (editingMember) {
+    if (editingMember && !isAdmin) {
       setPinValue("");
       setPinPromptOpen(true);
       return;
