@@ -66,10 +66,15 @@ export function AdminStockReportsDialog({
       if (refIds.length) {
         const { data: ords } = await supabase
           .from("supply_orders")
-          .select("id, restaurants:restaurant_id(name)")
+          .select("id, restaurant_id")
           .in("id", refIds);
+        const rIds = Array.from(new Set((ords ?? []).map((o: any) => o.restaurant_id).filter(Boolean)));
+        const { data: rests } = rIds.length
+          ? await supabase.from("restaurants").select("id, name").in("id", rIds)
+          : { data: [] as any[] };
+        const nameById: Record<string, string> = Object.fromEntries((rests ?? []).map((r: any) => [r.id, r.name]));
         (ords ?? []).forEach((o: any) => {
-          restMap[o.id] = o.restaurants?.name ?? "—";
+          restMap[o.id] = nameById[o.restaurant_id] ?? "—";
         });
       }
       if (!cancelled) {
