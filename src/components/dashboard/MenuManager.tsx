@@ -628,13 +628,14 @@ function SortableSelectedGroup({ group: g, onRemove }: { group: OptionGroup; onR
 }
 
 function SortableCategoriesList({
-  categories, restaurantId, onToggle, onEdit, onRemove,
+  categories, restaurantId, onToggle, onEdit, onRemove, canEdit = true,
 }: {
   categories: Category[];
   restaurantId: string;
   onToggle: (c: Category) => void;
   onEdit: (c: Category) => void;
   onRemove: (c: Category) => void;
+  canEdit?: boolean;
 }) {
   const qc = useQueryClient();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -656,7 +657,7 @@ function SortableCategoriesList({
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={ids} strategy={verticalListSortingStrategy}>
         {categories.map((c) => (
-          <SortableCategoryRow key={c.id} category={c} onToggle={onToggle} onEdit={onEdit} onRemove={onRemove} />
+          <SortableCategoryRow key={c.id} category={c} onToggle={onToggle} onEdit={onEdit} onRemove={onRemove} canEdit={canEdit} />
         ))}
       </SortableContext>
     </DndContext>
@@ -664,18 +665,19 @@ function SortableCategoriesList({
 }
 
 function SortableCategoryRow({
-  category: c, onToggle, onEdit, onRemove,
+  category: c, onToggle, onEdit, onRemove, canEdit = true,
 }: {
   category: Category;
   onToggle: (c: Category) => void;
   onEdit: (c: Category) => void;
   onRemove: (c: Category) => void;
+  canEdit?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: c.id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
   return (
     <div ref={setNodeRef} style={style} className="flex items-center gap-1 px-2 py-1.5 rounded hover:bg-muted">
-      <button
+      {canEdit && <button
         type="button"
         className="touch-none cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-1"
         {...attributes}
@@ -683,11 +685,11 @@ function SortableCategoryRow({
         aria-label="Arrastar categoria"
       >
         <GripVertical className="w-4 h-4" />
-      </button>
+      </button>}
       <span className={`flex-1 text-sm ${!c.is_active && "text-muted-foreground line-through"}`}>{c.name}</span>
-      <Switch checked={c.is_active} onCheckedChange={() => onToggle(c)} />
-      <Button size="icon" variant="ghost" onClick={() => onEdit(c)}><Pencil className="w-3.5 h-3.5" /></Button>
-      <Button size="icon" variant="ghost" onClick={() => onRemove(c)}><Trash2 className="w-3.5 h-3.5" /></Button>
+      {canEdit && <Switch checked={c.is_active} onCheckedChange={() => onToggle(c)} />}
+      {canEdit && <Button size="icon" variant="ghost" onClick={() => onEdit(c)}><Pencil className="w-3.5 h-3.5" /></Button>}
+      {canEdit && <Button size="icon" variant="ghost" onClick={() => onRemove(c)}><Trash2 className="w-3.5 h-3.5" /></Button>}
     </div>
   );
 }
