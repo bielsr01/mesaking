@@ -118,6 +118,23 @@ const PERMISSION_DEPENDENCIES: Record<string, string> = {
   "expenses.edit": "expenses.view",
 };
 
+// Chaves adicionadas após o primeiro release. Se o grupo não tiver o campo
+// salvo (legado) e o "pai" estiver habilitado, herdar do pai para não bloquear
+// quem já tinha permissão antes de a chave existir.
+const LEGACY_INHERIT_FROM_PARENT: string[] = [
+  "expenses.edit",
+];
+
+function pathDefined(obj: any, path: string): boolean {
+  const keys = path.split(".");
+  let o = obj;
+  for (const k of keys) {
+    if (!o || typeof o !== "object" || !(k in o)) return false;
+    o = o[k];
+  }
+  return true;
+}
+
 export function mergePermissions(partial: any): Permissions {
   const base: any = JSON.parse(JSON.stringify(EMPTY_PERMISSIONS));
   function merge(b: any, p: any) {
@@ -131,6 +148,12 @@ export function mergePermissions(partial: any): Permissions {
     }
   }
   merge(base, partial);
+  for (const child of LEGACY_INHERIT_FROM_PARENT) {
+    if (!pathDefined(partial, child)) {
+      const parent = PERMISSION_DEPENDENCIES[child];
+      if (parent && getPerm(base as Permissions, parent)) setPerm(base, child, true);
+    }
+  }
   for (const [child, parent] of Object.entries(PERMISSION_DEPENDENCIES)) {
     if (!getPerm(base, parent)) setPerm(base, child, false);
   }
