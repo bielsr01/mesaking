@@ -278,6 +278,8 @@ export function SupplyCatalogTab() {
   const [expenseCategoryId, setExpenseCategoryId] = useState<string>("");
   const [adminStockGroupId, setAdminStockGroupId] = useState<string>("");
   const [saving, setSaving] = useState(false);
+  const [imgUrl, setImgUrl] = useState<string>("");
+  const [uploadingImg, setUploadingImg] = useState(false);
 
   const { data: stockGroups = [] } = useQuery({
     queryKey: ["stock_groups_admin"],
@@ -336,6 +338,7 @@ export function SupplyCatalogTab() {
     setStockGroupId("");
     setExpenseCategoryId("");
     setAdminStockGroupId("");
+    setImgUrl("");
     setOpen(true);
   };
   const openEdit = (p: SupplyProduct) => {
@@ -350,7 +353,26 @@ export function SupplyCatalogTab() {
     setStockGroupId(p.stock_group_id ?? "");
     setExpenseCategoryId(p.expense_category_id ?? "");
     setAdminStockGroupId(p.admin_stock_group_id ?? "");
+    setImgUrl(p.image_url ?? "");
     setOpen(true);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return toast.error("Selecione uma imagem");
+    setUploadingImg(true);
+    try {
+      const path = `supply/${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
+      const { error: upErr } = await supabase.storage.from("menu-images").upload(path, file, { upsert: true });
+      if (upErr) { toast.error(upErr.message); return; }
+      const { data: pub } = supabase.storage.from("menu-images").getPublicUrl(path);
+      setImgUrl(pub.publicUrl);
+      toast.success("Imagem enviada");
+    } finally {
+      setUploadingImg(false);
+      e.target.value = "";
+    }
   };
 
   const save = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -448,7 +470,24 @@ export function SupplyCatalogTab() {
                 <div><Label>Preço</Label><Input name="price" type="number" step="0.01" min="0" defaultValue={editing?.price ?? 0} required /></div>
                 <div><Label>Unidade</Label><Input name="unit" defaultValue={editing?.unit ?? "un"} placeholder="un, kg, cx..." /></div>
               </div>
-              <div><Label>URL da imagem (opcional)</Label><Input name="image_url" defaultValue={editing?.image_url ?? ""} /></div>
+              <div className="space-y-2">
+                <Label>Imagem do insumo (opcional)</Label>
+                <div className="flex items-center gap-2">
+                  <Input name="image_url" value={imgUrl} onChange={(e) => setImgUrl(e.target.value)} placeholder="Cole a URL da imagem..." />
+                  <label className="shrink-0">
+                    <input type="file" accept="image/*" className="sr-only" onChange={handleImageUpload} disabled={uploadingImg} />
+                    <Button type="button" variant="outline" size="sm" asChild disabled={uploadingImg}>
+                      <span>{uploadingImg ? "Enviando..." : "Upload"}</span>
+                    </Button>
+                  </label>
+                </div>
+                {imgUrl && (
+                  <div className="flex items-center gap-2">
+                    <img src={imgUrl} alt="Preview" className="w-16 h-16 rounded object-cover border" />
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setImgUrl("")}>Remover</Button>
+                  </div>
+                )}
+              </div>
 
               <div>
                 <Label>Grupo de estoque</Label>
