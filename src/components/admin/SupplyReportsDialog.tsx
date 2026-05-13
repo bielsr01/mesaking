@@ -44,9 +44,31 @@ export function SupplyReportsDialog() {
   const [open, setOpen] = useState(false);
   const [from, setFrom] = useState(monthStartISO());
   const [to, setTo] = useState(todayISO());
+  const [preset, setPreset] = useState<QuickPreset | null>("this_month");
   const [status, setStatus] = useState<Status>("all");
   const [restaurantId, setRestaurantId] = useState<string>("all");
   const [productSearch, setProductSearch] = useState("");
+
+  const applyPreset = (p: QuickPreset) => {
+    setPreset(p);
+    if (p === "today") {
+      setFrom(todayISO()); setTo(todayISO());
+    } else if (p === "this_month") {
+      setFrom(monthStartISO()); setTo(todayISO());
+    } else if (p === "last_30") {
+      setFrom(addDaysISO(todayISO(), -30)); setTo(todayISO());
+    } else if (p === "last_month") {
+      const { y, m } = ymdBR();
+      const py = m === 1 ? y - 1 : y;
+      const pm = m === 1 ? 12 : m - 1;
+      const lastDay = new Date(py, pm, 0).getDate();
+      setFrom(`${py}-${String(pm).padStart(2, "0")}-01`);
+      setTo(`${py}-${String(pm).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`);
+    }
+  };
+
+  const handleManualFrom = (v: string) => { setPreset(null); setFrom(v); };
+  const handleManualTo = (v: string) => { setPreset(null); setTo(v); };
 
   const { data: restaurants = [] } = useQuery({
     queryKey: ["report_restaurants"],
