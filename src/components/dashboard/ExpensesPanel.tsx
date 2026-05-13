@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Pencil, Trash2, Download, Receipt, Loader2, Image as ImageIcon, Eye, X } from "lucide-react";
 import { toast } from "sonner";
 import { brl, todayISOBR, monthStartISOBR, monthEndISOBR } from "@/lib/format";
+import { usePermissions } from "@/hooks/usePermissions";
 
 type Expense = {
   id: string; restaurant_id: string; description: string; category: string | null; category_id: string | null;
@@ -31,6 +32,8 @@ const MONTHS = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","A
 export function ExpensesPanel({ restaurantId }: { restaurantId: string }) {
   const qc = useQueryClient();
   const { user } = useAuth();
+  const { can } = usePermissions(restaurantId);
+  const canEdit = can("expenses.edit");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
   const [preset, setPreset] = useState<Preset>("this_month");
@@ -131,6 +134,7 @@ export function ExpensesPanel({ restaurantId }: { restaurantId: string }) {
 
   const save = async (ev: React.FormEvent<HTMLFormElement>) => {
     ev.preventDefault();
+    if (!canEdit) return toast.error("Sem permissão para salvar despesa");
     if (saving) return;
     const fd = new FormData(ev.currentTarget);
     const cat = selectedCatId ? catsById[selectedCatId] : null;
@@ -173,6 +177,7 @@ export function ExpensesPanel({ restaurantId }: { restaurantId: string }) {
   };
 
   const remove = async (id: string) => {
+    if (!canEdit) return toast.error("Sem permissão para excluir despesa");
     if (!confirm("Excluir esta despesa?")) return;
     const { error } = await supabase.from("expenses").delete().eq("id", id);
     if (error) return toast.error(error.message);
@@ -216,7 +221,7 @@ export function ExpensesPanel({ restaurantId }: { restaurantId: string }) {
               <Button variant="outline" size="sm" onClick={exportCsv} disabled={filtered.length === 0}>
                 <Download className="w-4 h-4 mr-1" /> Exportar CSV
               </Button>
-              <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }}>
+              {canEdit && <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }}>
                 <DialogTrigger asChild>
                   <Button size="sm" onClick={openNew} disabled={cats.length === 0}>
                     <Plus className="w-4 h-4 mr-1" /> Nova despesa
@@ -265,7 +270,7 @@ export function ExpensesPanel({ restaurantId }: { restaurantId: string }) {
                     </form>
                   )}
                 </DialogContent>
-              </Dialog>
+              </Dialog>}
             </div>
           </CardTitle>
         </CardHeader>
@@ -345,8 +350,8 @@ export function ExpensesPanel({ restaurantId }: { restaurantId: string }) {
                               <Button variant="ghost" size="icon" className="h-8 w-8" title="Baixar comprovante" asChild><a href={e.receipt_url} download target="_blank" rel="noreferrer"><Download className="w-4 h-4" /></a></Button>
                             </>
                           )}
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(e)}><Pencil className="w-4 h-4" /></Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(e.id)}><Trash2 className="w-4 h-4" /></Button>
+                          {canEdit && <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(e)}><Pencil className="w-4 h-4" /></Button>}
+                          {canEdit && <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(e.id)}><Trash2 className="w-4 h-4" /></Button>}
                         </div>
                       </TableCell>
                     </TableRow>

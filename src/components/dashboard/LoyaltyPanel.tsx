@@ -98,11 +98,13 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
   const [savingMember, setSavingMember] = useState(false);
 
   const openCreate = () => {
+    if (!canMemberCreate) return;
     setEditingMember(null);
     setNewName(""); setNewPhone(""); setNewPoints("0");
     setMemberDialog(true);
   };
   const openEdit = (m: Member) => {
+    if (!canMemberCreate && !canManualAdjust) return;
     setEditingMember(m);
     setNewName(m.name); setNewPhone(m.phone); setNewPoints(String(m.points));
     setMemberDialog(true);
@@ -110,6 +112,8 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
 
   const executeSave = async () => {
     if (savingMember) return;
+    if (editingMember && !canMemberCreate && !canManualAdjust) return toast.error("Sem permissão para editar cadastro");
+    if (!editingMember && !canMemberCreate) return toast.error("Sem permissão para cadastrar cliente");
     if (!newName.trim() || !newPhone.trim()) return toast.error("Preencha nome e telefone");
     const points = Math.floor(Number(newPoints) || 0);
     setSavingMember(true);
@@ -174,6 +178,7 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
   };
 
   const deleteMember = async (id: string) => {
+    if (!canMemberDelete) return toast.error("Sem permissão para excluir cliente do programa");
     if (!confirm("Excluir este cadastro? Todas as transações também serão removidas.")) return;
     const { error } = await sb.from("loyalty_members").delete().eq("id", id);
     if (error) return toast.error(error.message);
@@ -265,7 +270,7 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
                 <div className="font-medium">Ativar programa</div>
                 <p className="text-xs text-muted-foreground">Quando ativo, clientes podem optar por pontuar ao fazer pedido.</p>
               </div>
-              <Switch checked={enabled} onCheckedChange={setEnabled} disabled={!canToggle} />
+              {canToggle ? <Switch checked={enabled} onCheckedChange={setEnabled} /> : <Badge variant={enabled ? "default" : "secondary"}>{enabled ? "Ativo" : "Inativo"}</Badge>}
             </div>
             {isAdmin ? (
               <div className="space-y-2">
@@ -398,8 +403,8 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
           <DialogContent>
             <DialogHeader><DialogTitle>{editingMember ? "Editar cadastro" : "Novo cadastro"}</DialogTitle></DialogHeader>
             <div className="space-y-3">
-              <div className="space-y-1"><Label>Nome</Label><Input value={newName} onChange={(e) => setNewName(e.target.value)} /></div>
-              <div className="space-y-1"><Label>Telefone</Label><Input value={newPhone} onChange={(e) => setNewPhone(formatPhone(e.target.value))} placeholder="(11) 99999-9999" /></div>
+              <div className="space-y-1"><Label>Nome</Label><Input value={newName} onChange={(e) => setNewName(e.target.value)} disabled={!!editingMember && !canMemberCreate} /></div>
+              <div className="space-y-1"><Label>Telefone</Label><Input value={newPhone} onChange={(e) => setNewPhone(formatPhone(e.target.value))} placeholder="(11) 99999-9999" disabled={!!editingMember && !canMemberCreate} /></div>
               {(canManualAdjust || !editingMember) && <div className="space-y-1"><Label>Pontos</Label><Input type="number" min="0" step="1" value={newPoints} onChange={(e) => setNewPoints(e.target.value)} disabled={editingMember ? !canManualAdjust : false} /></div>}
             </div>
             <DialogFooter>

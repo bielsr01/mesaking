@@ -103,11 +103,13 @@ export function LoyaltyRewardsTab({ restaurantId }: { restaurantId: string }) {
   const [active, setActive] = useState(true);
 
   const openCreate = () => {
+    if (!canRewardsEdit) return;
     setEditing(null);
     setProductId("none"); setName(""); setCost("100"); setStock(""); setActive(true);
     setDlg(true);
   };
   const openEdit = (r: Reward) => {
+    if (!canRewardsEdit) return;
     setEditing(r);
     setProductId(r.product_id ?? "none");
     setName(r.name);
@@ -118,6 +120,7 @@ export function LoyaltyRewardsTab({ restaurantId }: { restaurantId: string }) {
   };
 
   const save = async () => {
+    if (!canRewardsEdit) return toast.error("Sem permissão para salvar recompensa");
     if (!name.trim()) return toast.error("Informe o nome");
     const payload = {
       restaurant_id: restaurantId,
@@ -137,6 +140,7 @@ export function LoyaltyRewardsTab({ restaurantId }: { restaurantId: string }) {
   };
 
   const remove = async (id: string) => {
+    if (!canRewardsDelete) return toast.error("Sem permissão para excluir recompensa");
     if (!confirm("Excluir esta recompensa?")) return;
     const { error } = await sb.from("loyalty_rewards").delete().eq("id", id);
     if (error) return toast.error(error.message);

@@ -74,7 +74,7 @@ async function fetchTodayStats(restaurantId: string) {
 export default function ManagerDashboard() {
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const { user, signOut, isMasterAdmin } = useAuth();
+  const { user, signOut, isMasterAdmin, rolesLoading } = useAuth();
   const [view, setView] = useState<DashboardView>("orders");
 
   const { data: restaurant, isLoading: loadingRest } = useQuery({
@@ -113,11 +113,11 @@ export default function ManagerDashboard() {
     view === "orders"
   );
   const pendingOrdersCount = usePendingOrdersCount(restaurant?.id);
-  const { permissions, isFullAccess } = usePermissions(restaurant?.id);
+  const { permissions, isFullAccess, loading: permissionsLoading } = usePermissions(restaurant?.id);
 
   // Redirect view if user lacks permission for the current view
   useEffect(() => {
-    if (isFullAccess) return;
+    if (permissionsLoading || isFullAccess) return;
     const allowed: Record<DashboardView, boolean> = {
       overview: !!permissions.overview.view,
       orders: !!permissions.orders.view,
@@ -140,11 +140,11 @@ export default function ManagerDashboard() {
       const fallback = (Object.keys(allowed) as DashboardView[]).find((k) => allowed[k]);
       if (fallback) setView(fallback);
     }
-  }, [isFullAccess, permissions, view]);
+  }, [isFullAccess, permissions, permissionsLoading, view]);
 
   const refetchRestaurant = () => qc.invalidateQueries({ queryKey: ["managerRestaurant", user?.id] });
 
-  if (loadingRest) {
+  if (loadingRest || rolesLoading || permissionsLoading) {
     return (
       <div className="min-h-screen grid place-items-center">
         <Skeleton className="h-10 w-40" />
