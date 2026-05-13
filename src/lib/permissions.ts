@@ -22,7 +22,7 @@ export type Permissions = {
     create_pdv_order: boolean;
   };
   menu: { view: boolean; edit: boolean };
-  customers: { view: boolean; edit: boolean; delete: boolean };
+  customers: { view: boolean; create: boolean; edit: boolean; delete: boolean };
   marketing: {
     coupons: { view: boolean; edit: boolean };
     bulk: { view: boolean; edit: boolean };
