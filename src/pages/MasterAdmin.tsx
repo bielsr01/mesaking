@@ -22,6 +22,7 @@ import { AdminOverviewPanel } from "@/components/admin/AdminOverviewPanel";
 import { AdminCustomersPanel } from "@/components/admin/AdminCustomersPanel";
 import { AdminCouponsPanel } from "@/components/admin/AdminCouponsPanel";
 import { AdminMenuPanel } from "@/components/admin/AdminMenuPanel";
+import { AdminStockAdmin } from "@/components/admin/AdminStockAdmin";
 import { AdminStockPanel } from "@/components/admin/AdminStockPanel";
 import { AdminExpenseStoresPanel } from "@/components/admin/AdminExpenseStoresPanel";
 import { AdminOwnExpensesPanel } from "@/components/admin/AdminOwnExpensesPanel";
@@ -221,7 +222,8 @@ export default function MasterAdmin() {
     "settings:ifood-fees": "Configurações iFood",
     "supply:catalog": "Catálogo de insumos",
     "supply:orders": "Pedidos de insumos recebidos",
-    stock: "Estoque",
+    "stock:admin": "Estoque / Admin",
+    "stock:restaurants": "Estoque / Restaurantes",
     "expenses:admin": "Despesas Admin",
     "expenses:stores": "Despesas das lojas",
     "finance:admin": "Receitas - Despesas / Admin",
@@ -412,7 +414,8 @@ export default function MasterAdmin() {
             {view === "settings:ifood-fees" && <AdminIfoodFeesPanel />}
             {view === "supply:catalog" && <SupplyCatalogTab />}
             {view === "supply:orders" && <SupplyOrdersTab />}
-            {view === "stock" && <AdminStockPanel />}
+            {view === "stock:admin" && <AdminStockAdmin />}
+            {view === "stock:restaurants" && <AdminStockPanel />}
             {view === "expenses:admin" && <AdminOwnExpensesPanel />}
             {view === "expenses:stores" && <AdminExpenseStoresPanel />}
             {view === "finance:restaurants" && <AdminFinancePanel />}
