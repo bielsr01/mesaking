@@ -313,6 +313,12 @@ export function AdminOwnExpensesPanel() {
                     <TableCell className="text-right font-semibold">{brl(Number(e.amount))}</TableCell>
                     <TableCell>
                       <div className="flex justify-end gap-1">
+                        {e.receipt_url && (
+                          <>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" title="Visualizar comprovante" onClick={() => setPreviewUrl(e.receipt_url)}><Eye className="w-4 h-4" /></Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" title="Baixar comprovante" asChild><a href={e.receipt_url} download target="_blank" rel="noreferrer"><Download className="w-4 h-4" /></a></Button>
+                          </>
+                        )}
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(e)}><Pencil className="w-4 h-4" /></Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(e.id)}><Trash2 className="w-4 h-4" /></Button>
                       </div>
@@ -324,6 +330,20 @@ export function AdminOwnExpensesPanel() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={!!previewUrl} onOpenChange={(v) => !v && setPreviewUrl(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader><DialogTitle>Comprovante</DialogTitle></DialogHeader>
+          {previewUrl && (
+            <div className="space-y-3">
+              <img src={previewUrl} alt="Comprovante" className="w-full max-h-[70vh] object-contain rounded" />
+              <DialogFooter>
+                <Button asChild variant="outline"><a href={previewUrl} download target="_blank" rel="noreferrer"><Download className="w-4 h-4 mr-1" />Baixar</a></Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
