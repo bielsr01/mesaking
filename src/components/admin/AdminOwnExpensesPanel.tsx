@@ -11,12 +11,12 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Tag, Receipt, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Tag, Receipt, Loader2, Download, Eye, X } from "lucide-react";
 import { toast } from "sonner";
 import { brl } from "@/lib/format";
 
 type Cat = { id: string; name: string; requires_description: boolean; is_active: boolean };
-type AdminExpense = { id: string; description: string; category: string | null; category_id: string | null; amount: number; expense_date: string; notes: string | null };
+type AdminExpense = { id: string; description: string; category: string | null; category_id: string | null; amount: number; expense_date: string; notes: string | null; receipt_url: string | null };
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const monthStartISO = (d = new Date()) => new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
@@ -39,6 +39,9 @@ export function AdminOwnExpensesPanel() {
   const [descValue, setDescValue] = useState("");
   const [saving, setSaving] = useState(false);
   const [savingCat, setSavingCat] = useState(false);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const { data: cats = [] } = useQuery({
     queryKey: ["expense_categories", "admin"],
@@ -71,6 +74,7 @@ export function AdminOwnExpensesPanel() {
   const openNew = () => {
     setEditing(null);
     setSelectedCatId("__free__"); setFreeCatName(""); setDescValue("");
+    setReceiptFile(null); setReceiptUrl(null);
     setOpen(true);
   };
   const openEdit = (e: AdminExpense) => {
@@ -78,6 +82,7 @@ export function AdminOwnExpensesPanel() {
     setSelectedCatId(e.category_id ?? "__free__");
     setFreeCatName(e.category_id ? "" : (e.category ?? ""));
     setDescValue(e.description ?? "");
+    setReceiptFile(null); setReceiptUrl(e.receipt_url ?? null);
     setOpen(true);
   };
 
@@ -99,7 +104,7 @@ export function AdminOwnExpensesPanel() {
     if (!categoryName) return toast.error("Selecione ou digite uma categoria");
     const description = descValue.trim();
     if (!description) return toast.error("Descrição obrigatória");
-    const payload = {
+    const payload: any = {
       description,
       category: categoryName,
       category_id: cat?.id ?? null,
@@ -107,10 +112,19 @@ export function AdminOwnExpensesPanel() {
       expense_date: String(fd.get("expense_date") || todayISO()),
       notes: String(fd.get("notes") || "").trim() || null,
       created_by: user?.id ?? null,
+      receipt_url: receiptUrl,
     };
     if (payload.amount <= 0) return toast.error("Valor deve ser maior que zero");
     setSaving(true);
     try {
+      if (receiptFile) {
+        const ext = receiptFile.name.split(".").pop() || "jpg";
+        const path = `admin/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const { error: upErr } = await supabase.storage.from("expense-receipts").upload(path, receiptFile, { upsert: false });
+        if (upErr) { toast.error("Falha ao enviar comprovante: " + upErr.message); return; }
+        const { data: pub } = supabase.storage.from("expense-receipts").getPublicUrl(path);
+        payload.receipt_url = pub.publicUrl;
+      }
       const op = editing ? supabase.from("admin_expenses").update(payload).eq("id", editing.id) : supabase.from("admin_expenses").insert(payload);
       const { error } = await op;
       if (error) { toast.error(error.message); return; }
@@ -238,6 +252,17 @@ export function AdminOwnExpensesPanel() {
                     <div><Label>Data</Label><Input name="expense_date" type="date" defaultValue={editing?.expense_date ?? todayISO()} required /></div>
                   </div>
                   <div><Label>Observações</Label><Textarea name="notes" defaultValue={editing?.notes ?? ""} rows={2} maxLength={500} /></div>
+                  <div>
+                    <Label>Comprovante (foto, opcional)</Label>
+                    {receiptUrl && !receiptFile && (
+                      <div className="flex items-center gap-2 mb-2">
+                        <a href={receiptUrl} target="_blank" rel="noreferrer" className="text-xs text-primary underline">Ver comprovante atual</a>
+                        <Button type="button" variant="ghost" size="sm" onClick={() => setReceiptUrl(null)}><X className="w-3 h-3 mr-1" />Remover</Button>
+                      </div>
+                    )}
+                    <Input type="file" accept="image/*" onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)} />
+                    {receiptFile && <div className="text-xs text-muted-foreground mt-1">Selecionado: {receiptFile.name}</div>}
+                  </div>
                   <DialogFooter><Button type="submit" disabled={saving}>{saving && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}{editing ? "Salvar" : "Adicionar"}</Button></DialogFooter>
                 </form>
               </DialogContent>
@@ -288,6 +313,12 @@ export function AdminOwnExpensesPanel() {
                     <TableCell className="text-right font-semibold">{brl(Number(e.amount))}</TableCell>
                     <TableCell>
                       <div className="flex justify-end gap-1">
+                        {e.receipt_url && (
+                          <>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" title="Visualizar comprovante" onClick={() => setPreviewUrl(e.receipt_url)}><Eye className="w-4 h-4" /></Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" title="Baixar comprovante" asChild><a href={e.receipt_url} download target="_blank" rel="noreferrer"><Download className="w-4 h-4" /></a></Button>
+                          </>
+                        )}
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(e)}><Pencil className="w-4 h-4" /></Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(e.id)}><Trash2 className="w-4 h-4" /></Button>
                       </div>
@@ -299,6 +330,20 @@ export function AdminOwnExpensesPanel() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={!!previewUrl} onOpenChange={(v) => !v && setPreviewUrl(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader><DialogTitle>Comprovante</DialogTitle></DialogHeader>
+          {previewUrl && (
+            <div className="space-y-3">
+              <img src={previewUrl} alt="Comprovante" className="w-full max-h-[70vh] object-contain rounded" />
+              <DialogFooter>
+                <Button asChild variant="outline"><a href={previewUrl} download target="_blank" rel="noreferrer"><Download className="w-4 h-4 mr-1" />Baixar</a></Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
