@@ -116,6 +116,7 @@ export function SupplyOrderPanel({ restaurantId }: { restaurantId: string }) {
     Object.values(dist[productId] ?? {}).reduce((s, n) => s + n, 0);
 
   const submitOrder = async () => {
+    if (!canEdit) return toast.error("Sem permissão para criar ou editar pedido de insumos");
     const items = products.filter((p) => (cart[p.id] ?? 0) > 0);
     if (!items.length) return toast.error("Adicione ao menos um item");
 
@@ -171,6 +172,7 @@ export function SupplyOrderPanel({ restaurantId }: { restaurantId: string }) {
   };
 
   const startEdit = (o: SupplyOrder) => {
+    if (!canEdit) return toast.error("Sem permissão para editar pedido de insumos");
     const newCart: Record<string, number> = {};
     const newDist: Record<string, Record<string, number>> = {};
     (o.supply_order_items ?? []).forEach((it) => {
@@ -191,6 +193,7 @@ export function SupplyOrderPanel({ restaurantId }: { restaurantId: string }) {
   };
 
   const cancelOrder = async (id: string) => {
+    if (!canEdit) return toast.error("Sem permissão para cancelar pedido de insumos");
     const { error } = await supabase.from("supply_orders").delete().eq("id", id);
     if (error) return toast.error("Erro ao cancelar: " + error.message);
     toast.success("Pedido cancelado");
