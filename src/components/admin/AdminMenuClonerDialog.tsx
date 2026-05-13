@@ -205,6 +205,14 @@ export function AdminMenuClonerDialog({ destRestaurantId, open, onOpenChange }: 
           const { error: pe } = await sb.from("product_option_groups").insert(linkRows);
           if (pe) throw pe;
         }
+
+        const consumption = pscs.filter((c) => c.product_id === p.id);
+        if (consumption.length) {
+          const { error: ce } = await sb.from("product_stock_consumption").insert(
+            consumption.map((c) => ({ product_id: data.id, group_id: c.group_id, quantity_per_unit: c.quantity_per_unit }))
+          );
+          if (ce) throw ce;
+        }
       }
 
       toast.success("Cardápio clonado com sucesso!");
