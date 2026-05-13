@@ -13,6 +13,7 @@ import { Plus, Pencil, Trash2, Image as ImageIcon, GripVertical, Loader2 } from 
 import { toast } from "sonner";
 import { brl } from "@/lib/format";
 import { OptionGroupsManager, fetchGroups, optionKeys, OptionGroup } from "./OptionGroupsManager";
+import { usePermissions } from "@/hooks/usePermissions";
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -50,6 +51,8 @@ async function fetchStockConsumption(productId: string): Promise<StockConsumptio
 
 export function MenuManager({ restaurantId }: { restaurantId: string }) {
   const qc = useQueryClient();
+  const { can } = usePermissions(restaurantId);
+  const canEdit = can("menu.edit");
   const { data: categories = [], isLoading: loadingCats } = useQuery({
     queryKey: menuKeys.categories(restaurantId),
     queryFn: () => fetchCategories(restaurantId),
@@ -249,7 +252,7 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-semibold">Cardápio</h2>
         <div className="flex gap-2">
-          <Dialog open={catOpen} onOpenChange={(o) => { setCatOpen(o); if (!o) setEditingCat(null); }}>
+          {canEdit && <Dialog open={catOpen} onOpenChange={(o) => { setCatOpen(o); if (!o) setEditingCat(null); }}>
             <DialogTrigger asChild><Button variant="outline"><Plus className="w-4 h-4 mr-1" />Categoria</Button></DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>{editingCat ? "Editar" : "Nova"} categoria</DialogTitle></DialogHeader>
@@ -259,8 +262,8 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
                 <DialogFooter><Button type="submit">Salvar</Button></DialogFooter>
               </form>
             </DialogContent>
-          </Dialog>
-          <Dialog open={prodOpen} onOpenChange={(o) => { setProdOpen(o); if (!o) { setEditingProd(null); setSelectedGroupIds([]); setStockConsumption([]); } }}>
+          </Dialog>}
+          {canEdit && <Dialog open={prodOpen} onOpenChange={(o) => { setProdOpen(o); if (!o) { setEditingProd(null); setSelectedGroupIds([]); setStockConsumption([]); } }}>
             <DialogTrigger asChild><Button onClick={() => setDefaultCat(categories[0]?.id ?? null)} disabled={categories.length === 0}><Plus className="w-4 h-4 mr-1" />Produto</Button></DialogTrigger>
             <DialogContent className="max-h-[90vh] overflow-y-auto">
               <DialogHeader><DialogTitle>{editingProd ? "Editar" : "Novo"} produto</DialogTitle></DialogHeader>
@@ -343,7 +346,7 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
                 <DialogFooter><Button type="submit">Salvar</Button></DialogFooter>
               </form>
             </DialogContent>
-          </Dialog>
+          </Dialog>}
 
           {/* Quick group create from product dialog */}
           <Dialog open={quickGroupOpen} onOpenChange={setQuickGroupOpen}>
@@ -382,6 +385,7 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
                 onToggle={toggleCat}
                 onEdit={(c) => { setEditingCat(c); setCatOpen(true); }}
                 onRemove={removeCat}
+                canEdit={canEdit}
               />
             )}
           </CardContent>
@@ -412,6 +416,7 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
                     loadingId={loadingProdId}
                     onToggle={toggleProd}
                     onRemove={removeProd}
+                    canEdit={canEdit}
                   />
                 );
               })}
@@ -428,6 +433,7 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
                     loadingId={loadingProdId}
                     onToggle={toggleProd}
                     onRemove={removeProd}
+                    canEdit={canEdit}
                   />
                 );
               })()}
@@ -444,7 +450,7 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
 }
 
 function CategoryGroup({
-  title, products, restaurantId, qc, onEdit, onToggle, onRemove, loadingId,
+  title, products, restaurantId, qc, onEdit, onToggle, onRemove, loadingId, canEdit = true,
 }: {
   title: string;
   products: Product[];
@@ -454,6 +460,7 @@ function CategoryGroup({
   onToggle: (p: Product) => void;
   onRemove: (p: Product) => void;
   loadingId?: string | null;
+  canEdit?: boolean;
 }) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   const ids = products.map((p) => p.id);
@@ -490,7 +497,7 @@ function CategoryGroup({
         <SortableContext items={ids} strategy={verticalListSortingStrategy}>
           <div className="space-y-2">
             {products.map((p) => (
-              <SortableProductCard key={p.id} product={p} onEdit={onEdit} onToggle={onToggle} onRemove={onRemove} loading={loadingId === p.id} />
+              <SortableProductCard key={p.id} product={p} onEdit={onEdit} onToggle={onToggle} onRemove={onRemove} loading={loadingId === p.id} canEdit={canEdit} />
             ))}
           </div>
         </SortableContext>
@@ -500,20 +507,21 @@ function CategoryGroup({
 }
 
 function SortableProductCard({
-  product: p, onEdit, onToggle, onRemove, loading,
+  product: p, onEdit, onToggle, onRemove, loading, canEdit = true,
 }: {
   product: Product;
   onEdit: (p: Product) => void;
   onToggle: (p: Product) => void;
   onRemove: (p: Product) => void;
   loading?: boolean;
+  canEdit?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: p.id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
   return (
     <Card ref={setNodeRef} style={style} className={!p.is_active ? "opacity-60" : ""}>
       <CardContent className="p-3 flex gap-3 items-center">
-        <button
+        {canEdit && <button
           type="button"
           className="touch-none cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-1"
           {...attributes}
@@ -521,7 +529,7 @@ function SortableProductCard({
           aria-label="Arrastar para reordenar"
         >
           <GripVertical className="w-5 h-5" />
-        </button>
+        </button>}
         <div className="w-16 h-16 rounded-lg bg-muted overflow-hidden grid place-items-center shrink-0">
           {p.image_url ? <img src={p.image_url} alt={p.name} loading="lazy" className="w-full h-full object-cover" /> : <ImageIcon className="w-6 h-6 text-muted-foreground" />}
         </div>
@@ -530,9 +538,9 @@ function SortableProductCard({
           {p.description && <div className="text-xs text-muted-foreground line-clamp-1">{p.description}</div>}
           <div className="text-sm font-semibold text-primary mt-0.5">{brl(p.price)}</div>
         </div>
-        <Switch checked={p.is_active} onCheckedChange={() => onToggle(p)} />
-        <Button size="icon" variant="ghost" disabled={loading} onClick={() => onEdit(p)}>{loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Pencil className="w-4 h-4" />}</Button>
-        <Button size="icon" variant="ghost" onClick={() => onRemove(p)}><Trash2 className="w-4 h-4" /></Button>
+        {canEdit && <Switch checked={p.is_active} onCheckedChange={() => onToggle(p)} />}
+        {canEdit && <Button size="icon" variant="ghost" disabled={loading} onClick={() => onEdit(p)}>{loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Pencil className="w-4 h-4" />}</Button>}
+        {canEdit && <Button size="icon" variant="ghost" onClick={() => onRemove(p)}><Trash2 className="w-4 h-4" /></Button>}
       </CardContent>
     </Card>
   );
@@ -620,13 +628,14 @@ function SortableSelectedGroup({ group: g, onRemove }: { group: OptionGroup; onR
 }
 
 function SortableCategoriesList({
-  categories, restaurantId, onToggle, onEdit, onRemove,
+  categories, restaurantId, onToggle, onEdit, onRemove, canEdit = true,
 }: {
   categories: Category[];
   restaurantId: string;
   onToggle: (c: Category) => void;
   onEdit: (c: Category) => void;
   onRemove: (c: Category) => void;
+  canEdit?: boolean;
 }) {
   const qc = useQueryClient();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -648,7 +657,7 @@ function SortableCategoriesList({
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={ids} strategy={verticalListSortingStrategy}>
         {categories.map((c) => (
-          <SortableCategoryRow key={c.id} category={c} onToggle={onToggle} onEdit={onEdit} onRemove={onRemove} />
+          <SortableCategoryRow key={c.id} category={c} onToggle={onToggle} onEdit={onEdit} onRemove={onRemove} canEdit={canEdit} />
         ))}
       </SortableContext>
     </DndContext>
@@ -656,18 +665,19 @@ function SortableCategoriesList({
 }
 
 function SortableCategoryRow({
-  category: c, onToggle, onEdit, onRemove,
+  category: c, onToggle, onEdit, onRemove, canEdit = true,
 }: {
   category: Category;
   onToggle: (c: Category) => void;
   onEdit: (c: Category) => void;
   onRemove: (c: Category) => void;
+  canEdit?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: c.id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
   return (
     <div ref={setNodeRef} style={style} className="flex items-center gap-1 px-2 py-1.5 rounded hover:bg-muted">
-      <button
+      {canEdit && <button
         type="button"
         className="touch-none cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-1"
         {...attributes}
@@ -675,11 +685,11 @@ function SortableCategoryRow({
         aria-label="Arrastar categoria"
       >
         <GripVertical className="w-4 h-4" />
-      </button>
+      </button>}
       <span className={`flex-1 text-sm ${!c.is_active && "text-muted-foreground line-through"}`}>{c.name}</span>
-      <Switch checked={c.is_active} onCheckedChange={() => onToggle(c)} />
-      <Button size="icon" variant="ghost" onClick={() => onEdit(c)}><Pencil className="w-3.5 h-3.5" /></Button>
-      <Button size="icon" variant="ghost" onClick={() => onRemove(c)}><Trash2 className="w-3.5 h-3.5" /></Button>
+      {canEdit && <Switch checked={c.is_active} onCheckedChange={() => onToggle(c)} />}
+      {canEdit && <Button size="icon" variant="ghost" onClick={() => onEdit(c)}><Pencil className="w-3.5 h-3.5" /></Button>}
+      {canEdit && <Button size="icon" variant="ghost" onClick={() => onRemove(c)}><Trash2 className="w-3.5 h-3.5" /></Button>}
     </div>
   );
 }
