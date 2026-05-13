@@ -252,6 +252,17 @@ export function AdminOwnExpensesPanel() {
                     <div><Label>Data</Label><Input name="expense_date" type="date" defaultValue={editing?.expense_date ?? todayISO()} required /></div>
                   </div>
                   <div><Label>Observações</Label><Textarea name="notes" defaultValue={editing?.notes ?? ""} rows={2} maxLength={500} /></div>
+                  <div>
+                    <Label>Comprovante (foto, opcional)</Label>
+                    {receiptUrl && !receiptFile && (
+                      <div className="flex items-center gap-2 mb-2">
+                        <a href={receiptUrl} target="_blank" rel="noreferrer" className="text-xs text-primary underline">Ver comprovante atual</a>
+                        <Button type="button" variant="ghost" size="sm" onClick={() => setReceiptUrl(null)}><X className="w-3 h-3 mr-1" />Remover</Button>
+                      </div>
+                    )}
+                    <Input type="file" accept="image/*" onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)} />
+                    {receiptFile && <div className="text-xs text-muted-foreground mt-1">Selecionado: {receiptFile.name}</div>}
+                  </div>
                   <DialogFooter><Button type="submit" disabled={saving}>{saving && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}{editing ? "Salvar" : "Adicionar"}</Button></DialogFooter>
                 </form>
               </DialogContent>
