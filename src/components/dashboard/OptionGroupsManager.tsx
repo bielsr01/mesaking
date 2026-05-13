@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Pencil, Trash2, X, Link2, GripVertical } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { brl } from "@/lib/format";
 import { fetchProducts, menuKeys } from "./MenuManager";
@@ -34,7 +35,11 @@ export interface OptionItem {
   sort_order: number;
   is_active: boolean;
   image_url?: string | null;
+  stock_group_id?: string | null;
+  stock_quantity_per_unit?: number | null;
 }
+
+type StockGroupLite = { id: string; name: string; is_active: boolean };
 
 export const optionKeys = {
   groups: (rid: string) => ["options", rid, "groups"] as const,
@@ -270,9 +275,18 @@ function GroupDialog({
   const [name, setName] = useState("");
   const [minS, setMinS] = useState(0);
   const [maxS, setMaxS] = useState(1);
-  const [rows, setRows] = useState<{ id?: string; name: string; extra_price: string; image_url?: string | null; toDelete?: boolean }[]>([]);
+  const [rows, setRows] = useState<{ id?: string; name: string; extra_price: string; image_url?: string | null; stock_group_id?: string | null; stock_quantity_per_unit?: string; toDelete?: boolean }[]>([]);
   const [busy, setBusy] = useState(false);
   const [uploadingIdx, setUploadingIdx] = useState<number | null>(null);
+  const [stockGroups, setStockGroups] = useState<StockGroupLite[]>([]);
+
+  useEffect(() => {
+    if (!open) return;
+    (async () => {
+      const { data } = await supabase.from("stock_groups").select("id,name,is_active").eq("is_active", true).order("sort_order");
+      setStockGroups((data ?? []) as StockGroupLite[]);
+    })();
+  }, [open]);
 
   useEffect(() => {
     if (open) {
@@ -281,15 +295,15 @@ function GroupDialog({
       setMaxS(editing?.max_select ?? 1);
       setRows(
         existingItems.length > 0
-          ? existingItems.map((i) => ({ id: i.id, name: i.name, extra_price: String(Number(i.extra_price) || 0), image_url: i.image_url ?? null }))
-          : [{ name: "", extra_price: "0", image_url: null }]
+          ? existingItems.map((i) => ({ id: i.id, name: i.name, extra_price: String(Number(i.extra_price) || 0), image_url: i.image_url ?? null, stock_group_id: i.stock_group_id ?? null, stock_quantity_per_unit: String(Number(i.stock_quantity_per_unit ?? 1)) }))
+          : [{ name: "", extra_price: "0", image_url: null, stock_group_id: null, stock_quantity_per_unit: "1" }]
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, editing?.id]);
 
-  const addRow = () => setRows((r) => [...r, { name: "", extra_price: "0", image_url: null }]);
-  const updateRow = (idx: number, patch: Partial<{ name: string; extra_price: string; image_url: string | null }>) =>
+  const addRow = () => setRows((r) => [...r, { name: "", extra_price: "0", image_url: null, stock_group_id: null, stock_quantity_per_unit: "1" }]);
+  const updateRow = (idx: number, patch: Partial<{ name: string; extra_price: string; image_url: string | null; stock_group_id: string | null; stock_quantity_per_unit: string }>) =>
     setRows((r) => r.map((x, i) => (i === idx ? { ...x, ...patch } : x)));
   const removeRow = (idx: number) =>
     setRows((r) => r.map((x, i) => (i === idx ? { ...x, toDelete: true } : x)));
@@ -342,13 +356,23 @@ function GroupDialog({
       // Update existing
       for (const r of rows.filter((r) => !r.toDelete && r.id)) {
         const { error } = await supabase.from("option_items").update({
-          name: r.name.trim(), extra_price: Number(r.extra_price) || 0, image_url: r.image_url ?? null,
+          name: r.name.trim(),
+          extra_price: Number(r.extra_price) || 0,
+          image_url: r.image_url ?? null,
+          stock_group_id: r.stock_group_id ?? null,
+          stock_quantity_per_unit: Number(r.stock_quantity_per_unit) || 1,
         }).eq("id", r.id!);
         if (error) throw error;
       }
       // Insert new
       const newOnes = rows.filter((r) => !r.toDelete && !r.id && r.name.trim()).map((r, idx) => ({
-        group_id: groupId!, name: r.name.trim(), extra_price: Number(r.extra_price) || 0, sort_order: idx, image_url: r.image_url ?? null,
+        group_id: groupId!,
+        name: r.name.trim(),
+        extra_price: Number(r.extra_price) || 0,
+        sort_order: idx,
+        image_url: r.image_url ?? null,
+        stock_group_id: r.stock_group_id ?? null,
+        stock_quantity_per_unit: Number(r.stock_quantity_per_unit) || 1,
       }));
       if (newOnes.length) {
         const { error } = await supabase.from("option_items").insert(newOnes);
@@ -405,6 +429,33 @@ function GroupDialog({
                     <Input className="flex-1" placeholder="Nome (ex: Catupiry)" value={r.name} onChange={(e) => updateRow(idx, { name: e.target.value })} />
                     <Input className="w-24" type="number" step="0.01" min="0" placeholder="0,00" value={r.extra_price} onChange={(e) => updateRow(idx, { extra_price: e.target.value })} />
                     <Button size="icon" variant="ghost" onClick={() => removeRow(idx)}><X className="w-4 h-4" /></Button>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Select
+                      value={r.stock_group_id ?? "__none__"}
+                      onValueChange={(v) => updateRow(idx, { stock_group_id: v === "__none__" ? null : v })}
+                    >
+                      <SelectTrigger className="flex-1 h-8 text-xs">
+                        <SelectValue placeholder="Grupo de estoque (opcional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">Sem vínculo de estoque</SelectItem>
+                        {stockGroups.map((sg) => (
+                          <SelectItem key={sg.id} value={sg.id}>{sg.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      className="w-20 h-8 text-xs"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="qtd"
+                      title="Quantidade consumida do estoque por unidade deste item"
+                      value={r.stock_quantity_per_unit ?? "1"}
+                      onChange={(e) => updateRow(idx, { stock_quantity_per_unit: e.target.value })}
+                      disabled={!r.stock_group_id}
+                    />
                   </div>
                   {r.image_url && (
                     <button type="button" className="self-start text-xs text-muted-foreground hover:text-destructive" onClick={() => updateRow(idx, { image_url: null })}>Remover foto</button>
