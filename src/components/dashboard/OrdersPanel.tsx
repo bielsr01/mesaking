@@ -342,6 +342,33 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
       }
     }
 
+    if (o.external_source === "quero") {
+      if (!o.external_order_id) {
+        patchOrder(o.id, { status: prevStatus });
+        toast.error("Pedido Quero sem external_order_id — não é possível enviar a ação.");
+        setPending(o.id, false);
+        return;
+      }
+      const actionMap: Record<string, string> = {
+        preparing: "confirm",
+        awaiting_pickup: "readyForPickup",
+        out_for_delivery: "dispatch",
+        delivered: "delivered",
+      };
+      const action = actionMap[next];
+      if (action) {
+        const { data: fnData, error: fnErr } = await supabase.functions.invoke("quero-action", {
+          body: { orderId: o.id, action },
+        });
+        if (fnErr || !fnData?.ok) {
+          patchOrder(o.id, { status: prevStatus });
+          toast.error(`Quero: ${fnData?.error ?? fnErr?.message ?? "falha"}`);
+          setPending(o.id, false);
+          return;
+        }
+      }
+    }
+
     const { error } = await supabase.from("orders").update({ status: next }).eq("id", o.id);
     if (error) {
       patchOrder(o.id, { status: prevStatus });
