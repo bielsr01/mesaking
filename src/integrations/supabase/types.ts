@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_groups: {
+        Row: {
+          created_at: string
+          id: string
+          is_default: boolean
+          name: string
+          permissions: Json
+          restaurant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name: string
+          permissions?: Json
+          restaurant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          permissions?: Json
+          restaurant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       admin_expenses: {
         Row: {
           amount: number
@@ -1372,24 +1402,34 @@ export type Database = {
       }
       restaurant_members: {
         Row: {
+          access_group_id: string | null
           created_at: string
           id: string
           restaurant_id: string
           user_id: string
         }
         Insert: {
+          access_group_id?: string | null
           created_at?: string
           id?: string
           restaurant_id: string
           user_id: string
         }
         Update: {
+          access_group_id?: string | null
           created_at?: string
           id?: string
           restaurant_id?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "restaurant_members_access_group_id_fkey"
+            columns: ["access_group_id"]
+            isOneToOne: false
+            referencedRelation: "access_groups"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "restaurant_members_restaurant_id_fkey"
             columns: ["restaurant_id"]
