@@ -111,6 +111,13 @@ export function SupplyOrdersTab() {
     qc.invalidateQueries({ queryKey: ["admin_supply_orders"] });
   };
 
+  const deleteOrder = async (o: SupplyOrder) => {
+    const { error } = await supabase.from("supply_orders").delete().eq("id", o.id);
+    if (error) return toast.error(error.message);
+    toast.success("Pedido excluído");
+    qc.invalidateQueries({ queryKey: ["admin_supply_orders"] });
+  };
+
   const counts = {
     pending: orders.filter(o => o.status === "pending").length,
     accepted: orders.filter(o => o.status === "accepted").length,
