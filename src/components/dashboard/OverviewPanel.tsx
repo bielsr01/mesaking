@@ -79,6 +79,7 @@ function rangeFor(preset: Preset, custom?: DateRange): { from: Date; to: Date } 
 
 function classifySource(o: any): SourceFilter {
   if (o.external_source === "ifood") return "ifood";
+  if (o.external_source === "quero") return "quero";
   if (o.payment_method === "card_on_delivery" && o.order_type === "pdv") return "pdv";
   if (o.order_type === "pdv") return "pdv";
   return "web";
