@@ -442,22 +442,28 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
           else if (nv === "ifood") { setFilter("pending"); setIfoodView("orders"); }
         }}>
           <TabsList>
-            <TabsTrigger value="pdv" className="gap-2">
-              <Store className="w-4 h-4" /> PDV (Balcão)
-              <Badge variant="secondary" className="h-5 min-w-5 px-1.5 text-xs">{pdvCount}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="delivery" className={`gap-2 ${deliveryPendingCount > 0 ? "animate-pulse text-destructive ring-2 ring-destructive" : ""}`}>
-              <Bike className="w-4 h-4" /> Delivery / Retirada
-              <Badge variant={deliveryPendingCount > 0 ? "destructive" : "secondary"} className="h-5 min-w-5 px-1.5 text-xs">{deliveryPendingCount > 0 ? deliveryPendingCount : deliveryCount}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="ifood" className={`gap-2 ${ifoodPendingCount > 0 ? "animate-pulse text-destructive ring-2 ring-destructive" : ""}`}>
-              <Utensils className="w-4 h-4" /> iFood
-              <Badge variant={ifoodPendingCount > 0 ? "destructive" : "secondary"} className="h-5 min-w-5 px-1.5 text-xs">{ifoodPendingCount > 0 ? ifoodPendingCount : ifoodCount}</Badge>
-            </TabsTrigger>
+            {canPdv && (
+              <TabsTrigger value="pdv" className="gap-2">
+                <Store className="w-4 h-4" /> PDV (Balcão)
+                <Badge variant="secondary" className="h-5 min-w-5 px-1.5 text-xs">{pdvCount}</Badge>
+              </TabsTrigger>
+            )}
+            {canDelivery && (
+              <TabsTrigger value="delivery" className={`gap-2 ${deliveryPendingCount > 0 ? "animate-pulse text-destructive ring-2 ring-destructive" : ""}`}>
+                <Bike className="w-4 h-4" /> Delivery / Retirada
+                <Badge variant={deliveryPendingCount > 0 ? "destructive" : "secondary"} className="h-5 min-w-5 px-1.5 text-xs">{deliveryPendingCount > 0 ? deliveryPendingCount : deliveryCount}</Badge>
+              </TabsTrigger>
+            )}
+            {canIfood && (
+              <TabsTrigger value="ifood" className={`gap-2 ${ifoodPendingCount > 0 ? "animate-pulse text-destructive ring-2 ring-destructive" : ""}`}>
+                <Utensils className="w-4 h-4" /> iFood
+                <Badge variant={ifoodPendingCount > 0 ? "destructive" : "secondary"} className="h-5 min-w-5 px-1.5 text-xs">{ifoodPendingCount > 0 ? ifoodPendingCount : ifoodCount}</Badge>
+              </TabsTrigger>
+            )}
           </TabsList>
         </Tabs>
 
-        {channel === "pdv" && (
+        {channel === "pdv" && canCreatePdv && (
           <Button onClick={() => setPdvOpen(true)} className="gap-2">
             <Plus className="w-4 h-4" /> Novo pedido PDV
           </Button>
