@@ -163,49 +163,58 @@ export function AdminStockReportsDialog({
           <TabsList>
             <TabsTrigger value="added">Adicionados ({added.length})</TabsTrigger>
             <TabsTrigger value="consumed">Consumidos ({consumed.length})</TabsTrigger>
+            <TabsTrigger value="balance">Balanço completo ({filtered.length})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="added">
-            <Card>
-              <CardContent className="p-0">
-                {loading ? (
-                  <div className="py-8 text-center text-sm text-muted-foreground">Carregando...</div>
-                ) : added.length === 0 ? (
-                  <div className="py-8 text-center text-sm text-muted-foreground">Nenhuma entrada no período.</div>
-                ) : (
-                  <table className="w-full text-sm">
-                    <thead className="bg-muted/40 text-left">
-                      <tr>
-                        <th className="p-2">Data</th>
-                        <th className="p-2">Grupo</th>
-                        <th className="p-2">Subgrupo</th>
-                        <th className="p-2">Tipo</th>
-                        <th className="p-2 text-right">Quantidade</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {added.map(m => {
-                        const sub = subMap[m.subgroup_id];
-                        const g = sub ? groupMap[sub.group_id] : null;
-                        return (
-                          <tr key={m.id} className="border-t">
-                            <td className="p-2 whitespace-nowrap">{fmt(m.created_at)}</td>
-                            <td className="p-2">{g?.name ?? "—"}</td>
-                            <td className="p-2">{sub?.name ?? "—"}</td>
-                            <td className="p-2"><Badge variant="secondary">{typeLabel[m.type]}</Badge></td>
-                            <td className="p-2 text-right font-bold tabular-nums text-green-600">+{m.quantity}</td>
-                          </tr>
-                        );
-                      })}
-                      <tr className="border-t bg-muted/30 font-semibold">
-                        <td className="p-2" colSpan={4}>Total</td>
-                        <td className="p-2 text-right tabular-nums text-green-600">+{added.reduce((s, m) => s + m.quantity, 0)}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                )}
-              </CardContent>
-            </Card>
+            {loading ? (
+              <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">Carregando...</CardContent></Card>
+            ) : added.length === 0 ? (
+              <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">Nenhuma entrada no período.</CardContent></Card>
+            ) : (
+              <div className="space-y-3">
+                {Object.entries(addedByGroup).map(([gid, data]) => (
+                  <Card key={gid}>
+                    <CardContent className="p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="font-semibold">{data.groupName}</div>
+                        <div className="text-sm">Total adicionado: <strong className="text-green-600 tabular-nums">+{data.total}</strong></div>
+                      </div>
+                      <div className="space-y-2">
+                        {Object.entries(data.subs).map(([sid, sd]) => (
+                          <div key={sid} className="border rounded-md">
+                            <div className="flex items-center justify-between p-2 bg-muted/30">
+                              <div className="text-sm font-medium">{sd.name}</div>
+                              <div className="text-sm">Subtotal: <strong className="text-green-600 tabular-nums">+{sd.total}</strong></div>
+                            </div>
+                            <table className="w-full text-xs">
+                              <thead className="text-left text-muted-foreground">
+                                <tr>
+                                  <th className="p-2">Data</th>
+                                  <th className="p-2">Tipo</th>
+                                  <th className="p-2">Observação</th>
+                                  <th className="p-2 text-right">Qtd</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {sd.items.map(m => (
+                                  <tr key={m.id} className="border-t">
+                                    <td className="p-2 whitespace-nowrap">{fmt(m.created_at)}</td>
+                                    <td className="p-2"><Badge variant="outline" className="text-[10px]">{typeLabel[m.type]}</Badge></td>
+                                    <td className="p-2 text-muted-foreground">{m.notes ?? "—"}</td>
+                                    <td className="p-2 text-right font-bold tabular-nums text-green-600">+{m.quantity}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="consumed">
@@ -256,6 +265,69 @@ export function AdminStockReportsDialog({
                             </table>
                           </div>
                         ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="balance">
+            {loading ? (
+              <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">Carregando...</CardContent></Card>
+            ) : filtered.length === 0 ? (
+              <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">Nenhuma movimentação.</CardContent></Card>
+            ) : (
+              <div className="space-y-3">
+                {Object.entries(balanceByGroup).map(([gid, data]) => (
+                  <Card key={gid}>
+                    <CardContent className="p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="font-semibold">{data.groupName}</div>
+                        <div className="text-sm">Balanço: <strong className={`tabular-nums ${data.total >= 0 ? "text-green-600" : "text-destructive"}`}>{data.total >= 0 ? "+" : ""}{data.total}</strong></div>
+                      </div>
+                      <div className="space-y-2">
+                        {Object.entries(data.subs).map(([sid, sd]) => {
+                          let running = 0;
+                          return (
+                            <div key={sid} className="border rounded-md">
+                              <div className="flex items-center justify-between p-2 bg-muted/30">
+                                <div className="text-sm font-medium">{sd.name}</div>
+                                <div className="text-sm">Balanço final: <strong className={`tabular-nums ${sd.total >= 0 ? "text-green-600" : "text-destructive"}`}>{sd.total >= 0 ? "+" : ""}{sd.total}</strong></div>
+                              </div>
+                              <table className="w-full text-xs">
+                                <thead className="text-left text-muted-foreground">
+                                  <tr>
+                                    <th className="p-2">Data</th>
+                                    <th className="p-2">Tipo</th>
+                                    <th className="p-2">Loja</th>
+                                    <th className="p-2">Observação</th>
+                                    <th className="p-2 text-right">Qtd</th>
+                                    <th className="p-2 text-right">Saldo</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {sd.items.map(m => {
+                                    running += m.quantity;
+                                    const isPos = m.quantity >= 0;
+                                    const restName = m.type === "supply_delivery" && m.reference_id ? (restaurantMap[m.reference_id] ?? "—") : "—";
+                                    return (
+                                      <tr key={m.id} className="border-t">
+                                        <td className="p-2 whitespace-nowrap">{fmt(m.created_at)}</td>
+                                        <td className="p-2"><Badge variant="outline" className="text-[10px]">{typeLabel[m.type]}</Badge></td>
+                                        <td className="p-2 font-medium">{restName}</td>
+                                        <td className="p-2 text-muted-foreground">{m.notes ?? "—"}</td>
+                                        <td className={`p-2 text-right font-bold tabular-nums ${isPos ? "text-green-600" : "text-destructive"}`}>{isPos ? "+" : ""}{m.quantity}</td>
+                                        <td className="p-2 text-right tabular-nums font-semibold">{running}</td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          );
+                        })}
                       </div>
                     </CardContent>
                   </Card>
