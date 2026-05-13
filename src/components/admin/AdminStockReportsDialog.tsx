@@ -102,23 +102,30 @@ export function AdminStockReportsDialog({
   // Consumed = negative delta (supply_delivery debits, manual_subtract, manual_set negative)
   const consumed = filtered.filter(m => m.quantity < 0);
 
-  // Group consumed by group/subgroup
-  const consumedByGroup = useMemo(() => {
+  // Builder: group movements by group/subgroup
+  const buildByGroup = (items: Movement[], opts: { abs?: boolean; sortAsc?: boolean }) => {
     const map: Record<string, { groupName: string; total: number; subs: Record<string, { name: string; total: number; items: Movement[] }> }> = {};
-    consumed.forEach(m => {
+    items.forEach(m => {
       const sub = subMap[m.subgroup_id];
       if (!sub) return;
       const g = groupMap[sub.group_id];
       const gName = g?.name ?? "—";
-      const qty = Math.abs(m.quantity);
+      const qty = opts.abs ? Math.abs(m.quantity) : m.quantity;
       map[sub.group_id] ??= { groupName: gName, total: 0, subs: {} };
       map[sub.group_id].total += qty;
       map[sub.group_id].subs[sub.id] ??= { name: sub.name, total: 0, items: [] };
       map[sub.group_id].subs[sub.id].total += qty;
       map[sub.group_id].subs[sub.id].items.push(m);
     });
+    if (opts.sortAsc) {
+      Object.values(map).forEach(g => Object.values(g.subs).forEach(s => s.items.sort((a, b) => a.created_at.localeCompare(b.created_at))));
+    }
     return map;
-  }, [consumed, subMap, groupMap]);
+  };
+
+  const addedByGroup = useMemo(() => buildByGroup(added, { abs: false }), [added, subMap, groupMap]);
+  const consumedByGroup = useMemo(() => buildByGroup(consumed, { abs: true }), [consumed, subMap, groupMap]);
+  const balanceByGroup = useMemo(() => buildByGroup(filtered, { sortAsc: true }), [filtered, subMap, groupMap]);
 
   const fmt = (iso: string) => new Date(iso).toLocaleString("pt-BR");
 
