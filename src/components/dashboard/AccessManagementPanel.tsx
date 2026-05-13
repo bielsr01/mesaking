@@ -93,7 +93,7 @@ const PERMISSION_DEPENDENCIES: Record<string, string> = {
   "orders.channels.ifood": "orders.view",
   "orders.change_status": "orders.view",
   "orders.edit": "orders.view",
-  "orders.create_pdv_order": "orders.view",
+  "orders.create_pdv_order": "orders.channels.pdv",
   "menu.edit": "menu.view",
   "customers.edit": "customers.view",
   "customers.delete": "customers.view",
@@ -184,7 +184,7 @@ export function AccessManagementPanel({ restaurantId }: Props) {
         const aFull = !a.access_group_id, bFull = !b.access_group_id;
         if (aFull && !bFull) return -1;
         if (!aFull && bFull) return 1;
-        return (a.full_name ?? "").localeCompare(b.full_name ?? "");
+        return (a.full_name ?? a.user_id).localeCompare(b.full_name ?? b.user_id);
       });
       return rows;
     },
