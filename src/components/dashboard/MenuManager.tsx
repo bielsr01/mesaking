@@ -433,6 +433,7 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
                     loadingId={loadingProdId}
                     onToggle={toggleProd}
                     onRemove={removeProd}
+                    canEdit={canEdit}
                   />
                 );
               })()}
