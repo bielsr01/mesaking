@@ -590,7 +590,7 @@ function SortableGroupCard({
             <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
               <div className="flex flex-col gap-1 pt-1 pl-7">
                 {groupItems.map((i) => (
-                  <SortableItemRow key={i.id} item={i} />
+                  <SortableItemRow key={i.id} item={i} canEdit={canEdit} />
                 ))}
               </div>
             </SortableContext>
@@ -601,12 +601,12 @@ function SortableGroupCard({
   );
 }
 
-function SortableItemRow({ item }: { item: OptionItem }) {
+function SortableItemRow({ item, canEdit = true }: { item: OptionItem; canEdit?: boolean }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
   return (
     <div ref={setNodeRef} style={style} className="flex items-center gap-2 text-xs px-2 py-1 bg-muted rounded">
-      <button
+      {canEdit && <button
         type="button"
         className="touch-none cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
         {...attributes}
@@ -614,7 +614,7 @@ function SortableItemRow({ item }: { item: OptionItem }) {
         aria-label="Arrastar item"
       >
         <GripVertical className="w-3.5 h-3.5" />
-      </button>
+      </button>}
       <span className="flex-1">{item.name}</span>
       {Number(item.extra_price) > 0 && <span className="text-muted-foreground">+{brl(Number(item.extra_price))}</span>}
     </div>
