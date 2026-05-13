@@ -163,6 +163,7 @@ const LEGACY_INHERIT_FROM_PARENT: string[] = [
 // Para chaves legadas onde queremos herdar de outro nó (não o "parent" das dependências).
 const LEGACY_INHERIT_OVERRIDES: Record<string, string> = {
   "customers.create": "customers.edit",
+  "marketing.coupons.metrics": "marketing.coupons.view",
 };
 
 function pathDefined(obj: any, path: string): boolean {
