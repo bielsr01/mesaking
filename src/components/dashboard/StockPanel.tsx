@@ -29,6 +29,8 @@ const movementLabel: Record<string, string> = {
 
 export function StockPanel({ restaurantId }: { restaurantId: string }) {
   const qc = useQueryClient();
+  const { can } = usePermissions(restaurantId);
+  const canEdit = can("stock.edit");
 
   const { data: groups = [] } = useQuery({
     queryKey: ["stock_groups"],
