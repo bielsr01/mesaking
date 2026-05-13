@@ -12,6 +12,7 @@ const fmtDate = new Intl.DateTimeFormat("pt-BR", {
   timeZone: "America/Sao_Paulo",
   day: "2-digit",
   month: "2-digit",
+  year: "numeric",
 });
 
 export function BrasiliaClock({ compact = false }: { compact?: boolean }) {
@@ -32,7 +33,7 @@ export function BrasiliaClock({ compact = false }: { compact?: boolean }) {
         </span>
         {!compact && (
           <span className="text-[10px] text-muted-foreground -mt-0.5">
-            {fmtDate.format(now)} · Brasília
+            {fmtDate.format(now)}
           </span>
         )}
       </div>
