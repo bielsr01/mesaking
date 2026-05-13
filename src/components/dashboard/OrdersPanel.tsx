@@ -480,11 +480,13 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     all: channelOrders.length,
   };
 
-  const deliveryCount = orders.filter((o) => o.order_type !== "pdv" && o.external_source !== "ifood").length;
-  const deliveryPendingCount = orders.filter((o) => o.order_type !== "pdv" && o.external_source !== "ifood" && o.status === "pending").length;
+  const deliveryCount = orders.filter((o) => o.order_type !== "pdv" && o.external_source !== "ifood" && o.external_source !== "quero").length;
+  const deliveryPendingCount = orders.filter((o) => o.order_type !== "pdv" && o.external_source !== "ifood" && o.external_source !== "quero" && o.status === "pending").length;
   const pdvCount = orders.filter((o) => o.order_type === "pdv").length;
   const ifoodCount = orders.filter((o) => o.external_source === "ifood").length;
   const ifoodPendingCount = orders.filter((o) => o.external_source === "ifood" && o.status === "pending").length;
+  const queroCount = orders.filter((o) => o.external_source === "quero").length;
+  const queroPendingCount = orders.filter((o) => o.external_source === "quero" && o.status === "pending").length;
 
   // Filtra abas de status conforme permissão por canal
   const baseFilters = channel === "pdv"
