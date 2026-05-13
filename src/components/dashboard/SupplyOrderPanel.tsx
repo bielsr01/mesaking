@@ -47,6 +47,8 @@ const statusColor: Record<SupplyOrder["status"], string> = {
 export function SupplyOrderPanel({ restaurantId }: { restaurantId: string }) {
   const qc = useQueryClient();
   const { user } = useAuth();
+  const { can } = usePermissions(restaurantId);
+  const canEdit = can("supply_orders.edit");
   const [view, setView] = useState<"history" | "new">("history");
   // For non-variant: cart[productId] = qty. For variant: cart[productId] = "pkg" (count of packages)
   const [cart, setCart] = useState<Record<string, number>>({});
