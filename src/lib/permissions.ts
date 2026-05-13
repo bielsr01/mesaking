@@ -24,7 +24,7 @@ export type Permissions = {
   menu: { view: boolean; edit: boolean };
   customers: { view: boolean; create: boolean; edit: boolean; delete: boolean };
   marketing: {
-    coupons: { view: boolean; edit: boolean };
+    coupons: { view: boolean; edit: boolean; metrics: boolean };
     bulk: { view: boolean; edit: boolean };
   };
   loyalty: {
@@ -64,7 +64,7 @@ export const FULL_PERMISSIONS: Permissions = {
   },
   menu: { view: true, edit: true },
   customers: { view: true, create: true, edit: true, delete: true },
-  marketing: { coupons: { view: true, edit: true }, bulk: { view: true, edit: true } },
+  marketing: { coupons: { view: true, edit: true, metrics: true }, bulk: { view: true, edit: true } },
   loyalty: {
     view: true,
     toggle_program: true,
@@ -99,7 +99,7 @@ export const EMPTY_PERMISSIONS: Permissions = {
   },
   menu: { view: false, edit: false },
   customers: { view: false, create: false, edit: false, delete: false },
-  marketing: { coupons: { view: false, edit: false }, bulk: { view: false, edit: false } },
+  marketing: { coupons: { view: false, edit: false, metrics: false }, bulk: { view: false, edit: false } },
   loyalty: {
     view: false,
     toggle_program: false,
@@ -134,6 +134,7 @@ const PERMISSION_DEPENDENCIES: Record<string, string> = {
   "customers.edit": "customers.view",
   "customers.delete": "customers.view",
   "marketing.coupons.edit": "marketing.coupons.view",
+  "marketing.coupons.metrics": "marketing.coupons.view",
   "marketing.bulk.edit": "marketing.bulk.view",
   "loyalty.toggle_program": "loyalty.view",
   "loyalty.member_create": "loyalty.view",
@@ -162,6 +163,7 @@ const LEGACY_INHERIT_FROM_PARENT: string[] = [
 // Para chaves legadas onde queremos herdar de outro nó (não o "parent" das dependências).
 const LEGACY_INHERIT_OVERRIDES: Record<string, string> = {
   "customers.create": "customers.edit",
+  "marketing.coupons.metrics": "marketing.coupons.view",
 };
 
 function pathDefined(obj: any, path: string): boolean {

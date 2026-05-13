@@ -61,6 +61,7 @@ const SECTIONS: Array<{ key: keyof Permissions; label: string; rows: Row[] }> = 
   ]},
   { key: "marketing", label: "Marketing", rows: [
     { path: "marketing.coupons.view", label: "Ver Cupons de desconto" },
+    { path: "marketing.coupons.metrics", label: "Ver métricas do cupom desconto" },
     { path: "marketing.coupons.edit", label: "Editar/criar/excluir cupons" },
     { path: "marketing.bulk.view", label: "Ver Envio em massa" },
     { path: "marketing.bulk.edit", label: "Editar/criar campanhas" },
@@ -121,6 +122,7 @@ const PERMISSION_DEPENDENCIES: Record<string, string> = {
   "customers.edit": "customers.view",
   "customers.delete": "customers.view",
   "marketing.coupons.edit": "marketing.coupons.view",
+  "marketing.coupons.metrics": "marketing.coupons.view",
   "marketing.bulk.edit": "marketing.bulk.view",
   "loyalty.toggle_program": "loyalty.view",
   "loyalty.member_create": "loyalty.view",
