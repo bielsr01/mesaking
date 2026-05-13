@@ -231,7 +231,7 @@ export function PdvDialog({
 
   const addLine = (
     p: typeof products[number],
-    options: { groupName: string; itemName: string; extraPrice: number }[],
+    options: { groupName: string; itemName: string; extraPrice: number; optionItemId?: string }[],
     qty: number,
     notes: string,
   ) => {
