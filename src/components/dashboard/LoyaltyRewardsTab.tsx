@@ -153,7 +153,7 @@ export function LoyaltyRewardsTab({ restaurantId }: { restaurantId: string }) {
         <div className="text-sm text-muted-foreground">Cadastre produtos do cardápio que podem ser resgatados com pontos</div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setHistoryOpen(true)}><History className="w-4 h-4 mr-1" />Histórico de resgate</Button>
-          <Button onClick={openCreate}><Plus className="w-4 h-4 mr-1" />Nova recompensa</Button>
+          {canRewardsEdit && <Button onClick={openCreate}><Plus className="w-4 h-4 mr-1" />Nova recompensa</Button>}
         </div>
       </div>
 
