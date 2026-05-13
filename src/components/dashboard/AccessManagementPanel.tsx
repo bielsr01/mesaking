@@ -19,14 +19,32 @@ interface Props { restaurantId: string }
 interface AccessGroup { id: string; name: string; permissions: any; is_default: boolean }
 interface MemberRow { user_id: string; access_group_id: string | null; full_name: string | null; email: string | null; is_owner: boolean }
 
-const SECTIONS: Array<{ key: keyof Permissions; label: string; rows: Array<{ path: string; label: string }> }> = [
+type StatusChannel = "pdv" | "delivery" | "ifood";
+const STATUS_LABELS: Record<string, string> = {
+  pending: "Novos",
+  preparing: "Em preparo",
+  out_for_delivery: "Em entrega",
+  awaiting_pickup: "Aguardando retirada",
+  delivered: "Entregues",
+  cancelled: "Cancelados",
+  active: "Ativos",
+  all: "Todos",
+};
+const STATUS_LISTS: Record<StatusChannel, readonly string[]> = {
+  pdv: PDV_STATUSES,
+  delivery: DELIVERY_STATUSES,
+  ifood: IFOOD_STATUSES,
+};
+
+type Row = { path: string; label: string; statusChannel?: StatusChannel };
+const SECTIONS: Array<{ key: keyof Permissions; label: string; rows: Row[] }> = [
   { key: "overview", label: "Visão geral", rows: [{ path: "overview.view", label: "Visualizar" }] },
   { key: "orders", label: "Pedidos", rows: [
     { path: "orders.view", label: "Visualizar" },
-    { path: "orders.channels.pdv", label: "Ver pedidos PDV" },
-    { path: "orders.channels.delivery", label: "Ver pedidos Delivery" },
+    { path: "orders.channels.pdv", label: "Ver pedidos PDV", statusChannel: "pdv" },
+    { path: "orders.channels.delivery", label: "Ver pedidos Delivery", statusChannel: "delivery" },
     { path: "orders.channels.pickup", label: "Ver pedidos Retirada" },
-    { path: "orders.channels.ifood", label: "Ver pedidos iFood" },
+    { path: "orders.channels.ifood", label: "Ver pedidos iFood", statusChannel: "ifood" },
     { path: "orders.change_status", label: "Mudar Status" },
     { path: "orders.edit", label: "Pode editar/excluir pedido" },
     { path: "orders.create_pdv_order", label: "Pode fazer um novo pedido PDV" },
