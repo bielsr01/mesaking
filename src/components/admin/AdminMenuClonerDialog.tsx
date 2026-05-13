@@ -40,6 +40,7 @@ export function AdminMenuClonerDialog({ destRestaurantId, open, onOpenChange }: 
   const [grps, setGrps] = useState<Grp[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [pogs, setPogs] = useState<POG[]>([]);
+  const [pscs, setPscs] = useState<PSC[]>([]);
 
   const [selCats, setSelCats] = useState<Set<string>>(new Set());
   const [selProds, setSelProds] = useState<Set<string>>(new Set());
