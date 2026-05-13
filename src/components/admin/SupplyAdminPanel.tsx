@@ -272,10 +272,11 @@ export function SupplyCatalogTab() {
   const [groupName, setGroupName] = useState("");
   const [totalQty, setTotalQty] = useState<number | "">("");
   const [step, setStep] = useState<number>(50);
-  const [options, setOptions] = useState<{ id?: string; name: string }[]>([]);
+  const [options, setOptions] = useState<{ id?: string; name: string; admin_stock_subgroup_id: string | null }[]>([]);
   const [newOpt, setNewOpt] = useState("");
   const [stockGroupId, setStockGroupId] = useState<string>("");
   const [expenseCategoryId, setExpenseCategoryId] = useState<string>("");
+  const [adminStockGroupId, setAdminStockGroupId] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
   const { data: stockGroups = [] } = useQuery({
