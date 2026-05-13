@@ -1,6 +1,7 @@
 export const PDV_STATUSES = ["preparing", "delivered", "cancelled", "all"] as const;
 export const DELIVERY_STATUSES = ["pending", "preparing", "out_for_delivery", "awaiting_pickup", "delivered", "cancelled", "active", "all"] as const;
 export const IFOOD_STATUSES = DELIVERY_STATUSES;
+export const QUERO_STATUSES = DELIVERY_STATUSES;
 
 export type PdvStatus = typeof PDV_STATUSES[number];
 export type DeliveryStatus = typeof DELIVERY_STATUSES[number];
@@ -11,11 +12,12 @@ export type Permissions = {
   overview: { view: boolean };
   orders: {
     view: boolean;
-    channels: { pdv: boolean; delivery: boolean; pickup: boolean; ifood: boolean };
+    channels: { pdv: boolean; delivery: boolean; pickup: boolean; ifood: boolean; quero: boolean };
     statuses: {
       pdv: StatusMap<typeof PDV_STATUSES>;
       delivery: StatusMap<typeof DELIVERY_STATUSES>;
       ifood: StatusMap<typeof IFOOD_STATUSES>;
+      quero: StatusMap<typeof QUERO_STATUSES>;
     };
     edit: boolean;
     change_status: boolean;
@@ -52,11 +54,12 @@ export const FULL_PERMISSIONS: Permissions = {
   overview: { view: true },
   orders: {
     view: true,
-    channels: { pdv: true, delivery: true, pickup: true, ifood: true },
+    channels: { pdv: true, delivery: true, pickup: true, ifood: true, quero: true },
     statuses: {
       pdv: buildStatusMap(PDV_STATUSES, true),
       delivery: buildStatusMap(DELIVERY_STATUSES, true),
       ifood: buildStatusMap(IFOOD_STATUSES, true),
+      quero: buildStatusMap(QUERO_STATUSES, true),
     },
     edit: true,
     change_status: true,
@@ -87,11 +90,12 @@ export const EMPTY_PERMISSIONS: Permissions = {
   overview: { view: false },
   orders: {
     view: false,
-    channels: { pdv: false, delivery: false, pickup: false, ifood: false },
+    channels: { pdv: false, delivery: false, pickup: false, ifood: false, quero: false },
     statuses: {
       pdv: buildStatusMap(PDV_STATUSES, false),
       delivery: buildStatusMap(DELIVERY_STATUSES, false),
       ifood: buildStatusMap(IFOOD_STATUSES, false),
+      quero: buildStatusMap(QUERO_STATUSES, false),
     },
     edit: false,
     change_status: false,
@@ -123,12 +127,14 @@ const PERMISSION_DEPENDENCIES: Record<string, string> = {
   "orders.channels.delivery": "orders.view",
   "orders.channels.pickup": "orders.view",
   "orders.channels.ifood": "orders.view",
+  "orders.channels.quero": "orders.view",
   "orders.change_status": "orders.view",
   "orders.edit": "orders.view",
   "orders.create_pdv_order": "orders.channels.pdv",
   ...Object.fromEntries(PDV_STATUSES.map((s) => [`orders.statuses.pdv.${s}`, "orders.channels.pdv"])),
   ...Object.fromEntries(DELIVERY_STATUSES.map((s) => [`orders.statuses.delivery.${s}`, "orders.channels.delivery"])),
   ...Object.fromEntries(IFOOD_STATUSES.map((s) => [`orders.statuses.ifood.${s}`, "orders.channels.ifood"])),
+  ...Object.fromEntries(QUERO_STATUSES.map((s) => [`orders.statuses.quero.${s}`, "orders.channels.quero"])),
   "menu.edit": "menu.view",
   "customers.create": "customers.view",
   "customers.edit": "customers.view",
@@ -158,6 +164,8 @@ const LEGACY_INHERIT_FROM_PARENT: string[] = [
   ...PDV_STATUSES.map((s) => `orders.statuses.pdv.${s}`),
   ...DELIVERY_STATUSES.map((s) => `orders.statuses.delivery.${s}`),
   ...IFOOD_STATUSES.map((s) => `orders.statuses.ifood.${s}`),
+  ...QUERO_STATUSES.map((s) => `orders.statuses.quero.${s}`),
+  "orders.channels.quero",
 ];
 
 // Para chaves legadas onde queremos herdar de outro nó (não o "parent" das dependências).
