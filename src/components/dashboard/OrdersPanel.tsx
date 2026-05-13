@@ -403,6 +403,23 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
         return;
       }
     }
+    if (o.external_source === "quero") {
+      if (!o.external_order_id) {
+        patchOrder(o.id, { status: prevStatus });
+        toast.error("Pedido Quero sem external_order_id — não é possível cancelar.");
+        setPending(o.id, false);
+        return;
+      }
+      const { data: fnData, error: fnErr } = await supabase.functions.invoke("quero-action", {
+        body: { orderId: o.id, action: "cancel", cancelReason: "Cancelado pelo restaurante" },
+      });
+      if (fnErr || (fnData && fnData.ok === false)) {
+        patchOrder(o.id, { status: prevStatus });
+        toast.error(`Quero: ${fnData?.error ?? fnErr?.message ?? "falha"}`);
+        setPending(o.id, false);
+        return;
+      }
+    }
     const { error } = await supabase.from("orders").update({ status: "cancelled" }).eq("id", o.id);
     if (error) {
       patchOrder(o.id, { status: prevStatus });
