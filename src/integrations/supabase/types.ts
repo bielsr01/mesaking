@@ -1400,6 +1400,87 @@ export type Database = {
         }
         Relationships: []
       }
+      quero_events: {
+        Row: {
+          created_at: string
+          error: string | null
+          id: string
+          integration_id: string | null
+          order_code: string | null
+          order_id: string | null
+          payload: Json
+          processed: boolean
+          restaurant_id: string | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          integration_id?: string | null
+          order_code?: string | null
+          order_id?: string | null
+          payload: Json
+          processed?: boolean
+          restaurant_id?: string | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          integration_id?: string | null
+          order_code?: string | null
+          order_id?: string | null
+          payload?: Json
+          processed?: boolean
+          restaurant_id?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
+      quero_integrations: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          last_event_at: string | null
+          last_event_code: string | null
+          last_poll_at: string | null
+          last_status: string | null
+          place_id: string
+          restaurant_id: string
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          last_event_at?: string | null
+          last_event_code?: string | null
+          last_poll_at?: string | null
+          last_status?: string | null
+          place_id: string
+          restaurant_id: string
+          token: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          last_event_at?: string | null
+          last_event_code?: string | null
+          last_poll_at?: string | null
+          last_status?: string | null
+          place_id?: string
+          restaurant_id?: string
+          token?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       restaurant_members: {
         Row: {
           access_group_id: string | null
