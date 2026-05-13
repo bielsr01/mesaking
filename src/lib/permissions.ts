@@ -134,6 +134,7 @@ const PERMISSION_DEPENDENCIES: Record<string, string> = {
   "customers.edit": "customers.view",
   "customers.delete": "customers.view",
   "marketing.coupons.edit": "marketing.coupons.view",
+  "marketing.coupons.metrics": "marketing.coupons.view",
   "marketing.bulk.edit": "marketing.bulk.view",
   "loyalty.toggle_program": "loyalty.view",
   "loyalty.member_create": "loyalty.view",
