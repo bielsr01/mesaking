@@ -1,4 +1,4 @@
-import { ChefHat, Store, Package, ShoppingBag, ChevronDown, BarChart3, Users, Megaphone, Ticket, BookOpen, Send, Plug, Boxes, Receipt, LineChart, Bike } from "lucide-react";
+import { ChefHat, Store, Package, ShoppingBag, ChevronDown, BarChart3, Users, Megaphone, Ticket, BookOpen, Send, Plug, Boxes, Receipt, LineChart, Bike, Award } from "lucide-react";
 import { useState } from "react";
 import {
   Sidebar,
@@ -23,6 +23,7 @@ export type AdminView =
   | "customers"
   | "marketing:coupons"
   | "marketing:bulk"
+  | "marketing:loyalty"
   | "settings:integrations"
   | "settings:ifood-fees"
   | "supply:catalog"
@@ -125,6 +126,14 @@ export function AdminSidebar({ active, onChange, supplyBadge = 0 }: { active: Ad
                           <button type="button" onClick={() => onChange("marketing:bulk")} className="w-full text-left flex items-center gap-2">
                             <Send className="h-4 w-4" />
                             <span>Envio em massa</span>
+                          </button>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={active === "marketing:loyalty"}>
+                          <button type="button" onClick={() => onChange("marketing:loyalty")} className="w-full text-left flex items-center gap-2">
+                            <Award className="h-4 w-4" />
+                            <span>Programa de fidelidade</span>
                           </button>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>

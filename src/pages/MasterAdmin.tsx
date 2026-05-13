@@ -25,6 +25,7 @@ import { AdminMenuPanel } from "@/components/admin/AdminMenuPanel";
 import { AdminStockPanel } from "@/components/admin/AdminStockPanel";
 import { AdminExpenseStoresPanel } from "@/components/admin/AdminExpenseStoresPanel";
 import { AdminOwnExpensesPanel } from "@/components/admin/AdminOwnExpensesPanel";
+import { AdminLoyaltyPanel } from "@/components/admin/AdminLoyaltyPanel";
 import { AdminFinancePanel } from "@/components/admin/AdminFinancePanel";
 import { AdminIfoodFeesPanel } from "@/components/admin/AdminIfoodFeesPanel";
 import { BulkCampaignsPanel } from "@/components/dashboard/BulkCampaignsPanel";
@@ -213,6 +214,7 @@ export default function MasterAdmin() {
     customers: "Clientes",
     "marketing:coupons": "Cupons de desconto",
     "marketing:bulk": "Envio em massa",
+    "marketing:loyalty": "Programa de fidelidade",
     "settings:integrations": "Integrações",
     "settings:ifood-fees": "Configurações iFood",
     "supply:catalog": "Catálogo de insumos",
@@ -397,6 +399,7 @@ export default function MasterAdmin() {
             {view === "customers" && <AdminCustomersPanel />}
             {view === "marketing:coupons" && <AdminCouponsPanel />}
             {view === "marketing:bulk" && <BulkCampaignsPanel scope="admin" />}
+            {view === "marketing:loyalty" && <AdminLoyaltyPanel />}
             {view === "settings:integrations" && (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <EvolutionIntegrationCard scope="admin" />

@@ -33,7 +33,7 @@ type Tx = {
   orders?: { order_number: number; status: string; total: number; created_at: string };
 };
 
-export function LoyaltyPanel({ restaurantId }: { restaurantId: string }) {
+export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: string; isAdmin?: boolean }) {
   const qc = useQueryClient();
   const [metricsOpen, setMetricsOpen] = useState(false);
 
@@ -55,11 +55,11 @@ export function LoyaltyPanel({ restaurantId }: { restaurantId: string }) {
   }, [settingsQ.data]);
 
   const saveSettings = async () => {
-    const payload = {
+    const payload: any = {
       restaurant_id: restaurantId,
       enabled,
-      points_per_real: Number(pointsPerReal) || 0,
     };
+    if (isAdmin) payload.points_per_real = Number(pointsPerReal) || 0;
     const { error } = await sb.from("loyalty_settings").upsert(payload, { onConflict: "restaurant_id" });
     if (error) return toast.error(error.message);
     toast.success("Configurações salvas");
@@ -164,7 +164,7 @@ export function LoyaltyPanel({ restaurantId }: { restaurantId: string }) {
 
   const saveMember = async () => {
     if (!newName.trim() || !newPhone.trim()) return toast.error("Preencha nome e telefone");
-    if (editingMember) {
+    if (editingMember && !isAdmin) {
       setPinValue("");
       setPinPromptOpen(true);
       return;
@@ -278,11 +278,18 @@ export function LoyaltyPanel({ restaurantId }: { restaurantId: string }) {
               </div>
               <Switch checked={enabled} onCheckedChange={setEnabled} />
             </div>
-            <div className="space-y-2">
-              <Label>Pontos por R$ 1,00</Label>
-              <Input type="number" step="0.01" min="0" value={pointsPerReal} onChange={(e) => setPointsPerReal(e.target.value)} />
-              <p className="text-xs text-muted-foreground">Padrão: 1 ponto por real gasto.</p>
-            </div>
+            {isAdmin ? (
+              <div className="space-y-2">
+                <Label>Pontos por R$ 1,00</Label>
+                <Input type="number" step="0.01" min="0" value={pointsPerReal} onChange={(e) => setPointsPerReal(e.target.value)} />
+                <p className="text-xs text-muted-foreground">Configurável apenas pelo administrador. Padrão: 1 ponto por real gasto.</p>
+              </div>
+            ) : (
+              <div className="space-y-1 rounded-lg border bg-muted/30 p-3">
+                <div className="text-xs text-muted-foreground">Pontos por R$ 1,00 (definido pelo administrador)</div>
+                <div className="font-bold text-lg">{pointsPerReal}</div>
+              </div>
+            )}
             <Button onClick={saveSettings}>Salvar</Button>
           </TabsContent>
 
