@@ -476,7 +476,7 @@ function GroupDialog({
 }
 
 function SortableGroupsList({
-  groups, items, restaurantId, onEdit, onRemove, onToggle, onLink,
+  groups, items, restaurantId, onEdit, onRemove, onToggle, onLink, canEdit = true,
 }: {
   groups: OptionGroup[];
   items: OptionItem[];
@@ -485,6 +485,7 @@ function SortableGroupsList({
   onRemove: (g: OptionGroup) => void;
   onToggle: (g: OptionGroup) => void;
   onLink: (g: OptionGroup) => void;
+  canEdit?: boolean;
 }) {
   const qc = useQueryClient();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -503,7 +504,7 @@ function SortableGroupsList({
   };
 
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+    <DndContext sensors={canEdit ? sensors : []} collisionDetection={closestCenter} onDragEnd={canEdit ? handleDragEnd : undefined}>
       <SortableContext items={ids} strategy={verticalListSortingStrategy}>
         <div className="space-y-3">
           {groups.map((g) => (
@@ -516,6 +517,7 @@ function SortableGroupsList({
               onRemove={onRemove}
               onToggle={onToggle}
               onLink={onLink}
+              canEdit={canEdit}
             />
           ))}
         </div>
