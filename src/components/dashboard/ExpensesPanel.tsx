@@ -137,7 +137,7 @@ export function ExpensesPanel({ restaurantId }: { restaurantId: string }) {
     if (!cat) return toast.error("Selecione uma categoria");
     const description = cat.requires_description ? descValue.trim() : cat.name;
     if (cat.requires_description && !description) return toast.error("Descrição obrigatória");
-    const payload = {
+    const payload: any = {
       restaurant_id: restaurantId,
       description,
       category: cat.name,
@@ -146,10 +146,19 @@ export function ExpensesPanel({ restaurantId }: { restaurantId: string }) {
       expense_date: String(fd.get("expense_date") || todayISO()),
       notes: String(fd.get("notes") || "").trim() || null,
       created_by: user?.id ?? null,
+      receipt_url: receiptUrl,
     };
     if (payload.amount <= 0) return toast.error("Valor deve ser maior que zero");
     setSaving(true);
     try {
+      if (receiptFile) {
+        const ext = receiptFile.name.split(".").pop() || "jpg";
+        const path = `restaurant/${restaurantId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const { error: upErr } = await supabase.storage.from("expense-receipts").upload(path, receiptFile, { upsert: false });
+        if (upErr) { toast.error("Falha ao enviar comprovante: " + upErr.message); return; }
+        const { data: pub } = supabase.storage.from("expense-receipts").getPublicUrl(path);
+        payload.receipt_url = pub.publicUrl;
+      }
       const op = editing
         ? supabase.from("expenses").update(payload).eq("id", editing.id)
         : supabase.from("expenses").insert(payload);
