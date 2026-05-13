@@ -22,9 +22,9 @@ type Cat = { id: string; name: string; requires_description: boolean; is_active:
 
 type Preset = "all" | "today" | "this_month" | "last_month" | "year" | "custom" | `m:${number}`;
 
-const todayISO = () => new Date().toISOString().slice(0, 10);
-const monthStartISO = (d = new Date()) => new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
-const monthEndISO = (d = new Date()) => new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().slice(0, 10);
+const todayISO = () => todayISOBR();
+const monthStartISO = (d = new Date()) => monthStartISOBR(d);
+const monthEndISO = (d = new Date()) => monthEndISOBR(d);
 
 const MONTHS = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 
