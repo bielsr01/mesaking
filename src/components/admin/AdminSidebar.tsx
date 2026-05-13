@@ -194,7 +194,7 @@ export function AdminSidebar({ active, onChange, supplyBadge = 0 }: { active: Ad
                           {supplyBadge > 9 ? "9+" : supplyBadge}
                         </span>
                       )}
-                      <ChevronDown className="ml-1 h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                      <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
                     </SidebarMenuButton>
                   </CollapsibleTrigger>
                   <CollapsibleContent>
