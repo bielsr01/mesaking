@@ -97,6 +97,7 @@ const empty = {
 
 export function CustomersPanel({ restaurantId }: { restaurantId: string }) {
   const { can } = usePermissions(restaurantId);
+  const canCreate = can("customers.create");
   const canEdit = can("customers.edit");
   const canDelete = can("customers.delete");
   const qc = useQueryClient();
