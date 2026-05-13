@@ -144,10 +144,6 @@ export function AdminSidebar({ active, onChange, supplyBadge = 0 }: { active: Ad
                   <span>Programa de fidelidade</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-                    </SidebarMenuSub>
-                  </CollapsibleContent>
-                </SidebarMenuItem>
-              </Collapsible>
 
               <Collapsible open={settingsOpen || collapsed} onOpenChange={setSettingsOpen} asChild>
                 <SidebarMenuItem>
