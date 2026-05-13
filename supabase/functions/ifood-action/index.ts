@@ -133,23 +133,48 @@ Deno.serve(async (req) => {
     action: body.action,
   });
 
-  const resp = await fetch(`${IHUB_BASE}/ifood/action`, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${canSee.secret_token}`,
-      "Content-Type": "application/json",
-      "Accept": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
+  // Retry on transient failures (network/5xx). iHub às vezes responde 5xx por
+  // intermitência — tentamos até 3 vezes com backoff curto antes de falhar.
+  let resp: Response | null = null;
+  let text = "";
+  let parsed: any = null;
+  let lastNetErr: any = null;
+  const maxAttempts = 3;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      resp = await fetch(`${IHUB_BASE}/ifood/action`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${canSee.secret_token}`,
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+      text = await resp.text();
+      parsed = text;
+      try { parsed = JSON.parse(text); } catch {}
+      // Success or non-retryable client error → break
+      if (resp.ok || (resp.status >= 400 && resp.status < 500)) break;
+      console.warn(`[ifood-action] attempt ${attempt}/${maxAttempts} got ${resp.status}`, parsed);
+    } catch (e) {
+      lastNetErr = e;
+      console.warn(`[ifood-action] attempt ${attempt}/${maxAttempts} network error`, e);
+    }
+    if (attempt < maxAttempts) {
+      await new Promise(r => setTimeout(r, 400 * attempt));
+    }
+  }
 
-  const text = await resp.text();
-  let parsed: any = text;
-  try { parsed = JSON.parse(text); } catch {}
+  if (!resp) {
+    return new Response(JSON.stringify({
+      ok: false,
+      error: lastNetErr?.message ?? "Sem resposta do iHub após múltiplas tentativas",
+    }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
 
   if (!resp.ok) {
     console.error("iHub action error", resp.status, "payload:", payload, "response:", parsed);
-    // Return 200 so the supabase-js client can read the body (it treats non-2xx as FunctionsHttpError)
     return new Response(JSON.stringify({
       ok: false,
       error: parsed?.message ?? parsed?.error ?? "Falha ao enviar ação para o iFood",

@@ -298,15 +298,15 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
         const { data: fnData, error: fnErr } = await supabase.functions.invoke("ifood-action", {
           body: { orderId: o.id, action },
         });
-        if (fnErr || (fnData && fnData.ok === false)) {
-          const ihubStatus = fnData?.ihub_status;
-          const transient = !ihubStatus || ihubStatus >= 500;
-          if (!transient) {
-            patchOrder(o.id, { status: prevStatus });
-            toast.error(`iFood: ${fnData?.error ?? fnErr?.message ?? "falha"}`);
-            setPending(o.id, false);
-            return;
-          }
+        if (fnErr || !fnData?.ok) {
+          // Sem "transient pass-through": qualquer falha reverte o status local
+          // para evitar dessincronia entre o painel e o iFood.
+          patchOrder(o.id, { status: prevStatus });
+          const msg = fnData?.error ?? fnErr?.message ?? "falha";
+          const detail = fnData?.ihub_status ? ` (iHub ${fnData.ihub_status})` : "";
+          toast.error(`iFood: ${msg}${detail}`);
+          setPending(o.id, false);
+          return;
         }
       }
     }
