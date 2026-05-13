@@ -356,13 +356,23 @@ function GroupDialog({
       // Update existing
       for (const r of rows.filter((r) => !r.toDelete && r.id)) {
         const { error } = await supabase.from("option_items").update({
-          name: r.name.trim(), extra_price: Number(r.extra_price) || 0, image_url: r.image_url ?? null,
+          name: r.name.trim(),
+          extra_price: Number(r.extra_price) || 0,
+          image_url: r.image_url ?? null,
+          stock_group_id: r.stock_group_id ?? null,
+          stock_quantity_per_unit: Number(r.stock_quantity_per_unit) || 1,
         }).eq("id", r.id!);
         if (error) throw error;
       }
       // Insert new
       const newOnes = rows.filter((r) => !r.toDelete && !r.id && r.name.trim()).map((r, idx) => ({
-        group_id: groupId!, name: r.name.trim(), extra_price: Number(r.extra_price) || 0, sort_order: idx, image_url: r.image_url ?? null,
+        group_id: groupId!,
+        name: r.name.trim(),
+        extra_price: Number(r.extra_price) || 0,
+        sort_order: idx,
+        image_url: r.image_url ?? null,
+        stock_group_id: r.stock_group_id ?? null,
+        stock_quantity_per_unit: Number(r.stock_quantity_per_unit) || 1,
       }));
       if (newOnes.length) {
         const { error } = await supabase.from("option_items").insert(newOnes);
