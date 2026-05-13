@@ -35,7 +35,11 @@ export interface OptionItem {
   sort_order: number;
   is_active: boolean;
   image_url?: string | null;
+  stock_group_id?: string | null;
+  stock_quantity_per_unit?: number | null;
 }
+
+type StockGroupLite = { id: string; name: string; is_active: boolean };
 
 export const optionKeys = {
   groups: (rid: string) => ["options", rid, "groups"] as const,
