@@ -30,10 +30,14 @@ export function StoreOpenToggle({ restaurantId, openingHours, manualOverride, on
   const [closeDialog, setCloseDialog] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  // Close-options state
+  // Modo de duração para abrir/fechar manualmente
   const [closeMode, setCloseMode] = useState<"minutes" | "until" | "today">("minutes");
   const [minutes, setMinutes] = useState("30");
   const [untilTime, setUntilTime] = useState("23:00");
+
+  const [openMode, setOpenMode] = useState<"minutes" | "until" | "today">("minutes");
+  const [openMinutes, setOpenMinutes] = useState("30");
+  const [openUntilTime, setOpenUntilTime] = useState("23:00");
 
   const persist = async (override: ManualOverride) => {
     setBusy(true);
