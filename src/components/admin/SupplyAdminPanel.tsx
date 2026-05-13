@@ -523,14 +523,30 @@ export function SupplyCatalogTab() {
                         <Button type="button" variant="outline" onClick={addOption}>Adicionar</Button>
                       </div>
                       {options.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {options.map((o, i) => (
-                            <Badge key={i} variant="secondary" className="gap-1 pr-1">
-                              {o.name}
-                              <button type="button" onClick={() => setOptions(arr => arr.filter((_, idx) => idx !== i))}
-                                className="hover:bg-destructive/20 rounded p-0.5"><X className="w-3 h-3" /></button>
-                            </Badge>
-                          ))}
+                        <div className="space-y-2 mt-2">
+                          {options.map((o, i) => {
+                            const availSubs = adminSubgroups.filter(s => !adminStockGroupId || s.group_id === adminStockGroupId);
+                            return (
+                              <div key={i} className="flex items-center gap-2 rounded-md border bg-background p-2">
+                                <span className="font-medium text-sm flex-1 truncate">{o.name}</span>
+                                <select
+                                  value={o.admin_stock_subgroup_id ?? ""}
+                                  onChange={(e) => {
+                                    const v = e.target.value || null;
+                                    setOptions(arr => arr.map((x, idx) => idx === i ? { ...x, admin_stock_subgroup_id: v } : x));
+                                  }}
+                                  disabled={!adminStockGroupId}
+                                  className="h-8 rounded-md border border-input bg-background px-2 text-xs flex-1 disabled:opacity-60"
+                                  title={adminStockGroupId ? "Vincular a um subgrupo do estoque admin" : "Selecione antes o grupo do estoque admin"}
+                                >
+                                  <option value="">{adminStockGroupId ? "Sem vínculo" : "Selecione o grupo admin"}</option>
+                                  {availSubs.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                </select>
+                                <button type="button" onClick={() => setOptions(arr => arr.filter((_, idx) => idx !== i))}
+                                  className="hover:bg-destructive/20 rounded p-1"><X className="w-3 h-3" /></button>
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
                     </div>
