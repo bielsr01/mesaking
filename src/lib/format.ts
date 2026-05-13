@@ -26,6 +26,48 @@ export const formatDateTimeBR = (v: string | number | Date | null | undefined) =
 export const formatTimeBR = (v: string | number | Date | null | undefined) =>
   formatDateBR(v, { hour: "2-digit", minute: "2-digit" });
 
+/** Retorna YYYY-MM-DD da data informada (ou hoje) considerando o fuso de Brasília. */
+export const isoDateBR = (v: Date = new Date()): string => {
+  // en-CA produz no formato YYYY-MM-DD
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: APP_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(v);
+};
+
+/** Hoje no fuso de Brasília (YYYY-MM-DD). */
+export const todayISOBR = (): string => isoDateBR(new Date());
+
+/** Componentes ano/mês/dia (1-based) da data no fuso de Brasília. */
+export const ymdBR = (v: Date = new Date()): { y: number; m: number; d: number } => {
+  const [y, m, d] = isoDateBR(v).split("-").map(Number);
+  return { y, m, d };
+};
+
+/** Primeiro dia do mês de `v` (default: hoje), em Brasília, como YYYY-MM-DD. */
+export const monthStartISOBR = (v: Date = new Date()): string => {
+  const { y, m } = ymdBR(v);
+  return `${y}-${String(m).padStart(2, "0")}-01`;
+};
+
+/** Último dia do mês de `v`, em Brasília, como YYYY-MM-DD. */
+export const monthEndISOBR = (v: Date = new Date()): string => {
+  const { y, m } = ymdBR(v);
+  // Dia 0 do mês seguinte = último dia do mês atual (cálculo local, mas só usamos Y/M/D resultantes)
+  const last = new Date(y, m, 0).getDate();
+  return `${y}-${String(m).padStart(2, "0")}-${String(last).padStart(2, "0")}`;
+};
+
+/** Adiciona N dias a uma data ISO (YYYY-MM-DD), retornando outra ISO. */
+export const addDaysISO = (iso: string, days: number): string => {
+  const [y, m, d] = iso.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() + days);
+  return dt.toISOString().slice(0, 10);
+};
+
 export const orderStatusLabel: Record<string, string> = {
   pending: "Aguardando aceitação",
   accepted: "Aceito",
