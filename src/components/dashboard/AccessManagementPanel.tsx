@@ -117,6 +117,7 @@ const PERMISSION_DEPENDENCIES: Record<string, string> = {
   "orders.edit": "orders.view",
   "orders.create_pdv_order": "orders.channels.pdv",
   "menu.edit": "menu.view",
+  "customers.create": "customers.view",
   "customers.edit": "customers.view",
   "customers.delete": "customers.view",
   "marketing.coupons.edit": "marketing.coupons.view",
