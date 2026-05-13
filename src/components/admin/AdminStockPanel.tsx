@@ -10,8 +10,9 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Pencil, Boxes, Layers } from "lucide-react";
+import { Plus, Pencil, Boxes, Layers, Factory } from "lucide-react";
 import { toast } from "sonner";
+import { AdminStockAdmin } from "./AdminStockAdmin";
 
 type StockGroup = {
   id: string; name: string; is_active: boolean; sort_order: number;
