@@ -218,49 +218,41 @@ export function AppSidebar({
                 </Collapsible>
               )}
 
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  isActive={active === "supply-orders"}
-                  onClick={() => onChange("supply-orders")}
-                  tooltip="Pedido de Insumos"
-                >
-                  <Package className="h-4 w-4" />
-                  <span>Pedido de Insumos</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {showSupply && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton isActive={active === "supply-orders"} onClick={() => onChange("supply-orders")} tooltip="Pedido de Insumos">
+                    <Package className="h-4 w-4" />
+                    <span>Pedido de Insumos</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
 
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  isActive={active === "stock"}
-                  onClick={() => onChange("stock")}
-                  tooltip="Estoque"
-                >
-                  <Boxes className="h-4 w-4" />
-                  <span>Estoque</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {showStock && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton isActive={active === "stock"} onClick={() => onChange("stock")} tooltip="Estoque">
+                    <Boxes className="h-4 w-4" />
+                    <span>Estoque</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
 
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  isActive={active === "expenses"}
-                  onClick={() => onChange("expenses")}
-                  tooltip="Cadastro de despesas"
-                >
-                  <Receipt className="h-4 w-4" />
-                  <span>Cadastro de despesas</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {showExpenses && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton isActive={active === "expenses"} onClick={() => onChange("expenses")} tooltip="Cadastro de despesas">
+                    <Receipt className="h-4 w-4" />
+                    <span>Cadastro de despesas</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
 
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  isActive={active === "finance"}
-                  onClick={() => onChange("finance")}
-                  tooltip="Receitas - Despesas"
-                >
-                  <LineChart className="h-4 w-4" />
-                  <span>Receitas - Despesas</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {showFinance && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton isActive={active === "finance"} onClick={() => onChange("finance")} tooltip="Receitas - Despesas">
+                    <LineChart className="h-4 w-4" />
+                    <span>Receitas - Despesas</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
