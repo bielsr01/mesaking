@@ -59,7 +59,7 @@ export async function fetchItems(restaurantId: string): Promise<OptionItem[]> {
   return ((data ?? []) as any[]).map(({ option_groups, ...r }) => r) as OptionItem[];
 }
 
-export function OptionGroupsManager({ restaurantId }: { restaurantId: string }) {
+export function OptionGroupsManager({ restaurantId, canEdit = true }: { restaurantId: string; canEdit?: boolean }) {
   const qc = useQueryClient();
   const { data: groups = [], isLoading: lg } = useQuery({
     queryKey: optionKeys.groups(restaurantId),
@@ -115,7 +115,7 @@ export function OptionGroupsManager({ restaurantId }: { restaurantId: string }) 
           <h3 className="font-semibold">Grupos de opções</h3>
           <p className="text-xs text-muted-foreground">Ex: Sabores, Acompanhamentos, Adicionais. Vincule a um ou mais produtos.</p>
         </div>
-        <Button size="sm" onClick={openNew}><Plus className="w-4 h-4 mr-1" />Novo grupo</Button>
+        {canEdit && <Button size="sm" onClick={openNew}><Plus className="w-4 h-4 mr-1" />Novo grupo</Button>}
       </div>
 
       {isLoading ? (
@@ -131,23 +131,24 @@ export function OptionGroupsManager({ restaurantId }: { restaurantId: string }) 
           onRemove={removeGroup}
           onToggle={toggleGroup}
           onLink={setLinkingGroup}
+          canEdit={canEdit}
         />
       )}
 
-      <GroupDialog
+      {canEdit && <GroupDialog
         open={open}
         onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}
         restaurantId={restaurantId}
         editing={editing}
         existingItems={editing ? items.filter((i) => i.group_id === editing.id) : []}
         onSaved={reload}
-      />
+      />}
 
-      <LinkProductsDialog
+      {canEdit && <LinkProductsDialog
         group={linkingGroup}
         restaurantId={restaurantId}
         onClose={() => setLinkingGroup(null)}
-      />
+      />}
     </div>
   );
 }
