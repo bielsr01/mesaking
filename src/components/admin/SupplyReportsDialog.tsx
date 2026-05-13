@@ -231,17 +231,28 @@ export function SupplyReportsDialog() {
 
         <div className="flex flex-wrap gap-2 justify-between items-center">
           <div className="flex gap-2 flex-wrap">
-            <Button size="sm" variant="ghost" onClick={() => { setFrom(todayISO()); setTo(todayISO()); }}>Hoje</Button>
-            <Button size="sm" variant="ghost" onClick={() => { setFrom(monthStartISO()); setTo(todayISO()); }}>Este mês</Button>
-            <Button size="sm" variant="ghost" onClick={() => {
-              const d = new Date(); d.setDate(d.getDate() - 30);
-              setFrom(d.toISOString().slice(0, 10)); setTo(todayISO());
-            }}>Últimos 30 dias</Button>
-            <Button size="sm" variant="ghost" onClick={() => {
-              const d = new Date(); d.setMonth(d.getMonth() - 1); d.setDate(1);
-              const end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-              setFrom(d.toISOString().slice(0, 10)); setTo(end.toISOString().slice(0, 10));
-            }}>Mês passado</Button>
+            {([
+              { id: "today", label: "Hoje" },
+              { id: "this_month", label: "Este mês" },
+              { id: "last_30", label: "Últimos 30 dias" },
+              { id: "last_month", label: "Mês passado" },
+            ] as { id: QuickPreset; label: string }[]).map((p) => {
+              const active = preset === p.id;
+              return (
+                <Button
+                  key={p.id}
+                  size="sm"
+                  variant={active ? "default" : "ghost"}
+                  onClick={() => applyPreset(p.id)}
+                  className={cn(
+                    "rounded-full border border-border transition-colors",
+                    active && "border-primary shadow-sm ring-1 ring-primary/40",
+                  )}
+                >
+                  {p.label}
+                </Button>
+              );
+            })}
           </div>
           <Button size="sm" variant="outline" onClick={exportCSV} className="gap-2">
             <Download className="w-4 h-4" /> Exportar CSV
