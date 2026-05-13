@@ -62,6 +62,8 @@ export function BulkCampaignsPanel({
   scope, restaurantId,
 }: { scope: "restaurant" | "admin"; restaurantId?: string }) {
   const qc = useQueryClient();
+  const { can } = usePermissions(scope === "restaurant" ? restaurantId : undefined);
+  const canEdit = scope === "admin" ? true : can("marketing.bulk.edit");
   const restaurantsQ = useRestaurants();
   const allRest = restaurantsQ.data ?? [];
   const [adminFilter, setAdminFilter] = useState<string[]>([]);
