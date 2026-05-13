@@ -1,4 +1,5 @@
-import { ChefHat, LayoutDashboard, ShoppingBag, UtensilsCrossed, Settings, Store, Printer, Plug, ChevronDown, Users, Megaphone, Ticket, Award, Send, ClipboardList, Package, Receipt, Boxes, LineChart } from "lucide-react";
+import { ChefHat, LayoutDashboard, ShoppingBag, UtensilsCrossed, Settings, Store, Printer, Plug, ChevronDown, Users, Megaphone, Ticket, Award, Send, ClipboardList, Package, Receipt, Boxes, LineChart, ShieldCheck } from "lucide-react";
+import { Permissions } from "@/lib/permissions";
 import { useState } from "react";
 import {
   Sidebar,
@@ -29,6 +30,7 @@ export type DashboardView =
   | "settings:business"
   | "settings:printers"
   | "settings:integrations"
+  | "settings:access"
   | "supply-orders"
   | "stock"
   | "expenses"
@@ -57,6 +59,7 @@ const settingsItems: { id: DashboardView; title: string; icon: any }[] = [
   { id: "settings:business", title: "Informações do negócio", icon: Store },
   { id: "settings:printers", title: "Impressões", icon: Printer },
   { id: "settings:integrations", title: "Integrações", icon: Plug },
+  { id: "settings:access", title: "Gestão de Acessos", icon: ShieldCheck },
 ];
 
 export function AppSidebar({
@@ -64,12 +67,43 @@ export function AppSidebar({
   onChange,
   ordersBadge = 0,
   ordersBlinking = false,
+  permissions,
+  isFullAccess = true,
 }: {
   active: DashboardView;
   onChange: (v: DashboardView) => void;
   ordersBadge?: number;
   ordersBlinking?: boolean;
+  permissions?: Permissions;
+  isFullAccess?: boolean;
 }) {
+  const can = (path: string): any => {
+    if (isFullAccess || !permissions) return true;
+    return path.split(".").reduce((o: any, k) => (o ? o[k] : undefined), permissions);
+  };
+  const visibleMain = mainItems.filter((it) => {
+    if (it.id === "overview") return !!can("overview.view");
+    if (it.id === "orders") return !!can("orders.view");
+    if (it.id === "menu") return !!can("menu.view");
+    if (it.id === "customers") return !!can("customers.view");
+    return true;
+  });
+  const visibleMarketing = marketingItems.filter((it) => {
+    if (it.id === "marketing:coupons") return !!can("marketing.coupons.view");
+    if (it.id === "marketing:bulk") return !!can("marketing.bulk.view");
+    return true;
+  });
+  const visibleSettings = settingsItems.filter((it) => {
+    if (it.id === "settings:access") return !!can("access_management.view");
+    return !!can("settings.view");
+  });
+  const showLoyalty = !!can("loyalty.view");
+  const showSupply = !!can("supply_orders.view");
+  const showStock = !!can("stock.view");
+  const showExpenses = !!can("expenses.view");
+  const showFinance = !!can("finance.view");
+  const showSettings = !!can("settings.view") || !!can("access_management.view");
+  const showMarketing = visibleMarketing.length > 0;
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const marketingActive = active.startsWith("marketing:") && active !== "marketing:loyalty";
