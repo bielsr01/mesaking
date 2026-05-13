@@ -527,7 +527,7 @@ function SortableGroupsList({
 }
 
 function SortableGroupCard({
-  group: g, items: groupItems, restaurantId, onEdit, onRemove, onToggle, onLink,
+  group: g, items: groupItems, restaurantId, onEdit, onRemove, onToggle, onLink, canEdit = true,
 }: {
   group: OptionGroup;
   items: OptionItem[];
@@ -536,6 +536,7 @@ function SortableGroupCard({
   onRemove: (g: OptionGroup) => void;
   onToggle: (g: OptionGroup) => void;
   onLink: (g: OptionGroup) => void;
+  canEdit?: boolean;
 }) {
   const qc = useQueryClient();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: g.id });
@@ -564,7 +565,7 @@ function SortableGroupCard({
     <Card ref={setNodeRef} style={style} className={!g.is_active ? "opacity-60" : ""}>
       <CardContent className="p-3 space-y-2">
         <div className="flex items-center gap-2">
-          <button
+          {canEdit && <button
             type="button"
             className="touch-none cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-1"
             {...attributes}
@@ -572,20 +573,20 @@ function SortableGroupCard({
             aria-label="Arrastar grupo"
           >
             <GripVertical className="w-5 h-5" />
-          </button>
+          </button>}
           <div className="flex-1 min-w-0">
             <div className="font-medium">{g.name}</div>
             <div className="text-xs text-muted-foreground">
               Mín {g.min_select} · Máx {g.max_select} · {groupItems.length} {groupItems.length === 1 ? "item" : "itens"}
             </div>
           </div>
-          <Switch checked={g.is_active} onCheckedChange={() => onToggle(g)} />
-          <Button size="icon" variant="ghost" title="Vincular produtos" onClick={() => onLink(g)}><Link2 className="w-4 h-4" /></Button>
-          <Button size="icon" variant="ghost" onClick={() => onEdit(g)}><Pencil className="w-4 h-4" /></Button>
-          <Button size="icon" variant="ghost" onClick={() => onRemove(g)}><Trash2 className="w-4 h-4" /></Button>
+          {canEdit && <Switch checked={g.is_active} onCheckedChange={() => onToggle(g)} />}
+          {canEdit && <Button size="icon" variant="ghost" title="Vincular produtos" onClick={() => onLink(g)}><Link2 className="w-4 h-4" /></Button>}
+          {canEdit && <Button size="icon" variant="ghost" onClick={() => onEdit(g)}><Pencil className="w-4 h-4" /></Button>}
+          {canEdit && <Button size="icon" variant="ghost" onClick={() => onRemove(g)}><Trash2 className="w-4 h-4" /></Button>}
         </div>
         {groupItems.length > 0 && (
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleItemsDragEnd}>
+          <DndContext sensors={canEdit ? sensors : []} collisionDetection={closestCenter} onDragEnd={canEdit ? handleItemsDragEnd : undefined}>
             <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
               <div className="flex flex-col gap-1 pt-1 pl-7">
                 {groupItems.map((i) => (
