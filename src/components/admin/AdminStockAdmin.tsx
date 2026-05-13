@@ -126,7 +126,7 @@ export function AdminStockAdmin() {
     if (delta === 0) { setAdjust(null); return; }
     const { data: u } = await supabase.auth.getUser();
     const { error } = await supabase.from("admin_stock_movements").insert({
-      subgroup_id: sub.id, quantity: delta, type, notes: `Ajuste manual (${mode})`, created_by: u.user?.id ?? null,
+      subgroup_id: sub.id, quantity: delta, type, notes: `Ajuste manual`, created_by: u.user?.id ?? null,
     });
     if (error) return toast.error(error.message);
     const { error: e2 } = await supabase.from("admin_stock_subgroups").update({ quantity: sub.quantity + delta }).eq("id", sub.id);
