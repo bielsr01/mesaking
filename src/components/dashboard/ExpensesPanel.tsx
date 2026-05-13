@@ -339,6 +339,12 @@ export function ExpensesPanel({ restaurantId }: { restaurantId: string }) {
                       <TableCell className="text-right font-semibold">{brl(Number(e.amount))}</TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-1">
+                          {e.receipt_url && (
+                            <>
+                              <Button variant="ghost" size="icon" className="h-8 w-8" title="Visualizar comprovante" onClick={() => setPreviewUrl(e.receipt_url)}><Eye className="w-4 h-4" /></Button>
+                              <Button variant="ghost" size="icon" className="h-8 w-8" title="Baixar comprovante" asChild><a href={e.receipt_url} download target="_blank" rel="noreferrer"><Download className="w-4 h-4" /></a></Button>
+                            </>
+                          )}
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(e)}><Pencil className="w-4 h-4" /></Button>
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(e.id)}><Trash2 className="w-4 h-4" /></Button>
                         </div>
