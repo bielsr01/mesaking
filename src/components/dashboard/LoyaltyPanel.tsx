@@ -15,6 +15,7 @@ import { brl, formatPhone, statusLabelFor } from "@/lib/format";
 import { Plus, Check, Trash2, Award, RefreshCw, Pencil, History, Search, BarChart3 } from "lucide-react";
 import { LoyaltyRewardsTab } from "./LoyaltyRewardsTab";
 import { LoyaltyMetricsDialog } from "./LoyaltyMetricsDialog";
+import { usePermissions } from "@/hooks/usePermissions";
 
 const sb = supabase as any;
 
@@ -35,6 +36,14 @@ type Tx = {
 
 export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: string; isAdmin?: boolean }) {
   const qc = useQueryClient();
+  const { can } = usePermissions(restaurantId);
+  const canToggle = can("loyalty.toggle_program");
+  const canMemberCreate = can("loyalty.member_create");
+  const canMemberDelete = can("loyalty.member_delete");
+  const canCredit = can("loyalty.credit_points");
+  const canRedeem = can("loyalty.redeem_points");
+  const canRewardsView = can("loyalty.rewards.view");
+  const canManualAdjust = can("loyalty.manual_adjust");
   const [metricsOpen, setMetricsOpen] = useState(false);
 
   // ---- Settings ----

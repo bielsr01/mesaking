@@ -14,6 +14,7 @@ import { brl, orderStatusLabel, getNextStatus, paymentLabel, formatPhone, orderT
 import { toast } from "sonner";
 import { Bike, ChefHat, Clock, MapPin, MessageCircle, Phone, Plus, Printer, Store, Trash2, User, X, Utensils } from "lucide-react";
 import { IfoodEventsTab } from "./IfoodEventsTab";
+import { usePermissions } from "@/hooks/usePermissions";
 
 /** Monta link wa.me garantindo DDI 55 (Brasil) sem duplicar */
 function waLink(phone: string | null | undefined): string | null {
@@ -109,7 +110,15 @@ export async function fetchOrders(restaurantId: string): Promise<{ orders: Order
 
 export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const qc = useQueryClient();
-  const [channel, setChannel] = useState<"delivery" | "pdv" | "ifood">("pdv");
+  const { can } = usePermissions(restaurantId);
+  const canPdv = can("orders.channels.pdv");
+  const canDelivery = can("orders.channels.delivery") || can("orders.channels.pickup");
+  const canIfood = can("orders.channels.ifood");
+  const canChangeStatus = can("orders.change_status");
+  const canEditOrders = can("orders.edit");
+  const canCreatePdv = can("orders.create_pdv_order");
+  const initialChannel: "delivery" | "pdv" | "ifood" = canPdv ? "pdv" : canDelivery ? "delivery" : canIfood ? "ifood" : "pdv";
+  const [channel, setChannel] = useState<"delivery" | "pdv" | "ifood">(initialChannel);
   const [filter, setFilter] = useState("pending");
   const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Order | null>(null);
@@ -120,6 +129,15 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const [pendingAction, setPendingAction] = useState<Record<string, boolean>>({});
   const setPending = (id: string, v: boolean) =>
     setPendingAction((m) => ({ ...m, [id]: v }));
+
+  // If current channel becomes forbidden, switch to first allowed
+  useEffect(() => {
+    const allowed = (channel === "pdv" && canPdv) || (channel === "delivery" && canDelivery) || (channel === "ifood" && canIfood);
+    if (allowed) return;
+    if (canPdv) setChannel("pdv");
+    else if (canDelivery) setChannel("delivery");
+    else if (canIfood) setChannel("ifood");
+  }, [channel, canPdv, canDelivery, canIfood]);
 
   const doPrint = (o: Order, mode: TicketMode) => {
     const html = buildTicketHtml(
@@ -424,22 +442,28 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
           else if (nv === "ifood") { setFilter("pending"); setIfoodView("orders"); }
         }}>
           <TabsList>
-            <TabsTrigger value="pdv" className="gap-2">
-              <Store className="w-4 h-4" /> PDV (Balcão)
-              <Badge variant="secondary" className="h-5 min-w-5 px-1.5 text-xs">{pdvCount}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="delivery" className={`gap-2 ${deliveryPendingCount > 0 ? "animate-pulse text-destructive ring-2 ring-destructive" : ""}`}>
-              <Bike className="w-4 h-4" /> Delivery / Retirada
-              <Badge variant={deliveryPendingCount > 0 ? "destructive" : "secondary"} className="h-5 min-w-5 px-1.5 text-xs">{deliveryPendingCount > 0 ? deliveryPendingCount : deliveryCount}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="ifood" className={`gap-2 ${ifoodPendingCount > 0 ? "animate-pulse text-destructive ring-2 ring-destructive" : ""}`}>
-              <Utensils className="w-4 h-4" /> iFood
-              <Badge variant={ifoodPendingCount > 0 ? "destructive" : "secondary"} className="h-5 min-w-5 px-1.5 text-xs">{ifoodPendingCount > 0 ? ifoodPendingCount : ifoodCount}</Badge>
-            </TabsTrigger>
+            {canPdv && (
+              <TabsTrigger value="pdv" className="gap-2">
+                <Store className="w-4 h-4" /> PDV (Balcão)
+                <Badge variant="secondary" className="h-5 min-w-5 px-1.5 text-xs">{pdvCount}</Badge>
+              </TabsTrigger>
+            )}
+            {canDelivery && (
+              <TabsTrigger value="delivery" className={`gap-2 ${deliveryPendingCount > 0 ? "animate-pulse text-destructive ring-2 ring-destructive" : ""}`}>
+                <Bike className="w-4 h-4" /> Delivery / Retirada
+                <Badge variant={deliveryPendingCount > 0 ? "destructive" : "secondary"} className="h-5 min-w-5 px-1.5 text-xs">{deliveryPendingCount > 0 ? deliveryPendingCount : deliveryCount}</Badge>
+              </TabsTrigger>
+            )}
+            {canIfood && (
+              <TabsTrigger value="ifood" className={`gap-2 ${ifoodPendingCount > 0 ? "animate-pulse text-destructive ring-2 ring-destructive" : ""}`}>
+                <Utensils className="w-4 h-4" /> iFood
+                <Badge variant={ifoodPendingCount > 0 ? "destructive" : "secondary"} className="h-5 min-w-5 px-1.5 text-xs">{ifoodPendingCount > 0 ? ifoodPendingCount : ifoodCount}</Badge>
+              </TabsTrigger>
+            )}
           </TabsList>
         </Tabs>
 
-        {channel === "pdv" && (
+        {channel === "pdv" && canCreatePdv && (
           <Button onClick={() => setPdvOpen(true)} className="gap-2">
             <Plus className="w-4 h-4" /> Novo pedido PDV
           </Button>
@@ -614,7 +638,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                   >
                     <Printer className="w-4 h-4" />
                   </Button>
-                  {!["delivered", "cancelled"].includes(o.status) && (
+                  {!["delivered", "cancelled"].includes(o.status) && canChangeStatus && (
                     <>
                       {next && !(o.external_source === "ifood" && next === "delivered") ? (
                         <Button size="sm" className="flex-1" onClick={() => advance(o)} disabled={!!pendingAction[o.id]}>
@@ -634,16 +658,18 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                       <Button size="sm" variant="outline" onClick={() => setCancelTarget(o)} disabled={!!pendingAction[o.id]} aria-label="Cancelar pedido"><X className="w-4 h-4" /></Button>
                     </>
                   )}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setDeleteTarget(o)}
-                    aria-label="Excluir pedido permanentemente"
-                    title="Excluir permanentemente"
-                    className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  {canEditOrders && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setDeleteTarget(o)}
+                      aria-label="Excluir pedido permanentemente"
+                      title="Excluir permanentemente"
+                      className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
