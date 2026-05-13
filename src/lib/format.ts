@@ -1,6 +1,31 @@
 export const brl = (v: number | string) =>
   Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+/** Fuso horário oficial do sistema (Brasília, GMT-3). */
+export const APP_TIMEZONE = "America/Sao_Paulo";
+
+/** Formata uma data no fuso horário de Brasília (GMT-3). */
+export const formatDateBR = (
+  v: string | number | Date | null | undefined,
+  opts: Intl.DateTimeFormatOptions = { day: "2-digit", month: "2-digit", year: "numeric" },
+) => {
+  if (!v) return "";
+  const d = v instanceof Date ? v : new Date(v);
+  if (isNaN(d.getTime())) return "";
+  return d.toLocaleString("pt-BR", { timeZone: APP_TIMEZONE, ...opts });
+};
+
+/** Formata data + hora no fuso de Brasília. */
+export const formatDateTimeBR = (v: string | number | Date | null | undefined) =>
+  formatDateBR(v, {
+    day: "2-digit", month: "2-digit", year: "numeric",
+    hour: "2-digit", minute: "2-digit",
+  });
+
+/** Formata apenas a hora no fuso de Brasília. */
+export const formatTimeBR = (v: string | number | Date | null | undefined) =>
+  formatDateBR(v, { hour: "2-digit", minute: "2-digit" });
+
 export const orderStatusLabel: Record<string, string> = {
   pending: "Aguardando aceitação",
   accepted: "Aceito",

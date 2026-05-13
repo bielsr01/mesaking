@@ -32,6 +32,7 @@ import { BulkCampaignsPanel } from "@/components/dashboard/BulkCampaignsPanel";
 import { EvolutionIntegrationCard } from "@/components/dashboard/EvolutionIntegrationCard";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePendingSupplyOrdersCount } from "@/hooks/usePendingCounts";
+import { BrasiliaClock } from "@/components/BrasiliaClock";
 
 interface Restaurant {
   id: string;
@@ -244,6 +245,7 @@ export default function MasterAdmin() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                <BrasiliaClock />
                 <Button variant="outline" size="sm" disabled={refreshing} onClick={async () => {
                   setRefreshing(true);
                   try {
