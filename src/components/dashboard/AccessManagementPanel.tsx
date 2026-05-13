@@ -359,23 +359,6 @@ export function AccessManagementPanel({ restaurantId }: Props) {
                 <div key={String(sec.key)} className="border rounded p-3 space-y-2">
                   <div className="font-semibold">{sec.label}</div>
                   {sec.rows.map((r) => {
-                    if (r.path === "orders.scope") {
-                      return (
-                        <div key={r.path} className="flex items-center justify-between">
-                          <Label>{r.label}</Label>
-                          <Select value={getAt(perms, r.path) ?? "all"} onValueChange={(v) => {
-                            const next = JSON.parse(JSON.stringify(perms));
-                            setAt(next, r.path, v); setPerms(next);
-                          }}>
-                            <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">Todos os pedidos</SelectItem>
-                              <SelectItem value="ifood_only">Apenas iFood</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      );
-                    }
                     return (
                       <div key={r.path} className="flex items-center justify-between">
                         <Label className="cursor-pointer">{r.label}</Label>
@@ -383,7 +366,8 @@ export function AccessManagementPanel({ restaurantId }: Props) {
                           checked={!!getAt(perms, r.path)}
                           onCheckedChange={(v) => {
                             const next = JSON.parse(JSON.stringify(perms));
-                            setAt(next, r.path, v); setPerms(next);
+                            applyDependencies(next, r.path, v);
+                            setPerms(next);
                           }}
                         />
                       </div>
