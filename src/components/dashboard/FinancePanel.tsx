@@ -15,7 +15,15 @@ const YEARS = [2026, 2027, 2028];
 function rangeFor(year: number, month: number) {
   const start = new Date(year, month - 1, 1, 0, 0, 0, 0);
   const end = new Date(year, month, 1, 0, 0, 0, 0);
-  return { startISO: start.toISOString(), endISO: end.toISOString(), startDate: start.toISOString().slice(0, 10), endDate: end.toISOString().slice(0, 10) };
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const lastDay = new Date(year, month, 0).getDate();
+  const startDate = `${year}-${pad(month)}-01`;
+  const endDate = `${year}-${pad(month)}-${pad(lastDay + 1 > lastDay ? lastDay : lastDay)}`;
+  // endDate exclusivo: usar primeiro dia do próximo mês
+  const nextY = month === 12 ? year + 1 : year;
+  const nextM = month === 12 ? 1 : month + 1;
+  const endDateExclusive = `${nextY}-${pad(nextM)}-01`;
+  return { startISO: start.toISOString(), endISO: end.toISOString(), startDate, endDate: endDateExclusive };
 }
 
 export function FinancePanel({ restaurantIds }: { restaurantIds: string[] }) {
