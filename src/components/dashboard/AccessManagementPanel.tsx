@@ -85,6 +85,51 @@ function setAt(obj: any, path: string, value: any) {
   o[keys[keys.length - 1]] = value;
 }
 
+// Dependências: child -> parent (se child=true => parent=true; se parent=false => todos seus children=false)
+const PERMISSION_DEPENDENCIES: Record<string, string> = {
+  "orders.channels.pdv": "orders.view",
+  "orders.channels.delivery": "orders.view",
+  "orders.channels.pickup": "orders.view",
+  "orders.channels.ifood": "orders.view",
+  "orders.change_status": "orders.view",
+  "orders.edit": "orders.view",
+  "orders.create_pdv_order": "orders.view",
+  "menu.edit": "menu.view",
+  "customers.edit": "customers.view",
+  "customers.delete": "customers.view",
+  "marketing.coupons.edit": "marketing.coupons.view",
+  "marketing.bulk.edit": "marketing.bulk.view",
+  "loyalty.toggle_program": "loyalty.view",
+  "loyalty.member_create": "loyalty.view",
+  "loyalty.member_delete": "loyalty.view",
+  "loyalty.credit_points": "loyalty.view",
+  "loyalty.redeem_points": "loyalty.view",
+  "loyalty.manual_adjust": "loyalty.view",
+  "loyalty.rewards.view": "loyalty.view",
+  "loyalty.rewards.edit": "loyalty.rewards.view",
+  "loyalty.rewards.delete": "loyalty.rewards.view",
+  "supply_orders.edit": "supply_orders.view",
+  "stock.edit": "stock.view",
+};
+
+function applyDependencies(perms: any, path: string, value: boolean) {
+  setAt(perms, path, value);
+  if (value) {
+    // habilitar toda a cadeia de pais
+    let p = PERMISSION_DEPENDENCIES[path];
+    while (p) {
+      setAt(perms, p, true);
+      p = PERMISSION_DEPENDENCIES[p];
+    }
+  } else {
+    // desabilitar todos os filhos (transitivo)
+    const children = Object.entries(PERMISSION_DEPENDENCIES)
+      .filter(([, parent]) => parent === path)
+      .map(([child]) => child);
+    for (const c of children) applyDependencies(perms, c, false);
+  }
+}
+
 export function AccessManagementPanel({ restaurantId }: Props) {
   const qc = useQueryClient();
   const { user } = useAuth();
