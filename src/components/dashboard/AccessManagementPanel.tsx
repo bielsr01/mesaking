@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, KeyRound, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
-import { FULL_PERMISSIONS, Permissions, mergePermissions } from "@/lib/permissions";
+import { FULL_PERMISSIONS, Permissions, mergePermissions, PDV_STATUSES, DELIVERY_STATUSES, IFOOD_STATUSES } from "@/lib/permissions";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Props { restaurantId: string }
