@@ -275,9 +275,18 @@ function GroupDialog({
   const [name, setName] = useState("");
   const [minS, setMinS] = useState(0);
   const [maxS, setMaxS] = useState(1);
-  const [rows, setRows] = useState<{ id?: string; name: string; extra_price: string; image_url?: string | null; toDelete?: boolean }[]>([]);
+  const [rows, setRows] = useState<{ id?: string; name: string; extra_price: string; image_url?: string | null; stock_group_id?: string | null; stock_quantity_per_unit?: string; toDelete?: boolean }[]>([]);
   const [busy, setBusy] = useState(false);
   const [uploadingIdx, setUploadingIdx] = useState<number | null>(null);
+  const [stockGroups, setStockGroups] = useState<StockGroupLite[]>([]);
+
+  useEffect(() => {
+    if (!open) return;
+    (async () => {
+      const { data } = await supabase.from("stock_groups").select("id,name,is_active").eq("is_active", true).order("sort_order");
+      setStockGroups((data ?? []) as StockGroupLite[]);
+    })();
+  }, [open]);
 
   useEffect(() => {
     if (open) {
@@ -286,15 +295,15 @@ function GroupDialog({
       setMaxS(editing?.max_select ?? 1);
       setRows(
         existingItems.length > 0
-          ? existingItems.map((i) => ({ id: i.id, name: i.name, extra_price: String(Number(i.extra_price) || 0), image_url: i.image_url ?? null }))
-          : [{ name: "", extra_price: "0", image_url: null }]
+          ? existingItems.map((i) => ({ id: i.id, name: i.name, extra_price: String(Number(i.extra_price) || 0), image_url: i.image_url ?? null, stock_group_id: i.stock_group_id ?? null, stock_quantity_per_unit: String(Number(i.stock_quantity_per_unit ?? 1)) }))
+          : [{ name: "", extra_price: "0", image_url: null, stock_group_id: null, stock_quantity_per_unit: "1" }]
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, editing?.id]);
 
-  const addRow = () => setRows((r) => [...r, { name: "", extra_price: "0", image_url: null }]);
-  const updateRow = (idx: number, patch: Partial<{ name: string; extra_price: string; image_url: string | null }>) =>
+  const addRow = () => setRows((r) => [...r, { name: "", extra_price: "0", image_url: null, stock_group_id: null, stock_quantity_per_unit: "1" }]);
+  const updateRow = (idx: number, patch: Partial<{ name: string; extra_price: string; image_url: string | null; stock_group_id: string | null; stock_quantity_per_unit: string }>) =>
     setRows((r) => r.map((x, i) => (i === idx ? { ...x, ...patch } : x)));
   const removeRow = (idx: number) =>
     setRows((r) => r.map((x, i) => (i === idx ? { ...x, toDelete: true } : x)));
