@@ -26,7 +26,7 @@ export function usePermissions(restaurantId?: string): {
         .eq("user_id", user.id)
         .maybeSingle();
       if (memError) throw memError;
-      if (!mem) return { perms: FULL_PERMISSIONS, full: true };
+      if (!mem) return { perms: EMPTY_PERMISSIONS, full: false };
       const groupId = (mem as any).access_group_id as string | null;
       if (!groupId) return { perms: FULL_PERMISSIONS, full: true };
       const { data: group } = await supabase
