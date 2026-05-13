@@ -452,9 +452,9 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
         <Tabs value={channel} onValueChange={(v) => {
           const nv = v as "delivery" | "pdv" | "ifood";
           setChannel(nv);
-          if (nv === "pdv") setFilter("preparing");
-          else if (nv === "delivery") { setFilter("pending"); setDeliveryBlink(false); }
-          else if (nv === "ifood") { setFilter("pending"); setIfoodView("orders"); }
+          if (nv === "pdv") setFilter(firstAllowedStatus(nv, ["preparing"]));
+          else if (nv === "delivery") { setFilter(firstAllowedStatus(nv, ["pending"])); setDeliveryBlink(false); }
+          else if (nv === "ifood") { setFilter(firstAllowedStatus(nv, ["pending"])); setIfoodView("orders"); }
         }}>
           <TabsList>
             {canPdv && (
