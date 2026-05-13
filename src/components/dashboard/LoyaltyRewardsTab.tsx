@@ -14,6 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { Plus, Trash2, Pencil, Gift, Search, ArrowLeft, ArrowRight, Check, Bike, Store, ShoppingBag, History } from "lucide-react";
 import { brl, formatPhone } from "@/lib/format";
+import { usePermissions } from "@/hooks/usePermissions";
 import { DeliveryZone, GeoPoint, findDeliveryFee, geocodeAddress, haversineKm } from "@/lib/delivery";
 import { ordersKey } from "./OrdersPanel";
 
@@ -64,7 +65,10 @@ async function fetchProductOptionGroups(restaurantId: string, productId: string)
 
 export function LoyaltyRewardsTab({ restaurantId }: { restaurantId: string }) {
   const qc = useQueryClient();
-
+  const { can } = usePermissions(restaurantId);
+  const canRewardsEdit = can("loyalty.rewards.edit");
+  const canRewardsDelete = can("loyalty.rewards.delete");
+  const canRedeem = can("loyalty.redeem_points");
   const productsQ = useQuery({
     queryKey: ["loyalty-products-list", restaurantId],
     queryFn: async () => {
@@ -149,7 +153,7 @@ export function LoyaltyRewardsTab({ restaurantId }: { restaurantId: string }) {
         <div className="text-sm text-muted-foreground">Cadastre produtos do cardápio que podem ser resgatados com pontos</div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setHistoryOpen(true)}><History className="w-4 h-4 mr-1" />Histórico de resgate</Button>
-          <Button onClick={openCreate}><Plus className="w-4 h-4 mr-1" />Nova recompensa</Button>
+          {canRewardsEdit && <Button onClick={openCreate}><Plus className="w-4 h-4 mr-1" />Nova recompensa</Button>}
         </div>
       </div>
 
@@ -177,9 +181,9 @@ export function LoyaltyRewardsTab({ restaurantId }: { restaurantId: string }) {
                   <TableCell><Badge variant={r.is_active ? "default" : "secondary"}>{r.is_active ? "Ativa" : "Inativa"}</Badge></TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
-                      <Button size="sm" onClick={() => setRedeemReward(r)} disabled={!r.is_active}><Gift className="w-4 h-4 mr-1" />Resgatar</Button>
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(r)}><Pencil className="w-4 h-4" /></Button>
-                      <Button variant="ghost" size="icon" onClick={() => remove(r.id)}><Trash2 className="w-4 h-4" /></Button>
+                      {canRedeem && <Button size="sm" onClick={() => setRedeemReward(r)} disabled={!r.is_active}><Gift className="w-4 h-4 mr-1" />Resgatar</Button>}
+                      {canRewardsEdit && <Button variant="ghost" size="icon" onClick={() => openEdit(r)}><Pencil className="w-4 h-4" /></Button>}
+                      {canRewardsDelete && <Button variant="ghost" size="icon" onClick={() => remove(r.id)}><Trash2 className="w-4 h-4" /></Button>}
                     </div>
                   </TableCell>
                 </TableRow>

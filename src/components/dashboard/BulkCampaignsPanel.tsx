@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { usePermissions } from "@/hooks/usePermissions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -62,6 +63,8 @@ export function BulkCampaignsPanel({
   scope, restaurantId,
 }: { scope: "restaurant" | "admin"; restaurantId?: string }) {
   const qc = useQueryClient();
+  const { can } = usePermissions(scope === "restaurant" ? restaurantId : undefined);
+  const canEdit = scope === "admin" ? true : can("marketing.bulk.edit");
   const restaurantsQ = useRestaurants();
   const allRest = restaurantsQ.data ?? [];
   const [adminFilter, setAdminFilter] = useState<string[]>([]);
@@ -145,9 +148,11 @@ export function BulkCampaignsPanel({
             <CardTitle className="flex items-center gap-2"><Send className="w-5 h-5" /> Campanhas</CardTitle>
             <CardDescription>Crie campanhas, selecione contatos e envie via Evolution API.</CardDescription>
           </div>
+          {canEdit && (
           <Button onClick={() => setCreateOpen(true)} disabled={scope === "admin" && adminFilter.length === 0}>
             <Plus className="w-4 h-4 mr-1" /> Nova campanha
           </Button>
+          )}
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -192,29 +197,31 @@ export function BulkCampaignsPanel({
                         <TableCell>{new Date(c.created_at).toLocaleString("pt-BR")}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
-                            {isAutoPaused && (
+                            {canEdit && isAutoPaused && (
                               <Button size="sm" variant="outline" onClick={() => clearAutoPause(c.id)} title="Retomar agora (limpar pausa automática)">
                                 <RotateCcw className="w-3.5 h-3.5 mr-1" /> Retomar agora
                               </Button>
                             )}
-                            {(c.status === "draft" || c.status === "paused") && (
+                            {canEdit && (c.status === "draft" || c.status === "paused") && (
                               <Button size="sm" variant="outline" onClick={() => setStatus(c.id, "running")}>
                                 <Play className="w-3.5 h-3.5 mr-1" /> Play
                               </Button>
                             )}
-                            {c.status === "running" && (
+                            {canEdit && c.status === "running" && (
                               <Button size="sm" variant="outline" onClick={() => setStatus(c.id, "paused")}>
                                 <Pause className="w-3.5 h-3.5 mr-1" /> Pausar
                               </Button>
                             )}
-                            {c.status !== "completed" && (
+                            {canEdit && c.status !== "completed" && (
                               <Button size="sm" variant="outline" onClick={() => handleEdit(c)} title="Editar">
                                 <Pencil className="w-3.5 h-3.5" />
                               </Button>
                             )}
+                            {canEdit && (
                             <Button size="sm" variant="outline" className="text-destructive" onClick={() => remove(c.id)}>
                               <Trash2 className="w-3.5 h-3.5" />
                             </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>

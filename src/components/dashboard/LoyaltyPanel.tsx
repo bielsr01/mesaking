@@ -248,13 +248,15 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
           <TabsList>
             <TabsTrigger value="settings">Configurações</TabsTrigger>
             <TabsTrigger value="members">Cadastro</TabsTrigger>
-            <TabsTrigger value="credit">Creditar Pontos</TabsTrigger>
-            <TabsTrigger value="rewards">Resgatar Pontos</TabsTrigger>
+            {canCredit && <TabsTrigger value="credit">Creditar Pontos</TabsTrigger>}
+            {canRewardsView && <TabsTrigger value="rewards">Resgatar Pontos</TabsTrigger>}
           </TabsList>
 
+          {canRewardsView && (
           <TabsContent value="rewards">
             <LoyaltyRewardsTab restaurantId={restaurantId} />
           </TabsContent>
+          )}
 
           {/* Settings */}
           <TabsContent value="settings" className="space-y-4 pt-4 max-w-md">
@@ -263,7 +265,7 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
                 <div className="font-medium">Ativar programa</div>
                 <p className="text-xs text-muted-foreground">Quando ativo, clientes podem optar por pontuar ao fazer pedido.</p>
               </div>
-              <Switch checked={enabled} onCheckedChange={setEnabled} />
+              <Switch checked={enabled} onCheckedChange={setEnabled} disabled={!canToggle} />
             </div>
             {isAdmin ? (
               <div className="space-y-2">
@@ -277,7 +279,7 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
                 <div className="font-bold text-lg">{pointsPerReal}</div>
               </div>
             )}
-            <Button onClick={saveSettings}>Salvar</Button>
+            {(canToggle || isAdmin) && <Button onClick={saveSettings}>Salvar</Button>}
           </TabsContent>
 
           {/* Members */}
@@ -294,7 +296,7 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
               </div>
               <div className="flex items-center justify-between gap-2">
                 <div className="text-sm text-muted-foreground">{membersQ.data?.length ?? 0} cadastrados</div>
-                <Button onClick={openCreate}><Plus className="w-4 h-4 mr-1" />Novo cadastro</Button>
+                {canMemberCreate && <Button onClick={openCreate}><Plus className="w-4 h-4 mr-1" />Novo cadastro</Button>}
               </div>
             </div>
             <div className="border rounded-lg">
@@ -331,8 +333,8 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
                             <Button variant="ghost" size="icon" title="Histórico" onClick={() => setHistoryMember(m)}><History className="w-4 h-4" /></Button>
-                            <Button variant="ghost" size="icon" title="Editar" onClick={() => openEdit(m)}><Pencil className="w-4 h-4" /></Button>
-                            <Button variant="ghost" size="icon" title="Excluir" onClick={() => deleteMember(m.id)}><Trash2 className="w-4 h-4" /></Button>
+                            {(canMemberCreate || canManualAdjust) && <Button variant="ghost" size="icon" title="Editar" onClick={() => openEdit(m)}><Pencil className="w-4 h-4" /></Button>}
+                            {canMemberDelete && <Button variant="ghost" size="icon" title="Excluir" onClick={() => deleteMember(m.id)}><Trash2 className="w-4 h-4" /></Button>}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -344,6 +346,7 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
           </TabsContent>
 
           {/* Credit */}
+          {canCredit && (
           <TabsContent value="credit" className="space-y-4 pt-4">
             <div className="text-sm text-muted-foreground">Pedidos com pontos pendentes de crédito</div>
             <div className="border rounded-lg">
@@ -388,6 +391,7 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
               </Table>
             </div>
           </TabsContent>
+          )}
         </Tabs>
 
         <Dialog open={memberDialog} onOpenChange={setMemberDialog}>
@@ -396,7 +400,7 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
             <div className="space-y-3">
               <div className="space-y-1"><Label>Nome</Label><Input value={newName} onChange={(e) => setNewName(e.target.value)} /></div>
               <div className="space-y-1"><Label>Telefone</Label><Input value={newPhone} onChange={(e) => setNewPhone(formatPhone(e.target.value))} placeholder="(11) 99999-9999" /></div>
-              <div className="space-y-1"><Label>Pontos</Label><Input type="number" min="0" step="1" value={newPoints} onChange={(e) => setNewPoints(e.target.value)} /></div>
+              {(canManualAdjust || !editingMember) && <div className="space-y-1"><Label>Pontos</Label><Input type="number" min="0" step="1" value={newPoints} onChange={(e) => setNewPoints(e.target.value)} disabled={editingMember ? !canManualAdjust : false} /></div>}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setMemberDialog(false)} disabled={savingMember}>Cancelar</Button>
