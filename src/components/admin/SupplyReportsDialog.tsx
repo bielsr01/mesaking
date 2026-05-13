@@ -10,9 +10,11 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { BarChart3, Download } from "lucide-react";
+import { BarChart3, Download, Calendar as CalendarIcon } from "lucide-react";
 import { brl, todayISOBR, monthStartISOBR, isoDateBR, addDaysISO, ymdBR } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 
 type Restaurant = { id: string; name: string; slug: string };
 type Status = "pending" | "accepted" | "shipped" | "delivered" | "all";
@@ -198,11 +200,11 @@ export function SupplyReportsDialog() {
         <div className="grid gap-3 md:grid-cols-5">
           <div>
             <Label className="text-xs">De</Label>
-            <Input type="date" value={from} onChange={(e) => handleManualFrom(e.target.value)} />
+            <DatePickerBR value={from} onChange={handleManualFrom} />
           </div>
           <div>
             <Label className="text-xs">Até</Label>
-            <Input type="date" value={to} onChange={(e) => handleManualTo(e.target.value)} />
+            <DatePickerBR value={to} onChange={handleManualTo} />
           </div>
           <div>
             <Label className="text-xs">Status</Label>
@@ -407,4 +409,57 @@ function Stat({ label, value }: { label: string; value: string | number }) {
 }
 function Empty({ msg = "Sem dados no período selecionado." }: { msg?: string }) {
   return <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">{msg}</CardContent></Card>;
+}
+
+/**
+ * DatePicker controlado por string YYYY-MM-DD.
+ * Importante: trocar de mês no calendário NÃO altera o valor — só
+ * a seleção explícita de um dia dispara onChange. Isso evita o
+ * comportamento do <input type="date"> de "puxar" o mesmo dia ao
+ * trocar o mês.
+ */
+function DatePickerBR({ value, onChange }: { value: string; onChange: (iso: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const parsed = useMemo(() => {
+    if (!value) return undefined;
+    const [y, m, d] = value.split("-").map(Number);
+    if (!y || !m || !d) return undefined;
+    return new Date(y, m - 1, d);
+  }, [value]);
+
+  const label = parsed
+    ? parsed.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" })
+    : "Selecionar";
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          className={cn(
+            "w-full justify-start text-left font-normal h-10",
+            !parsed && "text-muted-foreground",
+          )}
+        >
+          <CalendarIcon className="mr-2 h-4 w-4 opacity-70" />
+          {label}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="single"
+          selected={parsed}
+          defaultMonth={parsed}
+          onSelect={(d) => {
+            if (!d) return;
+            const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+            onChange(iso);
+            setOpen(false);
+          }}
+          initialFocus
+          className={cn("p-3 pointer-events-auto")}
+        />
+      </PopoverContent>
+    </Popover>
+  );
 }
