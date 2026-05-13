@@ -288,6 +288,15 @@ export default function MasterAdmin() {
                               </button>
                             </div>
                           </div>
+                        </div>
+                        <DialogFooter>
+                          <Button type="submit" disabled={busy}>{busy ? "Criando..." : "Criar restaurante"}</Button>
+                        </DialogFooter>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+
                 <Card>
                   <CardContent className="p-0">
                     {restaurants.length === 0 ? (
