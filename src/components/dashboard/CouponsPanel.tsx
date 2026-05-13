@@ -107,6 +107,7 @@ export function CouponsPanel({ restaurantId }: { restaurantId: string }) {
   const openEdit = (c: Coupon) => { setEditing({ ...c }); setOpen(true); };
 
   const save = async () => {
+    if (!canEdit) return toast.error("Sem permissão para salvar cupom");
     if (!editing) return;
     const e = editing;
     if (!e.code?.trim()) return toast.error("Informe o código do cupom");
@@ -149,6 +150,7 @@ export function CouponsPanel({ restaurantId }: { restaurantId: string }) {
   };
 
   const confirmDelete = async () => {
+    if (!canEdit) return toast.error("Sem permissão para excluir cupom");
     if (!toDelete) return;
     const { error } = await supabase.from("coupons" as any).delete().eq("id", toDelete.id);
     if (error) return toast.error(error.message);
