@@ -119,7 +119,13 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const canCreatePdv = can("orders.create_pdv_order");
   const initialChannel: "delivery" | "pdv" | "ifood" = canPdv ? "pdv" : canDelivery ? "delivery" : canIfood ? "ifood" : "pdv";
   const [channel, setChannel] = useState<"delivery" | "pdv" | "ifood">(initialChannel);
-  const [filter, setFilter] = useState("pending");
+  const statusKey = (ch: "delivery" | "pdv" | "ifood", s: string) => `orders.statuses.${ch}.${s}`;
+  const firstAllowedStatus = (ch: "delivery" | "pdv" | "ifood", preferred: string[]) => {
+    for (const p of preferred) if (can(statusKey(ch, p))) return p;
+    const list = ch === "pdv" ? ["preparing", "delivered", "cancelled", "all"] : ["pending", "preparing", "out_for_delivery", "awaiting_pickup", "delivered", "cancelled", "active", "all"];
+    return list.find((s) => can(statusKey(ch, s))) ?? (ch === "pdv" ? "preparing" : "pending");
+  };
+  const [filter, setFilter] = useState(() => firstAllowedStatus(initialChannel, initialChannel === "pdv" ? ["preparing"] : ["pending"]));
   const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Order | null>(null);
   const [printTarget, setPrintTarget] = useState<Order | null>(null);
