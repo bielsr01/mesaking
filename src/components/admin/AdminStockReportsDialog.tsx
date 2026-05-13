@@ -1,0 +1,252 @@
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { FileText } from "lucide-react";
+
+type Group = { id: string; name: string };
+type Subgroup = { id: string; group_id: string; name: string };
+type Movement = {
+  id: string;
+  subgroup_id: string;
+  quantity: number;
+  type: "manual_add" | "manual_subtract" | "manual_set" | "supply_delivery";
+  notes: string | null;
+  reference_id: string | null;
+  created_at: string;
+};
+
+const typeLabel: Record<Movement["type"], string> = {
+  manual_add: "Entrada manual",
+  manual_subtract: "Saída manual",
+  manual_set: "Ajuste (definir)",
+  supply_delivery: "Pedido entregue",
+};
+
+export function AdminStockReportsDialog({
+  open, onOpenChange, groups, subgroups,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  groups: Group[];
+  subgroups: Subgroup[];
+}) {
+  const today = new Date().toISOString().slice(0, 10);
+  const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+  const [from, setFrom] = useState(monthAgo);
+  const [to, setTo] = useState(today);
+  const [groupId, setGroupId] = useState<string>("");
+  const [subId, setSubId] = useState<string>("");
+  const [movements, setMovements] = useState<Movement[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const subsByGroup = useMemo(() => {
+    const m: Record<string, Subgroup[]> = {};
+    subgroups.forEach(s => { (m[s.group_id] ??= []).push(s); });
+    return m;
+  }, [subgroups]);
+  const subMap = useMemo(() => Object.fromEntries(subgroups.map(s => [s.id, s])), [subgroups]);
+  const groupMap = useMemo(() => Object.fromEntries(groups.map(g => [g.id, g])), [groups]);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const fromIso = new Date(from + "T00:00:00").toISOString();
+      const toIso = new Date(to + "T23:59:59").toISOString();
+      const { data } = await supabase
+        .from("admin_stock_movements")
+        .select("*")
+        .gte("created_at", fromIso)
+        .lte("created_at", toIso)
+        .order("created_at", { ascending: false });
+      if (!cancelled) {
+        setMovements((data ?? []) as Movement[]);
+        setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [open, from, to]);
+
+  // Reset subgroup when group changes
+  useEffect(() => { setSubId(""); }, [groupId]);
+
+  const filtered = useMemo(() => movements.filter(m => {
+    const sub = subMap[m.subgroup_id];
+    if (!sub) return false;
+    if (groupId && sub.group_id !== groupId) return false;
+    if (subId && m.subgroup_id !== subId) return false;
+    return true;
+  }), [movements, groupId, subId, subMap]);
+
+  // Added = positive delta (manual_add, or manual_set with positive delta)
+  const added = filtered.filter(m => m.quantity > 0);
+  // Consumed = negative delta (supply_delivery debits, manual_subtract, manual_set negative)
+  const consumed = filtered.filter(m => m.quantity < 0);
+
+  // Group consumed by group/subgroup
+  const consumedByGroup = useMemo(() => {
+    const map: Record<string, { groupName: string; total: number; subs: Record<string, { name: string; total: number; items: Movement[] }> }> = {};
+    consumed.forEach(m => {
+      const sub = subMap[m.subgroup_id];
+      if (!sub) return;
+      const g = groupMap[sub.group_id];
+      const gName = g?.name ?? "—";
+      const qty = Math.abs(m.quantity);
+      map[sub.group_id] ??= { groupName: gName, total: 0, subs: {} };
+      map[sub.group_id].total += qty;
+      map[sub.group_id].subs[sub.id] ??= { name: sub.name, total: 0, items: [] };
+      map[sub.group_id].subs[sub.id].total += qty;
+      map[sub.group_id].subs[sub.id].items.push(m);
+    });
+    return map;
+  }, [consumed, subMap, groupMap]);
+
+  const fmt = (iso: string) => new Date(iso).toLocaleString("pt-BR");
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2"><FileText className="w-4 h-4" />Relatórios — Estoque admin</DialogTitle>
+        </DialogHeader>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div>
+            <Label>De</Label>
+            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+          </div>
+          <div>
+            <Label>Até</Label>
+            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+          </div>
+          <div>
+            <Label>Grupo</Label>
+            <select value={groupId} onChange={(e) => setGroupId(e.target.value)} className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm">
+              <option value="">Todos</option>
+              {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <Label>Subgrupo</Label>
+            <select value={subId} onChange={(e) => setSubId(e.target.value)} className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm" disabled={!groupId}>
+              <option value="">Todos</option>
+              {(groupId ? (subsByGroup[groupId] ?? []) : []).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <Tabs defaultValue="added" className="mt-2">
+          <TabsList>
+            <TabsTrigger value="added">Adicionados ({added.length})</TabsTrigger>
+            <TabsTrigger value="consumed">Consumidos ({consumed.length})</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="added">
+            <Card>
+              <CardContent className="p-0">
+                {loading ? (
+                  <div className="py-8 text-center text-sm text-muted-foreground">Carregando...</div>
+                ) : added.length === 0 ? (
+                  <div className="py-8 text-center text-sm text-muted-foreground">Nenhuma entrada no período.</div>
+                ) : (
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/40 text-left">
+                      <tr>
+                        <th className="p-2">Data</th>
+                        <th className="p-2">Grupo</th>
+                        <th className="p-2">Subgrupo</th>
+                        <th className="p-2">Tipo</th>
+                        <th className="p-2 text-right">Quantidade</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {added.map(m => {
+                        const sub = subMap[m.subgroup_id];
+                        const g = sub ? groupMap[sub.group_id] : null;
+                        return (
+                          <tr key={m.id} className="border-t">
+                            <td className="p-2 whitespace-nowrap">{fmt(m.created_at)}</td>
+                            <td className="p-2">{g?.name ?? "—"}</td>
+                            <td className="p-2">{sub?.name ?? "—"}</td>
+                            <td className="p-2"><Badge variant="secondary">{typeLabel[m.type]}</Badge></td>
+                            <td className="p-2 text-right font-bold tabular-nums text-green-600">+{m.quantity}</td>
+                          </tr>
+                        );
+                      })}
+                      <tr className="border-t bg-muted/30 font-semibold">
+                        <td className="p-2" colSpan={4}>Total</td>
+                        <td className="p-2 text-right tabular-nums text-green-600">+{added.reduce((s, m) => s + m.quantity, 0)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="consumed">
+            {loading ? (
+              <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">Carregando...</CardContent></Card>
+            ) : consumed.length === 0 ? (
+              <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">Nenhum consumo no período.</CardContent></Card>
+            ) : (
+              <div className="space-y-3">
+                {Object.entries(consumedByGroup).map(([gid, data]) => (
+                  <Card key={gid}>
+                    <CardContent className="p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="font-semibold">{data.groupName}</div>
+                        <div className="text-sm">Total consumido: <strong className="text-destructive tabular-nums">{data.total}</strong></div>
+                      </div>
+                      <div className="space-y-2">
+                        {Object.entries(data.subs).map(([sid, sd]) => (
+                          <div key={sid} className="border rounded-md">
+                            <div className="flex items-center justify-between p-2 bg-muted/30">
+                              <div className="text-sm font-medium">{sd.name}</div>
+                              <div className="text-sm">Subtotal: <strong className="text-destructive tabular-nums">{sd.total}</strong></div>
+                            </div>
+                            <table className="w-full text-xs">
+                              <thead className="text-left text-muted-foreground">
+                                <tr>
+                                  <th className="p-2">Data</th>
+                                  <th className="p-2">Tipo</th>
+                                  <th className="p-2">Observação</th>
+                                  <th className="p-2 text-right">Qtd</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {sd.items.map(m => (
+                                  <tr key={m.id} className="border-t">
+                                    <td className="p-2 whitespace-nowrap">{fmt(m.created_at)}</td>
+                                    <td className="p-2"><Badge variant="outline" className="text-[10px]">{typeLabel[m.type]}</Badge></td>
+                                    <td className="p-2 text-muted-foreground">{m.notes ?? "—"}</td>
+                                    <td className="p-2 text-right font-bold tabular-nums text-destructive">{m.quantity}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+
+        <div className="flex justify-end">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

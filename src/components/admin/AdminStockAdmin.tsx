@@ -9,8 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, Minus, Equal } from "lucide-react";
+import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, Minus, Equal, FileText } from "lucide-react";
 import { toast } from "sonner";
+import { AdminStockReportsDialog } from "./AdminStockReportsDialog";
 
 type Group = { id: string; name: string; sort_order: number; is_active: boolean };
 type Subgroup = { id: string; group_id: string; name: string; sort_order: number; is_active: boolean; quantity: number };
@@ -26,6 +27,7 @@ export function AdminStockAdmin() {
 
   const [adjust, setAdjust] = useState<{ sub: Subgroup; mode: "add" | "subtract" | "set" } | null>(null);
   const [adjustQty, setAdjustQty] = useState<string>("");
+  const [reportsOpen, setReportsOpen] = useState(false);
 
   const { data: groups = [] } = useQuery({
     queryKey: ["admin_stock_groups"],
@@ -138,19 +140,22 @@ export function AdminStockAdmin() {
     <div className="space-y-4">
       <div className="flex justify-between items-center gap-3 flex-wrap">
         <p className="text-sm text-muted-foreground">Estoque da fábrica organizado em grupos (ex.: Coxinhas) e subgrupos (ex.: sabores). Pedidos entregues debitam automaticamente.</p>
-        <Dialog open={groupOpen} onOpenChange={(v) => { setGroupOpen(v); if (!v) setEditingGroup(null); }}>
-          <DialogTrigger asChild>
-            <Button onClick={() => setEditingGroup(null)}><Plus className="w-4 h-4 mr-2" />Novo grupo</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>{editingGroup ? "Editar" : "Novo"} grupo</DialogTitle></DialogHeader>
-            <form onSubmit={saveGroup} className="space-y-3">
-              <div><Label>Nome</Label><Input name="name" defaultValue={editingGroup?.name} required /></div>
-              <div><Label>Ordem</Label><Input name="sort_order" type="number" defaultValue={editingGroup?.sort_order ?? 0} /></div>
-              <DialogFooter><Button type="submit">Salvar</Button></DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setReportsOpen(true)}><FileText className="w-4 h-4 mr-2" />Relatórios</Button>
+          <Dialog open={groupOpen} onOpenChange={(v) => { setGroupOpen(v); if (!v) setEditingGroup(null); }}>
+            <DialogTrigger asChild>
+              <Button onClick={() => setEditingGroup(null)}><Plus className="w-4 h-4 mr-2" />Novo grupo</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>{editingGroup ? "Editar" : "Novo"} grupo</DialogTitle></DialogHeader>
+              <form onSubmit={saveGroup} className="space-y-3">
+                <div><Label>Nome</Label><Input name="name" defaultValue={editingGroup?.name} required /></div>
+                <div><Label>Ordem</Label><Input name="sort_order" type="number" defaultValue={editingGroup?.sort_order ?? 0} /></div>
+                <DialogFooter><Button type="submit">Salvar</Button></DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {groups.length === 0 ? (
@@ -259,6 +264,13 @@ export function AdminStockAdmin() {
           )}
         </DialogContent>
       </Dialog>
+
+      <AdminStockReportsDialog
+        open={reportsOpen}
+        onOpenChange={setReportsOpen}
+        groups={groups}
+        subgroups={subgroups}
+      />
     </div>
   );
 }
