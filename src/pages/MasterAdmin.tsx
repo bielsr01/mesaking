@@ -416,51 +416,6 @@ export default function MasterAdmin() {
             )}
           </DialogContent>
         </Dialog>
-
-        <Dialog open={!!pinDialog} onOpenChange={(o) => !o && setPinDialog(null)}>
-          <DialogContent className="max-w-sm">
-            <DialogHeader>
-              <DialogTitle>Senha mestra</DialogTitle>
-              <DialogDescription>
-                {pinDialog ? <>Restaurante: <strong>{pinDialog.name}</strong></> : null}
-                <div className="mt-1 text-xs">Senha de 6 dígitos usada para autorizar ações sensíveis no painel do restaurante.</div>
-              </DialogDescription>
-            </DialogHeader>
-            {pinLoading ? (
-              <div className="py-6 text-center text-sm text-muted-foreground">Carregando...</div>
-            ) : (
-              <div className="space-y-3">
-                <div className="text-xs text-muted-foreground">
-                  {pinExisting ? "Senha atual cadastrada. Você pode visualizar ou definir uma nova abaixo." : "Nenhuma senha cadastrada ainda."}
-                </div>
-                <div className="space-y-1">
-                  <Label>Senha (6 dígitos)</Label>
-                  <div className="relative">
-                    <Input
-                      type={pinShow ? "text" : "password"}
-                      inputMode="numeric"
-                      pattern="\d{6}"
-                      maxLength={6}
-                      value={pinValue}
-                      onChange={(e) => setPinValue(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                      placeholder="------"
-                      className="pr-10 tracking-[0.4em] text-center font-mono"
-                    />
-                    <button type="button" onClick={() => setPinShow((s) => !s)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1} aria-label={pinShow ? "Ocultar" : "Mostrar"}>
-                      {pinShow ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setPinDialog(null)} disabled={pinSaving}>Cancelar</Button>
-              <Button onClick={savePin} disabled={pinSaving || pinLoading}>
-                {pinSaving ? "Salvando..." : pinExisting ? "Atualizar senha" : "Cadastrar senha"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </div>
     </SidebarProvider>
   );
