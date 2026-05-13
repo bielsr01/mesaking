@@ -198,11 +198,11 @@ export function SupplyReportsDialog() {
         <div className="grid gap-3 md:grid-cols-5">
           <div>
             <Label className="text-xs">De</Label>
-            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+            <Input type="date" value={from} onChange={(e) => handleManualFrom(e.target.value)} />
           </div>
           <div>
             <Label className="text-xs">Até</Label>
-            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+            <Input type="date" value={to} onChange={(e) => handleManualTo(e.target.value)} />
           </div>
           <div>
             <Label className="text-xs">Status</Label>
