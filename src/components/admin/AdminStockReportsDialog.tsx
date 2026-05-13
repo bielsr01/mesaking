@@ -110,15 +110,7 @@ export function AdminStockReportsDialog({
           <DialogTitle className="flex items-center gap-2"><FileText className="w-4 h-4" />Relatórios — Estoque admin</DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div>
-            <Label>De</Label>
-            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-          </div>
-          <div>
-            <Label>Até</Label>
-            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <Label>Grupo</Label>
             <Select value={groupId || "all"} onValueChange={(v) => { setGroupId(v === "all" ? "" : v); setSubId(""); }}>
