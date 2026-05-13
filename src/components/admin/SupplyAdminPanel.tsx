@@ -255,6 +255,29 @@ export function SupplyOrdersTab() {
                     <CheckCircle2 className="w-5 h-5" /> Pedido finalizado
                   </div>
                 )}
+                <div className="border-t bg-muted/10 px-4 py-2 flex justify-end">
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                        <Trash2 className="w-4 h-4 mr-1" /> Excluir pedido
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Excluir este pedido?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          O pedido de {r?.name ?? "restaurante removido"} no valor de {brl(Number(o.total))} será removido permanentemente, junto com seus itens. Esta ação não pode ser desfeita.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => deleteOrder(o)} className="bg-destructive hover:bg-destructive/90">
+                          Excluir
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
               </Card>
             );
           })}
