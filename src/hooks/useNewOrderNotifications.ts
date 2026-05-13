@@ -16,15 +16,16 @@ export type NotificationItem = {
 
 /**
  * Global listener for new orders. Stays subscribed across all tabs of the dashboard.
- * - Maintains a list of notifications
- * - Tracks unread count
- * - Triggers a "pulse" flag whenever a new order arrives (auto-clears after a moment)
+ * - Notifies for ALL non-PDV orders (delivery, retirada, ifood)
+ * - Pulse continues while there are pending (not yet accepted) orders
+ * - Pulse stops automatically when the order is accepted/cancelled/etc.
  */
 export function useNewOrderNotifications(restaurantId: string | undefined, isOnOrdersTab: boolean) {
   const qc = useQueryClient();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [pulse, setPulse] = useState(false);
-  const pulseTimer = useRef<number | null>(null);
+  const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
+  const pendingIdsRef = useRef(pendingIds);
+  pendingIdsRef.current = pendingIds;
 
   // Auto-mark as read when user navigates to Orders tab
   useEffect(() => {
@@ -32,6 +33,25 @@ export function useNewOrderNotifications(restaurantId: string | undefined, isOnO
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     }
   }, [isOnOrdersTab, notifications]);
+
+  // Initial load: find existing pending non-PDV orders so the bell pulses on mount if needed
+  useEffect(() => {
+    if (!restaurantId) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("orders")
+        .select("id")
+        .eq("restaurant_id", restaurantId)
+        .eq("status", "pending")
+        .neq("order_type", "pdv");
+      if (cancelled || !data) return;
+      setPendingIds(new Set(data.map((r: any) => r.id)));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [restaurantId]);
 
   useEffect(() => {
     if (!restaurantId) return;
@@ -42,7 +62,6 @@ export function useNewOrderNotifications(restaurantId: string | undefined, isOnO
         { event: "INSERT", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` },
         async (payload) => {
           const row = payload.new as any;
-          // Refresh the orders cache so OrdersPanel picks it up immediately when opened
           qc.invalidateQueries({ queryKey: ordersKey(restaurantId) });
 
           // PDV orders are created in the dashboard itself — never notify/pulse
@@ -58,6 +77,7 @@ export function useNewOrderNotifications(restaurantId: string | undefined, isOnO
             if ((rest as any)?.order_acceptance_mode === "auto" && row.status === "pending") {
               await supabase.from("orders").update({ status: "accepted" }).eq("id", row.id);
               qc.invalidateQueries({ queryKey: ordersKey(restaurantId) });
+              return;
             }
           } catch {}
 
@@ -79,34 +99,61 @@ export function useNewOrderNotifications(restaurantId: string | undefined, isOnO
             ...prev,
           ].slice(0, 30));
 
-          // pulse animation
-          setPulse(true);
-          if (pulseTimer.current) window.clearTimeout(pulseTimer.current);
-          pulseTimer.current = window.setTimeout(() => setPulse(false), 4000);
+          if (row.status === "pending") {
+            setPendingIds((prev) => {
+              const next = new Set(prev);
+              next.add(row.id);
+              return next;
+            });
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` },
+        (payload) => {
+          const row = payload.new as any;
+          if (!row) return;
+          // Once an order is no longer pending, stop pulsing for it
+          if (row.status && row.status !== "pending") {
+            if (pendingIdsRef.current.has(row.id)) {
+              setPendingIds((prev) => {
+                const next = new Set(prev);
+                next.delete(row.id);
+                return next;
+              });
+            }
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` },
+        (payload) => {
+          const row = payload.old as any;
+          if (!row) return;
+          if (pendingIdsRef.current.has(row.id)) {
+            setPendingIds((prev) => {
+              const next = new Set(prev);
+              next.delete(row.id);
+              return next;
+            });
+          }
         }
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(ch);
-      if (pulseTimer.current) window.clearTimeout(pulseTimer.current);
     };
   }, [restaurantId, qc, isOnOrdersTab]);
 
-  const stopPulse = () => {
-    if (pulseTimer.current) {
-      window.clearTimeout(pulseTimer.current);
-      pulseTimer.current = null;
-    }
-    setPulse(false);
-  };
+  const pulse = pendingIds.size > 0;
   const unreadCount = notifications.filter((n) => !n.read).length;
   const markAllRead = () => {
-    stopPulse();
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   };
   const clear = () => {
-    stopPulse();
     setNotifications([]);
   };
 
