@@ -1,16 +1,26 @@
 export type Permissions = {
   overview: { view: boolean };
-  orders: { view: boolean; scope: "all" | "ifood_only"; edit: boolean; status_only: boolean };
+  orders: {
+    view: boolean;
+    channels: { pdv: boolean; delivery: boolean; pickup: boolean; ifood: boolean };
+    edit: boolean;
+    change_status: boolean;
+    create_pdv_order: boolean;
+  };
   menu: { view: boolean; edit: boolean };
-  customers: { view: boolean; edit: boolean; delete: boolean; manual_adjust: boolean };
+  customers: { view: boolean; edit: boolean; delete: boolean };
   marketing: {
     coupons: { view: boolean; edit: boolean };
     bulk: { view: boolean; edit: boolean };
   };
   loyalty: {
     view: boolean;
+    toggle_program: boolean;
     credit_points: boolean;
     redeem_points: boolean;
+    manual_adjust: boolean;
+    member_create: boolean;
+    member_delete: boolean;
     rewards: { view: boolean; edit: boolean; delete: boolean };
   };
   settings: { view: boolean };
@@ -23,11 +33,26 @@ export type Permissions = {
 
 export const FULL_PERMISSIONS: Permissions = {
   overview: { view: true },
-  orders: { view: true, scope: "all", edit: true, status_only: false },
+  orders: {
+    view: true,
+    channels: { pdv: true, delivery: true, pickup: true, ifood: true },
+    edit: true,
+    change_status: true,
+    create_pdv_order: true,
+  },
   menu: { view: true, edit: true },
-  customers: { view: true, edit: true, delete: true, manual_adjust: true },
+  customers: { view: true, edit: true, delete: true },
   marketing: { coupons: { view: true, edit: true }, bulk: { view: true, edit: true } },
-  loyalty: { view: true, credit_points: true, redeem_points: true, rewards: { view: true, edit: true, delete: true } },
+  loyalty: {
+    view: true,
+    toggle_program: true,
+    credit_points: true,
+    redeem_points: true,
+    manual_adjust: true,
+    member_create: true,
+    member_delete: true,
+    rewards: { view: true, edit: true, delete: true },
+  },
   settings: { view: true },
   supply_orders: { view: true, edit: true },
   stock: { view: true, edit: true },
