@@ -161,25 +161,6 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
 
   const saveMember = async () => {
     if (!newName.trim() || !newPhone.trim()) return toast.error("Preencha nome e telefone");
-    if (editingMember && !isAdmin) {
-      setPinValue("");
-      setPinPromptOpen(true);
-      return;
-    }
-    await executeSave();
-  };
-
-  const confirmWithPin = async () => {
-    if (!/^\d{6}$/.test(pinValue)) return toast.error("Informe a senha mestra de 6 dígitos");
-    setPinVerifying(true);
-    const { data, error } = await sb.rpc("verify_restaurant_master_pin", {
-      _restaurant_id: restaurantId, _pin: pinValue,
-    });
-    setPinVerifying(false);
-    if (error) return toast.error(error.message);
-    if (!data) return toast.error("Senha mestra incorreta ou não cadastrada para este restaurante.");
-    setPinPromptOpen(false);
-    setPinValue("");
     await executeSave();
   };
 
