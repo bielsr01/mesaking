@@ -566,19 +566,24 @@ export function SupplyCatalogTab() {
                             return (
                               <div key={i} className="flex items-center gap-2 rounded-md border bg-background p-2">
                                 <span className="font-medium text-sm flex-1 truncate">{o.name}</span>
-                                <select
-                                  value={o.admin_stock_subgroup_id ?? ""}
-                                  onChange={(e) => {
-                                    const v = e.target.value || null;
-                                    setOptions(arr => arr.map((x, idx) => idx === i ? { ...x, admin_stock_subgroup_id: v } : x));
-                                  }}
-                                  disabled={!adminStockGroupId}
-                                  className="h-8 rounded-md border border-input bg-background px-2 text-xs flex-1 disabled:opacity-60"
-                                  title={adminStockGroupId ? "Vincular a um subgrupo do estoque admin" : "Selecione antes o grupo do estoque admin"}
-                                >
-                                  <option value="">{adminStockGroupId ? "Sem vínculo" : "Selecione o grupo admin"}</option>
-                                  {availSubs.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                                </select>
+                                <div className="flex-1">
+                                  <Select
+                                    value={o.admin_stock_subgroup_id ?? "none"}
+                                    onValueChange={(val) => {
+                                      const v = val === "none" ? null : val;
+                                      setOptions(arr => arr.map((x, idx) => idx === i ? { ...x, admin_stock_subgroup_id: v } : x));
+                                    }}
+                                    disabled={!adminStockGroupId}
+                                  >
+                                    <SelectTrigger className="h-8 text-xs">
+                                      <SelectValue placeholder={adminStockGroupId ? "Sem vínculo" : "Selecione o grupo admin"} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="none">{adminStockGroupId ? "Sem vínculo" : "Selecione o grupo admin"}</SelectItem>
+                                      {availSubs.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
                                 <button type="button" onClick={() => setOptions(arr => arr.filter((_, idx) => idx !== i))}
                                   className="hover:bg-destructive/20 rounded p-1"><X className="w-3 h-3" /></button>
                               </div>
