@@ -1370,35 +1370,6 @@ export type Database = {
         }
         Relationships: []
       }
-      restaurant_master_pins: {
-        Row: {
-          created_at: string
-          pin: string
-          restaurant_id: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          pin: string
-          restaurant_id: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          pin?: string
-          restaurant_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "restaurant_master_pins_restaurant_id_fkey"
-            columns: ["restaurant_id"]
-            isOneToOne: true
-            referencedRelation: "restaurants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       restaurant_members: {
         Row: {
           created_at: string
@@ -1977,10 +1948,6 @@ export type Database = {
           _restaurant_id: string
         }
         Returns: string
-      }
-      verify_restaurant_master_pin: {
-        Args: { _pin: string; _restaurant_id: string }
-        Returns: boolean
       }
     }
     Enums: {
