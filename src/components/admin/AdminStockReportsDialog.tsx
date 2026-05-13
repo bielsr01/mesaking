@@ -37,10 +37,6 @@ export function AdminStockReportsDialog({
   groups: Group[];
   subgroups: Subgroup[];
 }) {
-  const today = new Date().toISOString().slice(0, 10);
-  const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
-  const [from, setFrom] = useState(monthAgo);
-  const [to, setTo] = useState(today);
   const [groupId, setGroupId] = useState<string>("");
   const [subId, setSubId] = useState<string>("");
   const [movements, setMovements] = useState<Movement[]>([]);
@@ -59,13 +55,9 @@ export function AdminStockReportsDialog({
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const fromIso = new Date(from + "T00:00:00").toISOString();
-      const toIso = new Date(to + "T23:59:59").toISOString();
       const { data } = await supabase
         .from("admin_stock_movements")
         .select("*")
-        .gte("created_at", fromIso)
-        .lte("created_at", toIso)
         .order("created_at", { ascending: false });
       if (!cancelled) {
         setMovements((data ?? []) as Movement[]);
@@ -73,7 +65,7 @@ export function AdminStockReportsDialog({
       }
     })();
     return () => { cancelled = true; };
-  }, [open, from, to]);
+  }, [open]);
 
   // Reset subgroup when group changes
   useEffect(() => { setSubId(""); }, [groupId]);
@@ -118,15 +110,7 @@ export function AdminStockReportsDialog({
           <DialogTitle className="flex items-center gap-2"><FileText className="w-4 h-4" />Relatórios — Estoque admin</DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div>
-            <Label>De</Label>
-            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-          </div>
-          <div>
-            <Label>Até</Label>
-            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <Label>Grupo</Label>
             <Select value={groupId || "all"} onValueChange={(v) => { setGroupId(v === "all" ? "" : v); setSubId(""); }}>
