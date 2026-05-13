@@ -76,3 +76,9 @@ export function mergePermissions(partial: any): Permissions {
   merge(base, partial);
   return base as Permissions;
 }
+
+export function getPerm(perms: Permissions | undefined | null, path: string): any {
+  if (!perms) return undefined;
+  return path.split(".").reduce((o: any, k) => (o ? o[k] : undefined), perms);
+}
+
