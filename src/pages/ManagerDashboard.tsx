@@ -33,6 +33,7 @@ import { StockPanel } from "@/components/dashboard/StockPanel";
 
 import { BulkCampaignsPanel } from "@/components/dashboard/BulkCampaignsPanel";
 import { ManualOverride, OpeningHours } from "@/lib/hours";
+import { BrasiliaClock } from "@/components/BrasiliaClock";
 
 interface Restaurant {
   id: string;

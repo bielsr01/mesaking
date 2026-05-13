@@ -32,6 +32,7 @@ import { BulkCampaignsPanel } from "@/components/dashboard/BulkCampaignsPanel";
 import { EvolutionIntegrationCard } from "@/components/dashboard/EvolutionIntegrationCard";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePendingSupplyOrdersCount } from "@/hooks/usePendingCounts";
+import { BrasiliaClock } from "@/components/BrasiliaClock";
 
 interface Restaurant {
   id: string;
