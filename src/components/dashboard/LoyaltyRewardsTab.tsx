@@ -181,9 +181,9 @@ export function LoyaltyRewardsTab({ restaurantId }: { restaurantId: string }) {
                   <TableCell><Badge variant={r.is_active ? "default" : "secondary"}>{r.is_active ? "Ativa" : "Inativa"}</Badge></TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
-                      <Button size="sm" onClick={() => setRedeemReward(r)} disabled={!r.is_active}><Gift className="w-4 h-4 mr-1" />Resgatar</Button>
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(r)}><Pencil className="w-4 h-4" /></Button>
-                      <Button variant="ghost" size="icon" onClick={() => remove(r.id)}><Trash2 className="w-4 h-4" /></Button>
+                      {canRedeem && <Button size="sm" onClick={() => setRedeemReward(r)} disabled={!r.is_active}><Gift className="w-4 h-4 mr-1" />Resgatar</Button>}
+                      {canRewardsEdit && <Button variant="ghost" size="icon" onClick={() => openEdit(r)}><Pencil className="w-4 h-4" /></Button>}
+                      {canRewardsDelete && <Button variant="ghost" size="icon" onClick={() => remove(r.id)}><Trash2 className="w-4 h-4" /></Button>}
                     </div>
                   </TableCell>
                 </TableRow>
