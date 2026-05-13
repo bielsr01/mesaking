@@ -65,7 +65,10 @@ async function fetchProductOptionGroups(restaurantId: string, productId: string)
 
 export function LoyaltyRewardsTab({ restaurantId }: { restaurantId: string }) {
   const qc = useQueryClient();
-
+  const { can } = usePermissions(restaurantId);
+  const canRewardsEdit = can("loyalty.rewards.edit");
+  const canRewardsDelete = can("loyalty.rewards.delete");
+  const canRedeem = can("loyalty.redeem_points");
   const productsQ = useQuery({
     queryKey: ["loyalty-products-list", restaurantId],
     queryFn: async () => {
