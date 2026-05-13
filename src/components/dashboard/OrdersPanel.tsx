@@ -253,6 +253,9 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
           setChannel("ifood");
           setIfoodView("orders");
           setFilter("pending");
+        } else if (row?.external_source === "quero") {
+          setChannel("quero");
+          setFilter("pending");
         } else {
           setChannel((cur) => {
             if (cur !== "delivery") setDeliveryBlink(true);
