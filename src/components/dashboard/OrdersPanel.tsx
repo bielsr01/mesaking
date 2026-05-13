@@ -253,6 +253,9 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
           setChannel("ifood");
           setIfoodView("orders");
           setFilter("pending");
+        } else if (row?.external_source === "quero") {
+          setChannel("quero");
+          setFilter("pending");
         } else {
           setChannel((cur) => {
             if (cur !== "delivery") setDeliveryBlink(true);
@@ -339,6 +342,33 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
       }
     }
 
+    if (o.external_source === "quero") {
+      if (!o.external_order_id) {
+        patchOrder(o.id, { status: prevStatus });
+        toast.error("Pedido Quero sem external_order_id — não é possível enviar a ação.");
+        setPending(o.id, false);
+        return;
+      }
+      const actionMap: Record<string, string> = {
+        preparing: "confirm",
+        awaiting_pickup: "readyForPickup",
+        out_for_delivery: "dispatch",
+        delivered: "delivered",
+      };
+      const action = actionMap[next];
+      if (action) {
+        const { data: fnData, error: fnErr } = await supabase.functions.invoke("quero-action", {
+          body: { orderId: o.id, action },
+        });
+        if (fnErr || !fnData?.ok) {
+          patchOrder(o.id, { status: prevStatus });
+          toast.error(`Quero: ${fnData?.error ?? fnErr?.message ?? "falha"}`);
+          setPending(o.id, false);
+          return;
+        }
+      }
+    }
+
     const { error } = await supabase.from("orders").update({ status: next }).eq("id", o.id);
     if (error) {
       patchOrder(o.id, { status: prevStatus });
@@ -369,6 +399,23 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
       if (fnErr || (fnData && fnData.ok === false)) {
         patchOrder(o.id, { status: prevStatus });
         toast.error(`iFood: ${fnData?.error ?? fnErr?.message ?? "falha"}`);
+        setPending(o.id, false);
+        return;
+      }
+    }
+    if (o.external_source === "quero") {
+      if (!o.external_order_id) {
+        patchOrder(o.id, { status: prevStatus });
+        toast.error("Pedido Quero sem external_order_id — não é possível cancelar.");
+        setPending(o.id, false);
+        return;
+      }
+      const { data: fnData, error: fnErr } = await supabase.functions.invoke("quero-action", {
+        body: { orderId: o.id, action: "cancel", cancelReason: "Cancelado pelo restaurante" },
+      });
+      if (fnErr || (fnData && fnData.ok === false)) {
+        patchOrder(o.id, { status: prevStatus });
+        toast.error(`Quero: ${fnData?.error ?? fnErr?.message ?? "falha"}`);
         setPending(o.id, false);
         return;
       }
@@ -404,8 +451,9 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const channelOrders = orders.filter((o) => {
     if (channel === "pdv") return o.order_type === "pdv";
     if (channel === "ifood") return o.external_source === "ifood";
-    // delivery: tudo que não é pdv e não é ifood
-    return o.order_type !== "pdv" && o.external_source !== "ifood";
+    if (channel === "quero") return o.external_source === "quero";
+    // delivery: tudo que não é pdv e não é ifood/quero
+    return o.order_type !== "pdv" && o.external_source !== "ifood" && o.external_source !== "quero";
   });
 
   const filtered = channelOrders.filter((o) => {
@@ -432,11 +480,13 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     all: channelOrders.length,
   };
 
-  const deliveryCount = orders.filter((o) => o.order_type !== "pdv" && o.external_source !== "ifood").length;
-  const deliveryPendingCount = orders.filter((o) => o.order_type !== "pdv" && o.external_source !== "ifood" && o.status === "pending").length;
+  const deliveryCount = orders.filter((o) => o.order_type !== "pdv" && o.external_source !== "ifood" && o.external_source !== "quero").length;
+  const deliveryPendingCount = orders.filter((o) => o.order_type !== "pdv" && o.external_source !== "ifood" && o.external_source !== "quero" && o.status === "pending").length;
   const pdvCount = orders.filter((o) => o.order_type === "pdv").length;
   const ifoodCount = orders.filter((o) => o.external_source === "ifood").length;
   const ifoodPendingCount = orders.filter((o) => o.external_source === "ifood" && o.status === "pending").length;
+  const queroCount = orders.filter((o) => o.external_source === "quero").length;
+  const queroPendingCount = orders.filter((o) => o.external_source === "quero" && o.status === "pending").length;
 
   // Filtra abas de status conforme permissão por canal
   const baseFilters = channel === "pdv"
@@ -454,11 +504,12 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Tabs value={channel} onValueChange={(v) => {
-          const nv = v as "delivery" | "pdv" | "ifood";
+          const nv = v as "delivery" | "pdv" | "ifood" | "quero";
           setChannel(nv);
           if (nv === "pdv") setFilter(firstAllowedStatus(nv, ["preparing"]));
           else if (nv === "delivery") { setFilter(firstAllowedStatus(nv, ["pending"])); setDeliveryBlink(false); }
           else if (nv === "ifood") { setFilter(firstAllowedStatus(nv, ["pending"])); setIfoodView("orders"); }
+          else if (nv === "quero") { setFilter(firstAllowedStatus(nv, ["pending"])); }
         }}>
           <TabsList>
             {canPdv && (
@@ -477,6 +528,12 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
               <TabsTrigger value="ifood" className={`gap-2 ${ifoodPendingCount > 0 ? "animate-pulse text-destructive ring-2 ring-destructive" : ""}`}>
                 <Utensils className="w-4 h-4" /> iFood
                 <Badge variant={ifoodPendingCount > 0 ? "destructive" : "secondary"} className="h-5 min-w-5 px-1.5 text-xs">{ifoodPendingCount > 0 ? ifoodPendingCount : ifoodCount}</Badge>
+              </TabsTrigger>
+            )}
+            {canQuero && (
+              <TabsTrigger value="quero" className={`gap-2 ${queroPendingCount > 0 ? "animate-pulse text-destructive ring-2 ring-destructive" : ""}`}>
+                <Bike className="w-4 h-4" /> Quero Delivery
+                <Badge variant={queroPendingCount > 0 ? "destructive" : "secondary"} className="h-5 min-w-5 px-1.5 text-xs">{queroPendingCount > 0 ? queroPendingCount : queroCount}</Badge>
               </TabsTrigger>
             )}
           </TabsList>

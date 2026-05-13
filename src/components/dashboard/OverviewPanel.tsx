@@ -49,7 +49,7 @@ import type { DateRange } from "react-day-picker";
 
 const sb = supabase as any;
 
-type SourceFilter = "all" | "web" | "pdv" | "ifood";
+type SourceFilter = "all" | "web" | "pdv" | "ifood" | "quero";
 type Preset = "today" | "yesterday" | "7d" | "30d" | "month" | "lastmonth" | "custom";
 
 const presets: { id: Preset; label: string }[] = [
@@ -79,6 +79,7 @@ function rangeFor(preset: Preset, custom?: DateRange): { from: Date; to: Date } 
 
 function classifySource(o: any): SourceFilter {
   if (o.external_source === "ifood") return "ifood";
+  if (o.external_source === "quero") return "quero";
   if (o.payment_method === "card_on_delivery" && o.order_type === "pdv") return "pdv";
   if (o.order_type === "pdv") return "pdv";
   return "web";
@@ -379,11 +380,12 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
 
       {/* Source filter */}
       <Tabs value={source} onValueChange={(v) => handleSourceChange(v as SourceFilter)}>
-        <TabsList className="grid grid-cols-4 w-full max-w-3xl">
+        <TabsList className="grid grid-cols-5 w-full max-w-3xl">
           <TabsTrigger value="all">Todos</TabsTrigger>
           <TabsTrigger value="pdv">PDV</TabsTrigger>
           <TabsTrigger value="web">Web</TabsTrigger>
           <TabsTrigger value="ifood">iFood</TabsTrigger>
+          <TabsTrigger value="quero">Quero</TabsTrigger>
         </TabsList>
       </Tabs>
 
