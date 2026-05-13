@@ -23,6 +23,7 @@ export type AdminView =
   | "customers"
   | "marketing:coupons"
   | "marketing:bulk"
+  | "marketing:loyalty"
   | "settings:integrations"
   | "settings:ifood-fees"
   | "supply:catalog"
