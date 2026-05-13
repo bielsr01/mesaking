@@ -235,25 +235,31 @@ export function AdminOwnExpensesPanel() {
             <span className="flex items-center gap-2"><Receipt className="w-4 h-4" /> Despesas Admin</span>
             <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }}>
               <DialogTrigger asChild>
-                <Button size="sm" onClick={openNew}><Plus className="w-4 h-4 mr-1" /> Nova despesa</Button>
+                <Button size="sm" onClick={openNew} disabled={cats.filter(c => c.is_active).length === 0}><Plus className="w-4 h-4 mr-1" /> Nova despesa</Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader><DialogTitle>{editing ? "Editar" : "Nova"} despesa</DialogTitle></DialogHeader>
+                {cats.filter(c => c.is_active).length === 0 ? (
+                  <div className="text-sm text-muted-foreground py-4">
+                    Nenhuma categoria de despesa ativa. Cadastre uma categoria acima primeiro.
+                  </div>
+                ) : (
                 <form onSubmit={save} className="space-y-3">
                   <div>
                     <Label>Categoria</Label>
                     <Select value={selectedCatId} onValueChange={setSelectedCatId}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                       <SelectContent>
                         {cats.filter(c => c.is_active).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                        <SelectItem value="__free__">Outra (digitar)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                  {selectedCatId === "__free__" && (
-                    <div><Label>Nome da categoria</Label><Input value={freeCatName} onChange={(e) => setFreeCatName(e.target.value)} required /></div>
+                  {requiresDesc && (
+                    <div>
+                      <Label>Descrição da despesa</Label>
+                      <Input value={descValue} onChange={(e) => setDescValue(e.target.value)} required maxLength={200} placeholder="Digite o nome da despesa" />
+                    </div>
                   )}
-                  <div><Label>Descrição</Label><Input value={descValue} onChange={(e) => setDescValue(e.target.value)} required maxLength={200} /></div>
                   <div className="grid grid-cols-2 gap-3">
                     <div><Label>Valor (R$)</Label><Input name="amount" type="number" step="0.01" min="0" defaultValue={editing?.amount ?? ""} required /></div>
                     <div><Label>Data</Label><Input name="expense_date" type="date" defaultValue={editing?.expense_date ?? todayISO()} required /></div>
