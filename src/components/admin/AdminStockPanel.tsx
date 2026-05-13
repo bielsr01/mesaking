@@ -10,9 +10,8 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Pencil, Boxes, Layers, Factory } from "lucide-react";
+import { Plus, Pencil, Boxes, Layers } from "lucide-react";
 import { toast } from "sonner";
-import { AdminStockAdmin } from "./AdminStockAdmin";
 
 type StockGroup = {
   id: string; name: string; is_active: boolean; sort_order: number;
@@ -26,11 +25,9 @@ export function AdminStockPanel() {
     <Tabs defaultValue="overview" className="space-y-4">
       <TabsList>
         <TabsTrigger value="overview"><Boxes className="w-4 h-4 mr-2" />Estoque das lojas</TabsTrigger>
-        <TabsTrigger value="admin"><Factory className="w-4 h-4 mr-2" />Estoque admin</TabsTrigger>
         <TabsTrigger value="groups"><Layers className="w-4 h-4 mr-2" />Grupos de itens</TabsTrigger>
       </TabsList>
       <TabsContent value="overview"><AdminStockOverview /></TabsContent>
-      <TabsContent value="admin"><AdminStockAdmin /></TabsContent>
       <TabsContent value="groups"><AdminStockGroups /></TabsContent>
     </Tabs>
   );
