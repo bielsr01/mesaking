@@ -159,6 +159,11 @@ const LEGACY_INHERIT_FROM_PARENT: string[] = [
   ...IFOOD_STATUSES.map((s) => `orders.statuses.ifood.${s}`),
 ];
 
+// Para chaves legadas onde queremos herdar de outro nó (não o "parent" das dependências).
+const LEGACY_INHERIT_OVERRIDES: Record<string, string> = {
+  "customers.create": "customers.edit",
+};
+
 function pathDefined(obj: any, path: string): boolean {
   const keys = path.split(".");
   let o = obj;
