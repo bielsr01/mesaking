@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, KeyRound, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
-import { FULL_PERMISSIONS, Permissions, mergePermissions } from "@/lib/permissions";
+import { FULL_PERMISSIONS, Permissions, mergePermissions, PDV_STATUSES, DELIVERY_STATUSES, IFOOD_STATUSES } from "@/lib/permissions";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Props { restaurantId: string }
@@ -19,14 +19,32 @@ interface Props { restaurantId: string }
 interface AccessGroup { id: string; name: string; permissions: any; is_default: boolean }
 interface MemberRow { user_id: string; access_group_id: string | null; full_name: string | null; email: string | null; is_owner: boolean }
 
-const SECTIONS: Array<{ key: keyof Permissions; label: string; rows: Array<{ path: string; label: string }> }> = [
+type StatusChannel = "pdv" | "delivery" | "ifood";
+const STATUS_LABELS: Record<string, string> = {
+  pending: "Novos",
+  preparing: "Em preparo",
+  out_for_delivery: "Em entrega",
+  awaiting_pickup: "Aguardando retirada",
+  delivered: "Entregues",
+  cancelled: "Cancelados",
+  active: "Ativos",
+  all: "Todos",
+};
+const STATUS_LISTS: Record<StatusChannel, readonly string[]> = {
+  pdv: PDV_STATUSES,
+  delivery: DELIVERY_STATUSES,
+  ifood: IFOOD_STATUSES,
+};
+
+type Row = { path: string; label: string; statusChannel?: StatusChannel };
+const SECTIONS: Array<{ key: keyof Permissions; label: string; rows: Row[] }> = [
   { key: "overview", label: "Visão geral", rows: [{ path: "overview.view", label: "Visualizar" }] },
   { key: "orders", label: "Pedidos", rows: [
     { path: "orders.view", label: "Visualizar" },
-    { path: "orders.channels.pdv", label: "Ver pedidos PDV" },
-    { path: "orders.channels.delivery", label: "Ver pedidos Delivery" },
+    { path: "orders.channels.pdv", label: "Ver pedidos PDV", statusChannel: "pdv" },
+    { path: "orders.channels.delivery", label: "Ver pedidos Delivery", statusChannel: "delivery" },
     { path: "orders.channels.pickup", label: "Ver pedidos Retirada" },
-    { path: "orders.channels.ifood", label: "Ver pedidos iFood" },
+    { path: "orders.channels.ifood", label: "Ver pedidos iFood", statusChannel: "ifood" },
     { path: "orders.change_status", label: "Mudar Status" },
     { path: "orders.edit", label: "Pode editar/excluir pedido" },
     { path: "orders.create_pdv_order", label: "Pode fazer um novo pedido PDV" },
@@ -114,6 +132,9 @@ const PERMISSION_DEPENDENCIES: Record<string, string> = {
   "supply_orders.edit": "supply_orders.view",
   "stock.edit": "stock.view",
   "expenses.edit": "expenses.view",
+  ...Object.fromEntries(PDV_STATUSES.map((s) => [`orders.statuses.pdv.${s}`, "orders.channels.pdv"])),
+  ...Object.fromEntries(DELIVERY_STATUSES.map((s) => [`orders.statuses.delivery.${s}`, "orders.channels.delivery"])),
+  ...Object.fromEntries(IFOOD_STATUSES.map((s) => [`orders.statuses.ifood.${s}`, "orders.channels.ifood"])),
 };
 
 function applyDependencies(perms: any, path: string, value: boolean) {
@@ -363,17 +384,43 @@ export function AccessManagementPanel({ restaurantId }: Props) {
                 <div key={String(sec.key)} className="border rounded p-3 space-y-2">
                   <div className="font-semibold">{sec.label}</div>
                   {sec.rows.map((r) => {
+                    const channelOn = !!getAt(perms, r.path);
                     return (
-                      <div key={r.path} className="flex items-center justify-between">
-                        <Label className="cursor-pointer">{r.label}</Label>
-                        <Switch
-                          checked={!!getAt(perms, r.path)}
-                          onCheckedChange={(v) => {
-                            const next = JSON.parse(JSON.stringify(perms));
-                            applyDependencies(next, r.path, v);
-                            setPerms(next);
-                          }}
-                        />
+                      <div key={r.path} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="cursor-pointer">{r.label}</Label>
+                          <Switch
+                            checked={channelOn}
+                            onCheckedChange={(v) => {
+                              const next = JSON.parse(JSON.stringify(perms));
+                              applyDependencies(next, r.path, v);
+                              setPerms(next);
+                            }}
+                          />
+                        </div>
+                        {r.statusChannel && channelOn && (
+                          <div className="ml-4 flex flex-wrap gap-1.5 pb-1">
+                            <span className="text-xs text-muted-foreground self-center mr-1">Abas visíveis:</span>
+                            {STATUS_LISTS[r.statusChannel].map((s) => {
+                              const path = `orders.statuses.${r.statusChannel}.${s}`;
+                              const on = !!getAt(perms, path);
+                              return (
+                                <button
+                                  key={s}
+                                  type="button"
+                                  onClick={() => {
+                                    const next = JSON.parse(JSON.stringify(perms));
+                                    applyDependencies(next, path, !on);
+                                    setPerms(next);
+                                  }}
+                                  className={`text-xs px-2 py-1 rounded border transition-colors ${on ? "bg-primary text-primary-foreground border-primary" : "bg-muted text-muted-foreground border-border hover:bg-accent"}`}
+                                >
+                                  {STATUS_LABELS[s] ?? s}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     );
                   })}

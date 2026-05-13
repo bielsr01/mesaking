@@ -119,7 +119,13 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const canCreatePdv = can("orders.create_pdv_order");
   const initialChannel: "delivery" | "pdv" | "ifood" = canPdv ? "pdv" : canDelivery ? "delivery" : canIfood ? "ifood" : "pdv";
   const [channel, setChannel] = useState<"delivery" | "pdv" | "ifood">(initialChannel);
-  const [filter, setFilter] = useState("pending");
+  const statusKey = (ch: "delivery" | "pdv" | "ifood", s: string) => `orders.statuses.${ch}.${s}`;
+  const firstAllowedStatus = (ch: "delivery" | "pdv" | "ifood", preferred: string[]) => {
+    for (const p of preferred) if (can(statusKey(ch, p))) return p;
+    const list = ch === "pdv" ? ["preparing", "delivered", "cancelled", "all"] : ["pending", "preparing", "out_for_delivery", "awaiting_pickup", "delivered", "cancelled", "active", "all"];
+    return list.find((s) => can(statusKey(ch, s))) ?? (ch === "pdv" ? "preparing" : "pending");
+  };
+  const [filter, setFilter] = useState(() => firstAllowedStatus(initialChannel, initialChannel === "pdv" ? ["preparing"] : ["pending"]));
   const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Order | null>(null);
   const [printTarget, setPrintTarget] = useState<Order | null>(null);
@@ -429,10 +435,17 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const ifoodCount = orders.filter((o) => o.external_source === "ifood").length;
   const ifoodPendingCount = orders.filter((o) => o.external_source === "ifood" && o.status === "pending").length;
 
-  // PDV: em preparo + entregues + cancelados + todos
-  const visibleFilters = channel === "pdv"
+  // Filtra abas de status conforme permissão por canal
+  const baseFilters = channel === "pdv"
     ? FILTERS.filter((f) => ["preparing", "delivered", "cancelled", "all"].includes(f.value))
     : FILTERS;
+  const visibleFilters = baseFilters.filter((f) => can(statusKey(channel, f.value)));
+
+  useEffect(() => {
+    if (visibleFilters.length > 0 && !visibleFilters.find((f) => f.value === filter)) {
+      setFilter(visibleFilters[0].value);
+    }
+  }, [channel, filter, visibleFilters]);
 
   return (
     <div className="space-y-4">
@@ -440,9 +453,9 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
         <Tabs value={channel} onValueChange={(v) => {
           const nv = v as "delivery" | "pdv" | "ifood";
           setChannel(nv);
-          if (nv === "pdv") setFilter("preparing");
-          else if (nv === "delivery") { setFilter("pending"); setDeliveryBlink(false); }
-          else if (nv === "ifood") { setFilter("pending"); setIfoodView("orders"); }
+          if (nv === "pdv") setFilter(firstAllowedStatus(nv, ["preparing"]));
+          else if (nv === "delivery") { setFilter(firstAllowedStatus(nv, ["pending"])); setDeliveryBlink(false); }
+          else if (nv === "ifood") { setFilter(firstAllowedStatus(nv, ["pending"])); setIfoodView("orders"); }
         }}>
           <TabsList>
             {canPdv && (
