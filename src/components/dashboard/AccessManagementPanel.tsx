@@ -23,9 +23,13 @@ const SECTIONS: Array<{ key: keyof Permissions; label: string; rows: Array<{ pat
   { key: "overview", label: "Visão geral", rows: [{ path: "overview.view", label: "Visualizar" }] },
   { key: "orders", label: "Pedidos", rows: [
     { path: "orders.view", label: "Visualizar" },
-    { path: "orders.scope", label: "Escopo (todos / só iFood)" },
+    { path: "orders.channels.pdv", label: "Ver pedidos PDV" },
+    { path: "orders.channels.delivery", label: "Ver pedidos Delivery" },
+    { path: "orders.channels.pickup", label: "Ver pedidos Retirada" },
+    { path: "orders.channels.ifood", label: "Ver pedidos iFood" },
+    { path: "orders.change_status", label: "Mudar Status" },
     { path: "orders.edit", label: "Pode editar/excluir pedido" },
-    { path: "orders.status_only", label: "Apenas mudar status" },
+    { path: "orders.create_pdv_order", label: "Pode fazer um novo pedido PDV" },
   ]},
   { key: "menu", label: "Cardápio", rows: [
     { path: "menu.view", label: "Visualizar cardápio" },
@@ -35,7 +39,6 @@ const SECTIONS: Array<{ key: keyof Permissions; label: string; rows: Array<{ pat
     { path: "customers.view", label: "Visualizar" },
     { path: "customers.edit", label: "Editar dados" },
     { path: "customers.delete", label: "Excluir cliente" },
-    { path: "customers.manual_adjust", label: "Ajuste manual de pontos" },
   ]},
   { key: "marketing", label: "Marketing", rows: [
     { path: "marketing.coupons.view", label: "Ver Cupons de desconto" },
@@ -45,8 +48,12 @@ const SECTIONS: Array<{ key: keyof Permissions; label: string; rows: Array<{ pat
   ]},
   { key: "loyalty", label: "Programa de fidelidade", rows: [
     { path: "loyalty.view", label: "Acessar programa" },
+    { path: "loyalty.toggle_program", label: "Pode ativar/desativar o programa" },
+    { path: "loyalty.member_create", label: "Cadastrar cliente no programa" },
+    { path: "loyalty.member_delete", label: "Excluir cliente do programa" },
     { path: "loyalty.credit_points", label: "Creditar pontos" },
     { path: "loyalty.redeem_points", label: "Resgatar pontos" },
+    { path: "loyalty.manual_adjust", label: "Ajuste manual de pontos" },
     { path: "loyalty.rewards.view", label: "Ver recompensas" },
     { path: "loyalty.rewards.edit", label: "Editar/criar recompensas" },
     { path: "loyalty.rewards.delete", label: "Excluir recompensas" },
