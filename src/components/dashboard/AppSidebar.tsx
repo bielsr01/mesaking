@@ -126,7 +126,7 @@ export function AppSidebar({
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {mainItems.map((item) => {
+              {visibleMain.map((item) => {
                 const isOrders = item.id === "orders";
                 const showBlink = isOrders && ordersBlinking;
                 return (
@@ -149,79 +149,74 @@ export function AppSidebar({
                 );
               })}
 
-              {/* Marketing */}
-              <Collapsible open={marketingOpen || collapsed} onOpenChange={setMarketingOpen} asChild>
-                <SidebarMenuItem>
-                  <CollapsibleTrigger asChild>
-                    <SidebarMenuButton isActive={marketingActive} tooltip="Marketing">
-                      <Megaphone className="h-4 w-4" />
-                      <span>Marketing</span>
-                      <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
-                    </SidebarMenuButton>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <SidebarMenuSub>
-                      {marketingItems.map((item) => (
-                        <SidebarMenuSubItem key={item.id}>
-                          <SidebarMenuSubButton asChild isActive={active === item.id}>
-                            <button
-                              type="button"
-                              onClick={() => onChange(item.id)}
-                              className="w-full text-left flex items-center gap-2"
-                            >
-                              <item.icon className="h-4 w-4" />
-                              <span>{item.title}</span>
-                            </button>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      ))}
-                    </SidebarMenuSub>
-                  </CollapsibleContent>
-                </SidebarMenuItem>
-              </Collapsible>
+              {showMarketing && (
+                <Collapsible open={marketingOpen || collapsed} onOpenChange={setMarketingOpen} asChild>
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton isActive={marketingActive} tooltip="Marketing">
+                        <Megaphone className="h-4 w-4" />
+                        <span>Marketing</span>
+                        <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {visibleMarketing.map((item) => (
+                          <SidebarMenuSubItem key={item.id}>
+                            <SidebarMenuSubButton asChild isActive={active === item.id}>
+                              <button type="button" onClick={() => onChange(item.id)} className="w-full text-left flex items-center gap-2">
+                                <item.icon className="h-4 w-4" />
+                                <span>{item.title}</span>
+                              </button>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
+              )}
 
-              {/* Programa de fidelidade (item raiz, abaixo de Marketing) */}
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  isActive={active === loyaltyItem.id}
-                  onClick={() => onChange(loyaltyItem.id)}
-                  tooltip={loyaltyItem.title}
-                >
-                  <loyaltyItem.icon className="h-4 w-4" />
-                  <span>{loyaltyItem.title}</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-              {/* Configurações */}
-              <Collapsible open={settingsOpen || collapsed} onOpenChange={setSettingsOpen} asChild>
+              {showLoyalty && (
                 <SidebarMenuItem>
-                  <CollapsibleTrigger asChild>
-                    <SidebarMenuButton isActive={settingsActive} tooltip="Configurações">
-                      <Settings className="h-4 w-4" />
-                      <span>Configurações</span>
-                      <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
-                    </SidebarMenuButton>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <SidebarMenuSub>
-                      {settingsItems.map((item) => (
-                        <SidebarMenuSubItem key={item.id}>
-                          <SidebarMenuSubButton asChild isActive={active === item.id}>
-                            <button
-                              type="button"
-                              onClick={() => onChange(item.id)}
-                              className="w-full text-left flex items-center gap-2"
-                            >
-                              <item.icon className="h-4 w-4" />
-                              <span>{item.title}</span>
-                            </button>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      ))}
-                    </SidebarMenuSub>
-                  </CollapsibleContent>
+                  <SidebarMenuButton
+                    isActive={active === loyaltyItem.id}
+                    onClick={() => onChange(loyaltyItem.id)}
+                    tooltip={loyaltyItem.title}
+                  >
+                    <loyaltyItem.icon className="h-4 w-4" />
+                    <span>{loyaltyItem.title}</span>
+                  </SidebarMenuButton>
                 </SidebarMenuItem>
-              </Collapsible>
+              )}
+
+              {showSettings && visibleSettings.length > 0 && (
+                <Collapsible open={settingsOpen || collapsed} onOpenChange={setSettingsOpen} asChild>
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton isActive={settingsActive} tooltip="Configurações">
+                        <Settings className="h-4 w-4" />
+                        <span>Configurações</span>
+                        <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {visibleSettings.map((item) => (
+                          <SidebarMenuSubItem key={item.id}>
+                            <SidebarMenuSubButton asChild isActive={active === item.id}>
+                              <button type="button" onClick={() => onChange(item.id)} className="w-full text-left flex items-center gap-2">
+                                <item.icon className="h-4 w-4" />
+                                <span>{item.title}</span>
+                              </button>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
+              )}
 
               <SidebarMenuItem>
                 <SidebarMenuButton
