@@ -278,6 +278,7 @@ export function AdminOwnExpensesPanel() {
                   </div>
                   <DialogFooter><Button type="submit" disabled={saving}>{saving && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}{editing ? "Salvar" : "Adicionar"}</Button></DialogFooter>
                 </form>
+                )}
               </DialogContent>
             </Dialog>
           </CardTitle>
