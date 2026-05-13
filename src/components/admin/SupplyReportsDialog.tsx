@@ -35,10 +35,10 @@ const STATUSES: { value: Status; label: string }[] = [
   { value: "delivered", label: "Entregues" },
 ];
 
-const todayISO = () => new Date().toISOString().slice(0, 10);
-const monthStartISO = () => {
-  const d = new Date(); d.setDate(1); return d.toISOString().slice(0, 10);
-};
+type QuickPreset = "today" | "this_month" | "last_30" | "last_month";
+
+const todayISO = () => todayISOBR();
+const monthStartISO = () => monthStartISOBR();
 
 export function SupplyReportsDialog() {
   const [open, setOpen] = useState(false);
