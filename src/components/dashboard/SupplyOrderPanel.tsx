@@ -411,7 +411,7 @@ export function SupplyOrderPanel({ restaurantId }: { restaurantId: string }) {
                     ))}
                   </div>
                   {o.notes && <div className="text-xs text-muted-foreground italic">"{o.notes}"</div>}
-                  {o.status === "pending" && (
+                  {canEdit && o.status === "pending" && (
                     <div className="flex gap-2 pt-2">
                       <Button size="sm" variant="outline" onClick={() => startEdit(o)}>
                         <Pencil className="w-3.5 h-3.5 mr-1" />Editar
