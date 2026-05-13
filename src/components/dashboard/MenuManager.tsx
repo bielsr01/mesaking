@@ -51,6 +51,8 @@ async function fetchStockConsumption(productId: string): Promise<StockConsumptio
 
 export function MenuManager({ restaurantId }: { restaurantId: string }) {
   const qc = useQueryClient();
+  const { can } = usePermissions(restaurantId);
+  const canEdit = can("menu.edit");
   const { data: categories = [], isLoading: loadingCats } = useQuery({
     queryKey: menuKeys.categories(restaurantId),
     queryFn: () => fetchCategories(restaurantId),
