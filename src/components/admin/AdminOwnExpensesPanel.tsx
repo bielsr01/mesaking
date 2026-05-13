@@ -11,12 +11,12 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Tag, Receipt, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Tag, Receipt, Loader2, Download, Eye, X } from "lucide-react";
 import { toast } from "sonner";
 import { brl } from "@/lib/format";
 
 type Cat = { id: string; name: string; requires_description: boolean; is_active: boolean };
-type AdminExpense = { id: string; description: string; category: string | null; category_id: string | null; amount: number; expense_date: string; notes: string | null };
+type AdminExpense = { id: string; description: string; category: string | null; category_id: string | null; amount: number; expense_date: string; notes: string | null; receipt_url: string | null };
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const monthStartISO = (d = new Date()) => new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
