@@ -87,9 +87,6 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
   const [search, setSearch] = useState("");
   const [historyMember, setHistoryMember] = useState<Member | null>(null);
   const [savingMember, setSavingMember] = useState(false);
-  const [pinPromptOpen, setPinPromptOpen] = useState(false);
-  const [pinValue, setPinValue] = useState("");
-  const [pinVerifying, setPinVerifying] = useState(false);
 
   const openCreate = () => {
     setEditingMember(null);
@@ -164,25 +161,6 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
 
   const saveMember = async () => {
     if (!newName.trim() || !newPhone.trim()) return toast.error("Preencha nome e telefone");
-    if (editingMember && !isAdmin) {
-      setPinValue("");
-      setPinPromptOpen(true);
-      return;
-    }
-    await executeSave();
-  };
-
-  const confirmWithPin = async () => {
-    if (!/^\d{6}$/.test(pinValue)) return toast.error("Informe a senha mestra de 6 dígitos");
-    setPinVerifying(true);
-    const { data, error } = await sb.rpc("verify_restaurant_master_pin", {
-      _restaurant_id: restaurantId, _pin: pinValue,
-    });
-    setPinVerifying(false);
-    if (error) return toast.error(error.message);
-    if (!data) return toast.error("Senha mestra incorreta ou não cadastrada para este restaurante.");
-    setPinPromptOpen(false);
-    setPinValue("");
     await executeSave();
   };
 
@@ -415,40 +393,6 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
               <Button variant="outline" onClick={() => setMemberDialog(false)} disabled={savingMember}>Cancelar</Button>
               <Button onClick={saveMember} disabled={savingMember}>
                 {savingMember ? "Salvando..." : editingMember ? "Salvar" : "Cadastrar"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        <Dialog open={pinPromptOpen} onOpenChange={(o) => { if (!o) { setPinPromptOpen(false); setPinValue(""); } }}>
-          <DialogContent className="max-w-sm">
-            <DialogHeader>
-              <DialogTitle>Confirmar com senha mestra</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                A edição manual de cadastros do programa de fidelidade exige a senha mestra do restaurante (6 dígitos).
-              </p>
-              <div className="space-y-1">
-                <Label>Senha mestra</Label>
-                <Input
-                  type="password"
-                  inputMode="numeric"
-                  pattern="\d{6}"
-                  maxLength={6}
-                  value={pinValue}
-                  onChange={(e) => setPinValue(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                  placeholder="------"
-                  className="tracking-[0.4em] text-center font-mono"
-                  autoFocus
-                  onKeyDown={(e) => { if (e.key === "Enter") confirmWithPin(); }}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => { setPinPromptOpen(false); setPinValue(""); }} disabled={pinVerifying || savingMember}>Cancelar</Button>
-              <Button onClick={confirmWithPin} disabled={pinVerifying || savingMember}>
-                {pinVerifying ? "Verificando..." : savingMember ? "Salvando..." : "Confirmar"}
               </Button>
             </DialogFooter>
           </DialogContent>

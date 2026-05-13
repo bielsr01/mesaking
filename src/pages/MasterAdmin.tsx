@@ -11,7 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 // tabs removed in favor of sidebar layout
-import { Plus, ChefHat, ExternalLink, LogOut, Store, ShoppingBag, DollarSign, Pencil, Trash2, RefreshCw, Eye, EyeOff, KeyRound } from "lucide-react";
+import { Plus, ChefHat, ExternalLink, LogOut, Store, ShoppingBag, DollarSign, Pencil, Trash2, RefreshCw, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { brl, slugify } from "@/lib/format";
@@ -76,40 +76,6 @@ export default function MasterAdmin() {
   const [showEditPwd, setShowEditPwd] = useState(false);
   const [editManager, setEditManager] = useState<{ email: string; full_name: string }>({ email: "", full_name: "" });
   const [loadingEditId, setLoadingEditId] = useState<string | null>(null);
-  const [pinDialog, setPinDialog] = useState<Restaurant | null>(null);
-  const [pinValue, setPinValue] = useState("");
-  const [pinExisting, setPinExisting] = useState<string | null>(null);
-  const [pinShow, setPinShow] = useState(false);
-  const [pinLoading, setPinLoading] = useState(false);
-  const [pinSaving, setPinSaving] = useState(false);
-  const [createPin, setCreatePin] = useState("");
-
-  const openPinDialog = async (r: Restaurant) => {
-    setPinDialog(r);
-    setPinShow(false);
-    setPinValue("");
-    setPinExisting(null);
-    setPinLoading(true);
-    const { data } = await (supabase as any).from("restaurant_master_pins").select("pin").eq("restaurant_id", r.id).maybeSingle();
-    setPinExisting(data?.pin ?? null);
-    setPinValue(data?.pin ?? "");
-    setPinLoading(false);
-  };
-
-  const savePin = async () => {
-    if (!pinDialog) return;
-    if (!/^\d{6}$/.test(pinValue)) return toast.error("A senha mestra deve ter 6 dígitos numéricos");
-    setPinSaving(true);
-    const { error } = await (supabase as any).from("restaurant_master_pins").upsert({
-      restaurant_id: pinDialog.id, pin: pinValue,
-    }, { onConflict: "restaurant_id" });
-    setPinSaving(false);
-    if (error) return toast.error(error.message);
-    toast.success(pinExisting ? "Senha mestra atualizada" : "Senha mestra cadastrada");
-    setPinExisting(pinValue);
-    setPinDialog(null);
-  };
-
   const openEdit = async (r: Restaurant) => {
     setShowEditPwd(false);
     setLoadingEditId(r.id);
@@ -157,22 +123,15 @@ export default function MasterAdmin() {
     const obj = Object.fromEntries(fd);
     const parsed = createSchema.safeParse(obj);
     if (!parsed.success) return toast.error(parsed.error.issues[0].message);
-    if (createPin && !/^\d{6}$/.test(createPin)) return toast.error("A senha mestra deve ter 6 dígitos numéricos");
     setBusy(true);
     const { data, error } = await supabase.functions.invoke("admin-create-restaurant", { body: parsed.data });
     if (error || (data as any)?.error) {
       setBusy(false);
       return toast.error((data as any)?.error ?? error?.message ?? "Erro ao criar");
     }
-    if (createPin) {
-      const newId = (data as any)?.restaurant?.id ?? (data as any)?.restaurant_id;
-      if (newId) {
-        await (supabase as any).from("restaurant_master_pins").upsert({ restaurant_id: newId, pin: createPin });
-      }
-    }
     setBusy(false);
     toast.success(`Restaurante criado e gerente cadastrado!`);
-    setCreateOpen(false); setName(""); setSlug(""); setCreatePin("");
+    setCreateOpen(false); setName(""); setSlug("");
     load();
   };
 
@@ -329,18 +288,6 @@ export default function MasterAdmin() {
                               </button>
                             </div>
                           </div>
-                          <div className="space-y-2 col-span-2 pt-2 border-t">
-                            <Label>Senha mestra do restaurante <span className="text-muted-foreground font-normal">(6 dígitos, opcional)</span></Label>
-                            <Input
-                              inputMode="numeric"
-                              pattern="\d{6}"
-                              maxLength={6}
-                              value={createPin}
-                              onChange={(e) => setCreatePin(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                              placeholder="Ex: 123456"
-                            />
-                            <p className="text-xs text-muted-foreground">Será exigida em ações sensíveis dentro do painel do restaurante.</p>
-                          </div>
                         </div>
                         <DialogFooter>
                           <Button type="submit" disabled={busy}>{busy ? "Criando..." : "Criar restaurante"}</Button>
@@ -372,7 +319,6 @@ export default function MasterAdmin() {
                               </div>
                               <Button asChild variant="outline" size="sm"><Link to={`/r/${r.slug}`} target="_blank"><ExternalLink className="w-4 h-4" /></Link></Button>
                               <Button variant="outline" size="sm" disabled={loadingEditId === r.id} onClick={() => openEdit(r)}>{loadingEditId === r.id ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Pencil className="w-4 h-4" />}</Button>
-                              <Button variant="outline" size="sm" onClick={() => openPinDialog(r)} title="Senha mestra"><KeyRound className="w-4 h-4" /></Button>
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                   <Button variant="outline" size="sm" className="text-destructive hover:text-destructive"><Trash2 className="w-4 h-4" /></Button>
@@ -468,51 +414,6 @@ export default function MasterAdmin() {
                 </DialogFooter>
               </form>
             )}
-          </DialogContent>
-        </Dialog>
-
-        <Dialog open={!!pinDialog} onOpenChange={(o) => !o && setPinDialog(null)}>
-          <DialogContent className="max-w-sm">
-            <DialogHeader>
-              <DialogTitle>Senha mestra</DialogTitle>
-              <DialogDescription>
-                {pinDialog ? <>Restaurante: <strong>{pinDialog.name}</strong></> : null}
-                <div className="mt-1 text-xs">Senha de 6 dígitos usada para autorizar ações sensíveis no painel do restaurante.</div>
-              </DialogDescription>
-            </DialogHeader>
-            {pinLoading ? (
-              <div className="py-6 text-center text-sm text-muted-foreground">Carregando...</div>
-            ) : (
-              <div className="space-y-3">
-                <div className="text-xs text-muted-foreground">
-                  {pinExisting ? "Senha atual cadastrada. Você pode visualizar ou definir uma nova abaixo." : "Nenhuma senha cadastrada ainda."}
-                </div>
-                <div className="space-y-1">
-                  <Label>Senha (6 dígitos)</Label>
-                  <div className="relative">
-                    <Input
-                      type={pinShow ? "text" : "password"}
-                      inputMode="numeric"
-                      pattern="\d{6}"
-                      maxLength={6}
-                      value={pinValue}
-                      onChange={(e) => setPinValue(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                      placeholder="------"
-                      className="pr-10 tracking-[0.4em] text-center font-mono"
-                    />
-                    <button type="button" onClick={() => setPinShow((s) => !s)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1} aria-label={pinShow ? "Ocultar" : "Mostrar"}>
-                      {pinShow ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setPinDialog(null)} disabled={pinSaving}>Cancelar</Button>
-              <Button onClick={savePin} disabled={pinSaving || pinLoading}>
-                {pinSaving ? "Salvando..." : pinExisting ? "Atualizar senha" : "Cadastrar senha"}
-              </Button>
-            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
