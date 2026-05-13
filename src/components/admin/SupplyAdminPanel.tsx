@@ -278,6 +278,8 @@ export function SupplyCatalogTab() {
   const [expenseCategoryId, setExpenseCategoryId] = useState<string>("");
   const [adminStockGroupId, setAdminStockGroupId] = useState<string>("");
   const [saving, setSaving] = useState(false);
+  const [imgUrl, setImgUrl] = useState<string>("");
+  const [uploadingImg, setUploadingImg] = useState(false);
 
   const { data: stockGroups = [] } = useQuery({
     queryKey: ["stock_groups_admin"],
