@@ -116,12 +116,16 @@ export function ExpensesPanel({ restaurantId }: { restaurantId: string }) {
     setEditing(null);
     setSelectedCatId(cats[0]?.id ?? "");
     setDescValue("");
+    setReceiptFile(null);
+    setReceiptUrl(null);
     setOpen(true);
   };
   const openEdit = (e: Expense) => {
     setEditing(e);
     setSelectedCatId(e.category_id ?? "");
     setDescValue(e.description ?? "");
+    setReceiptFile(null);
+    setReceiptUrl(e.receipt_url ?? null);
     setOpen(true);
   };
 
