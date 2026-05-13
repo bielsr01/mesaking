@@ -504,11 +504,12 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Tabs value={channel} onValueChange={(v) => {
-          const nv = v as "delivery" | "pdv" | "ifood";
+          const nv = v as "delivery" | "pdv" | "ifood" | "quero";
           setChannel(nv);
           if (nv === "pdv") setFilter(firstAllowedStatus(nv, ["preparing"]));
           else if (nv === "delivery") { setFilter(firstAllowedStatus(nv, ["pending"])); setDeliveryBlink(false); }
           else if (nv === "ifood") { setFilter(firstAllowedStatus(nv, ["pending"])); setIfoodView("orders"); }
+          else if (nv === "quero") { setFilter(firstAllowedStatus(nv, ["pending"])); }
         }}>
           <TabsList>
             {canPdv && (
@@ -527,6 +528,12 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
               <TabsTrigger value="ifood" className={`gap-2 ${ifoodPendingCount > 0 ? "animate-pulse text-destructive ring-2 ring-destructive" : ""}`}>
                 <Utensils className="w-4 h-4" /> iFood
                 <Badge variant={ifoodPendingCount > 0 ? "destructive" : "secondary"} className="h-5 min-w-5 px-1.5 text-xs">{ifoodPendingCount > 0 ? ifoodPendingCount : ifoodCount}</Badge>
+              </TabsTrigger>
+            )}
+            {canQuero && (
+              <TabsTrigger value="quero" className={`gap-2 ${queroPendingCount > 0 ? "animate-pulse text-destructive ring-2 ring-destructive" : ""}`}>
+                <Bike className="w-4 h-4" /> Quero Delivery
+                <Badge variant={queroPendingCount > 0 ? "destructive" : "secondary"} className="h-5 min-w-5 px-1.5 text-xs">{queroPendingCount > 0 ? queroPendingCount : queroCount}</Badge>
               </TabsTrigger>
             )}
           </TabsList>
