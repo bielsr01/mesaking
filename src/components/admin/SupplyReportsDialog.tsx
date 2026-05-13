@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BarChart3, Download } from "lucide-react";
-import { brl } from "@/lib/format";
+import { brl, todayISOBR, monthStartISOBR, isoDateBR, addDaysISO, ymdBR } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 type Restaurant = { id: string; name: string; slug: string };
 type Status = "pending" | "accepted" | "shipped" | "delivered" | "all";
@@ -34,18 +35,40 @@ const STATUSES: { value: Status; label: string }[] = [
   { value: "delivered", label: "Entregues" },
 ];
 
-const todayISO = () => new Date().toISOString().slice(0, 10);
-const monthStartISO = () => {
-  const d = new Date(); d.setDate(1); return d.toISOString().slice(0, 10);
-};
+type QuickPreset = "today" | "this_month" | "last_30" | "last_month";
+
+const todayISO = () => todayISOBR();
+const monthStartISO = () => monthStartISOBR();
 
 export function SupplyReportsDialog() {
   const [open, setOpen] = useState(false);
   const [from, setFrom] = useState(monthStartISO());
   const [to, setTo] = useState(todayISO());
+  const [preset, setPreset] = useState<QuickPreset | null>("this_month");
   const [status, setStatus] = useState<Status>("all");
   const [restaurantId, setRestaurantId] = useState<string>("all");
   const [productSearch, setProductSearch] = useState("");
+
+  const applyPreset = (p: QuickPreset) => {
+    setPreset(p);
+    if (p === "today") {
+      setFrom(todayISO()); setTo(todayISO());
+    } else if (p === "this_month") {
+      setFrom(monthStartISO()); setTo(todayISO());
+    } else if (p === "last_30") {
+      setFrom(addDaysISO(todayISO(), -30)); setTo(todayISO());
+    } else if (p === "last_month") {
+      const { y, m } = ymdBR();
+      const py = m === 1 ? y - 1 : y;
+      const pm = m === 1 ? 12 : m - 1;
+      const lastDay = new Date(py, pm, 0).getDate();
+      setFrom(`${py}-${String(pm).padStart(2, "0")}-01`);
+      setTo(`${py}-${String(pm).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`);
+    }
+  };
+
+  const handleManualFrom = (v: string) => { setPreset(null); setFrom(v); };
+  const handleManualTo = (v: string) => { setPreset(null); setTo(v); };
 
   const { data: restaurants = [] } = useQuery({
     queryKey: ["report_restaurants"],
@@ -175,11 +198,11 @@ export function SupplyReportsDialog() {
         <div className="grid gap-3 md:grid-cols-5">
           <div>
             <Label className="text-xs">De</Label>
-            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+            <Input type="date" value={from} onChange={(e) => handleManualFrom(e.target.value)} />
           </div>
           <div>
             <Label className="text-xs">Até</Label>
-            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+            <Input type="date" value={to} onChange={(e) => handleManualTo(e.target.value)} />
           </div>
           <div>
             <Label className="text-xs">Status</Label>
@@ -208,17 +231,28 @@ export function SupplyReportsDialog() {
 
         <div className="flex flex-wrap gap-2 justify-between items-center">
           <div className="flex gap-2 flex-wrap">
-            <Button size="sm" variant="ghost" onClick={() => { setFrom(todayISO()); setTo(todayISO()); }}>Hoje</Button>
-            <Button size="sm" variant="ghost" onClick={() => { setFrom(monthStartISO()); setTo(todayISO()); }}>Este mês</Button>
-            <Button size="sm" variant="ghost" onClick={() => {
-              const d = new Date(); d.setDate(d.getDate() - 30);
-              setFrom(d.toISOString().slice(0, 10)); setTo(todayISO());
-            }}>Últimos 30 dias</Button>
-            <Button size="sm" variant="ghost" onClick={() => {
-              const d = new Date(); d.setMonth(d.getMonth() - 1); d.setDate(1);
-              const end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-              setFrom(d.toISOString().slice(0, 10)); setTo(end.toISOString().slice(0, 10));
-            }}>Mês passado</Button>
+            {([
+              { id: "today", label: "Hoje" },
+              { id: "this_month", label: "Este mês" },
+              { id: "last_30", label: "Últimos 30 dias" },
+              { id: "last_month", label: "Mês passado" },
+            ] as { id: QuickPreset; label: string }[]).map((p) => {
+              const active = preset === p.id;
+              return (
+                <Button
+                  key={p.id}
+                  size="sm"
+                  variant={active ? "default" : "ghost"}
+                  onClick={() => applyPreset(p.id)}
+                  className={cn(
+                    "rounded-full border border-border transition-colors",
+                    active && "border-primary shadow-sm ring-1 ring-primary/40",
+                  )}
+                >
+                  {p.label}
+                </Button>
+              );
+            })}
           </div>
           <Button size="sm" variant="outline" onClick={exportCSV} className="gap-2">
             <Download className="w-4 h-4" /> Exportar CSV
