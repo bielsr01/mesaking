@@ -57,6 +57,8 @@ export function StoreOpenToggle({ restaurantId, openingHours, manualOverride, on
         // Dentro do horário: limpar override (volta ao automático aberto)
         persist(null).then(() => toast.success("Loja aberta"));
       } else {
+        setOpenMode("minutes");
+        setOpenMinutes("30");
         setOpenDialog(true);
       }
     } else {
@@ -67,8 +69,27 @@ export function StoreOpenToggle({ restaurantId, openingHours, manualOverride, on
     }
   };
 
+  const computeUntil = (mode: "minutes" | "until" | "today", mins: string, time: string): string => {
+    const now = new Date();
+    if (mode === "minutes") {
+      const m = Math.max(1, parseInt(mins) || 0);
+      return new Date(now.getTime() + m * 60_000).toISOString();
+    }
+    if (mode === "until") {
+      const [h, mi] = time.split(":").map(Number);
+      const d = new Date(now);
+      d.setHours(h, mi, 0, 0);
+      if (d.getTime() <= now.getTime()) d.setDate(d.getDate() + 1);
+      return d.toISOString();
+    }
+    const d = new Date(now);
+    d.setHours(23, 59, 59, 999);
+    return d.toISOString();
+  };
+
   const confirmOpen = async () => {
-    await persist({ type: "open", until: null });
+    const until = computeUntil(openMode, openMinutes, openUntilTime);
+    await persist({ type: "open", until });
     setOpenDialog(false);
     toast.success("Loja aberta manualmente");
   };
