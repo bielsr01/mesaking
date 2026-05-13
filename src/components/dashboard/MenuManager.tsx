@@ -497,7 +497,7 @@ function CategoryGroup({
         <SortableContext items={ids} strategy={verticalListSortingStrategy}>
           <div className="space-y-2">
             {products.map((p) => (
-              <SortableProductCard key={p.id} product={p} onEdit={onEdit} onToggle={onToggle} onRemove={onRemove} loading={loadingId === p.id} />
+              <SortableProductCard key={p.id} product={p} onEdit={onEdit} onToggle={onToggle} onRemove={onRemove} loading={loadingId === p.id} canEdit={canEdit} />
             ))}
           </div>
         </SortableContext>
