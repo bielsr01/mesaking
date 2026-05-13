@@ -338,6 +338,7 @@ export function SupplyCatalogTab() {
     setStockGroupId("");
     setExpenseCategoryId("");
     setAdminStockGroupId("");
+    setImgUrl("");
     setOpen(true);
   };
   const openEdit = (p: SupplyProduct) => {
@@ -352,6 +353,7 @@ export function SupplyCatalogTab() {
     setStockGroupId(p.stock_group_id ?? "");
     setExpenseCategoryId(p.expense_category_id ?? "");
     setAdminStockGroupId(p.admin_stock_group_id ?? "");
+    setImgUrl(p.image_url ?? "");
     setOpen(true);
   };
 
