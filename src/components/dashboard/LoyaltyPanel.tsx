@@ -55,11 +55,11 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
   }, [settingsQ.data]);
 
   const saveSettings = async () => {
-    const payload = {
+    const payload: any = {
       restaurant_id: restaurantId,
       enabled,
-      points_per_real: Number(pointsPerReal) || 0,
     };
+    if (isAdmin) payload.points_per_real = Number(pointsPerReal) || 0;
     const { error } = await sb.from("loyalty_settings").upsert(payload, { onConflict: "restaurant_id" });
     if (error) return toast.error(error.message);
     toast.success("Configurações salvas");
