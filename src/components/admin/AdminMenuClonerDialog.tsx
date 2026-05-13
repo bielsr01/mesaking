@@ -23,6 +23,7 @@ interface Prod { id: string; category_id: string | null; name: string; descripti
 interface Grp { id: string; name: string; min_select: number; max_select: number; sort_order: number; is_active: boolean }
 interface Item { id: string; group_id: string; name: string; extra_price: number; sort_order: number; is_active: boolean }
 interface POG { product_id: string; group_id: string; sort_order: number }
+interface PSC { product_id: string; group_id: string; quantity_per_unit: number }
 
 export function AdminMenuClonerDialog({ destRestaurantId, open, onOpenChange }: { destRestaurantId: string; open: boolean; onOpenChange: (v: boolean) => void }) {
   const qc = useQueryClient();
