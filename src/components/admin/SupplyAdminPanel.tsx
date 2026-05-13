@@ -21,10 +21,13 @@ type SupplyProduct = {
   variant_group_name: string | null; total_quantity: number | null; quantity_step: number;
   stock_group_id: string | null;
   expense_category_id: string | null;
+  admin_stock_group_id: string | null;
 };
 type StockGroup = { id: string; name: string };
 type ExpenseCategory = { id: string; name: string };
-type SupplyOption = { id: string; product_id: string; name: string; sort_order: number; is_active: boolean };
+type AdminStockGroup = { id: string; name: string };
+type AdminStockSubgroup = { id: string; group_id: string; name: string };
+type SupplyOption = { id: string; product_id: string; name: string; sort_order: number; is_active: boolean; admin_stock_subgroup_id: string | null };
 type Restaurant = { id: string; name: string; slug: string };
 type SupplyOrder = {
   id: string; restaurant_id: string; status: "pending"|"accepted"|"shipped"|"delivered";
