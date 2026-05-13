@@ -958,6 +958,8 @@ export type Database = {
           is_active: boolean
           name: string
           sort_order: number
+          stock_group_id: string | null
+          stock_quantity_per_unit: number
         }
         Insert: {
           created_at?: string
@@ -968,6 +970,8 @@ export type Database = {
           is_active?: boolean
           name: string
           sort_order?: number
+          stock_group_id?: string | null
+          stock_quantity_per_unit?: number
         }
         Update: {
           created_at?: string
@@ -978,6 +982,8 @@ export type Database = {
           is_active?: boolean
           name?: string
           sort_order?: number
+          stock_group_id?: string | null
+          stock_quantity_per_unit?: number
         }
         Relationships: [
           {
@@ -985,6 +991,13 @@ export type Database = {
             columns: ["group_id"]
             isOneToOne: false
             referencedRelation: "option_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "option_items_stock_group_id_fkey"
+            columns: ["stock_group_id"]
+            isOneToOne: false
+            referencedRelation: "stock_groups"
             referencedColumns: ["id"]
           },
         ]
