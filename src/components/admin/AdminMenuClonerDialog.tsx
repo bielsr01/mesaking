@@ -66,12 +66,15 @@ export function AdminMenuClonerDialog({ destRestaurantId, open, onOpenChange }: 
       const groups = (gR.data ?? []) as Grp[];
       const groupIds = groups.map((g) => g.id);
       const productIds = ((pR.data ?? []) as Prod[]).map((p) => p.id);
-      const [iR, poR] = await Promise.all([
+      const [iR, poR, pscR] = await Promise.all([
         groupIds.length
           ? sb.from("option_items").select("*").in("group_id", groupIds).order("sort_order")
           : Promise.resolve({ data: [] }),
         productIds.length
           ? sb.from("product_option_groups").select("*").in("product_id", productIds)
+          : Promise.resolve({ data: [] }),
+        productIds.length
+          ? sb.from("product_stock_consumption").select("product_id,group_id,quantity_per_unit").in("product_id", productIds)
           : Promise.resolve({ data: [] }),
       ]);
       setCats((cR.data ?? []) as Cat[]);
@@ -79,6 +82,7 @@ export function AdminMenuClonerDialog({ destRestaurantId, open, onOpenChange }: 
       setGrps(groups);
       setItems((iR.data ?? []) as Item[]);
       setPogs((poR.data ?? []) as POG[]);
+      setPscs((pscR.data ?? []) as PSC[]);
       setLoading(false);
     })();
   }, [sourceId]);
