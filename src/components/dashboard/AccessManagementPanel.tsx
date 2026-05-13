@@ -23,9 +23,13 @@ const SECTIONS: Array<{ key: keyof Permissions; label: string; rows: Array<{ pat
   { key: "overview", label: "Visão geral", rows: [{ path: "overview.view", label: "Visualizar" }] },
   { key: "orders", label: "Pedidos", rows: [
     { path: "orders.view", label: "Visualizar" },
-    { path: "orders.scope", label: "Escopo (todos / só iFood)" },
+    { path: "orders.channels.pdv", label: "Ver pedidos PDV" },
+    { path: "orders.channels.delivery", label: "Ver pedidos Delivery" },
+    { path: "orders.channels.pickup", label: "Ver pedidos Retirada" },
+    { path: "orders.channels.ifood", label: "Ver pedidos iFood" },
+    { path: "orders.change_status", label: "Mudar Status" },
     { path: "orders.edit", label: "Pode editar/excluir pedido" },
-    { path: "orders.status_only", label: "Apenas mudar status" },
+    { path: "orders.create_pdv_order", label: "Pode fazer um novo pedido PDV" },
   ]},
   { key: "menu", label: "Cardápio", rows: [
     { path: "menu.view", label: "Visualizar cardápio" },
@@ -35,7 +39,6 @@ const SECTIONS: Array<{ key: keyof Permissions; label: string; rows: Array<{ pat
     { path: "customers.view", label: "Visualizar" },
     { path: "customers.edit", label: "Editar dados" },
     { path: "customers.delete", label: "Excluir cliente" },
-    { path: "customers.manual_adjust", label: "Ajuste manual de pontos" },
   ]},
   { key: "marketing", label: "Marketing", rows: [
     { path: "marketing.coupons.view", label: "Ver Cupons de desconto" },
@@ -45,8 +48,12 @@ const SECTIONS: Array<{ key: keyof Permissions; label: string; rows: Array<{ pat
   ]},
   { key: "loyalty", label: "Programa de fidelidade", rows: [
     { path: "loyalty.view", label: "Acessar programa" },
+    { path: "loyalty.toggle_program", label: "Pode ativar/desativar o programa" },
+    { path: "loyalty.member_create", label: "Cadastrar cliente no programa" },
+    { path: "loyalty.member_delete", label: "Excluir cliente do programa" },
     { path: "loyalty.credit_points", label: "Creditar pontos" },
     { path: "loyalty.redeem_points", label: "Resgatar pontos" },
+    { path: "loyalty.manual_adjust", label: "Ajuste manual de pontos" },
     { path: "loyalty.rewards.view", label: "Ver recompensas" },
     { path: "loyalty.rewards.edit", label: "Editar/criar recompensas" },
     { path: "loyalty.rewards.delete", label: "Excluir recompensas" },
@@ -76,6 +83,51 @@ function setAt(obj: any, path: string, value: any) {
     o = o[keys[i]];
   }
   o[keys[keys.length - 1]] = value;
+}
+
+// Dependências: child -> parent (se child=true => parent=true; se parent=false => todos seus children=false)
+const PERMISSION_DEPENDENCIES: Record<string, string> = {
+  "orders.channels.pdv": "orders.view",
+  "orders.channels.delivery": "orders.view",
+  "orders.channels.pickup": "orders.view",
+  "orders.channels.ifood": "orders.view",
+  "orders.change_status": "orders.view",
+  "orders.edit": "orders.view",
+  "orders.create_pdv_order": "orders.view",
+  "menu.edit": "menu.view",
+  "customers.edit": "customers.view",
+  "customers.delete": "customers.view",
+  "marketing.coupons.edit": "marketing.coupons.view",
+  "marketing.bulk.edit": "marketing.bulk.view",
+  "loyalty.toggle_program": "loyalty.view",
+  "loyalty.member_create": "loyalty.view",
+  "loyalty.member_delete": "loyalty.view",
+  "loyalty.credit_points": "loyalty.view",
+  "loyalty.redeem_points": "loyalty.view",
+  "loyalty.manual_adjust": "loyalty.view",
+  "loyalty.rewards.view": "loyalty.view",
+  "loyalty.rewards.edit": "loyalty.rewards.view",
+  "loyalty.rewards.delete": "loyalty.rewards.view",
+  "supply_orders.edit": "supply_orders.view",
+  "stock.edit": "stock.view",
+};
+
+function applyDependencies(perms: any, path: string, value: boolean) {
+  setAt(perms, path, value);
+  if (value) {
+    // habilitar toda a cadeia de pais
+    let p = PERMISSION_DEPENDENCIES[path];
+    while (p) {
+      setAt(perms, p, true);
+      p = PERMISSION_DEPENDENCIES[p];
+    }
+  } else {
+    // desabilitar todos os filhos (transitivo)
+    const children = Object.entries(PERMISSION_DEPENDENCIES)
+      .filter(([, parent]) => parent === path)
+      .map(([child]) => child);
+    for (const c of children) applyDependencies(perms, c, false);
+  }
 }
 
 export function AccessManagementPanel({ restaurantId }: Props) {
@@ -307,23 +359,6 @@ export function AccessManagementPanel({ restaurantId }: Props) {
                 <div key={String(sec.key)} className="border rounded p-3 space-y-2">
                   <div className="font-semibold">{sec.label}</div>
                   {sec.rows.map((r) => {
-                    if (r.path === "orders.scope") {
-                      return (
-                        <div key={r.path} className="flex items-center justify-between">
-                          <Label>{r.label}</Label>
-                          <Select value={getAt(perms, r.path) ?? "all"} onValueChange={(v) => {
-                            const next = JSON.parse(JSON.stringify(perms));
-                            setAt(next, r.path, v); setPerms(next);
-                          }}>
-                            <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">Todos os pedidos</SelectItem>
-                              <SelectItem value="ifood_only">Apenas iFood</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      );
-                    }
                     return (
                       <div key={r.path} className="flex items-center justify-between">
                         <Label className="cursor-pointer">{r.label}</Label>
@@ -331,7 +366,8 @@ export function AccessManagementPanel({ restaurantId }: Props) {
                           checked={!!getAt(perms, r.path)}
                           onCheckedChange={(v) => {
                             const next = JSON.parse(JSON.stringify(perms));
-                            setAt(next, r.path, v); setPerms(next);
+                            applyDependencies(next, r.path, v);
+                            setPerms(next);
                           }}
                         />
                       </div>
