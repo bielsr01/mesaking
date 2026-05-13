@@ -264,6 +264,13 @@ export function AdminStockAdmin() {
           )}
         </DialogContent>
       </Dialog>
+
+      <AdminStockReportsDialog
+        open={reportsOpen}
+        onOpenChange={setReportsOpen}
+        groups={groups}
+        subgroups={subgroups}
+      />
     </div>
   );
 }
