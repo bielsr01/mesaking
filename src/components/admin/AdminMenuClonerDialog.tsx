@@ -49,7 +49,7 @@ export function AdminMenuClonerDialog({ destRestaurantId, open, onOpenChange }: 
   useEffect(() => {
     if (!open) return;
     setSourceId("");
-    setCats([]); setProds([]); setGrps([]); setItems([]); setPogs([]);
+    setCats([]); setProds([]); setGrps([]); setItems([]); setPogs([]); setPscs([]);
     setSelCats(new Set()); setSelProds(new Set()); setSelGrps(new Set());
     setMode("all");
   }, [open]);
