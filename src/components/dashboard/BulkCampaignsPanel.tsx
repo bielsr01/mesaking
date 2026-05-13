@@ -148,9 +148,11 @@ export function BulkCampaignsPanel({
             <CardTitle className="flex items-center gap-2"><Send className="w-5 h-5" /> Campanhas</CardTitle>
             <CardDescription>Crie campanhas, selecione contatos e envie via Evolution API.</CardDescription>
           </div>
+          {canEdit && (
           <Button onClick={() => setCreateOpen(true)} disabled={scope === "admin" && adminFilter.length === 0}>
             <Plus className="w-4 h-4 mr-1" /> Nova campanha
           </Button>
+          )}
         </CardHeader>
         <CardContent>
           {isLoading ? (
