@@ -1002,6 +1002,51 @@ export type Database = {
           },
         ]
       }
+      order_item_options: {
+        Row: {
+          created_at: string
+          extra_price: number
+          group_name: string | null
+          id: string
+          item_name: string | null
+          option_item_id: string | null
+          order_item_id: string
+        }
+        Insert: {
+          created_at?: string
+          extra_price?: number
+          group_name?: string | null
+          id?: string
+          item_name?: string | null
+          option_item_id?: string | null
+          order_item_id: string
+        }
+        Update: {
+          created_at?: string
+          extra_price?: number
+          group_name?: string | null
+          id?: string
+          item_name?: string | null
+          option_item_id?: string | null
+          order_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_item_options_option_item_id_fkey"
+            columns: ["option_item_id"]
+            isOneToOne: false
+            referencedRelation: "option_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_item_options_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "order_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           created_at: string
@@ -1913,6 +1958,7 @@ export type Database = {
         Args: { _restaurant_id: string; _user_id: string }
         Returns: boolean
       }
+      recompute_order_stock: { Args: { _order_id: string }; Returns: undefined }
       redeem_loyalty_points: {
         Args: { _member_id: string; _restaurant_id: string; _reward_id: string }
         Returns: string
