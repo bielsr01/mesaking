@@ -149,9 +149,10 @@ export function AdminOwnExpensesPanel() {
     const fd = new FormData(ev.currentTarget);
     const payload = {
       name: String(fd.get("name") || "").trim(),
+      requires_description: fd.get("requires_description") === "on",
       is_active: fd.get("is_active") === "on",
+      sort_order: Number(fd.get("sort_order") || 0),
       scope: "admin" as const,
-      requires_description: false,
     };
     if (!payload.name) return toast.error("Nome obrigatório");
     setSavingCat(true);
