@@ -430,6 +430,33 @@ function GroupDialog({
                     <Input className="w-24" type="number" step="0.01" min="0" placeholder="0,00" value={r.extra_price} onChange={(e) => updateRow(idx, { extra_price: e.target.value })} />
                     <Button size="icon" variant="ghost" onClick={() => removeRow(idx)}><X className="w-4 h-4" /></Button>
                   </div>
+                  <div className="flex gap-2 items-center">
+                    <Select
+                      value={r.stock_group_id ?? "__none__"}
+                      onValueChange={(v) => updateRow(idx, { stock_group_id: v === "__none__" ? null : v })}
+                    >
+                      <SelectTrigger className="flex-1 h-8 text-xs">
+                        <SelectValue placeholder="Grupo de estoque (opcional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">Sem vínculo de estoque</SelectItem>
+                        {stockGroups.map((sg) => (
+                          <SelectItem key={sg.id} value={sg.id}>{sg.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      className="w-20 h-8 text-xs"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="qtd"
+                      title="Quantidade consumida do estoque por unidade deste item"
+                      value={r.stock_quantity_per_unit ?? "1"}
+                      onChange={(e) => updateRow(idx, { stock_quantity_per_unit: e.target.value })}
+                      disabled={!r.stock_group_id}
+                    />
+                  </div>
                   {r.image_url && (
                     <button type="button" className="self-start text-xs text-muted-foreground hover:text-destructive" onClick={() => updateRow(idx, { image_url: null })}>Remover foto</button>
                   )}
