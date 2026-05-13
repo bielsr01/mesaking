@@ -282,6 +282,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   };
 
   const advance = async (o: Order) => {
+    if (!canChangeStatus) return toast.error("Sem permissão para mudar status");
     if (pendingAction[o.id]) return; // evita duplo-clique / corrida com outro pedido
     const next = getNextStatus(o.status, o.order_type) as Order["status"] | null;
     if (!next) return;
@@ -340,6 +341,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   };
 
   const cancel = async (o: Order) => {
+    if (!canChangeStatus) return toast.error("Sem permissão para cancelar pedido");
     if (pendingAction[o.id]) return;
     setPending(o.id, true);
     const prevStatus = o.status;
@@ -373,6 +375,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   };
 
   const deleteOrder = async (o: Order) => {
+    if (!canEditOrders) return toast.error("Sem permissão para excluir pedido");
     const prev = qc.getQueryData<{ orders: Order[]; items: Record<string, Item[]> }>(ordersKey(restaurantId));
     qc.setQueryData<{ orders: Order[]; items: Record<string, Item[]> }>(ordersKey(restaurantId), (p) => {
       if (!p) return p;
