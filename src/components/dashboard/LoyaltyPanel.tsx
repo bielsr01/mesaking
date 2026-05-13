@@ -346,6 +346,7 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
           </TabsContent>
 
           {/* Credit */}
+          {canCredit && (
           <TabsContent value="credit" className="space-y-4 pt-4">
             <div className="text-sm text-muted-foreground">Pedidos com pontos pendentes de crédito</div>
             <div className="border rounded-lg">
@@ -390,6 +391,7 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
               </Table>
             </div>
           </TabsContent>
+          )}
         </Tabs>
 
         <Dialog open={memberDialog} onOpenChange={setMemberDialog}>
