@@ -166,7 +166,7 @@ export function CustomersPanel({ restaurantId }: { restaurantId: string }) {
   };
 
   const save = async () => {
-    if (!canEdit) return toast.error("Sem permissão para salvar cliente");
+    if (editing ? !canEdit : !canCreate) return toast.error(editing ? "Sem permissão para editar cliente" : "Sem permissão para cadastrar cliente");
     if (form.name.trim().length < 2) return toast.error("Informe o nome");
     if (unmaskPhone(form.phone).length < 10) return toast.error("Telefone inválido");
     setBusy(true);
