@@ -34,8 +34,7 @@ export function AdminOwnExpensesPanel() {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
 
   // Form state
-  const [selectedCatId, setSelectedCatId] = useState<string>("__free__");
-  const [freeCatName, setFreeCatName] = useState("");
+  const [selectedCatId, setSelectedCatId] = useState<string>("");
   const [descValue, setDescValue] = useState("");
   const [saving, setSaving] = useState(false);
   const [savingCat, setSavingCat] = useState(false);
@@ -46,7 +45,7 @@ export function AdminOwnExpensesPanel() {
   const { data: cats = [] } = useQuery({
     queryKey: ["expense_categories", "admin"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("expense_categories").select("*").eq("scope", "admin").order("name");
+      const { data, error } = await supabase.from("expense_categories").select("*").eq("scope", "admin").order("sort_order").order("name");
       if (error) throw error;
       return (data ?? []) as Cat[];
     },
