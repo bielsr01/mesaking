@@ -450,7 +450,7 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
 }
 
 function CategoryGroup({
-  title, products, restaurantId, qc, onEdit, onToggle, onRemove, loadingId,
+  title, products, restaurantId, qc, onEdit, onToggle, onRemove, loadingId, canEdit = true,
 }: {
   title: string;
   products: Product[];
@@ -460,6 +460,7 @@ function CategoryGroup({
   onToggle: (p: Product) => void;
   onRemove: (p: Product) => void;
   loadingId?: string | null;
+  canEdit?: boolean;
 }) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   const ids = products.map((p) => p.id);
