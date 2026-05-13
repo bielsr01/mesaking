@@ -68,8 +68,8 @@ const SECTIONS: Array<{ key: keyof Permissions; label: string; rows: Array<{ pat
     { path: "stock.edit", label: "Editar estoque" },
   ]},
   { key: "expenses", label: "Cadastro de despesas", rows: [
-    { path: "expenses.view", label: "Visualizar" },
-    { path: "expenses.edit", label: "Criar/editar/excluir despesas" },
+    { path: "expenses.view", label: "Visualizar despesas" },
+    { path: "expenses.edit", label: "Cadastrar, editar e excluir despesa" },
   ] },
   { key: "finance", label: "Receitas - Despesas", rows: [{ path: "finance.view", label: "Visualizar" }] },
   { key: "access_management", label: "Gestão de Acessos", rows: [{ path: "access_management.view", label: "Visualizar e gerenciar usuários" }] },
