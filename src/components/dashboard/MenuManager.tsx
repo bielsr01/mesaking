@@ -346,7 +346,7 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
                 <DialogFooter><Button type="submit">Salvar</Button></DialogFooter>
               </form>
             </DialogContent>
-          </Dialog>
+          </Dialog>}
 
           {/* Quick group create from product dialog */}
           <Dialog open={quickGroupOpen} onOpenChange={setQuickGroupOpen}>
