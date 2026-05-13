@@ -638,7 +638,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                   >
                     <Printer className="w-4 h-4" />
                   </Button>
-                  {!["delivered", "cancelled"].includes(o.status) && (
+                  {!["delivered", "cancelled"].includes(o.status) && canChangeStatus && (
                     <>
                       {next && !(o.external_source === "ifood" && next === "delivered") ? (
                         <Button size="sm" className="flex-1" onClick={() => advance(o)} disabled={!!pendingAction[o.id]}>
@@ -658,16 +658,18 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                       <Button size="sm" variant="outline" onClick={() => setCancelTarget(o)} disabled={!!pendingAction[o.id]} aria-label="Cancelar pedido"><X className="w-4 h-4" /></Button>
                     </>
                   )}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setDeleteTarget(o)}
-                    aria-label="Excluir pedido permanentemente"
-                    title="Excluir permanentemente"
-                    className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  {canEditOrders && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setDeleteTarget(o)}
+                      aria-label="Excluir pedido permanentemente"
+                      title="Excluir permanentemente"
+                      className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
