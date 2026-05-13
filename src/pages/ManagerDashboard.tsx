@@ -225,6 +225,11 @@ export default function ManagerDashboard() {
               <div className="flex items-center gap-2 min-w-0">
                 <SidebarTrigger />
                 <div className="min-w-0">
+                  {userInfo && (
+                    <div className="text-xs text-muted-foreground truncate">
+                      Bem-vindo {userInfo.fullName}{userInfo.groupName ? ` - ${userInfo.groupName}` : ""}
+                    </div>
+                  )}
                   <div className="font-semibold truncate">{titleByView[view]}</div>
                   <div className="text-xs text-muted-foreground truncate">{restaurant.name}</div>
                 </div>
