@@ -39,6 +39,9 @@ export function AdminOwnExpensesPanel() {
   const [descValue, setDescValue] = useState("");
   const [saving, setSaving] = useState(false);
   const [savingCat, setSavingCat] = useState(false);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const { data: cats = [] } = useQuery({
     queryKey: ["expense_categories", "admin"],
