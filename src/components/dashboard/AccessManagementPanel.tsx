@@ -381,17 +381,43 @@ export function AccessManagementPanel({ restaurantId }: Props) {
                 <div key={String(sec.key)} className="border rounded p-3 space-y-2">
                   <div className="font-semibold">{sec.label}</div>
                   {sec.rows.map((r) => {
+                    const channelOn = !!getAt(perms, r.path);
                     return (
-                      <div key={r.path} className="flex items-center justify-between">
-                        <Label className="cursor-pointer">{r.label}</Label>
-                        <Switch
-                          checked={!!getAt(perms, r.path)}
-                          onCheckedChange={(v) => {
-                            const next = JSON.parse(JSON.stringify(perms));
-                            applyDependencies(next, r.path, v);
-                            setPerms(next);
-                          }}
-                        />
+                      <div key={r.path} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="cursor-pointer">{r.label}</Label>
+                          <Switch
+                            checked={channelOn}
+                            onCheckedChange={(v) => {
+                              const next = JSON.parse(JSON.stringify(perms));
+                              applyDependencies(next, r.path, v);
+                              setPerms(next);
+                            }}
+                          />
+                        </div>
+                        {r.statusChannel && channelOn && (
+                          <div className="ml-4 flex flex-wrap gap-1.5 pb-1">
+                            <span className="text-xs text-muted-foreground self-center mr-1">Abas visíveis:</span>
+                            {STATUS_LISTS[r.statusChannel].map((s) => {
+                              const path = `orders.statuses.${r.statusChannel}.${s}`;
+                              const on = !!getAt(perms, path);
+                              return (
+                                <button
+                                  key={s}
+                                  type="button"
+                                  onClick={() => {
+                                    const next = JSON.parse(JSON.stringify(perms));
+                                    applyDependencies(next, path, !on);
+                                    setPerms(next);
+                                  }}
+                                  className={`text-xs px-2 py-1 rounded border transition-colors ${on ? "bg-primary text-primary-foreground border-primary" : "bg-muted text-muted-foreground border-border hover:bg-accent"}`}
+                                >
+                                  {STATUS_LABELS[s] ?? s}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
