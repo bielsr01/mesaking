@@ -395,6 +395,7 @@ export function SupplyCatalogTab() {
         if (hasVariants && options.length) {
           const rows = options.filter(o => o.name.trim()).map((o, i) => ({
             product_id: productId!, name: o.name.trim(), sort_order: i, is_active: true,
+            admin_stock_subgroup_id: o.admin_stock_subgroup_id || null,
           }));
           if (rows.length) {
             const { error } = await supabase.from("supply_product_options").insert(rows);
