@@ -296,7 +296,7 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
               </div>
               <div className="flex items-center justify-between gap-2">
                 <div className="text-sm text-muted-foreground">{membersQ.data?.length ?? 0} cadastrados</div>
-                <Button onClick={openCreate}><Plus className="w-4 h-4 mr-1" />Novo cadastro</Button>
+                {canMemberCreate && <Button onClick={openCreate}><Plus className="w-4 h-4 mr-1" />Novo cadastro</Button>}
               </div>
             </div>
             <div className="border rounded-lg">
