@@ -49,7 +49,7 @@ import type { DateRange } from "react-day-picker";
 
 const sb = supabase as any;
 
-type SourceFilter = "all" | "web" | "pdv" | "ifood";
+type SourceFilter = "all" | "web" | "pdv" | "ifood" | "quero";
 type Preset = "today" | "yesterday" | "7d" | "30d" | "month" | "lastmonth" | "custom";
 
 const presets: { id: Preset; label: string }[] = [
