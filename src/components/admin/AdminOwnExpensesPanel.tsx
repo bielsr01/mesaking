@@ -15,7 +15,7 @@ import { Plus, Pencil, Trash2, Tag, Receipt, Loader2, Download, Eye, X } from "l
 import { toast } from "sonner";
 import { brl, todayISOBR, monthStartISOBR, monthEndISOBR } from "@/lib/format";
 
-type Cat = { id: string; name: string; requires_description: boolean; is_active: boolean };
+type Cat = { id: string; name: string; requires_description: boolean; is_active: boolean; sort_order: number };
 type AdminExpense = { id: string; description: string; category: string | null; category_id: string | null; amount: number; expense_date: string; notes: string | null; receipt_url: string | null };
 
 const todayISO = () => todayISOBR();
@@ -34,8 +34,7 @@ export function AdminOwnExpensesPanel() {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
 
   // Form state
-  const [selectedCatId, setSelectedCatId] = useState<string>("__free__");
-  const [freeCatName, setFreeCatName] = useState("");
+  const [selectedCatId, setSelectedCatId] = useState<string>("");
   const [descValue, setDescValue] = useState("");
   const [saving, setSaving] = useState(false);
   const [savingCat, setSavingCat] = useState(false);
@@ -46,7 +45,7 @@ export function AdminOwnExpensesPanel() {
   const { data: cats = [] } = useQuery({
     queryKey: ["expense_categories", "admin"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("expense_categories").select("*").eq("scope", "admin").order("name");
+      const { data, error } = await supabase.from("expense_categories").select("*").eq("scope", "admin").order("sort_order").order("name");
       if (error) throw error;
       return (data ?? []) as Cat[];
     },
@@ -70,17 +69,19 @@ export function AdminOwnExpensesPanel() {
   }, [qc]);
 
   const catsById = useMemo(() => Object.fromEntries(cats.map(c => [c.id, c])), [cats]);
+  const selectedCat = selectedCatId ? catsById[selectedCatId] : null;
+  const requiresDesc = selectedCat?.requires_description ?? false;
 
   const openNew = () => {
     setEditing(null);
-    setSelectedCatId("__free__"); setFreeCatName(""); setDescValue("");
+    setSelectedCatId(cats.find(c => c.is_active)?.id ?? "");
+    setDescValue("");
     setReceiptFile(null); setReceiptUrl(null);
     setOpen(true);
   };
   const openEdit = (e: AdminExpense) => {
     setEditing(e);
-    setSelectedCatId(e.category_id ?? "__free__");
-    setFreeCatName(e.category_id ? "" : (e.category ?? ""));
+    setSelectedCatId(e.category_id ?? "");
     setDescValue(e.description ?? "");
     setReceiptFile(null); setReceiptUrl(e.receipt_url ?? null);
     setOpen(true);
@@ -99,15 +100,14 @@ export function AdminOwnExpensesPanel() {
     ev.preventDefault();
     if (saving) return;
     const fd = new FormData(ev.currentTarget);
-    const cat = selectedCatId !== "__free__" ? catsById[selectedCatId] : null;
-    const categoryName = cat ? cat.name : freeCatName.trim();
-    if (!categoryName) return toast.error("Selecione ou digite uma categoria");
-    const description = descValue.trim();
-    if (!description) return toast.error("Descrição obrigatória");
+    const cat = selectedCatId ? catsById[selectedCatId] : null;
+    if (!cat) return toast.error("Selecione uma categoria");
+    const description = cat.requires_description ? descValue.trim() : cat.name;
+    if (cat.requires_description && !description) return toast.error("Descrição obrigatória");
     const payload: any = {
       description,
-      category: categoryName,
-      category_id: cat?.id ?? null,
+      category: cat.name,
+      category_id: cat.id,
       amount: Number(fd.get("amount") || 0),
       expense_date: String(fd.get("expense_date") || todayISO()),
       notes: String(fd.get("notes") || "").trim() || null,
@@ -149,9 +149,10 @@ export function AdminOwnExpensesPanel() {
     const fd = new FormData(ev.currentTarget);
     const payload = {
       name: String(fd.get("name") || "").trim(),
+      requires_description: fd.get("requires_description") === "on",
       is_active: fd.get("is_active") === "on",
+      sort_order: Number(fd.get("sort_order") || 0),
       scope: "admin" as const,
-      requires_description: false,
     };
     if (!payload.name) return toast.error("Nome obrigatório");
     setSavingCat(true);
@@ -187,6 +188,11 @@ export function AdminOwnExpensesPanel() {
                 <DialogHeader><DialogTitle>{editingCat ? "Editar" : "Nova"} categoria</DialogTitle></DialogHeader>
                 <form onSubmit={saveCat} className="space-y-3">
                   <div><Label>Nome</Label><Input name="name" defaultValue={editingCat?.name} required /></div>
+                  <div><Label>Ordem</Label><Input name="sort_order" type="number" defaultValue={editingCat?.sort_order ?? 0} /></div>
+                  <div className="flex items-center gap-2">
+                    <Switch name="requires_description" defaultChecked={editingCat?.requires_description ?? false} id="req-desc-admin" />
+                    <Label htmlFor="req-desc-admin" className="cursor-pointer">Solicitar nome/descrição da despesa</Label>
+                  </div>
                   <div className="flex items-center gap-2">
                     <Switch name="is_active" defaultChecked={editingCat?.is_active ?? true} id="cat-active" />
                     <Label htmlFor="cat-active" className="cursor-pointer">Ativa</Label>
@@ -199,14 +205,15 @@ export function AdminOwnExpensesPanel() {
         </CardHeader>
         <CardContent className="p-0">
           {cats.length === 0 ? (
-            <div className="p-6 text-center text-sm text-muted-foreground">Nenhuma categoria. Você pode digitar livremente ao cadastrar uma despesa.</div>
+            <div className="p-6 text-center text-sm text-muted-foreground">Nenhuma categoria cadastrada.</div>
           ) : (
             <Table>
-              <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Status</TableHead><TableHead className="w-24" /></TableRow></TableHeader>
+              <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Solicita descrição</TableHead><TableHead>Status</TableHead><TableHead className="w-24" /></TableRow></TableHeader>
               <TableBody>
                 {cats.map(c => (
                   <TableRow key={c.id}>
                     <TableCell className="font-medium">{c.name}</TableCell>
+                    <TableCell>{c.requires_description ? "Sim" : "Não"}</TableCell>
                     <TableCell>{c.is_active ? "Ativa" : "Inativa"}</TableCell>
                     <TableCell>
                       <div className="flex justify-end gap-1">
@@ -228,25 +235,31 @@ export function AdminOwnExpensesPanel() {
             <span className="flex items-center gap-2"><Receipt className="w-4 h-4" /> Despesas Admin</span>
             <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }}>
               <DialogTrigger asChild>
-                <Button size="sm" onClick={openNew}><Plus className="w-4 h-4 mr-1" /> Nova despesa</Button>
+                <Button size="sm" onClick={openNew} disabled={cats.filter(c => c.is_active).length === 0}><Plus className="w-4 h-4 mr-1" /> Nova despesa</Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader><DialogTitle>{editing ? "Editar" : "Nova"} despesa</DialogTitle></DialogHeader>
+                {cats.filter(c => c.is_active).length === 0 ? (
+                  <div className="text-sm text-muted-foreground py-4">
+                    Nenhuma categoria de despesa ativa. Cadastre uma categoria acima primeiro.
+                  </div>
+                ) : (
                 <form onSubmit={save} className="space-y-3">
                   <div>
                     <Label>Categoria</Label>
                     <Select value={selectedCatId} onValueChange={setSelectedCatId}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                       <SelectContent>
                         {cats.filter(c => c.is_active).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                        <SelectItem value="__free__">Outra (digitar)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                  {selectedCatId === "__free__" && (
-                    <div><Label>Nome da categoria</Label><Input value={freeCatName} onChange={(e) => setFreeCatName(e.target.value)} required /></div>
+                  {requiresDesc && (
+                    <div>
+                      <Label>Descrição da despesa</Label>
+                      <Input value={descValue} onChange={(e) => setDescValue(e.target.value)} required maxLength={200} placeholder="Digite o nome da despesa" />
+                    </div>
                   )}
-                  <div><Label>Descrição</Label><Input value={descValue} onChange={(e) => setDescValue(e.target.value)} required maxLength={200} /></div>
                   <div className="grid grid-cols-2 gap-3">
                     <div><Label>Valor (R$)</Label><Input name="amount" type="number" step="0.01" min="0" defaultValue={editing?.amount ?? ""} required /></div>
                     <div><Label>Data</Label><Input name="expense_date" type="date" defaultValue={editing?.expense_date ?? todayISO()} required /></div>
@@ -265,6 +278,7 @@ export function AdminOwnExpensesPanel() {
                   </div>
                   <DialogFooter><Button type="submit" disabled={saving}>{saving && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}{editing ? "Salvar" : "Adicionar"}</Button></DialogFooter>
                 </form>
+                )}
               </DialogContent>
             </Dialog>
           </CardTitle>
