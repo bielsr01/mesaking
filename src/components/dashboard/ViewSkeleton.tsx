@@ -1,5 +1,15 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Loader2 } from "lucide-react";
+
+function LoadingHint() {
+  return (
+    <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground py-2 animate-fade-in">
+      <Loader2 className="w-4 h-4 animate-spin" />
+      <span>Carregando...</span>
+    </div>
+  );
+}
 
 export function ViewSkeleton({ variant = "list" }: { variant?: "list" | "form" | "stats" }) {
   if (variant === "stats") {
