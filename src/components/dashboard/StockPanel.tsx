@@ -138,7 +138,7 @@ export function StockPanel({ restaurantId }: { restaurantId: string }) {
                 </CardHeader>
                 <CardContent className="flex items-end justify-between">
                   <div className={`text-3xl font-bold ${negative ? "text-destructive" : ""}`}>{qty}</div>
-                  {(g.allow_add || g.allow_subtract || g.allow_set) && (
+                  {canEdit && (g.allow_add || g.allow_subtract || g.allow_set) && (
                     <ManualAdjustDialog
                       restaurantId={restaurantId}
                       group={g}
