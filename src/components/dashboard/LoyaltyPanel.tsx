@@ -400,7 +400,7 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
             <div className="space-y-3">
               <div className="space-y-1"><Label>Nome</Label><Input value={newName} onChange={(e) => setNewName(e.target.value)} /></div>
               <div className="space-y-1"><Label>Telefone</Label><Input value={newPhone} onChange={(e) => setNewPhone(formatPhone(e.target.value))} placeholder="(11) 99999-9999" /></div>
-              <div className="space-y-1"><Label>Pontos</Label><Input type="number" min="0" step="1" value={newPoints} onChange={(e) => setNewPoints(e.target.value)} /></div>
+              {(canManualAdjust || !editingMember) && <div className="space-y-1"><Label>Pontos</Label><Input type="number" min="0" step="1" value={newPoints} onChange={(e) => setNewPoints(e.target.value)} disabled={editingMember ? !canManualAdjust : false} /></div>}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setMemberDialog(false)} disabled={savingMember}>Cancelar</Button>
