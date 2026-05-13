@@ -69,17 +69,19 @@ export function AdminOwnExpensesPanel() {
   }, [qc]);
 
   const catsById = useMemo(() => Object.fromEntries(cats.map(c => [c.id, c])), [cats]);
+  const selectedCat = selectedCatId ? catsById[selectedCatId] : null;
+  const requiresDesc = selectedCat?.requires_description ?? false;
 
   const openNew = () => {
     setEditing(null);
-    setSelectedCatId("__free__"); setFreeCatName(""); setDescValue("");
+    setSelectedCatId(cats.find(c => c.is_active)?.id ?? "");
+    setDescValue("");
     setReceiptFile(null); setReceiptUrl(null);
     setOpen(true);
   };
   const openEdit = (e: AdminExpense) => {
     setEditing(e);
-    setSelectedCatId(e.category_id ?? "__free__");
-    setFreeCatName(e.category_id ? "" : (e.category ?? ""));
+    setSelectedCatId(e.category_id ?? "");
     setDescValue(e.description ?? "");
     setReceiptFile(null); setReceiptUrl(e.receipt_url ?? null);
     setOpen(true);
@@ -98,15 +100,14 @@ export function AdminOwnExpensesPanel() {
     ev.preventDefault();
     if (saving) return;
     const fd = new FormData(ev.currentTarget);
-    const cat = selectedCatId !== "__free__" ? catsById[selectedCatId] : null;
-    const categoryName = cat ? cat.name : freeCatName.trim();
-    if (!categoryName) return toast.error("Selecione ou digite uma categoria");
-    const description = descValue.trim();
-    if (!description) return toast.error("Descrição obrigatória");
+    const cat = selectedCatId ? catsById[selectedCatId] : null;
+    if (!cat) return toast.error("Selecione uma categoria");
+    const description = cat.requires_description ? descValue.trim() : cat.name;
+    if (cat.requires_description && !description) return toast.error("Descrição obrigatória");
     const payload: any = {
       description,
-      category: categoryName,
-      category_id: cat?.id ?? null,
+      category: cat.name,
+      category_id: cat.id,
       amount: Number(fd.get("amount") || 0),
       expense_date: String(fd.get("expense_date") || todayISO()),
       notes: String(fd.get("notes") || "").trim() || null,
