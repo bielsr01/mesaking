@@ -36,6 +36,14 @@ type Tx = {
 
 export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: string; isAdmin?: boolean }) {
   const qc = useQueryClient();
+  const { can } = usePermissions(restaurantId);
+  const canToggle = can("loyalty.toggle_program");
+  const canMemberCreate = can("loyalty.member_create");
+  const canMemberDelete = can("loyalty.member_delete");
+  const canCredit = can("loyalty.credit_points");
+  const canRedeem = can("loyalty.redeem_points");
+  const canRewardsView = can("loyalty.rewards.view");
+  const canManualAdjust = can("loyalty.manual_adjust");
   const [metricsOpen, setMetricsOpen] = useState(false);
 
   // ---- Settings ----
