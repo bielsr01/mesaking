@@ -197,29 +197,31 @@ export function BulkCampaignsPanel({
                         <TableCell>{new Date(c.created_at).toLocaleString("pt-BR")}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
-                            {isAutoPaused && (
+                            {canEdit && isAutoPaused && (
                               <Button size="sm" variant="outline" onClick={() => clearAutoPause(c.id)} title="Retomar agora (limpar pausa automática)">
                                 <RotateCcw className="w-3.5 h-3.5 mr-1" /> Retomar agora
                               </Button>
                             )}
-                            {(c.status === "draft" || c.status === "paused") && (
+                            {canEdit && (c.status === "draft" || c.status === "paused") && (
                               <Button size="sm" variant="outline" onClick={() => setStatus(c.id, "running")}>
                                 <Play className="w-3.5 h-3.5 mr-1" /> Play
                               </Button>
                             )}
-                            {c.status === "running" && (
+                            {canEdit && c.status === "running" && (
                               <Button size="sm" variant="outline" onClick={() => setStatus(c.id, "paused")}>
                                 <Pause className="w-3.5 h-3.5 mr-1" /> Pausar
                               </Button>
                             )}
-                            {c.status !== "completed" && (
+                            {canEdit && c.status !== "completed" && (
                               <Button size="sm" variant="outline" onClick={() => handleEdit(c)} title="Editar">
                                 <Pencil className="w-3.5 h-3.5" />
                               </Button>
                             )}
+                            {canEdit && (
                             <Button size="sm" variant="outline" className="text-destructive" onClick={() => remove(c.id)}>
                               <Trash2 className="w-3.5 h-3.5" />
                             </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
