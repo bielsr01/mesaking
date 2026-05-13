@@ -129,14 +129,21 @@ export function AdminSidebar({ active, onChange, supplyBadge = 0 }: { active: Ad
                           </button>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
-                      <SidebarMenuSubItem>
-                        <SidebarMenuSubButton asChild isActive={active === "marketing:loyalty"}>
-                          <button type="button" onClick={() => onChange("marketing:loyalty")} className="w-full text-left flex items-center gap-2">
-                            <Award className="h-4 w-4" />
-                            <span>Programa de fidelidade</span>
-                          </button>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={active === "loyalty"}
+                  onClick={() => onChange("loyalty")}
+                  tooltip="Programa de fidelidade"
+                >
+                  <Award className="h-4 w-4" />
+                  <span>Programa de fidelidade</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
                     </SidebarMenuSub>
                   </CollapsibleContent>
                 </SidebarMenuItem>
