@@ -55,6 +55,7 @@ const SECTIONS: Array<{ key: keyof Permissions; label: string; rows: Row[] }> = 
   ]},
   { key: "customers", label: "Clientes", rows: [
     { path: "customers.view", label: "Visualizar" },
+    { path: "customers.create", label: "Cadastrar novo cliente" },
     { path: "customers.edit", label: "Editar dados" },
     { path: "customers.delete", label: "Excluir cliente" },
   ]},
