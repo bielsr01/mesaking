@@ -31,7 +31,7 @@ interface CartLine {
   unit_price: number; // base + extras
   base_price: number;
   quantity: number;
-  options?: { groupName: string; itemName: string; extraPrice: number }[];
+  options?: { groupName: string; itemName: string; extraPrice: number; optionItemId?: string }[];
   notes?: string;
 }
 
