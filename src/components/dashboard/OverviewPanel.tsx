@@ -419,9 +419,10 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
 
       {/* KPI grid */}
       <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-        <Kpi icon={DollarSign} label="Valor das vendas" value={brl(grossCur)} delta={revenueGrowth} />
-        <Kpi icon={Receipt} label="Total faturamento" value={brl(netCur)} sub={`Descontos ${brl(discountCur)}`} />
-        <Kpi icon={Truck} label="Taxas, serviços e ajustes" value={`- ${brl(serviceFeeCur)}`} negative />
+        <Kpi icon={DollarSign} label="Valor das vendas" value={brl(grossCur)} delta={revenueGrowth} sub="Pedido + entrega" />
+        <Kpi icon={Receipt} label="Faturamento líquido" value={brl(netCur)} sub={`Repasse final${discountCur ? ` • Desc. ${brl(discountCur)}` : ""}`} />
+        <Kpi icon={Truck} label="Taxas, serviços e ajustes" value={`- ${brl(serviceFeeCur)}`} negative sub="Taxas iFood cobradas" />
+        <Kpi icon={Truck} label="Taxas de entrega" value={brl(deliveryFeeCur)} sub="Todos os canais" />
         <Kpi icon={ShoppingBag} label="Pedidos" value={ordersCountCur.toString()} delta={ordersGrowth} />
         <Kpi icon={TrendingUp} label="Ticket médio" value={brl(ticketCur)} delta={ticketGrowth} />
         <Kpi icon={Tag} label="Cupons aplicados" value={`${couponOrders.length}`} sub={`Impacto ${couponImpactPct.toFixed(1)}%`} />
