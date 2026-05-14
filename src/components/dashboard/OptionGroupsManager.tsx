@@ -26,6 +26,7 @@ export interface OptionGroup {
   sort_order: number;
   is_active: boolean;
   image_url?: string | null;
+  allow_repeat?: boolean;
 }
 export interface OptionItem {
   id: string;
