@@ -660,7 +660,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                       {o.address_street}, {o.address_number} {o.address_complement && `- ${o.address_complement}`}<br />
                       <span className="text-muted-foreground">{o.address_neighborhood} • {o.address_city}</span>
                       {o.address_notes && <div className="text-xs italic text-muted-foreground mt-0.5">"{o.address_notes}"</div>}
-                      {o.delivery_latitude != null && o.delivery_longitude != null && (
+                      {o.external_source !== "quero" && o.delivery_latitude != null && o.delivery_longitude != null && (
                         <a
                           href={`https://www.google.com/maps?q=${o.delivery_latitude},${o.delivery_longitude}`}
                           target="_blank"
