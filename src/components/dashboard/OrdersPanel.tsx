@@ -787,10 +787,15 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                                 ? "🛵 Enviar para entrega"
                                 : `→ ${orderStatusLabel[next]}`}
                         </Button>
-                      ) : o.external_source === "ifood" && o.status === "out_for_delivery" ? (
-                        <div className="flex-1 text-xs text-muted-foreground italic flex items-center px-2">
-                          Aguardando confirmação de entrega pelo iFood…
-                        </div>
+                      ) : o.external_source === "ifood" && (o.status === "out_for_delivery" || o.status === "awaiting_pickup") ? (
+                        <Button
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => { setIfoodCodeTarget(o); setIfoodCodeValue(""); }}
+                          disabled={!!pendingAction[o.id]}
+                        >
+                          {o.order_type === "pickup" ? "📦 Entregar iFood (retirada)" : "📦 Entregar iFood"}
+                        </Button>
                       ) : null}
                       <Button size="sm" variant="outline" onClick={() => setCancelTarget(o)} disabled={!!pendingAction[o.id]} aria-label="Cancelar pedido"><X className="w-4 h-4" /></Button>
                     </>
