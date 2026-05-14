@@ -196,6 +196,60 @@ async function ingestOrder(integration: any, ev: any) {
   }
 }
 
+// Reconcilia pedidos Quero ainda "abertos" no nosso banco contra o detalhe na API.
+// Necessário porque o endpoint /orders/events:polling deixa de retornar o pedido
+// quando ele é finalizado/cancelado pelo lado da plataforma — sem isso o status
+// fica preso (ex.: out_for_delivery) mesmo após cancelamento na Quero.
+const ACTIVE_LOCAL_STATUSES = ["pending", "accepted", "preparing", "awaiting_pickup", "out_for_delivery"];
+
+async function reconcileOpenOrders(integration: any) {
+  const { data: openOrders } = await supabase
+    .from("orders")
+    .select("id, status, external_order_id")
+    .eq("restaurant_id", integration.restaurant_id)
+    .eq("external_source", "quero")
+    .in("status", ACTIVE_LOCAL_STATUSES)
+    .order("created_at", { ascending: false })
+    .limit(50);
+  if (!openOrders?.length) return 0;
+
+  let updates = 0;
+  for (const o of openOrders) {
+    if (!o.external_order_id) continue;
+    try {
+      const detail = await queroFetch(
+        `/orders?placeId=${encodeURIComponent(integration.place_id)}&orderId=${encodeURIComponent(o.external_order_id)}`,
+        integration.token,
+      );
+      const od = detail?.data ?? detail ?? {};
+      const remoteStatus = (typeof od?.lastEvent === "object" ? (od.lastEvent?.status ?? od.lastEvent?.code) : od?.lastEvent)
+        ?? od?.status ?? od?.orderStatus ?? null;
+      const mapped = mapStatus(remoteStatus);
+      if (!mapped || mapped === o.status) continue;
+      const cur = STATUS_ORDER[o.status] ?? -1;
+      const nxt = STATUS_ORDER[mapped] ?? -1;
+      if (mapped === "cancelled" || nxt >= cur) {
+        await supabase.from("orders")
+          .update({ status: mapped, updated_at: new Date().toISOString() })
+          .eq("id", o.id);
+        // Loga como evento sintético para auditoria
+        await supabase.from("quero_events").insert({
+          integration_id: integration.id,
+          restaurant_id: integration.restaurant_id,
+          order_id: o.external_order_id,
+          status: remoteStatus,
+          payload: { source: "reconcile", status: remoteStatus, orderId: o.external_order_id },
+          processed: true,
+        });
+        updates++;
+      }
+    } catch (e: any) {
+      console.error("[quero-poll] reconcile error", o.external_order_id, e?.message ?? e);
+    }
+  }
+  return updates;
+}
+
 async function pollOne(integration: any) {
   const events = await queroFetch(
     `/orders/events:polling?placeId=${encodeURIComponent(integration.place_id)}`,
@@ -225,13 +279,19 @@ async function pollOne(integration: any) {
     }
     lastCode = ev.status ?? lastCode;
   }
+  // Reconcilia pedidos abertos contra a API da Quero (pega cancelamentos que
+  // não vieram via polling).
+  let reconciled = 0;
+  try { reconciled = await reconcileOpenOrders(integration); }
+  catch (e: any) { console.error("[quero-poll] reconcile fatal", e?.message ?? e); }
+
   await supabase.from("quero_integrations").update({
     last_poll_at: new Date().toISOString(),
     last_event_at: list.length ? new Date().toISOString() : integration.last_event_at,
     last_event_code: lastCode ?? integration.last_event_code,
     last_status: "ok",
   }).eq("id", integration.id);
-  return list.length;
+  return list.length + reconciled;
 }
 
 Deno.serve(async (req) => {
