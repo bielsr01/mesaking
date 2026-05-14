@@ -95,6 +95,15 @@ export function AdminQueroFeesPanel() {
             <div className="text-sm text-muted-foreground">Carregando...</div>
           ) : (
             <div className="space-y-3">
+              <div className="rounded-lg border p-3 flex items-center justify-between gap-3 bg-muted/30">
+                <div>
+                  <div className="font-medium">Ativar Detalhamento de Taxas</div>
+                  <div className="text-xs text-muted-foreground">
+                    Quando desativado, o sistema não mostra a tabela de detalhamento e não desconta as taxas no faturamento líquido (líquido = faturado).
+                  </div>
+                </div>
+                <Switch checked={settings.enabled} onCheckedChange={(v) => setSettings((s) => ({ ...s, enabled: v }))} />
+              </div>
               {feeRows.map((row) => {
                 const enabledKey = `${row.key}_enabled` as keyof QueroFeeSettings;
                 const pctKey = `${row.key}_pct` as keyof QueroFeeSettings;
