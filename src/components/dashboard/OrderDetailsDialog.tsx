@@ -374,8 +374,9 @@ export function OrderDetailsDialog({
           </div>
 
           {/* Detalhamento financeiro iFood */}
-          {isIfood && (() => {
+          {isIfood && canViewFeeBreakdown && (() => {
             const settings = feeSettingsQuery.data ?? DEFAULT_IFOOD_FEES;
+            if (settings.enabled === false) return null;
             const breakdown = calcIfoodReceivable(order, settings);
             const itemsTotal = Number(order.subtotal ?? 0);
             const delivery = Number(order.delivery_fee ?? 0);
