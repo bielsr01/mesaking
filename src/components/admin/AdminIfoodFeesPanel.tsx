@@ -21,6 +21,7 @@ export function AdminIfoodFeesPanel() {
   const [restaurants, setRestaurants] = useState<RestaurantOption[]>([]);
   const [restaurantId, setRestaurantId] = useState<string>("");
   const [settings, setSettings] = useState<IfoodFeeSettings>(DEFAULT_IFOOD_FEES);
+  const [widget, setWidget] = useState<WidgetSettings>(DEFAULT_WIDGET);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
