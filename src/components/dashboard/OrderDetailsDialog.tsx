@@ -450,6 +450,72 @@ export function OrderDetailsDialog({
             );
           })()}
 
+          {/* Detalhamento financeiro Quero Delivery */}
+          {isQuero && canViewFeeBreakdown && (() => {
+            const settings = queroFeeSettingsQuery.data ?? DEFAULT_QUERO_FEES;
+            if (settings.enabled === false) return null;
+            const b = calcQueroReceivable(order, settings);
+            return (
+              <section className="rounded-lg border p-3 space-y-1.5 text-sm bg-muted/30">
+                <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
+                  Detalhamento financeiro (Quero Delivery)
+                </div>
+                <div className="flex justify-between"><span>Valor itens:</span><span className="tabular-nums">{brl(b.itemsTotal)}</span></div>
+                {b.deliveryFee > 0 && (
+                  <div className="flex justify-between"><span>Taxa de entrega:</span><span className="tabular-nums">{brl(b.deliveryFee)}</span></div>
+                )}
+                {b.platformFee > 0 && (
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Taxa plataforma (cobrada do cliente):</span>
+                    <span className="tabular-nums">{brl(b.platformFee)}</span>
+                  </div>
+                )}
+                {b.merchantSubsidy > 0 && (
+                  <div className="flex justify-between text-destructive">
+                    <span>Cupom estabelecimento:</span>
+                    <span className="tabular-nums">- {brl(b.merchantSubsidy)}</span>
+                  </div>
+                )}
+                {b.queroSubsidy > 0 && (
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Cupom Quero Delivery (não afeta repasse):</span>
+                    <span className="tabular-nums">- {brl(b.queroSubsidy)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between border-t pt-1.5 mt-1">
+                  <span className="text-muted-foreground">Valor bruto sem taxa plataforma:</span>
+                  <span className="tabular-nums">{brl(b.gross)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium">Base de cálculo das taxas:</span>
+                  <span className="tabular-nums font-medium">{brl(b.base)}</span>
+                </div>
+                {b.fees.map((f) => (
+                  <div key={f.key} className="flex justify-between">
+                    <span>{f.label} ({f.pct.toString().replace(".", ",")}%):</span>
+                    <span className="tabular-nums">- {brl(f.value)}</span>
+                  </div>
+                ))}
+                {b.fees.length === 0 && (
+                  <div className="text-xs text-muted-foreground italic">Nenhuma taxa aplicável.</div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Total taxas:</span>
+                  <span className="tabular-nums text-muted-foreground">- {brl(b.totalFees)}</span>
+                </div>
+                {b.platformFee > 0 && (
+                  <div className="text-xs text-muted-foreground italic pt-0.5">
+                    Taxa fixa da plataforma de {brl(b.platformFee)} é cobrada do cliente pela Quero e não entra no repasse.
+                  </div>
+                )}
+                <div className="border-t pt-2 mt-1 flex justify-between items-center">
+                  <span className="font-semibold">Repasse líquido final:</span>
+                  <span className="text-lg font-bold tabular-nums text-success">{brl(b.net)}</span>
+                </div>
+              </section>
+            );
+          })()}
+
           {/* Histórico de status */}
           <section className="rounded-lg border p-3">
             <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Histórico de atualização</div>
