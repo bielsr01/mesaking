@@ -140,6 +140,11 @@ export function PdvDialog({
   const [pickProduct, setPickProduct] = useState<typeof products[number] | null>(null);
   const [pickSelected, setPickSelected] = useState<Record<string, string[]>>({});
   const [pickQty, setPickQty] = useState(1);
+  const [shakeGroupId, setShakeGroupId] = useState<string | null>(null);
+  const triggerShake = (gid: string) => {
+    setShakeGroupId(gid);
+    setTimeout(() => setShakeGroupId(null), 600);
+  };
   const [pickNotes, setPickNotes] = useState("");
 
   // Restore draft
