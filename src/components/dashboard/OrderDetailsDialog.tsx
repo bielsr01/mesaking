@@ -234,13 +234,11 @@ export function OrderDetailsDialog({
                       </div>
                       {it.notes && <div className="text-xs italic text-muted-foreground">{it.notes}</div>}
                       {opts.map((opt) => (
-                        <div key={opt.id} className="flex justify-between gap-2 text-xs pl-3">
-                          <span>
-                            <span className="font-semibold">{opt.group_name ?? "Opção"}:</span>{" "}
-                            <span>{opt.item_name}</span>
-                          </span>
+                        <div key={opt.id} className="text-xs pl-3">
+                          <span className="font-semibold">{opt.group_name ?? "Opção"}:</span>{" "}
+                          <span>{opt.item_name}</span>
                           {Number(opt.extra_price) > 0 && (
-                            <span className="tabular-nums text-muted-foreground">+ {brl(Number(opt.extra_price) * it.quantity)}</span>
+                            <span className="tabular-nums text-muted-foreground"> + {brl(Number(opt.extra_price) * it.quantity)}</span>
                           )}
                         </div>
                       ))}
