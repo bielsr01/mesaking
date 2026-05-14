@@ -426,7 +426,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
         return;
       }
       const { data: fnData, error: fnErr } = await supabase.functions.invoke("quero-action", {
-        body: { orderId: o.id, action: "cancel", cancelReason: "Cancelado pelo restaurante" },
+        body: { orderId: o.id, action: "cancel", cancelReason: reason, cancelCode: code },
       });
       if (fnErr || (fnData && fnData.ok === false)) {
         patchOrder(o.id, { status: prevStatus });
