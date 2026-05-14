@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { brl, orderStatusLabel, getNextStatus, paymentLabel, formatPhone } from "@/lib/format";
+import { brl, orderStatusLabel, getNextStatus, paymentLabel, formatPhone, formatIfoodPhone } from "@/lib/format";
 import { MapPin, Navigation, Phone, MessageCircle, Printer, Trash2, X, User, Clock, CornerDownRight } from "lucide-react";
 
 interface OrderLike {
