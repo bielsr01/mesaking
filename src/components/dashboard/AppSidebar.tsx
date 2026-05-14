@@ -116,9 +116,9 @@ export function AppSidebar({
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b">
-        <div className={cn("flex items-center py-2", collapsed ? "justify-center px-0" : "gap-2 px-2") }>
-          <div className={cn("rounded-lg bg-gradient-primary flex items-center justify-center shrink-0", collapsed ? "w-7 h-7" : "w-8 h-8") }>
-            <ChefHat className={cn("text-primary-foreground", collapsed ? "w-3.5 h-3.5" : "w-4 h-4")} />
+        <div className={cn("flex items-center h-12", collapsed ? "justify-center px-0" : "gap-2 px-2") }>
+          <div className="rounded-lg bg-gradient-primary flex items-center justify-center shrink-0 w-8 h-8">
+            <ChefHat className="text-primary-foreground w-4 h-4" />
           </div>
           {!collapsed && <span className="font-bold">MesaPro</span>}
         </div>
@@ -155,7 +155,7 @@ export function AppSidebar({
                 <SidebarMenuItem>
                   <HoverCard openDelay={80} closeDelay={120}>
                     <HoverCardTrigger asChild>
-                      <SidebarMenuButton isActive={marketingActive} tooltip="Marketing">
+                      <SidebarMenuButton isActive={marketingActive}>
                         <Megaphone className="h-4 w-4" />
                         <span>Marketing</span>
                         <ChevronRight className="ml-auto h-3 w-3 opacity-60" />
@@ -222,7 +222,7 @@ export function AppSidebar({
                 <SidebarMenuItem>
                   <HoverCard openDelay={80} closeDelay={120}>
                     <HoverCardTrigger asChild>
-                      <SidebarMenuButton isActive={settingsActive} tooltip="Configurações">
+                      <SidebarMenuButton isActive={settingsActive}>
                         <Settings className="h-4 w-4" />
                         <span>Configurações</span>
                         <ChevronRight className="ml-auto h-3 w-3 opacity-60" />
