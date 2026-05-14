@@ -162,3 +162,16 @@ export const formatPhone = (input: string | null | undefined): string => {
 /** Remove a máscara, devolvendo apenas dígitos. */
 export const unmaskPhone = (input: string | null | undefined): string =>
   String(input ?? "").replace(/\D/g, "");
+
+/** Formata telefone iFood (proxy 0800) com código localizador entre parênteses. */
+export const formatIfoodPhone = (input: string | null | undefined): string => {
+  const raw = String(input ?? "");
+  const digits = raw.replace(/\D/g, "");
+  const locMatch = raw.match(/(?:cód[^\w]*|localizador[^\w]*)([A-Za-z0-9]+)/i);
+  const loc = locMatch?.[1] ?? digits.slice(11);
+  const base = digits.slice(0, 11) || digits;
+  const masked = base.length >= 10
+    ? `${base.slice(0, 4)} ${base.slice(4, 7)} ${base.slice(7, 11)}`
+    : base;
+  return loc ? `${masked} (cód: ${loc})` : masked;
+};

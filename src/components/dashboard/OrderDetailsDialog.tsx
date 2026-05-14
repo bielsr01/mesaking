@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { brl, orderStatusLabel, getNextStatus, paymentLabel, formatPhone } from "@/lib/format";
+import { brl, orderStatusLabel, getNextStatus, paymentLabel, formatPhone, formatIfoodPhone } from "@/lib/format";
 import { MapPin, Navigation, Phone, MessageCircle, Printer, Trash2, X, User, Clock, CornerDownRight } from "lucide-react";
 
 interface OrderLike {
@@ -212,8 +212,8 @@ export function OrderDetailsDialog({
               </span>
               <span className="inline-flex items-center gap-1">
                 <Phone className="w-3.5 h-3.5 text-muted-foreground" />
-                {formatPhone(order.customer_phone)}
-                {wa && (
+                {order.external_source === "ifood" ? formatIfoodPhone(order.customer_phone) : formatPhone(order.customer_phone)}
+                {order.external_source !== "ifood" && wa && (
                   <a href={wa} target="_blank" rel="noreferrer"
                     className="ml-1 inline-flex items-center justify-center w-5 h-5 rounded-full bg-success text-success-foreground">
                     <MessageCircle className="w-3 h-3" />
