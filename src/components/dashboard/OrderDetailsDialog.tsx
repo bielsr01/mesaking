@@ -347,7 +347,7 @@ export function OrderDetailsDialog({
               <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Resumo do pagamento</div>
               <div className="flex justify-between">
                 <span>Forma de pagamento:</span>
-                <span className="font-bold">{paymentLabel[order.payment_method] ?? order.payment_method}</span>
+                <span className="font-bold">{paymentLabelFor(order.payment_method, order.external_source)}</span>
               </div>
               <div className="flex justify-between"><span>Subtotal:</span><span className="tabular-nums">{brl(order.subtotal)}</span></div>
               {Number(order.delivery_fee) > 0 && (
