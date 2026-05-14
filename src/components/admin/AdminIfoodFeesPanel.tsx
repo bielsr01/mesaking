@@ -7,8 +7,11 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Bike, Save } from "lucide-react";
+import { Bike, Save, LayoutGrid } from "lucide-react";
 import { DEFAULT_IFOOD_FEES, type IfoodFeeSettings } from "@/lib/ifoodFees";
+
+interface WidgetSettings { widget_enabled: boolean; widget_merchant_id: string; }
+const DEFAULT_WIDGET: WidgetSettings = { widget_enabled: false, widget_merchant_id: "" };
 
 const sb = supabase as any;
 
@@ -18,6 +21,7 @@ export function AdminIfoodFeesPanel() {
   const [restaurants, setRestaurants] = useState<RestaurantOption[]>([]);
   const [restaurantId, setRestaurantId] = useState<string>("");
   const [settings, setSettings] = useState<IfoodFeeSettings>(DEFAULT_IFOOD_FEES);
+  const [widget, setWidget] = useState<WidgetSettings>(DEFAULT_WIDGET);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -44,8 +48,13 @@ export function AdminIfoodFeesPanel() {
           anticipation_enabled: !!data.anticipation_enabled,
           anticipation_pct: Number(data.anticipation_pct ?? 0),
         });
+        setWidget({
+          widget_enabled: !!data.widget_enabled,
+          widget_merchant_id: data.widget_merchant_id ?? "",
+        });
       } else {
         setSettings(DEFAULT_IFOOD_FEES);
+        setWidget(DEFAULT_WIDGET);
       }
       setLoading(false);
     })();
@@ -57,10 +66,12 @@ export function AdminIfoodFeesPanel() {
     const { error } = await sb.from("ifood_fee_settings").upsert({
       restaurant_id: restaurantId,
       ...settings,
+      widget_enabled: widget.widget_enabled,
+      widget_merchant_id: widget.widget_merchant_id?.trim() || null,
     }, { onConflict: "restaurant_id" });
     setSaving(false);
     if (error) return toast.error(error.message);
-    toast.success("Taxas do iFood salvas");
+    toast.success("Configurações do iFood salvas");
   };
 
   type FeeKey = "commission" | "card" | "anticipation";
@@ -146,9 +157,39 @@ export function AdminIfoodFeesPanel() {
             </div>
           )}
 
+          {!loading && (
+            <div className="rounded-lg border p-3 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-start gap-2">
+                  <LayoutGrid className="w-4 h-4 mt-0.5 text-muted-foreground" />
+                  <div>
+                    <div className="font-medium">Widget do iFood</div>
+                    <div className="text-xs text-muted-foreground">
+                      Quando ativo, exibe o widget oficial do iFood no painel desta loja para todos os usuários e grupos de acesso.
+                    </div>
+                  </div>
+                </div>
+                <Switch
+                  checked={widget.widget_enabled}
+                  onCheckedChange={(v) => setWidget((w) => ({ ...w, widget_enabled: v }))}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>ID da loja (merchant)</Label>
+                <Input
+                  placeholder="ex.: 7d1a... (UUID do merchant no iFood)"
+                  value={widget.widget_merchant_id}
+                  onChange={(e) => setWidget((w) => ({ ...w, widget_merchant_id: e.target.value }))}
+                  disabled={!widget.widget_enabled}
+                />
+                <div className="text-xs text-muted-foreground">Necessário para o widget carregar os dados da loja.</div>
+              </div>
+            </div>
+          )}
+
           <div className="flex justify-end pt-2">
             <Button onClick={save} disabled={saving || loading || !restaurantId}>
-              <Save className="w-4 h-4 mr-2" />{saving ? "Salvando..." : "Salvar taxas"}
+              <Save className="w-4 h-4 mr-2" />{saving ? "Salvando..." : "Salvar configurações"}
             </Button>
           </div>
         </CardContent>

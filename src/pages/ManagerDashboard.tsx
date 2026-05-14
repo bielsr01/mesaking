@@ -32,6 +32,7 @@ import { OverviewPanel } from "@/components/dashboard/OverviewPanel";
 import { StockPanel } from "@/components/dashboard/StockPanel";
 import { AccessManagementPanel } from "@/components/dashboard/AccessManagementPanel";
 import { usePermissions } from "@/hooks/usePermissions";
+import { IfoodWidgetMount } from "@/components/dashboard/IfoodWidgetMount";
 
 import { BulkCampaignsPanel } from "@/components/dashboard/BulkCampaignsPanel";
 import { ManualOverride, OpeningHours } from "@/lib/hours";
@@ -217,6 +218,7 @@ export default function ManagerDashboard() {
 
   return (
     <SidebarProvider>
+      <IfoodWidgetMount restaurantId={restaurant?.id} />
       <div className="min-h-screen flex w-full bg-muted/30">
         <AppSidebar
           active={view}
