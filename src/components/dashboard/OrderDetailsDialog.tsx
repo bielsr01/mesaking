@@ -248,7 +248,7 @@ export function OrderDetailsDialog({
                               <div key={opt.id} className="flex justify-between gap-2 pl-3">
                                 <span>{opt.item_name}</span>
                                 <span className="tabular-nums text-muted-foreground">
-                                  {Number(opt.extra_price) > 0 ? `+ ${brl(Number(opt.extra_price) * it.quantity)}` : brl(0)}
+                                  {Number(opt.extra_price) > 0 ? `+ ${brl(Number(opt.extra_price) * it.quantity)}` : ""}
                                 </span>
                               </div>
                             ))}
