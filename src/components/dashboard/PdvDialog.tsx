@@ -457,6 +457,21 @@ export function PdvDialog({
       return { ...prev, [g.id]: [...cur, itemId] };
     });
   };
+  const incPick = (g: OptGroup, itemId: string) => {
+    setPickSelected((prev) => {
+      const cur = prev[g.id] ?? [];
+      if (cur.length >= g.max_select) return prev;
+      return { ...prev, [g.id]: [...cur, itemId] };
+    });
+  };
+  const decPick = (g: OptGroup, itemId: string) => {
+    setPickSelected((prev) => {
+      const cur = prev[g.id] ?? [];
+      const idx = cur.lastIndexOf(itemId);
+      if (idx === -1) return prev;
+      return { ...prev, [g.id]: [...cur.slice(0, idx), ...cur.slice(idx + 1)] };
+    });
+  };
   const confirmPick = () => {
     if (!pickProduct) return;
     const grs = groupsByProduct[pickProduct.id] ?? [];
