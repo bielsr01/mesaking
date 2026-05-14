@@ -239,6 +239,26 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
       const fees = ifoodFeeForOrder(o);
       return { vendas, delivery, fees, net: base - fees };
     }
+    if (o.external_source === "quero") {
+      const s = queroFeesQ.data?.get(o.restaurant_id);
+      if (s && s.enabled === false) {
+        return { vendas, delivery, fees: 0, net: vendas };
+      }
+      const merchSub = Number(o.merchant_subsidy || 0);
+      const queroSub = Number(o.ifood_subsidy || 0);
+      const gross = Math.max(0, items + delivery);
+      const base = Math.max(0, gross - queroSub);
+      const isOnline = (o.payment_method ?? "").toLowerCase() === "online";
+      let pct = 0;
+      if (s) {
+        if (s.commission_enabled) pct += Number(s.commission_pct || 0);
+        if (s.online_payment_enabled && isOnline) pct += Number(s.online_payment_pct || 0);
+      } else {
+        pct = 8 + (isOnline ? 4.99 : 0);
+      }
+      const fees = (base * pct) / 100;
+      return { vendas, delivery, fees, net: gross - fees - merchSub };
+    }
     return { vendas, delivery, fees: 0, net: vendas - discount };
   };
   const aggregate = (arr: any[]) => arr.reduce(
