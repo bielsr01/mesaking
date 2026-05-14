@@ -36,6 +36,7 @@ export function AdminIfoodFeesPanel() {
       const { data } = await sb.from("ifood_fee_settings").select("*").eq("restaurant_id", restaurantId).maybeSingle();
       if (data) {
         setSettings({
+          enabled: data.enabled !== false,
           commission_enabled: !!data.commission_enabled,
           commission_pct: Number(data.commission_pct ?? 0),
           card_enabled: !!data.card_enabled,
