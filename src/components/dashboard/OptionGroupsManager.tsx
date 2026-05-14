@@ -26,6 +26,7 @@ export interface OptionGroup {
   sort_order: number;
   is_active: boolean;
   image_url?: string | null;
+  allow_repeat?: boolean;
 }
 export interface OptionItem {
   id: string;
@@ -276,6 +277,7 @@ function GroupDialog({
   const [name, setName] = useState("");
   const [minS, setMinS] = useState(0);
   const [maxS, setMaxS] = useState(1);
+  const [allowRepeat, setAllowRepeat] = useState(false);
   const [rows, setRows] = useState<{ id?: string; name: string; extra_price: string; image_url?: string | null; stock_group_id?: string | null; stock_quantity_per_unit?: string; toDelete?: boolean }[]>([]);
   const [busy, setBusy] = useState(false);
   const [uploadingIdx, setUploadingIdx] = useState<number | null>(null);
@@ -294,6 +296,7 @@ function GroupDialog({
       setName(editing?.name ?? "");
       setMinS(editing?.min_select ?? 0);
       setMaxS(editing?.max_select ?? 1);
+      setAllowRepeat(Boolean(editing?.allow_repeat));
       setRows(
         existingItems.length > 0
           ? existingItems.map((i) => ({ id: i.id, name: i.name, extra_price: String(Number(i.extra_price) || 0), image_url: i.image_url ?? null, stock_group_id: i.stock_group_id ?? null, stock_quantity_per_unit: String(Number(i.stock_quantity_per_unit ?? 1)) }))
@@ -337,13 +340,13 @@ function GroupDialog({
       let groupId = editing?.id;
       if (editing) {
         const { error } = await supabase.from("option_groups").update({
-          name: name.trim(), min_select: minS, max_select: maxS,
-        }).eq("id", editing.id);
+          name: name.trim(), min_select: minS, max_select: maxS, allow_repeat: allowRepeat,
+        } as any).eq("id", editing.id);
         if (error) throw error;
       } else {
         const { data, error } = await supabase.from("option_groups").insert({
-          restaurant_id: restaurantId, name: name.trim(), min_select: minS, max_select: maxS,
-        }).select("id").single();
+          restaurant_id: restaurantId, name: name.trim(), min_select: minS, max_select: maxS, allow_repeat: allowRepeat,
+        } as any).select("id").single();
         if (error) throw error;
         groupId = data.id;
       }
@@ -410,6 +413,16 @@ function GroupDialog({
           </div>
           <div className="text-xs text-muted-foreground">
             Dica: mín 1 / máx 1 = obrigatório escolher 1. Mín 0 / máx 3 = opcional, até 3.
+          </div>
+
+          <div className="flex items-start justify-between gap-3 rounded-md border p-3">
+            <div className="space-y-0.5">
+              <Label className="text-sm">Permitir repetir o mesmo item</Label>
+              <p className="text-xs text-muted-foreground">
+                Quando ativo, o cliente pode escolher o mesmo item mais de uma vez (respeitando o máximo).
+              </p>
+            </div>
+            <Switch checked={allowRepeat} onCheckedChange={setAllowRepeat} />
           </div>
 
           <div className="space-y-2">

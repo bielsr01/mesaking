@@ -941,6 +941,7 @@ export type Database = {
       }
       option_groups: {
         Row: {
+          allow_repeat: boolean
           created_at: string
           id: string
           image_url: string | null
@@ -953,6 +954,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          allow_repeat?: boolean
           created_at?: string
           id?: string
           image_url?: string | null
@@ -965,6 +967,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          allow_repeat?: boolean
           created_at?: string
           id?: string
           image_url?: string | null

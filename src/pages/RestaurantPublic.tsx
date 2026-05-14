@@ -22,7 +22,7 @@ import { toast } from "sonner";
 interface Restaurant { id: string; name: string; slug: string; description: string | null; logo_url: string | null; cover_url: string | null; is_open: boolean; phone: string | null; opening_hours: any; latitude: number | null; longitude: number | null; delivery_zones: any; manual_override: ManualOverride; address_cep: string | null; address_street: string | null; address_number: string | null; address_complement: string | null; address_neighborhood: string | null; address_city: string | null; address_state: string | null; delivery_time_min: number | null; delivery_time_max: number | null; whatsapp_url: string | null; instagram_url: string | null; facebook_url: string | null; service_delivery: boolean | null; service_pickup: boolean | null; }
 interface Category { id: string; name: string; sort_order: number; }
 interface Product { id: string; name: string; description: string | null; price: number; image_url: string | null; category_id: string | null; }
-interface OptionGroup { id: string; name: string; min_select: number; max_select: number; sort_order: number; items: { id: string; name: string; extra_price: number; image_url?: string | null }[]; }
+interface OptionGroup { id: string; name: string; min_select: number; max_select: number; sort_order: number; allow_repeat?: boolean; items: { id: string; name: string; extra_price: number; image_url?: string | null }[]; }
 
 export default function RestaurantPublic() {
   const { slug } = useParams<{ slug: string }>();
@@ -48,7 +48,7 @@ export default function RestaurantPublic() {
       supabase.from("categories").select("*").eq("restaurant_id", rid).eq("is_active", true).order("sort_order"),
       supabase.from("products").select("*").eq("restaurant_id", rid).eq("is_active", true).order("sort_order").order("created_at"),
       supabase.from("product_option_groups").select("product_id, group_id, sort_order"),
-      supabase.from("option_groups").select("id, name, min_select, max_select, sort_order, is_active, restaurant_id").eq("restaurant_id", rid).eq("is_active", true),
+      supabase.from("option_groups").select("id, name, min_select, max_select, sort_order, is_active, allow_repeat, restaurant_id").eq("restaurant_id", rid).eq("is_active", true),
       supabase.from("option_items").select("id, group_id, name, extra_price, sort_order, is_active, image_url, option_groups!inner(restaurant_id)").eq("option_groups.restaurant_id", rid).eq("is_active", true).order("sort_order"),
     ]);
     const cats = catsRes.data ?? [];
@@ -68,6 +68,7 @@ export default function RestaurantPublic() {
       if (!g) return; // group inactive or not in this restaurant
       const og: OptionGroup = {
         id: g.id, name: g.name, min_select: g.min_select, max_select: g.max_select, sort_order: l.sort_order ?? 0,
+        allow_repeat: Boolean(g.allow_repeat),
         items: (itemsByGroup.get(g.id) ?? []).map((it) => ({ id: it.id, name: it.name, extra_price: Number(it.extra_price), image_url: it.image_url ?? null })),
       };
       const arr = idx[l.product_id] ?? [];
@@ -221,12 +222,33 @@ export default function RestaurantPublic() {
       }
       if (cur.includes(itemId)) return { ...prev, [g.id]: cur.filter((x) => x !== itemId) };
       if (cur.length >= g.max_select) {
-        // Sinaliza limite com shake no próprio grupo
         setShakeGroupId(g.id);
         setTimeout(() => setShakeGroupId(null), 600);
         return prev;
       }
       return { ...prev, [g.id]: [...cur, itemId] };
+    });
+  };
+
+  const incOpt = (g: OptionGroup, itemId: string) => {
+    setSelectedOpts((prev) => {
+      const cur = prev[g.id] ?? [];
+      if (cur.length >= g.max_select) {
+        setShakeGroupId(g.id);
+        setTimeout(() => setShakeGroupId(null), 600);
+        return prev;
+      }
+      return { ...prev, [g.id]: [...cur, itemId] };
+    });
+  };
+
+  const decOpt = (g: OptionGroup, itemId: string) => {
+    setSelectedOpts((prev) => {
+      const cur = prev[g.id] ?? [];
+      const idx = cur.lastIndexOf(itemId);
+      if (idx === -1) return prev;
+      const next = [...cur.slice(0, idx), ...cur.slice(idx + 1)];
+      return { ...prev, [g.id]: next };
     });
   };
 
@@ -529,7 +551,31 @@ export default function RestaurantPublic() {
                       <div className="space-y-1.5">
                         {g.items.length === 0 && <p className="text-xs text-muted-foreground">Sem itens disponíveis.</p>}
                         {g.items.map((it) => {
-                          const checked = cur.includes(it.id);
+                          const count = cur.filter((x) => x === it.id).length;
+                          const checked = count > 0;
+                          const repeatable = g.allow_repeat && g.max_select > 1;
+                          if (repeatable) {
+                            return (
+                              <div key={it.id} className={`flex items-center gap-3 p-2.5 rounded-lg border ${checked ? "border-primary bg-accent/30" : ""}`}>
+                                {it.image_url && (
+                                  <img src={it.image_url} alt={it.name} loading="lazy" className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg object-cover border flex-shrink-0" />
+                                )}
+                                <span className="flex-1 text-sm">{it.name}</span>
+                                {it.extra_price > 0 && (
+                                  <span className="text-sm font-semibold text-primary">+ {brl(it.extra_price)}</span>
+                                )}
+                                {count > 0 ? (
+                                  <div className="flex items-center gap-1.5">
+                                    <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => decOpt(g, it.id)}><Minus className="w-3 h-3" /></Button>
+                                    <span className="w-5 text-center text-sm font-bold">{count}</span>
+                                    <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => incOpt(g, it.id)}><Plus className="w-3 h-3" /></Button>
+                                  </div>
+                                ) : (
+                                  <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => incOpt(g, it.id)}><Plus className="w-3 h-3" /></Button>
+                                )}
+                              </div>
+                            );
+                          }
                           return (
                             <label key={it.id} className={`flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer hover:bg-muted ${checked ? "border-primary bg-accent/30" : ""}`}>
                               <input
