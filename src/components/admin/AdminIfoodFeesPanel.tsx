@@ -7,8 +7,11 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Bike, Save } from "lucide-react";
+import { Bike, Save, LayoutGrid } from "lucide-react";
 import { DEFAULT_IFOOD_FEES, type IfoodFeeSettings } from "@/lib/ifoodFees";
+
+interface WidgetSettings { widget_enabled: boolean; widget_merchant_id: string; }
+const DEFAULT_WIDGET: WidgetSettings = { widget_enabled: false, widget_merchant_id: "" };
 
 const sb = supabase as any;
 
