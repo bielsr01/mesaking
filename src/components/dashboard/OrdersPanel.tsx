@@ -592,8 +592,11 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
             const isPdv = o.order_type === "pdv";
             const next = getNextStatus(o.status, o.order_type);
             return (
-            <Card key={o.id} className="shadow-soft">
-              <CardContent className="pt-0 space-y-3">
+            <Card key={o.id} className="shadow-soft cursor-pointer hover:bg-accent/30 transition-colors" onClick={() => setDetailsTarget(o)}>
+              <CardContent className="pt-0 space-y-3" onClick={(e) => {
+                const t = e.target as HTMLElement;
+                if (t.closest('button,a,[role="button"]')) e.stopPropagation();
+              }}>
                 <div className="pt-3" />
                 {/* Tipo do pedido — destaque no topo */}
                 <div className={`-mt-2 -mx-1 px-3 py-1.5 rounded-md flex items-center gap-2 text-xs font-semibold ${isPdv ? "bg-success/15 text-success border border-success/30" : isPickup ? "bg-accent/20 text-accent-foreground border border-accent/40" : "bg-primary/10 text-primary border border-primary/20"}`}>
