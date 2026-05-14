@@ -360,7 +360,7 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
   const yesterday = startOfDay(subDays(new Date(), 1));
   const lastWeekSame = startOfDay(subDays(new Date(), 7));
   const dayOrders = (d: Date) => compareFiltered.filter((o) => format(new Date(o.created_at), "yyyy-MM-dd") === format(d, "yyyy-MM-dd"));
-  const sumDayGross = (arr: any[]) => arr.reduce((s, o) => s + Number(o.total || 0) - (o.external_source === "ifood" ? Number(o.service_fee || 0) : 0), 0);
+  const sumDayGross = (arr: any[]) => arr.reduce((s, o) => s + Number(o.subtotal || 0) + Number(o.delivery_fee || 0), 0);
   const todayRev = sumDayGross(dayOrders(today));
   const yRev = sumDayGross(dayOrders(yesterday));
   const lwRev = sumDayGross(dayOrders(lastWeekSame));
