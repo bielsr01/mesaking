@@ -157,9 +157,39 @@ export function AdminIfoodFeesPanel() {
             </div>
           )}
 
+          {!loading && (
+            <div className="rounded-lg border p-3 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-start gap-2">
+                  <LayoutGrid className="w-4 h-4 mt-0.5 text-muted-foreground" />
+                  <div>
+                    <div className="font-medium">Widget do iFood</div>
+                    <div className="text-xs text-muted-foreground">
+                      Quando ativo, exibe o widget oficial do iFood no painel desta loja para todos os usuários e grupos de acesso.
+                    </div>
+                  </div>
+                </div>
+                <Switch
+                  checked={widget.widget_enabled}
+                  onCheckedChange={(v) => setWidget((w) => ({ ...w, widget_enabled: v }))}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>ID da loja (merchant)</Label>
+                <Input
+                  placeholder="ex.: 7d1a... (UUID do merchant no iFood)"
+                  value={widget.widget_merchant_id}
+                  onChange={(e) => setWidget((w) => ({ ...w, widget_merchant_id: e.target.value }))}
+                  disabled={!widget.widget_enabled}
+                />
+                <div className="text-xs text-muted-foreground">Necessário para o widget carregar os dados da loja.</div>
+              </div>
+            </div>
+          )}
+
           <div className="flex justify-end pt-2">
             <Button onClick={save} disabled={saving || loading || !restaurantId}>
-              <Save className="w-4 h-4 mr-2" />{saving ? "Salvando..." : "Salvar taxas"}
+              <Save className="w-4 h-4 mr-2" />{saving ? "Salvando..." : "Salvar configurações"}
             </Button>
           </div>
         </CardContent>
