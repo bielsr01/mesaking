@@ -623,6 +623,7 @@ export type Database = {
           commission_enabled: boolean
           commission_pct: number
           created_at: string
+          enabled: boolean
           restaurant_id: string
           updated_at: string
         }
@@ -634,6 +635,7 @@ export type Database = {
           commission_enabled?: boolean
           commission_pct?: number
           created_at?: string
+          enabled?: boolean
           restaurant_id: string
           updated_at?: string
         }
@@ -645,6 +647,7 @@ export type Database = {
           commission_enabled?: boolean
           commission_pct?: number
           created_at?: string
+          enabled?: boolean
           restaurant_id?: string
           updated_at?: string
         }
@@ -1471,6 +1474,7 @@ export type Database = {
           commission_enabled: boolean
           commission_pct: number
           created_at: string
+          enabled: boolean
           online_payment_enabled: boolean
           online_payment_pct: number
           restaurant_id: string
@@ -1480,6 +1484,7 @@ export type Database = {
           commission_enabled?: boolean
           commission_pct?: number
           created_at?: string
+          enabled?: boolean
           online_payment_enabled?: boolean
           online_payment_pct?: number
           restaurant_id: string
@@ -1489,6 +1494,7 @@ export type Database = {
           commission_enabled?: boolean
           commission_pct?: number
           created_at?: string
+          enabled?: boolean
           online_payment_enabled?: boolean
           online_payment_pct?: number
           restaurant_id?: string
