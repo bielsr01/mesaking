@@ -551,7 +551,31 @@ export default function RestaurantPublic() {
                       <div className="space-y-1.5">
                         {g.items.length === 0 && <p className="text-xs text-muted-foreground">Sem itens disponíveis.</p>}
                         {g.items.map((it) => {
-                          const checked = cur.includes(it.id);
+                          const count = cur.filter((x) => x === it.id).length;
+                          const checked = count > 0;
+                          const repeatable = g.allow_repeat && g.max_select > 1;
+                          if (repeatable) {
+                            return (
+                              <div key={it.id} className={`flex items-center gap-3 p-2.5 rounded-lg border ${checked ? "border-primary bg-accent/30" : ""}`}>
+                                {it.image_url && (
+                                  <img src={it.image_url} alt={it.name} loading="lazy" className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg object-cover border flex-shrink-0" />
+                                )}
+                                <span className="flex-1 text-sm">{it.name}</span>
+                                {it.extra_price > 0 && (
+                                  <span className="text-sm font-semibold text-primary">+ {brl(it.extra_price)}</span>
+                                )}
+                                {count > 0 ? (
+                                  <div className="flex items-center gap-1.5">
+                                    <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => decOpt(g, it.id)}><Minus className="w-3 h-3" /></Button>
+                                    <span className="w-5 text-center text-sm font-bold">{count}</span>
+                                    <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => incOpt(g, it.id)}><Plus className="w-3 h-3" /></Button>
+                                  </div>
+                                ) : (
+                                  <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => incOpt(g, it.id)}><Plus className="w-3 h-3" /></Button>
+                                )}
+                              </div>
+                            );
+                          }
                           return (
                             <label key={it.id} className={`flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer hover:bg-muted ${checked ? "border-primary bg-accent/30" : ""}`}>
                               <input
