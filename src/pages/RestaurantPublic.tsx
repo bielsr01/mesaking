@@ -222,12 +222,33 @@ export default function RestaurantPublic() {
       }
       if (cur.includes(itemId)) return { ...prev, [g.id]: cur.filter((x) => x !== itemId) };
       if (cur.length >= g.max_select) {
-        // Sinaliza limite com shake no próprio grupo
         setShakeGroupId(g.id);
         setTimeout(() => setShakeGroupId(null), 600);
         return prev;
       }
       return { ...prev, [g.id]: [...cur, itemId] };
+    });
+  };
+
+  const incOpt = (g: OptionGroup, itemId: string) => {
+    setSelectedOpts((prev) => {
+      const cur = prev[g.id] ?? [];
+      if (cur.length >= g.max_select) {
+        setShakeGroupId(g.id);
+        setTimeout(() => setShakeGroupId(null), 600);
+        return prev;
+      }
+      return { ...prev, [g.id]: [...cur, itemId] };
+    });
+  };
+
+  const decOpt = (g: OptionGroup, itemId: string) => {
+    setSelectedOpts((prev) => {
+      const cur = prev[g.id] ?? [];
+      const idx = cur.lastIndexOf(itemId);
+      if (idx === -1) return prev;
+      const next = [...cur.slice(0, idx), ...cur.slice(idx + 1)];
+      return { ...prev, [g.id]: next };
     });
   };
 
