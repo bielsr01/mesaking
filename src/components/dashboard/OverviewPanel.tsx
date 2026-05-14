@@ -156,6 +156,18 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
     staleTime: 60_000,
   });
 
+  const queroFeesQ = useQuery({
+    queryKey: ["overview-quero-fees", idsKey],
+    enabled: ids.length > 0,
+    queryFn: async () => {
+      const { data } = await sb.from("quero_fee_settings").select("*").in("restaurant_id", ids);
+      const map = new Map<string, any>();
+      (data ?? []).forEach((r: any) => map.set(r.restaurant_id, r));
+      return map;
+    },
+    staleTime: 60_000,
+  });
+
   // Separate query covering month-to-date + previous month for the Compare cards,
   // independent of the selected preset.
   const compareWindow = useMemo(() => {
