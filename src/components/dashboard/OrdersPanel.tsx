@@ -445,6 +445,44 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     setPending(o.id, false);
   };
 
+  const confirmIfoodDelivery = async (o: Order, code: string) => {
+    if (!canChangeStatus) return toast.error("Sem permissão para mudar status");
+    if (pendingAction[o.id]) return;
+    if (!code.trim()) return toast.error("Informe o código");
+    if (!o.external_order_id) {
+      toast.error("Pedido iFood sem external_order_id");
+      return;
+    }
+    const action = o.order_type === "pickup" ? "validatePickupCode" : "verifyDeliveryCode";
+    setPending(o.id, true);
+    const { data: fnData, error: fnErr } = await supabase.functions.invoke("ifood-action", {
+      body: { orderId: o.id, action, code: code.trim() },
+    });
+    if (fnErr || !fnData?.ok) {
+      const msg = fnData?.error ?? fnErr?.message ?? "falha";
+      const detail = fnData?.ihub_status ? ` (iHub ${fnData.ihub_status})` : "";
+      toast.error(`iFood: ${msg}${detail}`);
+      setPending(o.id, false);
+      return;
+    }
+    const successFlag = fnData?.ihub?.success ?? fnData?.ihub?.data?.success ?? true;
+    if (successFlag === false) {
+      toast.error("Código incorreto. Tente novamente.");
+      setPending(o.id, false);
+      return;
+    }
+    const { error } = await supabase.from("orders").update({ status: "delivered" }).eq("id", o.id);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      patchOrder(o.id, { status: "delivered" });
+      toast.success(`Pedido #${o.order_number} entregue`);
+      setIfoodCodeTarget(null);
+      setIfoodCodeValue("");
+    }
+    setPending(o.id, false);
+  };
+
   const deleteOrder = async (o: Order) => {
     if (!canEditOrders) return toast.error("Sem permissão para excluir pedido");
     const prev = qc.getQueryData<{ orders: Order[]; items: Record<string, Item[]> }>(ordersKey(restaurantId));
