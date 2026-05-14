@@ -32,6 +32,7 @@ import { OverviewPanel } from "@/components/dashboard/OverviewPanel";
 import { StockPanel } from "@/components/dashboard/StockPanel";
 import { AccessManagementPanel } from "@/components/dashboard/AccessManagementPanel";
 import { usePermissions } from "@/hooks/usePermissions";
+import { IfoodWidgetMount } from "@/components/dashboard/IfoodWidgetMount";
 
 import { BulkCampaignsPanel } from "@/components/dashboard/BulkCampaignsPanel";
 import { ManualOverride, OpeningHours } from "@/lib/hours";
