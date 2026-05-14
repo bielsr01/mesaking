@@ -763,7 +763,21 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                           </a>
                         </Button>
                       ) : null}
-                      <Button size="sm" variant="outline" onClick={() => setCancelTarget(o)} disabled={!!pendingAction[o.id]} aria-label="Cancelar pedido"><X className="w-4 h-4" /></Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          if (o.external_source === "quero") {
+                            setQueroCancelInfoOpen(true);
+                          } else {
+                            setCancelTarget(o);
+                          }
+                        }}
+                        disabled={!!pendingAction[o.id]}
+                        aria-label="Cancelar pedido"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
                     </>
                   )}
                   {canEditOrders && (
