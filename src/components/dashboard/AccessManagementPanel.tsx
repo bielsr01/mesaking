@@ -91,7 +91,10 @@ const SECTIONS: Array<{ key: keyof Permissions; label: string; rows: Row[] }> = 
     { path: "expenses.view", label: "Visualizar despesas" },
     { path: "expenses.edit", label: "Cadastrar, editar e excluir despesa" },
   ] },
-  { key: "finance", label: "Receitas - Despesas", rows: [{ path: "finance.view", label: "Visualizar" }] },
+  { key: "finance", label: "Receitas - Despesas", rows: [
+    { path: "finance.view", label: "Visualizar" },
+    { path: "finance.view_fee_breakdown", label: "Ver detalhamento do faturamento (taxas)" },
+  ] },
   { key: "access_management", label: "Gestão de Acessos", rows: [{ path: "access_management.view", label: "Visualizar e gerenciar usuários" }] },
 ];
 
