@@ -15,7 +15,7 @@ type ActionBody = {
   orderId?: string;          // local order id (uuid) OR external id
   externalOrderId?: string;  // iFood order id
   restaurantId?: string;
-  action: "confirm" | "startPreparation" | "readyToPickup" | "dispatch" | "cancel" | "verifyDeliveryCode" | "validatePickupCode";
+  action: "confirm" | "startPreparation" | "readyToPickup" | "dispatch" | "cancel" | "verifyDeliveryCode" | "validatePickupCode" | "conclude";
   cancelCode?: string;
   cancelReason?: string;
   code?: string;
