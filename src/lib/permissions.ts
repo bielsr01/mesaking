@@ -118,7 +118,7 @@ export const EMPTY_PERMISSIONS: Permissions = {
   supply_orders: { view: false, edit: false },
   stock: { view: false, edit: false },
   expenses: { view: false, edit: false },
-  finance: { view: false },
+  finance: { view: false, view_fee_breakdown: false },
   access_management: { view: false },
 };
 
