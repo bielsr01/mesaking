@@ -340,13 +340,13 @@ function GroupDialog({
       let groupId = editing?.id;
       if (editing) {
         const { error } = await supabase.from("option_groups").update({
-          name: name.trim(), min_select: minS, max_select: maxS,
-        }).eq("id", editing.id);
+          name: name.trim(), min_select: minS, max_select: maxS, allow_repeat: allowRepeat,
+        } as any).eq("id", editing.id);
         if (error) throw error;
       } else {
         const { data, error } = await supabase.from("option_groups").insert({
-          restaurant_id: restaurantId, name: name.trim(), min_select: minS, max_select: maxS,
-        }).select("id").single();
+          restaurant_id: restaurantId, name: name.trim(), min_select: minS, max_select: maxS, allow_repeat: allowRepeat,
+        } as any).select("id").single();
         if (error) throw error;
         groupId = data.id;
       }
