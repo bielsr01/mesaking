@@ -40,7 +40,7 @@ const STORAGE_KEY = (rid: string) => `pdv_draft_v2_${rid}`;
 async function fetchPdvOptions(restaurantId: string): Promise<Record<string, OptGroup[]>> {
   const [linksRes, groupsRes, itemsRes] = await Promise.all([
     supabase.from("product_option_groups").select("product_id, group_id, sort_order"),
-    supabase.from("option_groups").select("id, name, min_select, max_select, sort_order, is_active, restaurant_id").eq("restaurant_id", restaurantId).eq("is_active", true),
+    supabase.from("option_groups").select("id, name, min_select, max_select, sort_order, is_active, allow_repeat, restaurant_id").eq("restaurant_id", restaurantId).eq("is_active", true),
     supabase.from("option_items").select("id, group_id, name, extra_price, sort_order, is_active, option_groups!inner(restaurant_id)").eq("option_groups.restaurant_id", restaurantId).eq("is_active", true).order("sort_order"),
   ]);
   const groupById = new Map<string, any>(((groupsRes.data ?? []) as any[]).map((g) => [g.id, g]));
