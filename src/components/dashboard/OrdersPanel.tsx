@@ -786,8 +786,9 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                       size="sm"
                       variant="outline"
                       onClick={() => setDeleteTarget(o)}
+                      disabled={o.status === "delivered"}
                       aria-label="Excluir pedido permanentemente"
-                      title="Excluir permanentemente"
+                      title={o.status === "delivered" ? "Pedido entregue não pode ser excluído" : "Excluir permanentemente"}
                       className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
                     >
                       <Trash2 className="w-4 h-4" />
