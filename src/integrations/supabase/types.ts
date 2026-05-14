@@ -1125,6 +1125,30 @@ export type Database = {
           },
         ]
       }
+      order_status_history: {
+        Row: {
+          changed_at: string
+          id: string
+          order_id: string
+          source: string | null
+          status: Database["public"]["Enums"]["order_status"]
+        }
+        Insert: {
+          changed_at?: string
+          id?: string
+          order_id: string
+          source?: string | null
+          status: Database["public"]["Enums"]["order_status"]
+        }
+        Update: {
+          changed_at?: string
+          id?: string
+          order_id?: string
+          source?: string | null
+          status?: Database["public"]["Enums"]["order_status"]
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           address_cep: string | null
