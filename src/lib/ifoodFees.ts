@@ -61,11 +61,12 @@ export function calcIfoodReceivable(
   const base = Math.max(0, subtotal + delivery - merchantSubsidy);
 
   const s = settings ?? DEFAULT_IFOOD_FEES;
+  const isOnline = (order.payment_method ?? "").toLowerCase() === "online";
   const fees: IfoodFeeBreakdownItem[] = [];
   if (s.commission_enabled && s.commission_pct > 0) {
     fees.push({ key: "commission", label: "Comissão da plataforma", pct: s.commission_pct, value: (base * s.commission_pct) / 100 });
   }
-  if (s.card_enabled && s.card_pct > 0) {
+  if (s.card_enabled && s.card_pct > 0 && isOnline) {
     fees.push({ key: "card", label: "Taxa de uso do cartão", pct: s.card_pct, value: (base * s.card_pct) / 100 });
   }
   if (s.anticipation_enabled && s.anticipation_pct > 0) {
