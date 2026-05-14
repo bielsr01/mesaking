@@ -9,6 +9,7 @@
 // - Recebimento líquido = Base - soma das taxas.
 
 export type IfoodFeeSettings = {
+  enabled: boolean;
   commission_enabled: boolean;
   commission_pct: number;
   card_enabled: boolean;
@@ -18,6 +19,7 @@ export type IfoodFeeSettings = {
 };
 
 export const DEFAULT_IFOOD_FEES: IfoodFeeSettings = {
+  enabled: true,
   commission_enabled: true,
   commission_pct: 0,
   card_enabled: true,
