@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { brl, orderStatusLabel, getNextStatus, paymentLabel, formatPhone, formatIfoodPhone } from "@/lib/format";
+import { brl, orderStatusLabel, getNextStatus, paymentLabel, paymentLabelFor, formatPhone, formatIfoodPhone } from "@/lib/format";
 import { calcIfoodReceivable, DEFAULT_IFOOD_FEES, type IfoodFeeSettings } from "@/lib/ifoodFees";
 import { MapPin, Navigation, Phone, MessageCircle, Printer, Trash2, X, User, Clock, CornerDownRight } from "lucide-react";
 
@@ -347,7 +347,7 @@ export function OrderDetailsDialog({
               <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Resumo do pagamento</div>
               <div className="flex justify-between">
                 <span>Forma de pagamento:</span>
-                <span className="font-bold">{paymentLabel[order.payment_method] ?? order.payment_method}</span>
+                <span className="font-bold">{paymentLabelFor(order.payment_method, order.external_source)}</span>
               </div>
               <div className="flex justify-between"><span>Subtotal:</span><span className="tabular-nums">{brl(order.subtotal)}</span></div>
               {Number(order.delivery_fee) > 0 && (

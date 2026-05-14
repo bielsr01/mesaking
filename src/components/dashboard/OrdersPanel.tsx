@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { brl, orderStatusLabel, getNextStatus, paymentLabel, formatPhone, orderTypeLabel } from "@/lib/format";
+import { brl, orderStatusLabel, getNextStatus, paymentLabel, paymentLabelFor, formatPhone, orderTypeLabel } from "@/lib/format";
 import { toast } from "sonner";
 import { Bike, ChefHat, Clock, History, MapPin, MessageCircle, Phone, Plus, Printer, Store, Trash2, User, X, Utensils } from "lucide-react";
 import { IfoodEventsTab } from "./IfoodEventsTab";
@@ -709,7 +709,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
 
                 <div className="border-t pt-3 flex justify-between items-start gap-2">
                   <div className="text-xs text-muted-foreground">
-                    {paymentLabel[o.payment_method]}
+                    {paymentLabelFor(o.payment_method, o.external_source)}
                     {o.change_for ? ` • troco p/ ${brl(o.change_for)}` : ""}
                   </div>
                   <div className="text-right">
