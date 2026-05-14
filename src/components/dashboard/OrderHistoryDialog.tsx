@@ -218,10 +218,11 @@ export function OrderHistoryDialog({
             </div>
 
             <div className="border rounded-md overflow-hidden">
-              <div className="grid grid-cols-[100px_140px_1fr_120px_120px_60px] gap-2 px-3 py-2 bg-muted/50 text-xs font-semibold text-muted-foreground">
+              <div className="grid grid-cols-[90px_130px_1fr_120px_110px_110px_50px] gap-2 px-3 py-2 bg-muted/50 text-xs font-semibold text-muted-foreground">
                 <div>Pedido</div>
                 <div>Data</div>
                 <div>Cliente</div>
+                <div>Origem</div>
                 <div>Status</div>
                 <div className="text-right">Valor</div>
                 <div></div>
@@ -234,8 +235,15 @@ export function OrderHistoryDialog({
                 <div className="py-12 text-center text-muted-foreground text-sm">Nenhum pedido encontrado.</div>
               ) : (
                 <div className="divide-y">
-                  {filtered.map((o) => (
-                    <div key={o.id} className="grid grid-cols-[100px_140px_1fr_120px_120px_60px] gap-2 px-3 py-2 items-center text-sm hover:bg-accent/30">
+                  {filtered.map((o) => {
+                    const origem = o.external_source === "ifood" ? "iFood"
+                      : o.external_source === "quero" ? "Quero Delivery"
+                      : o.order_type === "pdv" ? "PDV"
+                      : o.order_type === "pickup" ? "Retirada"
+                      : "Delivery";
+                    const phoneFmt = o.external_source === "ifood" ? formatIfoodPhone(o.customer_phone) : formatPhone(o.customer_phone);
+                    return (
+                    <div key={o.id} className="grid grid-cols-[90px_130px_1fr_120px_110px_110px_50px] gap-2 px-3 py-2 items-center text-sm hover:bg-accent/30">
                       <div className="font-mono">#{o.order_number}</div>
                       <div className="text-xs text-muted-foreground">
                         {new Date(o.created_at).toLocaleDateString("pt-BR")}<br />
@@ -243,7 +251,10 @@ export function OrderHistoryDialog({
                       </div>
                       <div className="min-w-0">
                         <div className="font-medium truncate">{o.customer_name}</div>
-                        <div className="text-xs text-muted-foreground truncate">{formatPhone(o.customer_phone)}</div>
+                        <div className="text-xs text-muted-foreground truncate">{phoneFmt}</div>
+                      </div>
+                      <div>
+                        <Badge variant="outline" className="text-xs">{origem}</Badge>
                       </div>
                       <div>
                         <Badge className={statusColor(o.status)}>{orderStatusLabel[o.status as keyof typeof orderStatusLabel]}</Badge>
@@ -255,7 +266,8 @@ export function OrderHistoryDialog({
                         </Button>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
