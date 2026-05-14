@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { Bike, ChefHat, Clock, MapPin, MessageCircle, Phone, Plus, Printer, Store, Trash2, User, X, Utensils } from "lucide-react";
 import { IfoodEventsTab } from "./IfoodEventsTab";
 import { usePermissions } from "@/hooks/usePermissions";
+import { OrderDetailsDialog } from "./OrderDetailsDialog";
 
 /** Monta link wa.me garantindo DDI 55 (Brasil) sem duplicar */
 function waLink(phone: string | null | undefined): string | null {
@@ -131,6 +132,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Order | null>(null);
   const [printTarget, setPrintTarget] = useState<Order | null>(null);
+  const [detailsTarget, setDetailsTarget] = useState<Order | null>(null);
   const [pdvOpen, setPdvOpen] = useState(false);
   const [deliveryBlink, setDeliveryBlink] = useState(false);
   const [ifoodView, setIfoodView] = useState<"orders" | "events">("orders");
@@ -590,8 +592,11 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
             const isPdv = o.order_type === "pdv";
             const next = getNextStatus(o.status, o.order_type);
             return (
-            <Card key={o.id} className="shadow-soft">
-              <CardContent className="pt-0 space-y-3">
+            <Card key={o.id} className="shadow-soft cursor-pointer hover:bg-accent/30 transition-colors" onClick={() => setDetailsTarget(o)}>
+              <CardContent className="pt-0 space-y-3" onClick={(e) => {
+                const t = e.target as HTMLElement;
+                if (t.closest('button,a,[role="button"]')) e.stopPropagation();
+              }}>
                 <div className="pt-3" />
                 {/* Tipo do pedido — destaque no topo */}
                 <div className={`-mt-2 -mx-1 px-3 py-1.5 rounded-md flex items-center gap-2 text-xs font-semibold ${isPdv ? "bg-success/15 text-success border border-success/30" : isPickup ? "bg-accent/20 text-accent-foreground border border-accent/40" : "bg-primary/10 text-primary border border-primary/20"}`}>
@@ -824,6 +829,19 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
           </div>
         </DialogContent>
       </Dialog>
+
+      <OrderDetailsDialog
+        order={detailsTarget}
+        items={detailsTarget ? (items[detailsTarget.id] ?? []) : []}
+        onClose={() => setDetailsTarget(null)}
+        onAdvance={(o) => advance(o as Order)}
+        onCancel={(o) => setCancelTarget(o as Order)}
+        onDelete={(o) => setDeleteTarget(o as Order)}
+        onPrint={(o) => setPrintTarget(o as Order)}
+        pending={detailsTarget ? !!pendingAction[detailsTarget.id] : false}
+        canChangeStatus={canChangeStatus}
+        canEditOrders={canEditOrders}
+      />
 
       <PdvDialog open={pdvOpen} onOpenChange={setPdvOpen} restaurantId={restaurantId} />
     </div>
