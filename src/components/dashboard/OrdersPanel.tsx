@@ -59,6 +59,7 @@ interface Order {
   discount?: number | null;
   service_fee?: number | null;
   created_at: string;
+  updated_at: string;
   delivery_latitude: number | null;
   delivery_longitude: number | null;
   external_source?: string | null;
