@@ -830,6 +830,19 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
         </DialogContent>
       </Dialog>
 
+      <OrderDetailsDialog
+        order={detailsTarget}
+        items={detailsTarget ? (items[detailsTarget.id] ?? []) : []}
+        onClose={() => setDetailsTarget(null)}
+        onAdvance={(o) => advance(o as Order)}
+        onCancel={(o) => setCancelTarget(o as Order)}
+        onDelete={(o) => setDeleteTarget(o as Order)}
+        onPrint={(o) => setPrintTarget(o as Order)}
+        pending={detailsTarget ? !!pendingAction[detailsTarget.id] : false}
+        canChangeStatus={canChangeStatus}
+        canEditOrders={canEditOrders}
+      />
+
       <PdvDialog open={pdvOpen} onOpenChange={setPdvOpen} restaurantId={restaurantId} />
     </div>
   );
