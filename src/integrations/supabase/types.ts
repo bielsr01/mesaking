@@ -626,6 +626,8 @@ export type Database = {
           enabled: boolean
           restaurant_id: string
           updated_at: string
+          widget_enabled: boolean
+          widget_merchant_id: string | null
         }
         Insert: {
           anticipation_enabled?: boolean
@@ -638,6 +640,8 @@ export type Database = {
           enabled?: boolean
           restaurant_id: string
           updated_at?: string
+          widget_enabled?: boolean
+          widget_merchant_id?: string | null
         }
         Update: {
           anticipation_enabled?: boolean
@@ -650,6 +654,8 @@ export type Database = {
           enabled?: boolean
           restaurant_id?: string
           updated_at?: string
+          widget_enabled?: boolean
+          widget_merchant_id?: string | null
         }
         Relationships: []
       }
