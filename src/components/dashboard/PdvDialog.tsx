@@ -13,7 +13,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { brl, formatPhone, unmaskPhone } from "@/lib/format";
-import { Plus, Minus, Search, Trash2, ShoppingCart, X, UserPlus, UserCheck, Tag, Percent, Printer, Image as ImageIcon } from "lucide-react";
+import { Plus, Minus, Search, Trash2, ShoppingCart, X, UserPlus, UserCheck, Tag, Percent, Printer, Image as ImageIcon, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { fetchCategories, fetchProducts, menuKeys } from "./MenuManager";
 import { ordersKey } from "./OrdersPanel";
