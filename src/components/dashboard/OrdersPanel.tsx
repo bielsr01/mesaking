@@ -787,14 +787,19 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                                 ? "🛵 Enviar para entrega"
                                 : `→ ${orderStatusLabel[next]}`}
                         </Button>
-                      ) : o.external_source === "ifood" && (o.status === "out_for_delivery" || o.status === "awaiting_pickup") ? (
+                      ) : o.external_source === "ifood" && o.status === "out_for_delivery" && o.order_type !== "pickup" && o.external_order_id ? (
                         <Button
+                          asChild
                           size="sm"
                           className="flex-1"
-                          onClick={() => { setIfoodCodeTarget(o); setIfoodCodeValue(""); }}
-                          disabled={!!pendingAction[o.id]}
                         >
-                          {o.order_type === "pickup" ? "📦 Entregar iFood (retirada)" : "📦 Entregar iFood"}
+                          <a
+                            href={`https://confirmacao-entrega-propria.ifood.com.br/pedido/${o.external_order_id}/codigo-cliente`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            📦 Confirmar entrega no iFood
+                          </a>
                         </Button>
                       ) : null}
                       <Button size="sm" variant="outline" onClick={() => setCancelTarget(o)} disabled={!!pendingAction[o.id]} aria-label="Cancelar pedido"><X className="w-4 h-4" /></Button>
