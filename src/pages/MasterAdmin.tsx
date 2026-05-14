@@ -30,6 +30,7 @@ import { AdminLoyaltyPanel } from "@/components/admin/AdminLoyaltyPanel";
 import { AdminFinancePanel } from "@/components/admin/AdminFinancePanel";
 import { AdminFinanceAdminPanel } from "@/components/admin/AdminFinanceAdminPanel";
 import { AdminIfoodFeesPanel } from "@/components/admin/AdminIfoodFeesPanel";
+import { AdminQueroFeesPanel } from "@/components/admin/AdminQueroFeesPanel";
 import { BulkCampaignsPanel } from "@/components/dashboard/BulkCampaignsPanel";
 import { EvolutionIntegrationCard } from "@/components/dashboard/EvolutionIntegrationCard";
 import { useQueryClient } from "@tanstack/react-query";
@@ -179,6 +180,7 @@ export default function MasterAdmin() {
     "loyalty": "Programa de fidelidade",
     "settings:integrations": "Integrações",
     "settings:ifood-fees": "Configurações iFood",
+    "settings:quero-fees": "Configurações Quero",
     "supply:catalog": "Catálogo de insumos",
     "supply:orders": "Pedidos de insumos recebidos",
     "stock:admin": "Estoque / Admin",
@@ -358,6 +360,7 @@ export default function MasterAdmin() {
               </div>
             )}
             {view === "settings:ifood-fees" && <AdminIfoodFeesPanel />}
+            {view === "settings:quero-fees" && <AdminQueroFeesPanel />}
             {view === "supply:catalog" && <SupplyCatalogTab />}
             {view === "supply:orders" && <SupplyOrdersTab />}
             {view === "stock:admin" && <AdminStockAdmin />}
