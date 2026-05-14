@@ -333,8 +333,11 @@ export function OrderDetailsDialog({
             <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Histórico de atualização</div>
             <ol className="space-y-1.5 text-sm">
               {timeline.map((t, i) => {
-                const isFirst = i === 0;
-                const ts = isFirst ? order.created_at : (t.current ? order.updated_at : null);
+                // Pega o último timestamp registrado para esse status (ou created_at para o primeiro pendente)
+                const hist = history.filter((h) => h.status === t.status);
+                const ts = hist.length > 0
+                  ? hist[hist.length - 1].changed_at
+                  : (i === 0 ? order.created_at : null);
                 return (
                   <li key={i} className="flex items-center gap-2">
                     <span className={`w-2.5 h-2.5 rounded-full ${
@@ -342,7 +345,7 @@ export function OrderDetailsDialog({
                       t.done ? (t.current ? "bg-success" : "bg-primary") : "bg-muted-foreground/30"
                     }`} />
                     <span className={t.done ? "" : "text-muted-foreground"}>{t.label}</span>
-                    {ts && (
+                    {t.done && ts && (
                       <span className="text-xs text-muted-foreground ml-auto tabular-nums">
                         {new Date(ts).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}
                       </span>
