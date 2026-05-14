@@ -133,8 +133,17 @@ export const paymentLabel: Record<string, string> = {
   cash: "Dinheiro",
   pix: "Pix",
   card_on_delivery: "Cartão na entrega",
-  online: "Pago via iFood (online)",
+  online: "Pago online",
 };
+
+export function paymentLabelFor(method: string, externalSource?: string | null): string {
+  if (method === "online") {
+    if (externalSource === "ifood") return "Pago via iFood (online)";
+    if (externalSource === "quero") return "Pago via Quero Delivery (online)";
+    return "Pago online";
+  }
+  return paymentLabel[method] ?? method;
+}
 
 export const slugify = (s: string) =>
   s
