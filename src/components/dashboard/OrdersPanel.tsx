@@ -135,8 +135,6 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const [deleteTarget, setDeleteTarget] = useState<Order | null>(null);
   const [printTarget, setPrintTarget] = useState<Order | null>(null);
   const [detailsTarget, setDetailsTarget] = useState<Order | null>(null);
-  const [ifoodCodeTarget, setIfoodCodeTarget] = useState<Order | null>(null);
-  const [ifoodCodeValue, setIfoodCodeValue] = useState("");
   const [pdvOpen, setPdvOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [deliveryBlink, setDeliveryBlink] = useState(false);
