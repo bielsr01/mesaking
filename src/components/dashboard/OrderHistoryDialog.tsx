@@ -13,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Skeleton } from "@/components/ui/skeleton";
 import { brl, formatPhone, formatIfoodPhone, orderStatusLabel } from "@/lib/format";
 import { OrderDetailsDialog } from "./OrderDetailsDialog";
+import { usePermissions } from "@/hooks/usePermissions";
 import { cn } from "@/lib/utils";
 
 type Channel = "all" | "delivery" | "pdv" | "ifood" | "quero";
