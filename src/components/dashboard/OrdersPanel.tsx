@@ -135,8 +135,6 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const [deleteTarget, setDeleteTarget] = useState<Order | null>(null);
   const [printTarget, setPrintTarget] = useState<Order | null>(null);
   const [detailsTarget, setDetailsTarget] = useState<Order | null>(null);
-  const [ifoodCodeTarget, setIfoodCodeTarget] = useState<Order | null>(null);
-  const [ifoodCodeValue, setIfoodCodeValue] = useState("");
   const [pdvOpen, setPdvOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [deliveryBlink, setDeliveryBlink] = useState(false);
@@ -445,44 +443,6 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     setPending(o.id, false);
   };
 
-  const confirmIfoodDelivery = async (o: Order, code: string) => {
-    if (!canChangeStatus) return toast.error("Sem permissão para mudar status");
-    if (pendingAction[o.id]) return;
-    if (!code.trim()) return toast.error("Informe o código");
-    if (!o.external_order_id) {
-      toast.error("Pedido iFood sem external_order_id");
-      return;
-    }
-    const action = o.order_type === "pickup" ? "validatePickupCode" : "verifyDeliveryCode";
-    setPending(o.id, true);
-    const { data: fnData, error: fnErr } = await supabase.functions.invoke("ifood-action", {
-      body: { orderId: o.id, action, code: code.trim() },
-    });
-    if (fnErr || !fnData?.ok) {
-      const msg = fnData?.error ?? fnErr?.message ?? "falha";
-      const detail = fnData?.ihub_status ? ` (iHub ${fnData.ihub_status})` : "";
-      toast.error(`iFood: ${msg}${detail}`);
-      setPending(o.id, false);
-      return;
-    }
-    const successFlag = fnData?.ihub?.success ?? fnData?.ihub?.data?.success ?? true;
-    if (successFlag === false) {
-      toast.error("Código incorreto. Tente novamente.");
-      setPending(o.id, false);
-      return;
-    }
-    const { error } = await supabase.from("orders").update({ status: "delivered" }).eq("id", o.id);
-    if (error) {
-      toast.error(error.message);
-    } else {
-      patchOrder(o.id, { status: "delivered" });
-      toast.success(`Pedido #${o.order_number} entregue`);
-      setIfoodCodeTarget(null);
-      setIfoodCodeValue("");
-    }
-    setPending(o.id, false);
-  };
-
   const deleteOrder = async (o: Order) => {
     if (!canEditOrders) return toast.error("Sem permissão para excluir pedido");
     const prev = qc.getQueryData<{ orders: Order[]; items: Record<string, Item[]> }>(ordersKey(restaurantId));
@@ -787,14 +747,19 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                                 ? "🛵 Enviar para entrega"
                                 : `→ ${orderStatusLabel[next]}`}
                         </Button>
-                      ) : o.external_source === "ifood" && (o.status === "out_for_delivery" || o.status === "awaiting_pickup") ? (
+                      ) : o.external_source === "ifood" && o.status === "out_for_delivery" && o.order_type !== "pickup" && o.external_order_id ? (
                         <Button
+                          asChild
                           size="sm"
                           className="flex-1"
-                          onClick={() => { setIfoodCodeTarget(o); setIfoodCodeValue(""); }}
-                          disabled={!!pendingAction[o.id]}
                         >
-                          {o.order_type === "pickup" ? "📦 Entregar iFood (retirada)" : "📦 Entregar iFood"}
+                          <a
+                            href={`https://confirmacao-entrega-propria.ifood.com.br/pedido/${o.external_order_id}/codigo-cliente`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            📦 Confirmar entrega no iFood
+                          </a>
                         </Button>
                       ) : null}
                       <Button size="sm" variant="outline" onClick={() => setCancelTarget(o)} disabled={!!pendingAction[o.id]} aria-label="Cancelar pedido"><X className="w-4 h-4" /></Button>
@@ -907,44 +872,6 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
       <PdvDialog open={pdvOpen} onOpenChange={setPdvOpen} restaurantId={restaurantId} />
       <OrderHistoryDialog open={historyOpen} onOpenChange={setHistoryOpen} restaurantId={restaurantId} />
 
-      <Dialog open={!!ifoodCodeTarget} onOpenChange={(o) => { if (!o) { setIfoodCodeTarget(null); setIfoodCodeValue(""); } }}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Confirmar entrega iFood</DialogTitle>
-            <DialogDescription>
-              {ifoodCodeTarget?.order_type === "pickup"
-                ? "Informe o código de retirada fornecido pelo cliente."
-                : "Informe o código de entrega fornecido pelo cliente."}
-              {ifoodCodeTarget && (
-                <> Pedido <strong>#{ifoodCodeTarget.order_number}</strong> — {ifoodCodeTarget.customer_name}.</>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <form
-            onSubmit={(e) => { e.preventDefault(); if (ifoodCodeTarget) confirmIfoodDelivery(ifoodCodeTarget, ifoodCodeValue); }}
-            className="grid gap-3"
-          >
-            <input
-              autoFocus
-              inputMode="numeric"
-              pattern="[0-9]*"
-              maxLength={6}
-              value={ifoodCodeValue}
-              onChange={(e) => setIfoodCodeValue(e.target.value.replace(/\D/g, ""))}
-              placeholder="Ex: 9999"
-              className="h-12 rounded-md border bg-background px-3 text-center text-2xl tracking-widest font-mono"
-            />
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => { setIfoodCodeTarget(null); setIfoodCodeValue(""); }}>
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={!ifoodCodeValue.trim() || (ifoodCodeTarget ? !!pendingAction[ifoodCodeTarget.id] : false)}>
-                {ifoodCodeTarget && pendingAction[ifoodCodeTarget.id] ? "Validando…" : "Confirmar entrega"}
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
