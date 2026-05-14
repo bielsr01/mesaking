@@ -48,8 +48,13 @@ export function AdminIfoodFeesPanel() {
           anticipation_enabled: !!data.anticipation_enabled,
           anticipation_pct: Number(data.anticipation_pct ?? 0),
         });
+        setWidget({
+          widget_enabled: !!data.widget_enabled,
+          widget_merchant_id: data.widget_merchant_id ?? "",
+        });
       } else {
         setSettings(DEFAULT_IFOOD_FEES);
+        setWidget(DEFAULT_WIDGET);
       }
       setLoading(false);
     })();
@@ -61,10 +66,12 @@ export function AdminIfoodFeesPanel() {
     const { error } = await sb.from("ifood_fee_settings").upsert({
       restaurant_id: restaurantId,
       ...settings,
+      widget_enabled: widget.widget_enabled,
+      widget_merchant_id: widget.widget_merchant_id?.trim() || null,
     }, { onConflict: "restaurant_id" });
     setSaving(false);
     if (error) return toast.error(error.message);
-    toast.success("Taxas do iFood salvas");
+    toast.success("Configurações do iFood salvas");
   };
 
   type FeeKey = "commission" | "card" | "anticipation";
