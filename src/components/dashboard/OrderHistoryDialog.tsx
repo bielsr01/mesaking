@@ -84,6 +84,8 @@ export function OrderHistoryDialog({
   const [customTo, setCustomTo] = useState<Date | undefined>();
   const [search, setSearch] = useState("");
   const [detailsTarget, setDetailsTarget] = useState<Order | null>(null);
+  const { can } = usePermissions(restaurantId);
+  const canViewFeeBreakdown = can("finance.view_fee_breakdown");
 
   const range = useMemo(() => rangeFor(dateKind, customFrom, customTo), [dateKind, customFrom, customTo]);
 
