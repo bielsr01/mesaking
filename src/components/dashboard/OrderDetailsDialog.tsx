@@ -223,11 +223,14 @@ export function OrderDetailsDialog({
               <div className="space-y-3 text-sm">
                 {items.map((it) => {
                   const opts = optsByItem[it.id] ?? [];
+                  const extrasPerUnit = opts.reduce((s, o) => s + Number(o.extra_price ?? 0), 0);
+                  const baseUnit = Number(it.unit_price) - extrasPerUnit;
+                  const baseTotal = baseUnit * it.quantity;
                   return (
                     <div key={it.id} className="border-b last:border-b-0 pb-2 last:pb-0">
                       <div className="flex justify-between gap-2">
                         <span className="font-medium">{it.quantity}× {it.product_name}</span>
-                        <span className="tabular-nums">{brl(it.unit_price * it.quantity)}</span>
+                        <span className="tabular-nums">{brl(baseTotal)}</span>
                       </div>
                       {it.notes && <div className="text-xs italic text-muted-foreground">{it.notes}</div>}
                       {opts.map((opt) => (
@@ -237,7 +240,7 @@ export function OrderDetailsDialog({
                             <span>{opt.item_name}</span>
                           </span>
                           {Number(opt.extra_price) > 0 && (
-                            <span className="tabular-nums text-muted-foreground">+ {brl(Number(opt.extra_price))}</span>
+                            <span className="tabular-nums text-muted-foreground">+ {brl(Number(opt.extra_price) * it.quantity)}</span>
                           )}
                         </div>
                       ))}
@@ -250,7 +253,10 @@ export function OrderDetailsDialog({
 
             <section className="rounded-lg border p-3 space-y-1.5 text-sm">
               <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Resumo do pagamento</div>
-              <div className="flex justify-between"><span>Forma de pagamento:</span><span className="font-medium">{paymentLabel[order.payment_method] ?? order.payment_method}</span></div>
+              <div className="flex justify-between">
+                <span>Forma de pagamento:</span>
+                <span className="font-bold">{paymentLabel[order.payment_method] ?? order.payment_method}</span>
+              </div>
               <div className="flex justify-between"><span>Subtotal:</span><span className="tabular-nums">{brl(order.subtotal)}</span></div>
               {Number(order.delivery_fee) > 0 && (
                 <div className="flex justify-between"><span>Taxa de entrega:</span><span className="tabular-nums">{brl(Number(order.delivery_fee))}</span></div>
@@ -261,13 +267,16 @@ export function OrderDetailsDialog({
               {Number(order.discount ?? 0) > 0 && (
                 <div className="flex justify-between"><span>Descontos:</span><span className="tabular-nums">- {brl(Number(order.discount))}</span></div>
               )}
-              {order.change_for ? (
-                <div className="flex justify-between text-xs text-muted-foreground"><span>Troco para:</span><span className="tabular-nums">{brl(Number(order.change_for))}</span></div>
-              ) : null}
               <div className="border-t pt-2 mt-2 flex justify-between items-center">
                 <span className="font-semibold">Valor:</span>
                 <span className="text-lg font-bold tabular-nums">{brl(order.total)}</span>
               </div>
+              {order.payment_method === "cash" && Number(order.change_for ?? 0) > 0 && (
+                <div className="text-xs text-muted-foreground pt-1">
+                  Troco para {brl(Number(order.change_for))}{" "}
+                  <span>(Entregar {brl(Math.max(0, Number(order.change_for) - Number(order.total)))} para o cliente)</span>
+                </div>
+              )}
             </section>
           </div>
 
@@ -275,20 +284,24 @@ export function OrderDetailsDialog({
           <section className="rounded-lg border p-3">
             <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Histórico de atualização</div>
             <ol className="space-y-1.5 text-sm">
-              {timeline.map((t, i) => (
-                <li key={i} className="flex items-center gap-2">
-                  <span className={`w-2.5 h-2.5 rounded-full ${
-                    t.status === "cancelled" ? "bg-destructive" :
-                    t.done ? (t.current ? "bg-success" : "bg-primary") : "bg-muted-foreground/30"
-                  }`} />
-                  <span className={t.done ? "" : "text-muted-foreground"}>{t.label}</span>
-                  {t.current && order.updated_at && (
-                    <span className="text-xs text-muted-foreground ml-auto">
-                      {new Date(order.updated_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}
-                    </span>
-                  )}
-                </li>
-              ))}
+              {timeline.map((t, i) => {
+                const isFirst = i === 0;
+                const ts = isFirst ? order.created_at : (t.current ? order.updated_at : null);
+                return (
+                  <li key={i} className="flex items-center gap-2">
+                    <span className={`w-2.5 h-2.5 rounded-full ${
+                      t.status === "cancelled" ? "bg-destructive" :
+                      t.done ? (t.current ? "bg-success" : "bg-primary") : "bg-muted-foreground/30"
+                    }`} />
+                    <span className={t.done ? "" : "text-muted-foreground"}>{t.label}</span>
+                    {ts && (
+                      <span className="text-xs text-muted-foreground ml-auto tabular-nums">
+                        {new Date(ts).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
             </ol>
           </section>
 
