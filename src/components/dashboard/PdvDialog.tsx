@@ -57,6 +57,7 @@ async function fetchPdvOptions(restaurantId: string): Promise<Record<string, Opt
     if (!g) return;
     const og: OptGroup = {
       id: g.id, name: g.name, min_select: g.min_select, max_select: g.max_select,
+      allow_repeat: Boolean(g.allow_repeat),
       items: itemsByGroup.get(g.id) ?? [],
     };
     (idx[l.product_id] ??= []).push(og);
