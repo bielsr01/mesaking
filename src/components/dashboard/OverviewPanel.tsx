@@ -184,6 +184,7 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
     if (o.external_source !== "ifood") return 0;
     const s = feesQ.data?.get(o.restaurant_id);
     if (!s) return 0;
+    if (s.enabled === false) return 0;
     const base = Math.max(0, Number(o.subtotal || 0) + Number(o.delivery_fee || 0) - Number(o.merchant_subsidy || 0));
     const isOnline = (o.payment_method ?? "").toLowerCase() === "online";
     let pct = 0;
