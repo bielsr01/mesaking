@@ -1466,6 +1466,36 @@ export type Database = {
         }
         Relationships: []
       }
+      quero_fee_settings: {
+        Row: {
+          commission_enabled: boolean
+          commission_pct: number
+          created_at: string
+          online_payment_enabled: boolean
+          online_payment_pct: number
+          restaurant_id: string
+          updated_at: string
+        }
+        Insert: {
+          commission_enabled?: boolean
+          commission_pct?: number
+          created_at?: string
+          online_payment_enabled?: boolean
+          online_payment_pct?: number
+          restaurant_id: string
+          updated_at?: string
+        }
+        Update: {
+          commission_enabled?: boolean
+          commission_pct?: number
+          created_at?: string
+          online_payment_enabled?: boolean
+          online_payment_pct?: number
+          restaurant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       quero_integrations: {
         Row: {
           created_at: string
