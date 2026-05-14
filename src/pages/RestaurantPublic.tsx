@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ShoppingCart, Plus, Minus, Image as ImageIcon, Trash2, Info, MapPin, Clock, Bike, Store, Share2, MessageCircle, Instagram, Facebook } from "lucide-react";
+import { ShoppingCart, Plus, Minus, Image as ImageIcon, Trash2, Info, MapPin, Clock, Bike, Store, Share2, MessageCircle, Instagram, Facebook, CheckCircle2 } from "lucide-react";
 import { useCart, CartItemOption } from "@/hooks/useCart";
 import { brl } from "@/lib/format";
 import { Checkout } from "@/components/Checkout";
