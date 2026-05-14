@@ -188,6 +188,8 @@ async function ingestOrder(integration: any, ev: any) {
     delivery_fee: deliveryFee,
     service_fee: Math.max(0, otherFees - deliveryFee),
     discount,
+    merchant_subsidy: merchantSubsidy,
+    ifood_subsidy: queroSubsidy,
     total: orderAmount,
     payment_method: mapPayment(m0?.method, m0?.type),
     change_for: m0?.changeFor ? Number(m0.changeFor) : null,
