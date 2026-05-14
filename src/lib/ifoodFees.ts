@@ -31,6 +31,7 @@ export type IfoodOrderForCalc = {
   delivery_fee?: number | null;
   merchant_subsidy?: number | null;
   ifood_subsidy?: number | null;
+  payment_method?: string | null;
 };
 
 export type IfoodFeeBreakdownItem = {
