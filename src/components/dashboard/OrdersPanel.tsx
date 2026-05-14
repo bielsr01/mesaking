@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { Bike, ChefHat, Clock, MapPin, MessageCircle, Phone, Plus, Printer, Store, Trash2, User, X, Utensils } from "lucide-react";
 import { IfoodEventsTab } from "./IfoodEventsTab";
 import { usePermissions } from "@/hooks/usePermissions";
+import { OrderDetailsDialog } from "./OrderDetailsDialog";
 
 /** Monta link wa.me garantindo DDI 55 (Brasil) sem duplicar */
 function waLink(phone: string | null | undefined): string | null {
