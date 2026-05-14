@@ -233,15 +233,28 @@ export function OrderDetailsDialog({
                         <span className="tabular-nums">{brl(baseTotal)}</span>
                       </div>
                       {it.notes && <div className="text-xs italic text-muted-foreground">{it.notes}</div>}
-                      {opts.map((opt) => (
-                        <div key={opt.id} className="text-xs pl-3">
-                          <span className="font-semibold">{opt.group_name ?? "Opção"}:</span>{" "}
-                          <span>{opt.item_name}</span>
-                          {Number(opt.extra_price) > 0 && (
-                            <span className="tabular-nums text-muted-foreground"> + {brl(Number(opt.extra_price) * it.quantity)}</span>
-                          )}
-                        </div>
-                      ))}
+                      {(() => {
+                        const groups: { name: string; items: typeof opts }[] = [];
+                        opts.forEach((o) => {
+                          const gName = o.group_name ?? "Opção";
+                          let g = groups.find((x) => x.name === gName);
+                          if (!g) { g = { name: gName, items: [] }; groups.push(g); }
+                          g.items.push(o);
+                        });
+                        return groups.map((g) => (
+                          <div key={g.name} className="text-xs pl-3 mt-1">
+                            <div className="font-semibold">{g.name}:</div>
+                            {g.items.map((opt) => (
+                              <div key={opt.id} className="flex justify-between gap-2 pl-3">
+                                <span>{opt.item_name}</span>
+                                <span className="tabular-nums text-muted-foreground">
+                                  {Number(opt.extra_price) > 0 ? `+ ${brl(Number(opt.extra_price) * it.quantity)}` : brl(0)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        ));
+                      })()}
                     </div>
                   );
                 })}
