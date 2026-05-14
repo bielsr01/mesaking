@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
-import { brl, formatPhone, orderStatusLabel } from "@/lib/format";
+import { brl, formatPhone, formatIfoodPhone, orderStatusLabel } from "@/lib/format";
 import { OrderDetailsDialog } from "./OrderDetailsDialog";
 import { cn } from "@/lib/utils";
 
