@@ -124,6 +124,14 @@ Deno.serve(async (req) => {
     payload.cancelCode = body.cancelCode ?? "501";
     payload.cancelReason = body.cancelReason ?? "Cancelado pelo restaurante";
   }
+  if (body.action === "verifyDeliveryCode" || body.action === "validatePickupCode") {
+    if (!body.code || !String(body.code).trim()) {
+      return new Response(JSON.stringify({ ok: false, error: "Código obrigatório" }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    payload.code = String(body.code).trim();
+  }
 
   console.info("[ifood-action] forwarding", {
     user: userData.user.id,
