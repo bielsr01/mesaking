@@ -715,7 +715,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                   </div>
                   <div className="text-right">
                     <div className="text-lg font-bold">{brl(o.total)}</div>
-                    {(Number(o.delivery_fee) > 0 || Number(o.service_fee ?? 0) > 0) && (
+                    {o.external_source !== "ifood" && o.external_source !== "quero" && (Number(o.delivery_fee) > 0 || Number(o.service_fee ?? 0) > 0) && (
                       <div className="text-[11px] text-destructive leading-tight mt-0.5 space-y-0.5">
                         {Number(o.delivery_fee) > 0 && (
                           <div>Taxa de entrega: {brl(Number(o.delivery_fee))}</div>
