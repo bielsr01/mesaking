@@ -141,7 +141,7 @@ export function OrderDetailsDialog({
     queryFn: async () => {
       const { data } = await supabase
         .from("ifood_fee_settings")
-        .select("commission_enabled,commission_pct,card_enabled,card_pct,anticipation_enabled,anticipation_pct")
+        .select("enabled,commission_enabled,commission_pct,card_enabled,card_pct,anticipation_enabled,anticipation_pct")
         .eq("restaurant_id", order!.restaurant_id!)
         .maybeSingle();
       return (data ?? DEFAULT_IFOOD_FEES) as IfoodFeeSettings;
