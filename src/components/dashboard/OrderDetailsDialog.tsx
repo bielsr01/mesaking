@@ -232,7 +232,7 @@ export function OrderDetailsDialog({
                         <span className="font-medium">{it.quantity}× {it.product_name}</span>
                         <span className="tabular-nums">{brl(baseTotal)}</span>
                       </div>
-                      {it.notes && <div className="text-xs italic text-muted-foreground">{it.notes}</div>}
+                      
                       {(() => {
                         const groups: { name: string; items: typeof opts }[] = [];
                         opts.forEach((o) => {
