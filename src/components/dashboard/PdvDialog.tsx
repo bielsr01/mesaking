@@ -458,14 +458,14 @@ export function PdvDialog({
       const cur = prev[g.id] ?? [];
       if (g.max_select === 1) return { ...prev, [g.id]: cur[0] === itemId ? [] : [itemId] };
       if (cur.includes(itemId)) return { ...prev, [g.id]: cur.filter((x) => x !== itemId) };
-      if (cur.length >= g.max_select) return prev;
+      if (cur.length >= g.max_select) { triggerShake(g.id); return prev; }
       return { ...prev, [g.id]: [...cur, itemId] };
     });
   };
   const incPick = (g: OptGroup, itemId: string) => {
     setPickSelected((prev) => {
       const cur = prev[g.id] ?? [];
-      if (cur.length >= g.max_select) return prev;
+      if (cur.length >= g.max_select) { triggerShake(g.id); return prev; }
       return { ...prev, [g.id]: [...cur, itemId] };
     });
   };
