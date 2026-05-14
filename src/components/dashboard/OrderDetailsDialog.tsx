@@ -284,20 +284,24 @@ export function OrderDetailsDialog({
           <section className="rounded-lg border p-3">
             <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Histórico de atualização</div>
             <ol className="space-y-1.5 text-sm">
-              {timeline.map((t, i) => (
-                <li key={i} className="flex items-center gap-2">
-                  <span className={`w-2.5 h-2.5 rounded-full ${
-                    t.status === "cancelled" ? "bg-destructive" :
-                    t.done ? (t.current ? "bg-success" : "bg-primary") : "bg-muted-foreground/30"
-                  }`} />
-                  <span className={t.done ? "" : "text-muted-foreground"}>{t.label}</span>
-                  {t.current && order.updated_at && (
-                    <span className="text-xs text-muted-foreground ml-auto">
-                      {new Date(order.updated_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}
-                    </span>
-                  )}
-                </li>
-              ))}
+              {timeline.map((t, i) => {
+                const isFirst = i === 0;
+                const ts = isFirst ? order.created_at : (t.current ? order.updated_at : null);
+                return (
+                  <li key={i} className="flex items-center gap-2">
+                    <span className={`w-2.5 h-2.5 rounded-full ${
+                      t.status === "cancelled" ? "bg-destructive" :
+                      t.done ? (t.current ? "bg-success" : "bg-primary") : "bg-muted-foreground/30"
+                    }`} />
+                    <span className={t.done ? "" : "text-muted-foreground"}>{t.label}</span>
+                    {ts && (
+                      <span className="text-xs text-muted-foreground ml-auto tabular-nums">
+                        {new Date(ts).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
             </ol>
           </section>
 
