@@ -15,9 +15,10 @@ type ActionBody = {
   orderId?: string;          // local order id (uuid) OR external id
   externalOrderId?: string;  // iFood order id
   restaurantId?: string;
-  action: "confirm" | "startPreparation" | "readyToPickup" | "dispatch" | "cancel";
+  action: "confirm" | "startPreparation" | "readyToPickup" | "dispatch" | "cancel" | "verifyDeliveryCode" | "validatePickupCode";
   cancelCode?: string;
   cancelReason?: string;
+  code?: string;
 };
 
 Deno.serve(async (req) => {
@@ -122,6 +123,14 @@ Deno.serve(async (req) => {
   if (body.action === "cancel") {
     payload.cancelCode = body.cancelCode ?? "501";
     payload.cancelReason = body.cancelReason ?? "Cancelado pelo restaurante";
+  }
+  if (body.action === "verifyDeliveryCode" || body.action === "validatePickupCode") {
+    if (!body.code || !String(body.code).trim()) {
+      return new Response(JSON.stringify({ ok: false, error: "Código obrigatório" }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    payload.code = String(body.code).trim();
   }
 
   console.info("[ifood-action] forwarding", {
