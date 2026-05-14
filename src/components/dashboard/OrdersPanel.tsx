@@ -135,6 +135,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   };
   const [filter, setFilter] = useState(() => firstAllowedStatus(initialChannel, initialChannel === "pdv" ? ["preparing"] : ["pending"]));
   const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
+  const [queroCancelInfoOpen, setQueroCancelInfoOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelCode, setCancelCode] = useState<string>("INTERNAL_DIFFICULTIES_OF_THE_RESTAURANT");
   const [deleteTarget, setDeleteTarget] = useState<Order | null>(null);
