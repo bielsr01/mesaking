@@ -82,7 +82,7 @@ export const FULL_PERMISSIONS: Permissions = {
   supply_orders: { view: true, edit: true },
   stock: { view: true, edit: true },
   expenses: { view: true, edit: true },
-  finance: { view: true },
+  finance: { view: true, view_fee_breakdown: true },
   access_management: { view: true },
 };
 
