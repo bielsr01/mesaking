@@ -135,6 +135,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   };
   const [filter, setFilter] = useState(() => firstAllowedStatus(initialChannel, initialChannel === "pdv" ? ["preparing"] : ["pending"]));
   const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
+  const [queroCancelInfoOpen, setQueroCancelInfoOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelCode, setCancelCode] = useState<string>("INTERNAL_DIFFICULTIES_OF_THE_RESTAURANT");
   const [deleteTarget, setDeleteTarget] = useState<Order | null>(null);
@@ -763,7 +764,21 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                           </a>
                         </Button>
                       ) : null}
-                      <Button size="sm" variant="outline" onClick={() => setCancelTarget(o)} disabled={!!pendingAction[o.id]} aria-label="Cancelar pedido"><X className="w-4 h-4" /></Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          if (o.external_source === "quero") {
+                            setQueroCancelInfoOpen(true);
+                          } else {
+                            setCancelTarget(o);
+                          }
+                        }}
+                        disabled={!!pendingAction[o.id]}
+                        aria-label="Cancelar pedido"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
                     </>
                   )}
                   {canEditOrders && (
@@ -771,8 +786,9 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                       size="sm"
                       variant="outline"
                       onClick={() => setDeleteTarget(o)}
+                      disabled={o.status === "delivered"}
                       aria-label="Excluir pedido permanentemente"
-                      title="Excluir permanentemente"
+                      title={o.status === "delivered" ? "Pedido entregue não pode ser excluído" : "Excluir permanentemente"}
                       className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -861,6 +877,19 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
         </AlertDialogContent>
       </AlertDialog>
 
+      <AlertDialog open={queroCancelInfoOpen} onOpenChange={setQueroCancelInfoOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelamento indisponível por aqui</AlertDialogTitle>
+            <AlertDialogDescription>
+              O cancelamento de pedidos do <strong>Quero Delivery</strong> só pode ser feito diretamente pelo <strong>painel do gestor de pedidos do Quero</strong>. Acesse o painel da Quero para concluir o cancelamento — o status será atualizado automaticamente aqui em seguida.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setQueroCancelInfoOpen(false)}>Entendi</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <AlertDialogContent>
