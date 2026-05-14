@@ -552,11 +552,16 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
           </TabsList>
         </Tabs>
 
-        {channel === "pdv" && canCreatePdv && (
-          <Button onClick={() => setPdvOpen(true)} className="gap-2">
-            <Plus className="w-4 h-4" /> Novo pedido PDV
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setHistoryOpen(true)} className="gap-2">
+            <History className="w-4 h-4" /> Histórico de Pedidos
           </Button>
-        )}
+          {channel === "pdv" && canCreatePdv && (
+            <Button onClick={() => setPdvOpen(true)} className="gap-2">
+              <Plus className="w-4 h-4" /> Novo pedido PDV
+            </Button>
+          )}
+        </div>
       </div>
 
       {channel === "ifood" && (
