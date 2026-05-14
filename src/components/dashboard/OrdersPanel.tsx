@@ -556,7 +556,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
           <Button variant="outline" onClick={() => setHistoryOpen(true)} className="gap-2">
             <History className="w-4 h-4" /> Histórico de Pedidos
           </Button>
-          {channel === "pdv" && canCreatePdv && (
+          {canCreatePdv && (
             <Button onClick={() => setPdvOpen(true)} className="gap-2">
               <Plus className="w-4 h-4" /> Novo pedido PDV
             </Button>
