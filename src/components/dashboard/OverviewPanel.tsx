@@ -185,9 +185,10 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
     const s = feesQ.data?.get(o.restaurant_id);
     if (!s) return 0;
     const base = Math.max(0, Number(o.subtotal || 0) + Number(o.delivery_fee || 0) - Number(o.merchant_subsidy || 0));
+    const isOnline = (o.payment_method ?? "").toLowerCase() === "online";
     let pct = 0;
     if (s.commission_enabled) pct += Number(s.commission_pct || 0);
-    if (s.card_enabled) pct += Number(s.card_pct || 0);
+    if (s.card_enabled && isOnline) pct += Number(s.card_pct || 0);
     if (s.anticipation_enabled) pct += Number(s.anticipation_pct || 0);
     return (base * pct) / 100;
   };

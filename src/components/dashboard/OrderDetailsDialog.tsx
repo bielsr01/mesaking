@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { brl, orderStatusLabel, getNextStatus, paymentLabel, formatPhone, formatIfoodPhone } from "@/lib/format";
+import { calcIfoodReceivable, DEFAULT_IFOOD_FEES, type IfoodFeeSettings } from "@/lib/ifoodFees";
 import { MapPin, Navigation, Phone, MessageCircle, Printer, Trash2, X, User, Clock, CornerDownRight } from "lucide-react";
 
 interface OrderLike {
@@ -33,6 +34,9 @@ interface OrderLike {
   delivery_latitude: number | null;
   delivery_longitude: number | null;
   external_source?: string | null;
+  restaurant_id?: string;
+  merchant_subsidy?: number | null;
+  ifood_subsidy?: number | null;
 }
 
 interface ItemLike {
@@ -128,6 +132,20 @@ export function OrderDetailsDialog({
     },
   });
   const history = historyQuery.data ?? [];
+
+  const isIfood = order?.external_source === "ifood";
+  const feeSettingsQuery = useQuery({
+    queryKey: ["ifood-fee-settings", order?.restaurant_id],
+    enabled: !!order && isIfood && !!order?.restaurant_id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("ifood_fee_settings")
+        .select("commission_enabled,commission_pct,card_enabled,card_pct,anticipation_enabled,anticipation_pct")
+        .eq("restaurant_id", order!.restaurant_id!)
+        .maybeSingle();
+      return (data ?? DEFAULT_IFOOD_FEES) as IfoodFeeSettings;
+    },
+  });
 
   if (!order) return null;
 
@@ -353,6 +371,68 @@ export function OrderDetailsDialog({
               )}
             </section>
           </div>
+
+          {/* Detalhamento financeiro iFood */}
+          {isIfood && (() => {
+            const settings = feeSettingsQuery.data ?? DEFAULT_IFOOD_FEES;
+            const breakdown = calcIfoodReceivable(order, settings);
+            const itemsTotal = Number(order.subtotal ?? 0);
+            const delivery = Number(order.delivery_fee ?? 0);
+            const gross = itemsTotal + delivery;
+            return (
+              <section className="rounded-lg border p-3 space-y-1.5 text-sm bg-muted/30">
+                <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
+                  Detalhamento financeiro (iFood)
+                </div>
+                <div className="flex justify-between"><span>Valor itens:</span><span className="tabular-nums">{brl(itemsTotal)}</span></div>
+                {delivery > 0 && (
+                  <div className="flex justify-between"><span>Taxa de entrega:</span><span className="tabular-nums">{brl(delivery)}</span></div>
+                )}
+                <div className="flex justify-between border-t pt-1.5 mt-1">
+                  <span className="text-muted-foreground">Valor bruto:</span>
+                  <span className="tabular-nums">{brl(gross)}</span>
+                </div>
+                {breakdown.ifoodSubsidy > 0 && (
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Cupom iFood (não afeta repasse):</span>
+                    <span className="tabular-nums">- {brl(breakdown.ifoodSubsidy)}</span>
+                  </div>
+                )}
+                {breakdown.merchantSubsidy > 0 && (
+                  <div className="flex justify-between text-destructive">
+                    <span>Cupom da loja:</span>
+                    <span className="tabular-nums">- {brl(breakdown.merchantSubsidy)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between border-t pt-1.5 mt-1">
+                  <span className="font-medium">Base de cálculo das taxas:</span>
+                  <span className="tabular-nums font-medium">{brl(breakdown.base)}</span>
+                </div>
+                {breakdown.fees.map((f) => (
+                  <div key={f.key} className="flex justify-between">
+                    <span>{f.label} ({f.pct.toString().replace(".", ",")}%):</span>
+                    <span className="tabular-nums">- {brl(f.value)}</span>
+                  </div>
+                ))}
+                {breakdown.fees.length === 0 && (
+                  <div className="text-xs text-muted-foreground italic">Nenhuma taxa aplicável.</div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Total taxas:</span>
+                  <span className="tabular-nums text-muted-foreground">- {brl(breakdown.totalFees)}</span>
+                </div>
+                {Number(order.service_fee ?? 0) > 0 && (
+                  <div className="text-xs text-muted-foreground italic pt-0.5">
+                    Taxa de serviço de {brl(Number(order.service_fee))} é cobrada do cliente pelo iFood e não entra no repasse.
+                  </div>
+                )}
+                <div className="border-t pt-2 mt-1 flex justify-between items-center">
+                  <span className="font-semibold">Repasse líquido final:</span>
+                  <span className="text-lg font-bold tabular-nums text-success">{brl(breakdown.net)}</span>
+                </div>
+              </section>
+            );
+          })()}
 
           {/* Histórico de status */}
           <section className="rounded-lg border p-3">
