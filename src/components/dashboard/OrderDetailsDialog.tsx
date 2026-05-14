@@ -113,6 +113,20 @@ export function OrderDetailsDialog({
     },
   });
 
+  const { data: history = [] } = useQuery({
+    queryKey: ["order-status-history", order?.id],
+    enabled: !!order,
+    refetchInterval: 5000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("order_status_history")
+        .select("status,changed_at")
+        .eq("order_id", order!.id)
+        .order("changed_at", { ascending: true });
+      return (data ?? []) as { status: string; changed_at: string }[];
+    },
+  });
+
   if (!order) return null;
   const next = getNextStatus(order.status, order.order_type as any);
   const isPdv = order.order_type === "pdv";
