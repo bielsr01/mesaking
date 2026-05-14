@@ -167,6 +167,7 @@ const LEGACY_INHERIT_FROM_PARENT: string[] = [
   ...IFOOD_STATUSES.map((s) => `orders.statuses.ifood.${s}`),
   ...QUERO_STATUSES.map((s) => `orders.statuses.quero.${s}`),
   "orders.channels.quero",
+  "finance.view_fee_breakdown",
 ];
 
 // Para chaves legadas onde queremos herdar de outro nó (não o "parent" das dependências).
