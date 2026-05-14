@@ -392,9 +392,11 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     setPending(o.id, false);
   };
 
-  const cancel = async (o: Order) => {
+  const cancel = async (o: Order, opts?: { cancelReason?: string; cancelCode?: string }) => {
     if (!canChangeStatus) return toast.error("Sem permissão para cancelar pedido");
     if (pendingAction[o.id]) return;
+    const reason = opts?.cancelReason?.trim() || "Cancelado pelo restaurante";
+    const code = opts?.cancelCode || "INTERNAL_DIFFICULTIES_OF_THE_RESTAURANT";
     setPending(o.id, true);
     const prevStatus = o.status;
     patchOrder(o.id, { status: "cancelled" });
