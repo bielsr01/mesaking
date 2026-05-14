@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { brl, orderStatusLabel, getNextStatus, paymentLabel, formatPhone, formatIfoodPhone } from "@/lib/format";
+import { calcIfoodReceivable, DEFAULT_IFOOD_FEES, type IfoodFeeSettings } from "@/lib/ifoodFees";
 import { MapPin, Navigation, Phone, MessageCircle, Printer, Trash2, X, User, Clock, CornerDownRight } from "lucide-react";
 
 interface OrderLike {
