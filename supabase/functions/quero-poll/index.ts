@@ -170,6 +170,30 @@ async function ingestOrder(integration: any, ev: any) {
   if (items.length) {
     await supabase.from("order_items").insert(items.map((it) => ({ order_id: inserted.id, ...it })));
   }
+
+  // Seed order_status_history with any prior Quero events for this order
+  // (status changes that happened before the order was created locally).
+  const { data: priorEvents } = await supabase
+    .from("quero_events")
+    .select("status, created_at")
+    .eq("restaurant_id", integration.restaurant_id)
+    .eq("order_id", orderId)
+    .order("created_at", { ascending: true });
+  if (priorEvents && priorEvents.length) {
+    const seen = new Set<string>();
+    const rows: { order_id: string; status: string; changed_at: string; source: string }[] = [];
+    for (const ev2 of priorEvents) {
+      const mapped = mapStatus(ev2.status);
+      if (!mapped || seen.has(mapped)) continue;
+      seen.add(mapped);
+      rows.push({ order_id: inserted.id, status: mapped, changed_at: ev2.created_at, source: "quero" });
+    }
+    if (rows.length) {
+      // Trigger already inserted current status; avoid duplicates by deleting and reinserting in order.
+      await supabase.from("order_status_history").delete().eq("order_id", inserted.id);
+      await supabase.from("order_status_history").insert(rows);
+    }
+  }
 }
 
 async function pollOne(integration: any) {
