@@ -103,30 +103,25 @@ function extractChangeFor(od: any): number | null {
   return isFinite(n) && n > 0 ? n : null;
 }
 
-// Itens com sub-itens (grupos de opções) achatados na coluna notes
+// Itens com sub-itens (grupos de opções) — agora também devolve options estruturadas
+type IfoodOptRow = { group_name: string; item_name: string; extra_price: number };
 function buildItemsForOrderItems(od: any) {
   const items = Array.isArray(od?.items) ? od.items : [];
-  const collectOpt = (s: any, depth: number, acc: string[]) => {
-    const qty = s.quantity ? `${s.quantity}× ` : "";
-    const indent = depth > 0 ? "  ".repeat(depth) + "↳ " : "";
-    acc.push(`${indent}${qty}${s.name ?? ""}`.trim());
-    if (Array.isArray(s.customizations)) {
-      s.customizations.forEach((c: any) => collectOpt(c, depth + 1, acc));
-    }
-    if (Array.isArray(s.options)) {
-      s.options.forEach((c: any) => collectOpt(c, depth + 1, acc));
-    }
+  const collectOpts = (s: any, parentGroup: string | null, acc: IfoodOptRow[]) => {
+    const qty = Number(s?.quantity ?? 1) || 1;
+    const groupName = s?.groupName ?? parentGroup ?? "Itens";
+    // price unitário do complemento (preferir addition/unitPrice, fallback price/qty)
+    const unit = Number(s?.addition ?? s?.unitPrice ?? (Number(s?.price ?? 0) / Math.max(qty, 1))) || 0;
+    const name = s?.name ? `${qty > 1 ? `${qty}× ` : ""}${s.name}` : "";
+    if (name) acc.push({ group_name: groupName, item_name: name, extra_price: unit });
+    if (Array.isArray(s?.customizations)) s.customizations.forEach((c: any) => collectOpts(c, groupName, acc));
+    if (Array.isArray(s?.options)) s.options.forEach((c: any) => collectOpts(c, groupName, acc));
   };
   return items.map((it: any) => {
-    const subs: string[] = [];
-    if (Array.isArray(it.subItems)) it.subItems.forEach((s: any) => collectOpt(s, 0, subs));
-    if (Array.isArray(it.options)) it.options.forEach((s: any) => collectOpt(s, 0, subs));
-    const notesParts: string[] = [];
-    if (subs.length) notesParts.push(subs.join(" • "));
-    if (it.observations) notesParts.push(it.observations);
-    // Preço unitário considerando complementos/customizações:
-    // iFood já fornece totalPrice (preço total da linha incluindo opções).
-    // Dividimos pela quantidade para obter o unitário "cheio".
+    const opts: IfoodOptRow[] = [];
+    if (Array.isArray(it.subItems)) it.subItems.forEach((s: any) => collectOpts(s, null, opts));
+    if (Array.isArray(it.options)) it.options.forEach((s: any) => collectOpts(s, null, opts));
+    if (Array.isArray(it.customizations)) it.customizations.forEach((s: any) => collectOpts(s, null, opts));
     const qty = Number(it.quantity ?? 1) || 1;
     const total = Number(it.totalPrice ?? 0);
     const optionsPrice = Number(it.optionsPrice ?? 0);
@@ -137,7 +132,8 @@ function buildItemsForOrderItems(od: any) {
       product_name: it.name ?? "Item",
       unit_price: unitFromTotal,
       quantity: qty,
-      notes: notesParts.length ? notesParts.join(" — ") : null,
+      notes: it.observations ? String(it.observations) : null,
+      _options: opts,
     };
   });
 }
@@ -227,11 +223,19 @@ async function handlePlaced(integration: any, ev: IHubEvent) {
     .single();
   if (error) throw error;
 
-  // Insert order_items
+  // Insert order_items + order_item_options
   const items = buildItemsForOrderItems(od);
   if (items.length) {
-    const rows = items.map((it) => ({ order_id: data.id, ...it }));
-    await supabase.from("order_items").insert(rows);
+    const rows = items.map(({ _options, ...it }) => ({ order_id: data.id, ...it }));
+    const { data: inserted } = await supabase.from("order_items").insert(rows).select("id");
+    if (inserted) {
+      const optRows: any[] = [];
+      inserted.forEach((row: any, idx: number) => {
+        const opts = items[idx]?._options ?? [];
+        opts.forEach((o) => optRows.push({ order_item_id: row.id, group_name: o.group_name, item_name: o.item_name, extra_price: o.extra_price }));
+      });
+      if (optRows.length) await supabase.from("order_item_options").insert(optRows);
+    }
   }
   return data.id;
 }
