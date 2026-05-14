@@ -13,7 +13,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { brl, formatPhone, unmaskPhone } from "@/lib/format";
-import { Plus, Minus, Search, Trash2, ShoppingCart, X, UserPlus, UserCheck, Tag, Percent, Printer, Image as ImageIcon } from "lucide-react";
+import { Plus, Minus, Search, Trash2, ShoppingCart, X, UserPlus, UserCheck, Tag, Percent, Printer, Image as ImageIcon, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { fetchCategories, fetchProducts, menuKeys } from "./MenuManager";
 import { ordersKey } from "./OrdersPanel";
@@ -140,6 +140,11 @@ export function PdvDialog({
   const [pickProduct, setPickProduct] = useState<typeof products[number] | null>(null);
   const [pickSelected, setPickSelected] = useState<Record<string, string[]>>({});
   const [pickQty, setPickQty] = useState(1);
+  const [shakeGroupId, setShakeGroupId] = useState<string | null>(null);
+  const triggerShake = (gid: string) => {
+    setShakeGroupId(gid);
+    setTimeout(() => setShakeGroupId(null), 600);
+  };
   const [pickNotes, setPickNotes] = useState("");
 
   // Restore draft
@@ -453,14 +458,14 @@ export function PdvDialog({
       const cur = prev[g.id] ?? [];
       if (g.max_select === 1) return { ...prev, [g.id]: cur[0] === itemId ? [] : [itemId] };
       if (cur.includes(itemId)) return { ...prev, [g.id]: cur.filter((x) => x !== itemId) };
-      if (cur.length >= g.max_select) return prev;
+      if (cur.length >= g.max_select) { triggerShake(g.id); return prev; }
       return { ...prev, [g.id]: [...cur, itemId] };
     });
   };
   const incPick = (g: OptGroup, itemId: string) => {
     setPickSelected((prev) => {
       const cur = prev[g.id] ?? [];
-      if (cur.length >= g.max_select) return prev;
+      if (cur.length >= g.max_select) { triggerShake(g.id); return prev; }
       return { ...prev, [g.id]: [...cur, itemId] };
     });
   };
@@ -803,9 +808,9 @@ export function PdvDialog({
                   : `Mín ${g.min_select} • Máx ${g.max_select}`;
                 return (
                   <div key={g.id} className="border rounded-md">
-                    <div className="px-3 py-2 bg-muted/50 flex items-center justify-between">
+                    <div className={`px-3 py-2 bg-muted/50 flex items-center justify-between ${shakeGroupId === g.id ? "animate-shake" : ""}`}>
                       <div className="font-medium text-sm">{g.name}</div>
-                      <Badge variant={g.min_select > 0 ? "default" : "outline"} className="text-[10px]">{rule}</Badge>
+                      <Badge variant={g.min_select > 0 ? "default" : "outline"} className={`text-[10px] ${shakeGroupId === g.id ? "bg-destructive text-destructive-foreground" : ""}`}>{rule}</Badge>
                     </div>
                     <div className="p-2 space-y-1">
                       {g.items.map((it) => {
@@ -814,7 +819,7 @@ export function PdvDialog({
                         const repeatable = g.allow_repeat && g.max_select > 1;
                         if (repeatable) {
                           return (
-                            <div key={it.id} className={`flex items-center gap-2 px-2 py-2 rounded ${checked ? "bg-muted" : ""}`}>
+                            <div key={it.id} className={`flex items-center gap-2 px-2 py-2 rounded border ${checked ? "border-primary bg-accent/30" : "border-transparent"}`}>
                               <span className="flex-1 text-sm">{it.name}</span>
                               {it.extra_price > 0 && <span className="text-xs text-primary font-semibold">+ {brl(it.extra_price)}</span>}
                               {count > 0 ? (
@@ -830,16 +835,16 @@ export function PdvDialog({
                           );
                         }
                         return (
-                          <label key={it.id} className={`flex items-center gap-2 px-2 py-2 rounded cursor-pointer hover:bg-muted ${checked ? "bg-muted" : ""}`}>
-                            <input
-                              type={g.max_select === 1 ? "radio" : "checkbox"}
-                              name={`grp-${g.id}`}
-                              checked={checked}
-                              onChange={() => togglePick(g, it.id)}
-                            />
+                          <button
+                            key={it.id}
+                            type="button"
+                            onClick={() => togglePick(g, it.id)}
+                            className={`w-full flex items-center gap-2 px-2 py-2 rounded border text-left transition-colors hover:bg-muted ${checked ? "border-primary bg-accent/30" : "border-transparent"}`}
+                          >
                             <span className="flex-1 text-sm">{it.name}</span>
                             {it.extra_price > 0 && <span className="text-xs text-primary font-semibold">+ {brl(it.extra_price)}</span>}
-                          </label>
+                            {checked && <CheckCircle2 className="w-5 h-5 text-success flex-shrink-0" strokeWidth={2.5} />}
+                          </button>
                         );
                       })}
                     </div>

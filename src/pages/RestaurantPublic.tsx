@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ShoppingCart, Plus, Minus, Image as ImageIcon, Trash2, Info, MapPin, Clock, Bike, Store, Share2, MessageCircle, Instagram, Facebook } from "lucide-react";
+import { ShoppingCart, Plus, Minus, Image as ImageIcon, Trash2, Info, MapPin, Clock, Bike, Store, Share2, MessageCircle, Instagram, Facebook, CheckCircle2 } from "lucide-react";
 import { useCart, CartItemOption } from "@/hooks/useCart";
 import { brl } from "@/lib/format";
 import { Checkout } from "@/components/Checkout";
@@ -577,13 +577,12 @@ export default function RestaurantPublic() {
                             );
                           }
                           return (
-                            <label key={it.id} className={`flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer hover:bg-muted ${checked ? "border-primary bg-accent/30" : ""}`}>
-                              <input
-                                type={g.max_select === 1 ? "radio" : "checkbox"}
-                                name={`grp-${g.id}`}
-                                checked={checked}
-                                onChange={() => toggleOpt(g, it.id)}
-                              />
+                            <button
+                              key={it.id}
+                              type="button"
+                              onClick={() => toggleOpt(g, it.id)}
+                              className={`w-full flex items-center gap-3 p-2.5 rounded-lg border text-left transition-colors hover:bg-muted ${checked ? "border-primary bg-accent/30" : ""}`}
+                            >
                               {it.image_url && (
                                 <img src={it.image_url} alt={it.name} loading="lazy" className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg object-cover border flex-shrink-0" />
                               )}
@@ -591,7 +590,8 @@ export default function RestaurantPublic() {
                               {it.extra_price > 0 && (
                                 <span className="text-sm font-semibold text-primary">+ {brl(it.extra_price)}</span>
                               )}
-                            </label>
+                              {checked && <CheckCircle2 className="w-5 h-5 text-success flex-shrink-0" strokeWidth={2.5} />}
+                            </button>
                           );
                         })}
                       </div>
