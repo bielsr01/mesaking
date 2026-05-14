@@ -791,7 +791,16 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
       </>
       )}
 
-      <AlertDialog open={!!cancelTarget} onOpenChange={(o) => !o && setCancelTarget(null)}>
+      <AlertDialog
+        open={!!cancelTarget}
+        onOpenChange={(o) => {
+          if (!o) {
+            setCancelTarget(null);
+            setCancelReason("");
+            setCancelCode("INTERNAL_DIFFICULTIES_OF_THE_RESTAURANT");
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Cancelar este pedido?</AlertDialogTitle>
@@ -801,17 +810,60 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
+
+          {cancelTarget?.external_source === "quero" && (
+            <div className="space-y-3 py-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="cancel-code">Motivo do cancelamento</Label>
+                <Select value={cancelCode} onValueChange={setCancelCode}>
+                  <SelectTrigger id="cancel-code"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="INTERNAL_DIFFICULTIES_OF_THE_RESTAURANT">Dificuldades internas do restaurante</SelectItem>
+                    <SelectItem value="SYSTEMIC_ISSUES">Problemas sistêmicos</SelectItem>
+                    <SelectItem value="DUPLICATE_APPLICATION">Pedido duplicado</SelectItem>
+                    <SelectItem value="UNAVAILABLE_ITEM">Item indisponível</SelectItem>
+                    <SelectItem value="RESTAURANT_WITHOUT_DELIVERY_MAN">Sem entregador disponível</SelectItem>
+                    <SelectItem value="OUTDATED_MENU">Cardápio desatualizado</SelectItem>
+                    <SelectItem value="ORDER_OUTSIDE_THE_DELIVERY_AREA">Pedido fora da área de entrega</SelectItem>
+                    <SelectItem value="BLOCKED_CUSTOMER">Cliente bloqueado</SelectItem>
+                    <SelectItem value="OUTSIDE_DELIVERY_HOURS">Fora do horário de entrega</SelectItem>
+                    <SelectItem value="RISK_AREA">Área de risco</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="cancel-reason">Descrição (opcional)</Label>
+                <Textarea
+                  id="cancel-reason"
+                  placeholder="Detalhe o motivo do cancelamento"
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            </div>
+          )}
+
           <AlertDialogFooter>
             <AlertDialogCancel>Voltar</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => { if (cancelTarget) { cancel(cancelTarget); setCancelTarget(null); } }}
+              onClick={() => {
+                if (cancelTarget) {
+                  const isQuero = cancelTarget.external_source === "quero";
+                  cancel(cancelTarget, isQuero ? { cancelReason, cancelCode } : undefined);
+                  setCancelTarget(null);
+                  setCancelReason("");
+                  setCancelCode("INTERNAL_DIFFICULTIES_OF_THE_RESTAURANT");
+                }
+              }}
             >
               Sim, cancelar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <AlertDialogContent>
