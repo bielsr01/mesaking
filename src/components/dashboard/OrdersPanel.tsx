@@ -950,6 +950,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
         pending={detailsTarget ? !!pendingAction[detailsTarget.id] : false}
         canChangeStatus={canChangeStatus}
         canEditOrders={canEditOrders}
+        canViewFeeBreakdown={canViewFeeBreakdown}
       />
 
       <PdvDialog open={pdvOpen} onOpenChange={setPdvOpen} restaurantId={restaurantId} />
