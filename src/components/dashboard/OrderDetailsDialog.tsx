@@ -226,6 +226,29 @@ export function OrderDetailsDialog({
                   const extrasPerUnit = opts.reduce((s, o) => s + Number(o.extra_price ?? 0), 0);
                   const baseUnit = Number(it.unit_price) - extrasPerUnit;
                   const baseTotal = baseUnit * it.quantity;
+
+                  // Fallback: parse notes string when no structured options exist (legacy iFood orders)
+                  type ParsedOpt = { id: string; group_name: string; item_name: string; extra_price: number };
+                  let parsedFromNotes: ParsedOpt[] = [];
+                  if (opts.length === 0 && it.notes) {
+                    const parts = String(it.notes).split(/\s+•\s+/);
+                    let currentGroup = "Adicionais";
+                    parts.forEach((raw, i) => {
+                      const isSub = /^↳\s*/.test(raw);
+                      const clean = raw.replace(/^↳\s*/, "").trim();
+                      if (!clean) return;
+                      parsedFromNotes.push({
+                        id: `${it.id}-n-${i}`,
+                        group_name: isSub ? "Customizações" : currentGroup,
+                        item_name: clean,
+                        extra_price: 0,
+                      });
+                    });
+                  }
+
+                  const allOpts: { id: string; group_name: string | null; item_name: string | null; extra_price: number }[] =
+                    opts.length ? opts : parsedFromNotes;
+
                   return (
                     <div key={it.id} className="border-b last:border-b-0 pb-2 last:pb-0">
                       <div className="flex justify-between gap-2">
@@ -234,8 +257,8 @@ export function OrderDetailsDialog({
                       </div>
                       
                       {(() => {
-                        const groups: { name: string; items: typeof opts }[] = [];
-                        opts.forEach((o) => {
+                        const groups: { name: string; items: typeof allOpts }[] = [];
+                        allOpts.forEach((o) => {
                           const gName = o.group_name ?? "Opção";
                           let g = groups.find((x) => x.name === gName);
                           if (!g) { g = { name: gName, items: [] }; groups.push(g); }
