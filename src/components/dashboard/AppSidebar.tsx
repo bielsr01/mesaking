@@ -218,8 +218,34 @@ export function AppSidebar({
                 </SidebarMenuItem>
               )}
 
-              {showSettings && visibleSettings.length > 0 && (
-                <Collapsible open={settingsOpen || collapsed} onOpenChange={setSettingsOpen} asChild>
+              {showSettings && visibleSettings.length > 0 && (collapsed ? (
+                <SidebarMenuItem>
+                  <HoverCard openDelay={80} closeDelay={120}>
+                    <HoverCardTrigger asChild>
+                      <SidebarMenuButton isActive={settingsActive} tooltip="Configurações">
+                        <Settings className="h-4 w-4" />
+                        <span>Configurações</span>
+                        <ChevronRight className="ml-auto h-3 w-3 opacity-60" />
+                      </SidebarMenuButton>
+                    </HoverCardTrigger>
+                    <HoverCardContent side="right" align="start" sideOffset={8} className="w-60 p-1">
+                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Configurações</div>
+                      {visibleSettings.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => onChange(item.id)}
+                          className={cn("w-full flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground", active === item.id && "bg-accent text-accent-foreground")}
+                        >
+                          <item.icon className="h-4 w-4" />
+                          <span>{item.title}</span>
+                        </button>
+                      ))}
+                    </HoverCardContent>
+                  </HoverCard>
+                </SidebarMenuItem>
+              ) : (
+                <Collapsible open={settingsOpen} onOpenChange={setSettingsOpen} asChild>
                   <SidebarMenuItem>
                     <CollapsibleTrigger asChild>
                       <SidebarMenuButton isActive={settingsActive} tooltip="Configurações">
@@ -244,7 +270,7 @@ export function AppSidebar({
                     </CollapsibleContent>
                   </SidebarMenuItem>
                 </Collapsible>
-              )}
+              ))}
 
               {showSupply && (
                 <SidebarMenuItem>
