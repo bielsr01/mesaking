@@ -136,6 +136,7 @@ export function OrderDetailsDialog({
   const history = historyQuery.data ?? [];
 
   const isIfood = order?.external_source === "ifood";
+  const isQuero = order?.external_source === "quero";
   const feeSettingsQuery = useQuery({
     queryKey: ["ifood-fee-settings", order?.restaurant_id],
     enabled: !!order && isIfood && !!order?.restaurant_id,
@@ -146,6 +147,18 @@ export function OrderDetailsDialog({
         .eq("restaurant_id", order!.restaurant_id!)
         .maybeSingle();
       return (data ?? DEFAULT_IFOOD_FEES) as IfoodFeeSettings;
+    },
+  });
+  const queroFeeSettingsQuery = useQuery({
+    queryKey: ["quero-fee-settings", order?.restaurant_id],
+    enabled: !!order && isQuero && !!order?.restaurant_id,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("quero_fee_settings")
+        .select("enabled,commission_enabled,commission_pct,online_payment_enabled,online_payment_pct")
+        .eq("restaurant_id", order!.restaurant_id!)
+        .maybeSingle();
+      return (data ?? DEFAULT_QUERO_FEES) as QueroFeeSettings;
     },
   });
 
