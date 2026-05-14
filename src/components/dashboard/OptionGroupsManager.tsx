@@ -415,6 +415,16 @@ function GroupDialog({
             Dica: mín 1 / máx 1 = obrigatório escolher 1. Mín 0 / máx 3 = opcional, até 3.
           </div>
 
+          <div className="flex items-start justify-between gap-3 rounded-md border p-3">
+            <div className="space-y-0.5">
+              <Label className="text-sm">Permitir repetir o mesmo item</Label>
+              <p className="text-xs text-muted-foreground">
+                Quando ativo, o cliente pode escolher o mesmo item mais de uma vez (respeitando o máximo).
+              </p>
+            </div>
+            <Switch checked={allowRepeat} onCheckedChange={setAllowRepeat} />
+          </div>
+
           <div className="space-y-2">
             <Label>Itens</Label>
             <p className="text-xs text-muted-foreground">A foto é opcional e aparece para o cliente no cardápio.</p>
