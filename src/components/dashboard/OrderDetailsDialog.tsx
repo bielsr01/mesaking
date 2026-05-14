@@ -98,11 +98,12 @@ interface Props {
   pending?: boolean;
   canChangeStatus: boolean;
   canEditOrders: boolean;
+  canViewFeeBreakdown?: boolean;
 }
 
 export function OrderDetailsDialog({
   order, items, onClose, onAdvance, onCancel, onDelete, onPrint,
-  pending, canChangeStatus, canEditOrders,
+  pending, canChangeStatus, canEditOrders, canViewFeeBreakdown = true,
 }: Props) {
   const optionsQuery = useQuery({
     queryKey: ["order-item-options", order?.id],
@@ -140,7 +141,7 @@ export function OrderDetailsDialog({
     queryFn: async () => {
       const { data } = await supabase
         .from("ifood_fee_settings")
-        .select("commission_enabled,commission_pct,card_enabled,card_pct,anticipation_enabled,anticipation_pct")
+        .select("enabled,commission_enabled,commission_pct,card_enabled,card_pct,anticipation_enabled,anticipation_pct")
         .eq("restaurant_id", order!.restaurant_id!)
         .maybeSingle();
       return (data ?? DEFAULT_IFOOD_FEES) as IfoodFeeSettings;
@@ -373,8 +374,9 @@ export function OrderDetailsDialog({
           </div>
 
           {/* Detalhamento financeiro iFood */}
-          {isIfood && (() => {
+          {isIfood && canViewFeeBreakdown && (() => {
             const settings = feeSettingsQuery.data ?? DEFAULT_IFOOD_FEES;
+            if (settings.enabled === false) return null;
             const breakdown = calcIfoodReceivable(order, settings);
             const itemsTotal = Number(order.subtotal ?? 0);
             const delivery = Number(order.delivery_fee ?? 0);

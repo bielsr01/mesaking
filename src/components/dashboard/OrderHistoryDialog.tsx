@@ -13,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Skeleton } from "@/components/ui/skeleton";
 import { brl, formatPhone, formatIfoodPhone, orderStatusLabel } from "@/lib/format";
 import { OrderDetailsDialog } from "./OrderDetailsDialog";
+import { usePermissions } from "@/hooks/usePermissions";
 import { cn } from "@/lib/utils";
 
 type Channel = "all" | "delivery" | "pdv" | "ifood" | "quero";
@@ -83,6 +84,8 @@ export function OrderHistoryDialog({
   const [customTo, setCustomTo] = useState<Date | undefined>();
   const [search, setSearch] = useState("");
   const [detailsTarget, setDetailsTarget] = useState<Order | null>(null);
+  const { can } = usePermissions(restaurantId);
+  const canViewFeeBreakdown = can("finance.view_fee_breakdown");
 
   const range = useMemo(() => rangeFor(dateKind, customFrom, customTo), [dateKind, customFrom, customTo]);
 
@@ -290,6 +293,7 @@ export function OrderHistoryDialog({
         pending={false}
         canChangeStatus={false}
         canEditOrders={false}
+        canViewFeeBreakdown={canViewFeeBreakdown}
       />
     </>
   );

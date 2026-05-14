@@ -9,6 +9,7 @@
 // - Recebimento líquido = Base - soma das taxas.
 
 export type IfoodFeeSettings = {
+  enabled: boolean;
   commission_enabled: boolean;
   commission_pct: number;
   card_enabled: boolean;
@@ -18,6 +19,7 @@ export type IfoodFeeSettings = {
 };
 
 export const DEFAULT_IFOOD_FEES: IfoodFeeSettings = {
+  enabled: true,
   commission_enabled: true,
   commission_pct: 0,
   card_enabled: true,
@@ -61,6 +63,9 @@ export function calcIfoodReceivable(
   const base = Math.max(0, subtotal + delivery - merchantSubsidy);
 
   const s = settings ?? DEFAULT_IFOOD_FEES;
+  if (s.enabled === false) {
+    return { base, fees: [], totalFees: 0, net: base, merchantSubsidy, ifoodSubsidy };
+  }
   const isOnline = (order.payment_method ?? "").toLowerCase() === "online";
   const fees: IfoodFeeBreakdownItem[] = [];
   if (s.commission_enabled && s.commission_pct > 0) {

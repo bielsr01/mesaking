@@ -123,6 +123,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const canQuero = can("orders.channels.quero");
   const canChangeStatus = can("orders.change_status");
   const canEditOrders = can("orders.edit");
+  const canViewFeeBreakdown = can("finance.view_fee_breakdown");
   const canCreatePdv = can("orders.create_pdv_order");
   type Channel = "delivery" | "pdv" | "ifood" | "quero";
   const initialChannel: Channel = canPdv ? "pdv" : canDelivery ? "delivery" : canIfood ? "ifood" : canQuero ? "quero" : "pdv";
@@ -949,6 +950,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
         pending={detailsTarget ? !!pendingAction[detailsTarget.id] : false}
         canChangeStatus={canChangeStatus}
         canEditOrders={canEditOrders}
+        canViewFeeBreakdown={canViewFeeBreakdown}
       />
 
       <PdvDialog open={pdvOpen} onOpenChange={setPdvOpen} restaurantId={restaurantId} />

@@ -36,6 +36,7 @@ export function AdminIfoodFeesPanel() {
       const { data } = await sb.from("ifood_fee_settings").select("*").eq("restaurant_id", restaurantId).maybeSingle();
       if (data) {
         setSettings({
+          enabled: data.enabled !== false,
           commission_enabled: !!data.commission_enabled,
           commission_pct: Number(data.commission_pct ?? 0),
           card_enabled: !!data.card_enabled,
@@ -103,6 +104,15 @@ export function AdminIfoodFeesPanel() {
             <div className="text-sm text-muted-foreground">Carregando...</div>
           ) : (
             <div className="space-y-3">
+              <div className="rounded-lg border p-3 flex items-center justify-between gap-3 bg-muted/30">
+                <div>
+                  <div className="font-medium">Ativar Detalhamento de Taxas</div>
+                  <div className="text-xs text-muted-foreground">
+                    Quando desativado, o sistema não mostra a tabela de detalhamento e não desconta as taxas no faturamento líquido (líquido = faturado).
+                  </div>
+                </div>
+                <Switch checked={settings.enabled} onCheckedChange={(v) => setSettings((s) => ({ ...s, enabled: v }))} />
+              </div>
               {feeRows.map((row) => {
                 const enabledKey = `${row.key}_enabled` as keyof IfoodFeeSettings;
                 const pctKey = `${row.key}_pct` as keyof IfoodFeeSettings;

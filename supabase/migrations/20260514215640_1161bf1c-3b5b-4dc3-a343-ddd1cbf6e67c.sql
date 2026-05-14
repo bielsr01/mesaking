@@ -1,0 +1,2 @@
+ALTER TABLE public.ifood_fee_settings ADD COLUMN IF NOT EXISTS enabled boolean NOT NULL DEFAULT true;
+ALTER TABLE public.quero_fee_settings ADD COLUMN IF NOT EXISTS enabled boolean NOT NULL DEFAULT true;

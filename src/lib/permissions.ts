@@ -43,7 +43,7 @@ export type Permissions = {
   supply_orders: { view: boolean; edit: boolean };
   stock: { view: boolean; edit: boolean };
   expenses: { view: boolean; edit: boolean };
-  finance: { view: boolean };
+  finance: { view: boolean; view_fee_breakdown: boolean };
   access_management: { view: boolean };
 };
 
@@ -82,7 +82,7 @@ export const FULL_PERMISSIONS: Permissions = {
   supply_orders: { view: true, edit: true },
   stock: { view: true, edit: true },
   expenses: { view: true, edit: true },
-  finance: { view: true },
+  finance: { view: true, view_fee_breakdown: true },
   access_management: { view: true },
 };
 
@@ -118,7 +118,7 @@ export const EMPTY_PERMISSIONS: Permissions = {
   supply_orders: { view: false, edit: false },
   stock: { view: false, edit: false },
   expenses: { view: false, edit: false },
-  finance: { view: false },
+  finance: { view: false, view_fee_breakdown: false },
   access_management: { view: false },
 };
 
@@ -154,6 +154,7 @@ const PERMISSION_DEPENDENCIES: Record<string, string> = {
   "supply_orders.edit": "supply_orders.view",
   "stock.edit": "stock.view",
   "expenses.edit": "expenses.view",
+  "finance.view_fee_breakdown": "finance.view",
 };
 
 // Chaves adicionadas após o primeiro release. Se o grupo não tiver o campo
@@ -166,6 +167,7 @@ const LEGACY_INHERIT_FROM_PARENT: string[] = [
   ...IFOOD_STATUSES.map((s) => `orders.statuses.ifood.${s}`),
   ...QUERO_STATUSES.map((s) => `orders.statuses.quero.${s}`),
   "orders.channels.quero",
+  "finance.view_fee_breakdown",
 ];
 
 // Para chaves legadas onde queremos herdar de outro nó (não o "parent" das dependências).

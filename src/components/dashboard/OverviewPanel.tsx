@@ -184,6 +184,7 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
     if (o.external_source !== "ifood") return 0;
     const s = feesQ.data?.get(o.restaurant_id);
     if (!s) return 0;
+    if (s.enabled === false) return 0;
     const base = Math.max(0, Number(o.subtotal || 0) + Number(o.delivery_fee || 0) - Number(o.merchant_subsidy || 0));
     const isOnline = (o.payment_method ?? "").toLowerCase() === "online";
     let pct = 0;
@@ -217,6 +218,10 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
     const discount = Number(o.discount || 0);
     const vendas = items + delivery;
     if (o.external_source === "ifood") {
+      const s = feesQ.data?.get(o.restaurant_id);
+      if (s && s.enabled === false) {
+        return { vendas, delivery, fees: 0, net: vendas };
+      }
       const merchSub = Number(o.merchant_subsidy || 0);
       const base = Math.max(0, items + delivery - merchSub);
       const fees = ifoodFeeForOrder(o);
