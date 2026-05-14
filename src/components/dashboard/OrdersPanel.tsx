@@ -877,6 +877,19 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
         </AlertDialogContent>
       </AlertDialog>
 
+      <AlertDialog open={queroCancelInfoOpen} onOpenChange={setQueroCancelInfoOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelamento indisponível por aqui</AlertDialogTitle>
+            <AlertDialogDescription>
+              O cancelamento de pedidos do <strong>Quero Delivery</strong> só pode ser feito diretamente pelo <strong>painel do gestor de pedidos do Quero</strong>. Acesse o painel da Quero para concluir o cancelamento — o status será atualizado automaticamente aqui em seguida.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setQueroCancelInfoOpen(false)}>Entendi</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <AlertDialogContent>
