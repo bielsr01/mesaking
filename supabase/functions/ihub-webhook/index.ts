@@ -223,11 +223,19 @@ async function handlePlaced(integration: any, ev: IHubEvent) {
     .single();
   if (error) throw error;
 
-  // Insert order_items
+  // Insert order_items + order_item_options
   const items = buildItemsForOrderItems(od);
   if (items.length) {
-    const rows = items.map((it) => ({ order_id: data.id, ...it }));
-    await supabase.from("order_items").insert(rows);
+    const rows = items.map(({ _options, ...it }) => ({ order_id: data.id, ...it }));
+    const { data: inserted } = await supabase.from("order_items").insert(rows).select("id");
+    if (inserted) {
+      const optRows: any[] = [];
+      inserted.forEach((row: any, idx: number) => {
+        const opts = items[idx]?._options ?? [];
+        opts.forEach((o) => optRows.push({ order_item_id: row.id, group_name: o.group_name, item_name: o.item_name, extra_price: o.extra_price }));
+      });
+      if (optRows.length) await supabase.from("order_item_options").insert(optRows);
+    }
   }
   return data.id;
 }
