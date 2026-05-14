@@ -222,8 +222,9 @@ async function reconcileOpenOrders(integration: any) {
         integration.token,
       );
       const od = detail?.data ?? detail ?? {};
-      const remoteStatus = od?.status ?? od?.orderStatus ?? od?.lastStatus ?? null;
-      console.log("[quero-poll] reconcile", o.external_order_id, "local=", o.status, "remote=", remoteStatus, "keys=", Object.keys(od ?? {}).join(","));
+      const remoteStatus = (typeof od?.lastEvent === "object" ? (od.lastEvent?.status ?? od.lastEvent?.code) : od?.lastEvent)
+        ?? od?.status ?? od?.orderStatus ?? null;
+      console.log("[quero-poll] reconcile", o.external_order_id, "local=", o.status, "remote=", remoteStatus, "lastEvent=", JSON.stringify(od?.lastEvent));
       const mapped = mapStatus(remoteStatus);
       if (!mapped || mapped === o.status) continue;
       const cur = STATUS_ORDER[o.status] ?? -1;
