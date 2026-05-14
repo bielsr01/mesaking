@@ -22,7 +22,7 @@ import { buildTicketHtml, TicketOptionCatalog, TicketRestaurant } from "@/lib/ti
 type PaymentMethod = "cash" | "pix" | "card_on_delivery";
 
 interface OptionItem { id: string; name: string; extra_price: number; }
-interface OptGroup { id: string; name: string; min_select: number; max_select: number; items: OptionItem[]; }
+interface OptGroup { id: string; name: string; min_select: number; max_select: number; allow_repeat?: boolean; items: OptionItem[]; }
 
 interface CartLine {
   key: string; // unique cart line id
