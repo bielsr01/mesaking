@@ -100,7 +100,7 @@ export function OrderDetailsDialog({
   order, items, onClose, onAdvance, onCancel, onDelete, onPrint,
   pending, canChangeStatus, canEditOrders,
 }: Props) {
-  const { data: options = [] } = useQuery({
+  const optionsQuery = useQuery({
     queryKey: ["order-item-options", order?.id],
     enabled: !!order && items.length > 0,
     queryFn: async () => {
@@ -112,8 +112,9 @@ export function OrderDetailsDialog({
       return (data ?? []) as OptionRow[];
     },
   });
+  const options = optionsQuery.data ?? [];
 
-  const { data: history = [] } = useQuery({
+  const historyQuery = useQuery({
     queryKey: ["order-status-history", order?.id],
     enabled: !!order,
     refetchInterval: 5000,
@@ -126,8 +127,33 @@ export function OrderDetailsDialog({
       return (data ?? []) as { status: string; changed_at: string }[];
     },
   });
+  const history = historyQuery.data ?? [];
 
   if (!order) return null;
+
+  const optionsLoading = items.length > 0 && optionsQuery.isLoading;
+  const historyLoading = historyQuery.isLoading;
+  const isLoading = optionsLoading || historyLoading;
+
+  if (isLoading) {
+    return (
+      <Dialog open={!!order} onOpenChange={(o) => !o && onClose()}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Carregando pedido #{order.order_number}…</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-4">
+            <div className="h-20 rounded-lg bg-muted animate-pulse" />
+            <div className="grid md:grid-cols-2 gap-3">
+              <div className="h-40 rounded-lg bg-muted animate-pulse" />
+              <div className="h-40 rounded-lg bg-muted animate-pulse" />
+            </div>
+            <div className="h-28 rounded-lg bg-muted animate-pulse" />
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
   const next = getNextStatus(order.status, order.order_type as any);
   const isPdv = order.order_type === "pdv";
   const isPickup = order.order_type === "pickup";
