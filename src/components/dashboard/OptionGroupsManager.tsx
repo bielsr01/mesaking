@@ -277,6 +277,7 @@ function GroupDialog({
   const [name, setName] = useState("");
   const [minS, setMinS] = useState(0);
   const [maxS, setMaxS] = useState(1);
+  const [allowRepeat, setAllowRepeat] = useState(false);
   const [rows, setRows] = useState<{ id?: string; name: string; extra_price: string; image_url?: string | null; stock_group_id?: string | null; stock_quantity_per_unit?: string; toDelete?: boolean }[]>([]);
   const [busy, setBusy] = useState(false);
   const [uploadingIdx, setUploadingIdx] = useState<number | null>(null);
