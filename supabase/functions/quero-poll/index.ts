@@ -278,13 +278,19 @@ async function pollOne(integration: any) {
     }
     lastCode = ev.status ?? lastCode;
   }
+  // Reconcilia pedidos abertos contra a API da Quero (pega cancelamentos que
+  // não vieram via polling).
+  let reconciled = 0;
+  try { reconciled = await reconcileOpenOrders(integration); }
+  catch (e: any) { console.error("[quero-poll] reconcile fatal", e?.message ?? e); }
+
   await supabase.from("quero_integrations").update({
     last_poll_at: new Date().toISOString(),
     last_event_at: list.length ? new Date().toISOString() : integration.last_event_at,
     last_event_code: lastCode ?? integration.last_event_code,
     last_status: "ok",
   }).eq("id", integration.id);
-  return list.length;
+  return list.length + reconciled;
 }
 
 Deno.serve(async (req) => {
