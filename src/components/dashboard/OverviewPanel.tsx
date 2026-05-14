@@ -201,26 +201,53 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
   const prev = filteredAll.filter(inPrev);
 
   const sum = (arr: any[], k: string) => arr.reduce((s, o) => s + Number(o[k] || 0), 0);
-  // Para iFood, exclui service_fee (R$0,99 cobrada do cliente, iFood não repassa)
-  const sumGross = (arr: any[]) => arr.reduce((s, o) => s + Number(o.total || 0) - (o.external_source === "ifood" ? Number(o.service_fee || 0) : 0), 0);
-  const sumIfoodFees = (arr: any[]) => arr.reduce((s, o) => s + ifoodFeeForOrder(o), 0);
-  const baseGrossCur = sumGross(cur);
-  const baseGrossPrev = sumGross(prev);
-  const baseOrdersCur = cur.length;
-  const baseOrdersPrev = prev.length;
-  const grossCur = baseGrossCur;
-  const grossPrev = baseGrossPrev;
-  const ordersCountCur = baseOrdersCur;
-  const ordersCountPrev = baseOrdersPrev;
 
-  const subtotalCur = sum(cur, "subtotal");
+  // Métricas por pedido:
+  // - vendas: valor total do pedido + taxa de entrega (subtotal + delivery_fee).
+  //   Para iFood, o service_fee (R$0,99~2,00) é cobrado do cliente pelo iFood
+  //   e nunca entra no repasse, então é ignorado.
+  // - delivery: taxa de entrega cobrada (unificada: iFood + demais canais).
+  // - fees: taxas cobradas pelo iFood (comissão + cartão + antecipação).
+  // - net: faturamento líquido / repasse final.
+  //   iFood → base (subtotal + delivery − cupom_loja) − fees.
+  //   Demais → vendas − desconto.
+  const orderMetrics = (o: any) => {
+    const items = Number(o.subtotal || 0);
+    const delivery = Number(o.delivery_fee || 0);
+    const discount = Number(o.discount || 0);
+    const vendas = items + delivery;
+    if (o.external_source === "ifood") {
+      const merchSub = Number(o.merchant_subsidy || 0);
+      const base = Math.max(0, items + delivery - merchSub);
+      const fees = ifoodFeeForOrder(o);
+      return { vendas, delivery, fees, net: base - fees };
+    }
+    return { vendas, delivery, fees: 0, net: vendas - discount };
+  };
+  const aggregate = (arr: any[]) => arr.reduce(
+    (acc, o) => {
+      const m = orderMetrics(o);
+      acc.vendas += m.vendas;
+      acc.delivery += m.delivery;
+      acc.fees += m.fees;
+      acc.net += m.net;
+      return acc;
+    },
+    { vendas: 0, delivery: 0, fees: 0, net: 0 },
+  );
+  const aggCur = aggregate(cur);
+  const aggPrev = aggregate(prev);
+
+  const ordersCountCur = cur.length;
+  const ordersCountPrev = prev.length;
+  const grossCur = aggCur.vendas;
+  const grossPrev = aggPrev.vendas;
+
   const discountCur = sum(cur, "discount");
-  const deliveryFeeCur = sum(cur, "delivery_fee");
-  const ifoodFeesCur = sumIfoodFees(cur);
-  // service_fee do iFood (R$0,99) é cobrada do cliente — não entra como taxa do restaurante
-  const nonIfoodServiceFee = cur.reduce((s, o) => s + (o.external_source === "ifood" ? 0 : Number(o.service_fee || 0)), 0);
-  const serviceFeeCur = nonIfoodServiceFee + ifoodFeesCur;
-  const netCur = grossCur - discountCur - ifoodFeesCur - nonIfoodServiceFee;
+  const deliveryFeeCur = aggCur.delivery;
+  const ifoodFeesCur = aggCur.fees;
+  const serviceFeeCur = ifoodFeesCur; // somente taxas iFood; service_fee R$0,99 não entra
+  const netCur = aggCur.net;
   const ticketCur = ordersCountCur ? grossCur / ordersCountCur : 0;
   const ticketPrev = ordersCountPrev ? grossPrev / ordersCountPrev : 0;
 
