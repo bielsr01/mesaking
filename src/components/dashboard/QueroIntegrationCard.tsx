@@ -99,7 +99,7 @@ export function QueroIntegrationCard({ restaurantId }: { restaurantId: string })
             <DialogTitle>Integração Quero Delivery</DialogTitle>
             <DialogDescription>
               Cole o token Basic gerado no painel do Quero e o placeId da sua loja.
-              O sistema buscará novos pedidos automaticamente a cada 30 segundos.
+              O sistema buscará e sincronizará pedidos automaticamente a cada 5 segundos.
             </DialogDescription>
           </DialogHeader>
 
