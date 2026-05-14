@@ -35,6 +35,9 @@ function waLink(phone: string | null | undefined): string | null {
 import { buildTicketHtml, TicketMode, TicketOptionCatalog, TicketRestaurant } from "@/lib/ticket";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { PdvDialog } from "./PdvDialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Order {
   id: string;
@@ -132,6 +135,8 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   };
   const [filter, setFilter] = useState(() => firstAllowedStatus(initialChannel, initialChannel === "pdv" ? ["preparing"] : ["pending"]));
   const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelCode, setCancelCode] = useState<string>("INTERNAL_DIFFICULTIES_OF_THE_RESTAURANT");
   const [deleteTarget, setDeleteTarget] = useState<Order | null>(null);
   const [printTarget, setPrintTarget] = useState<Order | null>(null);
   const [detailsTarget, setDetailsTarget] = useState<Order | null>(null);
@@ -392,9 +397,11 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     setPending(o.id, false);
   };
 
-  const cancel = async (o: Order) => {
+  const cancel = async (o: Order, opts?: { cancelReason?: string; cancelCode?: string }) => {
     if (!canChangeStatus) return toast.error("Sem permissão para cancelar pedido");
     if (pendingAction[o.id]) return;
+    const reason = opts?.cancelReason?.trim() || "Cancelado pelo restaurante";
+    const code = opts?.cancelCode || "INTERNAL_DIFFICULTIES_OF_THE_RESTAURANT";
     setPending(o.id, true);
     const prevStatus = o.status;
     patchOrder(o.id, { status: "cancelled" });
@@ -407,7 +414,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
       }
       console.info("[ifood-action] cancelando", { orderId: o.id, externalOrderId: o.external_order_id, customer: o.customer_name });
       const { data: fnData, error: fnErr } = await supabase.functions.invoke("ifood-action", {
-        body: { orderId: o.id, action: "cancel", cancelReason: "Cancelado pelo restaurante" },
+        body: { orderId: o.id, action: "cancel", cancelReason: reason },
       });
       if (fnErr || (fnData && fnData.ok === false)) {
         patchOrder(o.id, { status: prevStatus });
@@ -424,7 +431,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
         return;
       }
       const { data: fnData, error: fnErr } = await supabase.functions.invoke("quero-action", {
-        body: { orderId: o.id, action: "cancel", cancelReason: "Cancelado pelo restaurante" },
+        body: { orderId: o.id, action: "cancel", cancelReason: reason, cancelCode: code },
       });
       if (fnErr || (fnData && fnData.ok === false)) {
         patchOrder(o.id, { status: prevStatus });
@@ -787,7 +794,16 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
       </>
       )}
 
-      <AlertDialog open={!!cancelTarget} onOpenChange={(o) => !o && setCancelTarget(null)}>
+      <AlertDialog
+        open={!!cancelTarget}
+        onOpenChange={(o) => {
+          if (!o) {
+            setCancelTarget(null);
+            setCancelReason("");
+            setCancelCode("INTERNAL_DIFFICULTIES_OF_THE_RESTAURANT");
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Cancelar este pedido?</AlertDialogTitle>
@@ -797,17 +813,60 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
+
+          {cancelTarget?.external_source === "quero" && (
+            <div className="space-y-3 py-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="cancel-code">Motivo do cancelamento</Label>
+                <Select value={cancelCode} onValueChange={setCancelCode}>
+                  <SelectTrigger id="cancel-code"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="INTERNAL_DIFFICULTIES_OF_THE_RESTAURANT">Dificuldades internas do restaurante</SelectItem>
+                    <SelectItem value="SYSTEMIC_ISSUES">Problemas sistêmicos</SelectItem>
+                    <SelectItem value="DUPLICATE_APPLICATION">Pedido duplicado</SelectItem>
+                    <SelectItem value="UNAVAILABLE_ITEM">Item indisponível</SelectItem>
+                    <SelectItem value="RESTAURANT_WITHOUT_DELIVERY_MAN">Sem entregador disponível</SelectItem>
+                    <SelectItem value="OUTDATED_MENU">Cardápio desatualizado</SelectItem>
+                    <SelectItem value="ORDER_OUTSIDE_THE_DELIVERY_AREA">Pedido fora da área de entrega</SelectItem>
+                    <SelectItem value="BLOCKED_CUSTOMER">Cliente bloqueado</SelectItem>
+                    <SelectItem value="OUTSIDE_DELIVERY_HOURS">Fora do horário de entrega</SelectItem>
+                    <SelectItem value="RISK_AREA">Área de risco</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="cancel-reason">Descrição (opcional)</Label>
+                <Textarea
+                  id="cancel-reason"
+                  placeholder="Detalhe o motivo do cancelamento"
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            </div>
+          )}
+
           <AlertDialogFooter>
             <AlertDialogCancel>Voltar</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => { if (cancelTarget) { cancel(cancelTarget); setCancelTarget(null); } }}
+              onClick={() => {
+                if (cancelTarget) {
+                  const isQuero = cancelTarget.external_source === "quero";
+                  cancel(cancelTarget, isQuero ? { cancelReason, cancelCode } : undefined);
+                  setCancelTarget(null);
+                  setCancelReason("");
+                  setCancelCode("INTERNAL_DIFFICULTIES_OF_THE_RESTAURANT");
+                }
+              }}
             >
               Sim, cancelar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <AlertDialogContent>
