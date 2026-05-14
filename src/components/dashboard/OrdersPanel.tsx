@@ -12,10 +12,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { brl, orderStatusLabel, getNextStatus, paymentLabel, formatPhone, orderTypeLabel } from "@/lib/format";
 import { toast } from "sonner";
-import { Bike, ChefHat, Clock, MapPin, MessageCircle, Phone, Plus, Printer, Store, Trash2, User, X, Utensils } from "lucide-react";
+import { Bike, ChefHat, Clock, History, MapPin, MessageCircle, Phone, Plus, Printer, Store, Trash2, User, X, Utensils } from "lucide-react";
 import { IfoodEventsTab } from "./IfoodEventsTab";
 import { usePermissions } from "@/hooks/usePermissions";
 import { OrderDetailsDialog } from "./OrderDetailsDialog";
+import { OrderHistoryDialog } from "./OrderHistoryDialog";
 
 /** Monta link wa.me garantindo DDI 55 (Brasil) sem duplicar */
 function waLink(phone: string | null | undefined): string | null {
@@ -58,6 +59,7 @@ interface Order {
   discount?: number | null;
   service_fee?: number | null;
   created_at: string;
+  updated_at: string;
   delivery_latitude: number | null;
   delivery_longitude: number | null;
   external_source?: string | null;
@@ -134,6 +136,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const [printTarget, setPrintTarget] = useState<Order | null>(null);
   const [detailsTarget, setDetailsTarget] = useState<Order | null>(null);
   const [pdvOpen, setPdvOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [deliveryBlink, setDeliveryBlink] = useState(false);
   const [ifoodView, setIfoodView] = useState<"orders" | "events">("orders");
   const [pendingAction, setPendingAction] = useState<Record<string, boolean>>({});
@@ -196,8 +199,16 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     refetchOnWindowFocus: true,
   });
 
-  const orders = data?.orders ?? [];
+  const allOrders = data?.orders ?? [];
   const items = data?.items ?? {};
+  // Pedidos entregues/cancelados somem do painel principal após 12h.
+  // Continuam visíveis no Histórico de Pedidos.
+  const cutoff = Date.now() - 12 * 60 * 60 * 1000;
+  const orders = allOrders.filter((o) => {
+    if (o.status !== "delivered" && o.status !== "cancelled") return true;
+    const ref = new Date(o.updated_at ?? o.created_at).getTime();
+    return ref >= cutoff;
+  });
   const productIds = Array.from(new Set(Object.values(items).flat().map((it) => it.product_id).filter(Boolean))) as string[];
 
   const { data: optionCatalog = {} } = useQuery({
@@ -541,11 +552,16 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
           </TabsList>
         </Tabs>
 
-        {channel === "pdv" && canCreatePdv && (
-          <Button onClick={() => setPdvOpen(true)} className="gap-2">
-            <Plus className="w-4 h-4" /> Novo pedido PDV
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setHistoryOpen(true)} className="gap-2">
+            <History className="w-4 h-4" /> Histórico de Pedidos
           </Button>
-        )}
+          {channel === "pdv" && canCreatePdv && (
+            <Button onClick={() => setPdvOpen(true)} className="gap-2">
+              <Plus className="w-4 h-4" /> Novo pedido PDV
+            </Button>
+          )}
+        </div>
       </div>
 
       {channel === "ifood" && (
@@ -844,6 +860,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
       />
 
       <PdvDialog open={pdvOpen} onOpenChange={setPdvOpen} restaurantId={restaurantId} />
+      <OrderHistoryDialog open={historyOpen} onOpenChange={setHistoryOpen} restaurantId={restaurantId} />
     </div>
   );
 }
