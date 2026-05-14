@@ -180,6 +180,7 @@ export default function MasterAdmin() {
     "loyalty": "Programa de fidelidade",
     "settings:integrations": "Integrações",
     "settings:ifood-fees": "Configurações iFood",
+    "settings:quero-fees": "Configurações Quero",
     "supply:catalog": "Catálogo de insumos",
     "supply:orders": "Pedidos de insumos recebidos",
     "stock:admin": "Estoque / Admin",
