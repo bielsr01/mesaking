@@ -220,37 +220,25 @@ export function OrderDetailsDialog({
           <div className="grid md:grid-cols-2 gap-3">
             <section className="rounded-lg border p-3">
               <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Itens do pedido (comanda)</div>
-              <div className="space-y-2 text-sm">
+              <div className="space-y-3 text-sm">
                 {items.map((it) => {
                   const opts = optsByItem[it.id] ?? [];
-                  // group options by group_name preserving order
-                  const groups: { name: string; items: OptionRow[] }[] = [];
-                  opts.forEach((o) => {
-                    const gname = o.group_name ?? "Opções";
-                    let g = groups.find((x) => x.name === gname);
-                    if (!g) { g = { name: gname, items: [] }; groups.push(g); }
-                    g.items.push(o);
-                  });
                   return (
                     <div key={it.id} className="border-b last:border-b-0 pb-2 last:pb-0">
                       <div className="flex justify-between gap-2">
-                        <span><span className="font-medium">{it.quantity}×</span> {it.product_name}</span>
+                        <span className="font-medium">{it.quantity}× {it.product_name}</span>
                         <span className="tabular-nums">{brl(it.unit_price * it.quantity)}</span>
                       </div>
                       {it.notes && <div className="text-xs italic text-muted-foreground">{it.notes}</div>}
-                      {groups.map((g, gi) => (
-                        <div key={gi} className="ml-3 mt-1">
-                          <div className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
-                            <CornerDownRight className="w-3 h-3" /> {g.name}
-                          </div>
-                          {g.items.map((opt) => (
-                            <div key={opt.id} className="ml-4 text-xs flex justify-between gap-2">
-                              <span>{opt.item_name}</span>
-                              {Number(opt.extra_price) > 0 && (
-                                <span className="tabular-nums text-muted-foreground">+ {brl(Number(opt.extra_price))}</span>
-                              )}
-                            </div>
-                          ))}
+                      {opts.map((opt) => (
+                        <div key={opt.id} className="flex justify-between gap-2 text-xs pl-3">
+                          <span>
+                            <span className="font-semibold">{opt.group_name ?? "Opção"}:</span>{" "}
+                            <span>{opt.item_name}</span>
+                          </span>
+                          {Number(opt.extra_price) > 0 && (
+                            <span className="tabular-nums text-muted-foreground">+ {brl(Number(opt.extra_price))}</span>
+                          )}
                         </div>
                       ))}
                     </div>
