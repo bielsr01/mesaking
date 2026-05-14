@@ -132,6 +132,39 @@ async function ingestOrder(integration: any, ev: any) {
   const otherFees = Number(total?.otherFees?.value ?? 0);
   const discount = Number(total?.discount?.value ?? 0);
   const orderAmount = Number(total?.orderAmount?.value ?? subtotal + otherFees - discount);
+
+  // Separa cupons subsidiados pelo estabelecimento (merchant_subsidy)
+  // dos cupons subsidiados pela Quero Delivery (armazenados em ifood_subsidy
+  // por compatibilidade — campo genérico de "plataforma").
+  let merchantSubsidy = 0;
+  let queroSubsidy = 0;
+  const discountsArr: any[] = Array.isArray(od?.discounts) ? od.discounts : [];
+  for (const d of discountsArr) {
+    const sponsorships: any[] = Array.isArray(d?.sponsorshipValues) ? d.sponsorshipValues : [];
+    if (sponsorships.length === 0) {
+      // Sem detalhamento — usa o "target": MERCHANT vs MARKETPLACE
+      const t = String(d?.target ?? "").toUpperCase();
+      const amt = Number(d?.amount?.value ?? 0);
+      if (t.includes("MERCH") || t.includes("LOJA")) merchantSubsidy += amt;
+      else queroSubsidy += amt;
+      continue;
+    }
+    for (const sp of sponsorships) {
+      const name = String(sp?.name ?? "").toLowerCase();
+      const amt = Number(sp?.amount?.value ?? 0);
+      const isPlatform = /quero|marketplace|platform|plataforma/.test(name);
+      const isMerchant = /merch|loja|estabelec|restaur/.test(name);
+      if (isMerchant && !isPlatform) merchantSubsidy += amt;
+      else if (isPlatform) queroSubsidy += amt;
+      else merchantSubsidy += amt; // default: assume estabelecimento
+    }
+  }
+  // Garante consistência com discount total quando possível.
+  const sumSubs = merchantSubsidy + queroSubsidy;
+  if (discount > 0 && sumSubs === 0) {
+    // Sem dados de patrocínio — assume integralmente como subsídio do estabelecimento.
+    merchantSubsidy = discount;
+  }
   const methods = od?.payments?.methods ?? [];
   const m0 = Array.isArray(methods) && methods.length ? methods[0] : null;
 
@@ -155,6 +188,8 @@ async function ingestOrder(integration: any, ev: any) {
     delivery_fee: deliveryFee,
     service_fee: Math.max(0, otherFees - deliveryFee),
     discount,
+    merchant_subsidy: merchantSubsidy,
+    ifood_subsidy: queroSubsidy,
     total: orderAmount,
     payment_method: mapPayment(m0?.method, m0?.type),
     change_for: m0?.changeFor ? Number(m0.changeFor) : null,
