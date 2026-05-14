@@ -26,6 +26,7 @@ export type AdminView =
   | "loyalty"
   | "settings:integrations"
   | "settings:ifood-fees"
+  | "settings:quero-fees"
   | "supply:catalog"
   | "supply:orders"
   | "stock:admin"
@@ -175,6 +176,14 @@ export function AdminSidebar({ active, onChange, supplyBadge = 0 }: { active: Ad
                           <button type="button" onClick={() => onChange("settings:ifood-fees")} className="w-full text-left flex items-center gap-2">
                             <Bike className="h-4 w-4" />
                             <span>Configurações iFood</span>
+                          </button>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={active === "settings:quero-fees"}>
+                          <button type="button" onClick={() => onChange("settings:quero-fees")} className="w-full text-left flex items-center gap-2">
+                            <Bike className="h-4 w-4" />
+                            <span>Configurações Quero</span>
                           </button>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
