@@ -199,8 +199,16 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     refetchOnWindowFocus: true,
   });
 
-  const orders = data?.orders ?? [];
+  const allOrders = data?.orders ?? [];
   const items = data?.items ?? {};
+  // Pedidos entregues/cancelados somem do painel principal após 12h.
+  // Continuam visíveis no Histórico de Pedidos.
+  const cutoff = Date.now() - 12 * 60 * 60 * 1000;
+  const orders = allOrders.filter((o) => {
+    if (o.status !== "delivered" && o.status !== "cancelled") return true;
+    const ref = new Date(o.updated_at ?? o.created_at).getTime();
+    return ref >= cutoff;
+  });
   const productIds = Array.from(new Set(Object.values(items).flat().map((it) => it.product_id).filter(Boolean))) as string[];
 
   const { data: optionCatalog = {} } = useQuery({
