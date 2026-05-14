@@ -403,11 +403,8 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     const reason = opts?.cancelReason?.trim() || "Cancelado pelo restaurante";
     const code = opts?.cancelCode || "INTERNAL_DIFFICULTIES_OF_THE_RESTAURANT";
     setPending(o.id, true);
-    const prevStatus = o.status;
-    patchOrder(o.id, { status: "cancelled" });
     if (o.external_source === "ifood") {
       if (!o.external_order_id) {
-        patchOrder(o.id, { status: prevStatus });
         toast.error("Pedido iFood sem external_order_id — não é possível cancelar.");
         setPending(o.id, false);
         return;
@@ -417,7 +414,6 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
         body: { orderId: o.id, action: "cancel", cancelReason: reason },
       });
       if (fnErr || (fnData && fnData.ok === false)) {
-        patchOrder(o.id, { status: prevStatus });
         toast.error(`iFood: ${fnData?.error ?? fnErr?.message ?? "falha"}`);
         setPending(o.id, false);
         return;
@@ -425,7 +421,6 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     }
     if (o.external_source === "quero") {
       if (!o.external_order_id) {
-        patchOrder(o.id, { status: prevStatus });
         toast.error("Pedido Quero sem external_order_id — não é possível cancelar.");
         setPending(o.id, false);
         return;
@@ -434,7 +429,6 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
         body: { orderId: o.id, action: "cancel", cancelReason: reason, cancelCode: code },
       });
       if (fnErr || (fnData && fnData.ok === false)) {
-        patchOrder(o.id, { status: prevStatus });
         toast.error(`Quero: ${fnData?.error ?? fnErr?.message ?? "falha"}`);
         setPending(o.id, false);
         return;
@@ -442,9 +436,9 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     }
     const { error } = await supabase.from("orders").update({ status: "cancelled" }).eq("id", o.id);
     if (error) {
-      patchOrder(o.id, { status: prevStatus });
       toast.error(error.message);
     } else {
+      patchOrder(o.id, { status: "cancelled" });
       toast.success(`Pedido #${o.order_number} cancelado`);
     }
     setPending(o.id, false);
