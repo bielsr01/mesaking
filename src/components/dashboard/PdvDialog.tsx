@@ -809,7 +809,26 @@ export function PdvDialog({
                     </div>
                     <div className="p-2 space-y-1">
                       {g.items.map((it) => {
-                        const checked = sel.includes(it.id);
+                        const count = sel.filter((x) => x === it.id).length;
+                        const checked = count > 0;
+                        const repeatable = g.allow_repeat && g.max_select > 1;
+                        if (repeatable) {
+                          return (
+                            <div key={it.id} className={`flex items-center gap-2 px-2 py-2 rounded ${checked ? "bg-muted" : ""}`}>
+                              <span className="flex-1 text-sm">{it.name}</span>
+                              {it.extra_price > 0 && <span className="text-xs text-primary font-semibold">+ {brl(it.extra_price)}</span>}
+                              {count > 0 ? (
+                                <div className="flex items-center gap-1">
+                                  <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => decPick(g, it.id)}><Minus className="w-3 h-3" /></Button>
+                                  <span className="w-5 text-center text-sm font-bold tabular-nums">{count}</span>
+                                  <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => incPick(g, it.id)}><Plus className="w-3 h-3" /></Button>
+                                </div>
+                              ) : (
+                                <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => incPick(g, it.id)}><Plus className="w-3 h-3" /></Button>
+                              )}
+                            </div>
+                          );
+                        }
                         return (
                           <label key={it.id} className={`flex items-center gap-2 px-2 py-2 rounded cursor-pointer hover:bg-muted ${checked ? "bg-muted" : ""}`}>
                             <input
