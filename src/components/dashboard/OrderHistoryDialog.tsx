@@ -293,6 +293,7 @@ export function OrderHistoryDialog({
         pending={false}
         canChangeStatus={false}
         canEditOrders={false}
+        canViewFeeBreakdown={canViewFeeBreakdown}
       />
     </>
   );
