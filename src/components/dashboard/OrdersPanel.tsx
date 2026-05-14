@@ -872,44 +872,6 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
       <PdvDialog open={pdvOpen} onOpenChange={setPdvOpen} restaurantId={restaurantId} />
       <OrderHistoryDialog open={historyOpen} onOpenChange={setHistoryOpen} restaurantId={restaurantId} />
 
-      <Dialog open={!!ifoodCodeTarget} onOpenChange={(o) => { if (!o) { setIfoodCodeTarget(null); setIfoodCodeValue(""); } }}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Confirmar entrega iFood</DialogTitle>
-            <DialogDescription>
-              {ifoodCodeTarget?.order_type === "pickup"
-                ? "Informe o código de retirada fornecido pelo cliente."
-                : "Informe o código de entrega fornecido pelo cliente."}
-              {ifoodCodeTarget && (
-                <> Pedido <strong>#{ifoodCodeTarget.order_number}</strong> — {ifoodCodeTarget.customer_name}.</>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <form
-            onSubmit={(e) => { e.preventDefault(); if (ifoodCodeTarget) confirmIfoodDelivery(ifoodCodeTarget, ifoodCodeValue); }}
-            className="grid gap-3"
-          >
-            <input
-              autoFocus
-              inputMode="numeric"
-              pattern="[0-9]*"
-              maxLength={6}
-              value={ifoodCodeValue}
-              onChange={(e) => setIfoodCodeValue(e.target.value.replace(/\D/g, ""))}
-              placeholder="Ex: 9999"
-              className="h-12 rounded-md border bg-background px-3 text-center text-2xl tracking-widest font-mono"
-            />
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => { setIfoodCodeTarget(null); setIfoodCodeValue(""); }}>
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={!ifoodCodeValue.trim() || (ifoodCodeTarget ? !!pendingAction[ifoodCodeTarget.id] : false)}>
-                {ifoodCodeTarget && pendingAction[ifoodCodeTarget.id] ? "Validando…" : "Confirmar entrega"}
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
