@@ -296,6 +296,7 @@ function GroupDialog({
       setName(editing?.name ?? "");
       setMinS(editing?.min_select ?? 0);
       setMaxS(editing?.max_select ?? 1);
+      setAllowRepeat(Boolean(editing?.allow_repeat));
       setRows(
         existingItems.length > 0
           ? existingItems.map((i) => ({ id: i.id, name: i.name, extra_price: String(Number(i.extra_price) || 0), image_url: i.image_url ?? null, stock_group_id: i.stock_group_id ?? null, stock_quantity_per_unit: String(Number(i.stock_quantity_per_unit ?? 1)) }))
