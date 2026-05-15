@@ -215,6 +215,26 @@ async function ingestOrder(integration: any, ev: any) {
   }).select("id").single();
   if (error) throw error;
 
+  // Cadastra/atualiza o cliente automaticamente (mesma lógica do PDV/Delivery).
+  if (phoneNumber && phoneNumber !== "—") {
+    try {
+      await supabase.rpc("upsert_customer_on_order", {
+        _restaurant_id: integration.restaurant_id,
+        _name: customer?.name ?? "Cliente Quero",
+        _phone: phoneNumber,
+        _address_cep: orderType === "delivery" ? (addr.postalCode ?? null) : null,
+        _address_street: orderType === "delivery" ? (addr.street ?? null) : null,
+        _address_number: orderType === "delivery" ? (addr.number ?? null) : null,
+        _address_complement: orderType === "delivery" ? (addr.complement ?? null) : null,
+        _address_neighborhood: orderType === "delivery" ? (addr.district ?? null) : null,
+        _address_city: orderType === "delivery" ? (addr.city ?? null) : null,
+        _address_state: orderType === "delivery" ? (addr.state ?? null) : null,
+      });
+    } catch (e) {
+      console.warn("[quero-poll] upsert_customer_on_order failed", e);
+    }
+  }
+
   const items = buildItems(od);
   if (items.length) {
     await supabase.from("order_items").insert(items.map((it) => ({ order_id: inserted.id, ...it })));
