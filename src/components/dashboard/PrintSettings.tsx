@@ -124,6 +124,28 @@ function SettingsCard({
             <Switch checked={!!settings[f.key]} onCheckedChange={() => toggle(f.key)} />
           </div>
         ))}
+        <div className="p-3 rounded-md border bg-card space-y-2">
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <Label className="font-medium">Configurar mensagem extra</Label>
+              <p className="text-xs text-muted-foreground">
+                Texto adicional impresso no final do ticket (ex: agradecimento, redes sociais, aviso).
+              </p>
+            </div>
+            <Switch
+              checked={!!settings.extra_message_enabled}
+              onCheckedChange={() => toggle("extra_message_enabled")}
+            />
+          </div>
+          {settings.extra_message_enabled && (
+            <Textarea
+              value={settings.extra_message ?? ""}
+              onChange={(e) => onChange({ ...settings, extra_message: e.target.value })}
+              placeholder="Digite a mensagem que será impressa no ticket..."
+              rows={3}
+            />
+          )}
+        </div>
         <div className="pt-2 flex justify-end">
           <Button onClick={onSave} disabled={saving}>
             {saving ? "Salvando..." : "Salvar configurações"}
