@@ -121,7 +121,7 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
       if (editingMember) {
         const diff = points - (editingMember.points ?? 0);
         const { error } = await sb.from("loyalty_members")
-          .update({ name: newName.trim(), phone: formatPhone(newPhone), points })
+          .update({ name: newName.trim(), phone: normalizeBrPhone(newPhone), points })
           .eq("id", editingMember.id);
         if (error) {
           if ((error.code === "23505") || /duplicate|unique/i.test(error.message)) {
@@ -141,7 +141,7 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
         }
         toast.success("Cadastro atualizado");
       } else {
-        const phoneFmt = formatPhone(newPhone);
+        const phoneFmt = normalizeBrPhone(newPhone);
         const { data: existing } = await sb.from("loyalty_members")
           .select("id")
           .eq("restaurant_id", restaurantId)
