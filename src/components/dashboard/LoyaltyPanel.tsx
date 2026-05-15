@@ -398,7 +398,7 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
                             {creditingIds.has(t.id) ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Check className="w-4 h-4 mr-1" />}
                             {creditingIds.has(t.id) ? "Processando..." : "Creditar"}
                           </Button>
-                          <Button size="sm" variant="ghost" onClick={() => deleteTx(t.id)}><Trash2 className="w-4 h-4" /></Button>
+                          {canDeleteCreditTx && <Button size="sm" variant="ghost" onClick={() => deleteTx(t.id)}><Trash2 className="w-4 h-4" /></Button>}
                         </div>
                       </TableCell>
                     </TableRow>
