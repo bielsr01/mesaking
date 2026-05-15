@@ -95,6 +95,7 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
   const [stockConsumption, setStockConsumption] = useState<StockConsumption[]>([]);
   const [loadingProdId, setLoadingProdId] = useState<string | null>(null);
+  const [savingProduct, setSavingProduct] = useState(false);
 
   const { data: stockGroups = [] } = useQuery({
     queryKey: ["stock_groups_active"],
