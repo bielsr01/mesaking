@@ -106,10 +106,11 @@ export default function RestaurantPublic() {
     if (!restaurant?.id) return;
     const rid = restaurant.id;
     const reloadMenu = async () => {
-      const { cats, prods, idx } = await loadMenu(rid);
+      const { cats, prods, idx, suggestionIds: sIds } = await loadMenu(rid);
       setCategories(cats);
       setProducts(prods);
       setGroupsByProduct(idx);
+      setSuggestionIds(sIds);
     };
     const ch = supabase.channel(`public-${rid}`)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "restaurants", filter: `id=eq.${rid}` }, (payload) => {
