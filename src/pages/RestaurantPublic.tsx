@@ -519,6 +519,46 @@ export default function RestaurantPublic() {
                 <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => cart.remove(i.productId, i.optionsKey)}><Trash2 className="w-3 h-3" /></Button>
               </div>
             ))}
+
+            {cart.items.length > 0 && suggestionProducts.length > 0 && (
+              <div className="border-t pt-4 space-y-2">
+                <div className="text-sm font-semibold">Que tal um upgrade no seu pedido?</div>
+                <div className="space-y-2">
+                  {suggestionProducts.map((p) => {
+                    const hasOptions = (groupsByProduct[p.id] ?? []).length > 0;
+                    const handleAdd = () => {
+                      if (hasOptions) {
+                        setCartOpen(false);
+                        setSelected(p);
+                      } else {
+                        cart.add(restaurant.id, {
+                          productId: p.id,
+                          name: p.name,
+                          price: Number(p.price),
+                          quantity: 1,
+                        });
+                      }
+                    };
+                    return (
+                      <div key={p.id} className="flex gap-3 items-center p-2 rounded-lg border bg-muted/30">
+                        <div className="w-12 h-12 rounded bg-muted overflow-hidden grid place-items-center shrink-0">
+                          {p.image_url
+                            ? <img src={p.image_url} alt={p.name} loading="lazy" className="w-full h-full object-cover" />
+                            : <ImageIcon className="w-5 h-5 text-muted-foreground" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-sm truncate">{p.name}</div>
+                          <div className="text-xs font-semibold text-primary">{brl(Number(p.price))}</div>
+                        </div>
+                        <Button size="sm" variant="outline" onClick={handleAdd}>
+                          <Plus className="w-3.5 h-3.5 mr-1" />Adicionar
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
           <div className="border-t pt-4 space-y-3">
             <div className="flex justify-between font-bold text-lg"><span>Total</span><span>{brl(cart.total)}</span></div>
