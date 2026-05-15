@@ -173,7 +173,7 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           domain,
           merchantId: integration.merchant_id,
-          orderId,
+          orderId: externalOrderId,
           code: String(code).trim(),
         }),
       });
