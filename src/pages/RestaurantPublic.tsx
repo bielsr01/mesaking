@@ -36,6 +36,7 @@ export default function RestaurantPublic() {
   const [selectedOpts, setSelectedOpts] = useState<Record<string, string[]>>({}); // groupId -> itemIds
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
+  const [suggestionIds, setSuggestionIds] = useState<string[]>([]);
   const cart = useCart();
 
   const [loading, setLoading] = useState(true);
@@ -44,12 +45,13 @@ export default function RestaurantPublic() {
 
   // Loads categories + products + option groups/items/links and indexes by product
   const loadMenu = async (rid: string) => {
-    const [catsRes, prodsRes, linksRes, groupsRes, itemsRes] = await Promise.all([
+    const [catsRes, prodsRes, linksRes, groupsRes, itemsRes, suggRes] = await Promise.all([
       supabase.from("categories").select("*").eq("restaurant_id", rid).eq("is_active", true).order("sort_order"),
       supabase.from("products").select("*").eq("restaurant_id", rid).eq("is_active", true).order("sort_order").order("created_at"),
       supabase.from("product_option_groups").select("product_id, group_id, sort_order"),
       supabase.from("option_groups").select("id, name, min_select, max_select, sort_order, is_active, allow_repeat, restaurant_id").eq("restaurant_id", rid).eq("is_active", true),
       supabase.from("option_items").select("id, group_id, name, extra_price, sort_order, is_active, image_url, option_groups!inner(restaurant_id)").eq("option_groups.restaurant_id", rid).eq("is_active", true).order("sort_order"),
+      supabase.from("order_suggestions").select("product_id, sort_order").eq("restaurant_id", rid).order("sort_order"),
     ]);
     const cats = catsRes.data ?? [];
     const prods = (prodsRes.data ?? []) as Product[];
@@ -77,7 +79,8 @@ export default function RestaurantPublic() {
       (linkOrder[l.product_id] ??= {})[g.id] = l.sort_order ?? 0;
     });
     Object.keys(idx).forEach((pid) => idx[pid].sort((a, b) => (linkOrder[pid]?.[a.id] ?? 0) - (linkOrder[pid]?.[b.id] ?? 0)));
-    return { cats, prods, idx };
+    const suggestionIds = ((suggRes.data ?? []) as any[]).map((r) => r.product_id as string);
+    return { cats, prods, idx, suggestionIds };
   };
 
   useEffect(() => {
@@ -88,11 +91,12 @@ export default function RestaurantPublic() {
       if (cancelled) return;
       if (!r) { setLoading(false); return; }
       setRestaurant(r as unknown as Restaurant);
-      const { cats, prods, idx } = await loadMenu(r.id);
+      const { cats, prods, idx, suggestionIds: sIds } = await loadMenu(r.id);
       if (cancelled) return;
       setCategories(cats);
       setProducts(prods);
       setGroupsByProduct(idx);
+      setSuggestionIds(sIds);
       setLoading(false);
     })();
     return () => { cancelled = true; };
@@ -102,10 +106,11 @@ export default function RestaurantPublic() {
     if (!restaurant?.id) return;
     const rid = restaurant.id;
     const reloadMenu = async () => {
-      const { cats, prods, idx } = await loadMenu(rid);
+      const { cats, prods, idx, suggestionIds: sIds } = await loadMenu(rid);
       setCategories(cats);
       setProducts(prods);
       setGroupsByProduct(idx);
+      setSuggestionIds(sIds);
     };
     const ch = supabase.channel(`public-${rid}`)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "restaurants", filter: `id=eq.${rid}` }, (payload) => {
@@ -116,6 +121,7 @@ export default function RestaurantPublic() {
       .on("postgres_changes", { event: "*", schema: "public", table: "option_groups", filter: `restaurant_id=eq.${rid}` }, () => reloadMenu())
       .on("postgres_changes", { event: "*", schema: "public", table: "option_items" }, () => reloadMenu())
       .on("postgres_changes", { event: "*", schema: "public", table: "product_option_groups" }, () => reloadMenu())
+      .on("postgres_changes", { event: "*", schema: "public", table: "order_suggestions", filter: `restaurant_id=eq.${rid}` }, () => reloadMenu())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [restaurant?.id]);
@@ -129,12 +135,19 @@ export default function RestaurantPublic() {
   }, [selected, groupsByProduct]);
 
   const grouped = useMemo(() => {
+    const suggSet = new Set(suggestionIds);
+    const visibleProducts = products.filter((p) => !suggSet.has(p.id));
     const m: { cat: Category | null; products: Product[] }[] = [];
-    categories.forEach((c) => m.push({ cat: c, products: products.filter((p) => p.category_id === c.id) }));
-    const orphans = products.filter((p) => !p.category_id || !categories.find((c) => c.id === p.category_id));
+    categories.forEach((c) => m.push({ cat: c, products: visibleProducts.filter((p) => p.category_id === c.id) }));
+    const orphans = visibleProducts.filter((p) => !p.category_id || !categories.find((c) => c.id === p.category_id));
     if (orphans.length) m.push({ cat: null, products: orphans });
     return m.filter((g) => g.products.length > 0);
-  }, [categories, products]);
+  }, [categories, products, suggestionIds]);
+
+  const suggestionProducts = useMemo(() => {
+    const byId = new Map(products.map((p) => [p.id, p]));
+    return suggestionIds.map((id) => byId.get(id)).filter(Boolean) as Product[];
+  }, [products, suggestionIds]);
 
   const itemCount = cart.items.reduce((s, i) => s + i.quantity, 0);
 
@@ -506,6 +519,46 @@ export default function RestaurantPublic() {
                 <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => cart.remove(i.productId, i.optionsKey)}><Trash2 className="w-3 h-3" /></Button>
               </div>
             ))}
+
+            {cart.items.length > 0 && suggestionProducts.length > 0 && (
+              <div className="border-t pt-4 space-y-2">
+                <div className="text-sm font-semibold">Que tal um upgrade no seu pedido?</div>
+                <div className="space-y-2">
+                  {suggestionProducts.map((p) => {
+                    const hasOptions = (groupsByProduct[p.id] ?? []).length > 0;
+                    const handleAdd = () => {
+                      if (hasOptions) {
+                        setCartOpen(false);
+                        setSelected(p);
+                      } else {
+                        cart.add(restaurant.id, {
+                          productId: p.id,
+                          name: p.name,
+                          price: Number(p.price),
+                          quantity: 1,
+                        });
+                      }
+                    };
+                    return (
+                      <div key={p.id} className="flex gap-3 items-center p-2 rounded-lg border bg-muted/30">
+                        <div className="w-12 h-12 rounded bg-muted overflow-hidden grid place-items-center shrink-0">
+                          {p.image_url
+                            ? <img src={p.image_url} alt={p.name} loading="lazy" className="w-full h-full object-cover" />
+                            : <ImageIcon className="w-5 h-5 text-muted-foreground" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-sm truncate">{p.name}</div>
+                          <div className="text-xs font-semibold text-primary">{brl(Number(p.price))}</div>
+                        </div>
+                        <Button size="sm" variant="outline" onClick={handleAdd}>
+                          <Plus className="w-3.5 h-3.5 mr-1" />Adicionar
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
           <div className="border-t pt-4 space-y-3">
             <div className="flex justify-between font-bold text-lg"><span>Total</span><span>{brl(cart.total)}</span></div>
