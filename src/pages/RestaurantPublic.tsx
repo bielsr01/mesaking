@@ -121,6 +121,7 @@ export default function RestaurantPublic() {
       .on("postgres_changes", { event: "*", schema: "public", table: "option_groups", filter: `restaurant_id=eq.${rid}` }, () => reloadMenu())
       .on("postgres_changes", { event: "*", schema: "public", table: "option_items" }, () => reloadMenu())
       .on("postgres_changes", { event: "*", schema: "public", table: "product_option_groups" }, () => reloadMenu())
+      .on("postgres_changes", { event: "*", schema: "public", table: "order_suggestions", filter: `restaurant_id=eq.${rid}` }, () => reloadMenu())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [restaurant?.id]);
