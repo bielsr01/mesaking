@@ -33,6 +33,7 @@ export type Permissions = {
     view: boolean;
     toggle_program: boolean;
     credit_points: boolean;
+    delete_credit_tx: boolean;
     redeem_points: boolean;
     manual_adjust: boolean;
     member_create: boolean;
