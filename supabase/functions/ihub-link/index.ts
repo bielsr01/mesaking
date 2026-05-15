@@ -211,15 +211,10 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Idempotência: se o webhook do iFood já marcou como entregue, não chama de novo.
-      const { data: existing } = await supabase
-        .from("orders")
-        .select("status")
-        .eq("id", orderId)
-        .eq("restaurant_id", restaurantId)
-        .maybeSingle();
-      if (existing?.status === "delivered") {
-        return new Response(JSON.stringify({ ok: true, alreadyDelivered: true }), {
+      // Idempotência: se o pedido ou webhook já confirmou a entrega, não chama a API de novo.
+      const alreadyConfirmed = await checkDeliveryConfirmed({ restaurantId, orderId, externalOrderId });
+      if (alreadyConfirmed.confirmed) {
+        return new Response(JSON.stringify({ ok: true, alreadyDelivered: true, confirmation: alreadyConfirmed }), {
           status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -238,18 +233,14 @@ Deno.serve(async (req) => {
       let data: any; try { data = JSON.parse(text); } catch { data = { raw: text }; }
       if (!r.ok || data?.success === false) {
         console.error("ihub verify-delivery-code failed", { status: r.status, data });
-        // O iHub às vezes retorna 500 mesmo quando o iFood processa com sucesso e dispara o
-        // webhook CONCLUDED. Aguarda o webhook chegar (até ~3s) e checa o status do pedido.
-        for (let i = 0; i < 6; i++) {
-          await new Promise((res) => setTimeout(res, 500));
-          const { data: recheck } = await supabase
-            .from("orders")
-            .select("status")
-            .eq("id", orderId)
-            .eq("restaurant_id", restaurantId)
-            .maybeSingle();
-          if (recheck?.status === "delivered") {
-            return new Response(JSON.stringify({ ok: true, viaWebhook: true }), {
+        // O iHub pode retornar 500 "Failed to verify delivery code" mesmo depois do iFood
+        // aceitar o código e enviar DDCS/CONCLUDED. Nesse caso, o webhook é a fonte de verdade.
+        const deadline = Date.now() + VERIFY_DELIVERY_WAIT_MS;
+        while (Date.now() < deadline) {
+          await new Promise((res) => setTimeout(res, VERIFY_DELIVERY_POLL_MS));
+          const confirmed = await checkDeliveryConfirmed({ restaurantId, orderId, externalOrderId });
+          if (confirmed.confirmed) {
+            return new Response(JSON.stringify({ ok: true, viaWebhook: true, confirmation: confirmed, ihub_status: r.status }), {
               status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
             });
           }
