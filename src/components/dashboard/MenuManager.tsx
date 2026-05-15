@@ -351,7 +351,12 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
                   )}
                 </div>
 
-                <DialogFooter><Button type="submit">Salvar</Button></DialogFooter>
+                <DialogFooter>
+                  <Button type="submit" disabled={savingProduct}>
+                    {savingProduct ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null}
+                    {savingProduct ? "Salvando..." : "Salvar"}
+                  </Button>
+                </DialogFooter>
               </form>
             </DialogContent>
           </Dialog>}
