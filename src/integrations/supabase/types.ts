@@ -2223,6 +2223,7 @@ export type Database = {
         Args: { _restaurant_id: string; _user_id: string }
         Returns: boolean
       }
+      normalize_br_phone: { Args: { _phone: string }; Returns: string }
       recompute_order_stock: { Args: { _order_id: string }; Returns: undefined }
       redeem_loyalty_points: {
         Args: { _member_id: string; _restaurant_id: string; _reward_id: string }
