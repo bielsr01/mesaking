@@ -213,11 +213,20 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
   });
 
   const creditTx = async (id: string) => {
-    const { error } = await sb.rpc("credit_loyalty_points", { _tx_id: id });
-    if (error) return toast.error(error.message);
-    toast.success("Pontos creditados");
-    qc.invalidateQueries({ queryKey: ["loyalty-tx", restaurantId] });
-    qc.invalidateQueries({ queryKey: ["loyalty-members", restaurantId] });
+    setCreditingIds((prev) => new Set(prev).add(id));
+    try {
+      const { error } = await sb.rpc("credit_loyalty_points", { _tx_id: id });
+      if (error) return toast.error(error.message);
+      toast.success("Pontos creditados");
+      qc.invalidateQueries({ queryKey: ["loyalty-tx", restaurantId] });
+      qc.invalidateQueries({ queryKey: ["loyalty-members", restaurantId] });
+    } finally {
+      setCreditingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
   };
 
   const deleteTx = async (id: string) => {
