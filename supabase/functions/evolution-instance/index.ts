@@ -23,10 +23,21 @@ async function evoFetch(base: string, path: string, apiKey: string, body?: any, 
   return { ok: res.ok, status: res.status, data };
 }
 
-function genInstanceName(restaurantId: string) {
-  const short = restaurantId.replace(/-/g, "").slice(0, 8);
-  const rand = Math.random().toString(36).slice(2, 8);
-  return `mk_${short}_${rand}`;
+function slugify(s: string) {
+  return (s || "")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 40);
+}
+function genInstanceName(restaurantId: string, base?: string | null, withSuffix = false) {
+  const slug = slugify(base || "");
+  const short = restaurantId.replace(/-/g, "").slice(0, 6);
+  const core = slug ? `mk_${slug}` : `mk_${short}`;
+  if (!withSuffix) return core;
+  const rand = Math.random().toString(36).slice(2, 6);
+  return `${core}_${rand}`;
 }
 
 Deno.serve(async (req) => {
@@ -92,12 +103,23 @@ Deno.serve(async (req) => {
       let instanceToken = existing?.instance_token as string | undefined;
 
       if (!instanceName) {
-        instanceName = genInstanceName(restaurantId);
-        const r = await evoFetch(URL_ENV, "/instance/create", KEY_ENV, {
+        // Buscar nome/slug do restaurante para nomear a instância
+        const { data: rest } = await admin.from("restaurants")
+          .select("slug, name").eq("id", restaurantId).maybeSingle();
+        const base = rest?.slug || rest?.name || "";
+        instanceName = genInstanceName(restaurantId, base, false);
+        let r = await evoFetch(URL_ENV, "/instance/create", KEY_ENV, {
           instanceName,
           integration: "WHATSAPP-BAILEYS",
           qrcode: true,
         });
+        // Se nome já existir, tenta com sufixo aleatório
+        if (!r.ok && (r.status === 403 || r.status === 409 || /exist|already|conflict/i.test(JSON.stringify(r.data)))) {
+          instanceName = genInstanceName(restaurantId, base, true);
+          r = await evoFetch(URL_ENV, "/instance/create", KEY_ENV, {
+            instanceName, integration: "WHATSAPP-BAILEYS", qrcode: true,
+          });
+        }
         if (!r.ok) throw new Error(`Falha ao criar instância (${r.status}): ${JSON.stringify(r.data).slice(0, 300)}`);
         instanceToken = r.data?.hash || r.data?.instance?.hash || r.data?.token || null;
         const qr = r.data?.qrcode?.base64 || r.data?.qrcode || null;
