@@ -16,6 +16,7 @@ import { DeliveryZone, GeoPoint, findDeliveryFee, geocodeAddress, haversineKm } 
 import { Loader2, MapPin, Bike, Store, ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { LocationPicker } from "@/components/LocationPicker";
 import { AddressSearchDialog } from "@/components/AddressSearchDialog";
+import { OrderSuccessWhatsAppDialog, buildWhatsappUrl, renderTemplate } from "@/components/OrderSuccessWhatsAppDialog";
 
 // ---------- Helpers de CPF ----------
 const onlyDigits = (v: string) => v.replace(/\D/g, "");
@@ -54,6 +55,8 @@ type RestaurantInfo = {
   address_state?: string | null;
   service_delivery?: boolean | null;
   service_pickup?: boolean | null;
+  phone?: string | null;
+  whatsapp_url?: string | null;
 };
 
 type Step = 1 | 2 | 3;
@@ -63,6 +66,7 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
   const [busy, setBusy] = useState(false);
   const [step, setStep] = useState<Step>(1);
   const [orderType, setOrderType] = useState<"delivery" | "pickup">("delivery");
+  const [successPopup, setSuccessPopup] = useState<{ open: boolean; text: string; whatsappUrl: string }>({ open: false, text: "", whatsappUrl: "" });
 
   // Etapa 1 — cliente
   const [name, setName] = useState("");
@@ -567,10 +571,10 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
     }
 
     // Remove customer_cpf se a coluna não existir (failsafe)
-    let { data: order, error } = await supabase.from("orders").insert(payload).select("id, public_token").single();
+    let { data: order, error } = await supabase.from("orders").insert(payload).select("id, public_token, order_number").single();
     if (error && /customer_cpf/i.test(error.message)) {
       delete payload.customer_cpf;
-      const retry = await supabase.from("orders").insert(payload).select("id, public_token").single();
+      const retry = await supabase.from("orders").insert(payload).select("id, public_token, order_number").single();
       order = retry.data; error = retry.error;
     }
 
@@ -715,12 +719,37 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
       ),
       { duration: 5000 },
     );
+
+    // Popup pós-pedido com botão WhatsApp da loja (configurável)
+    try {
+      const { data: cfg } = await (supabase as any).rpc("get_restaurant_popup_config", {
+        _restaurant_id: restaurant.id,
+      });
+      const c = Array.isArray(cfg) ? cfg[0] : cfg;
+      if (c?.popup_enabled) {
+        const phoneSrc = restaurant.phone || restaurant.whatsapp_url || "";
+        const msg = renderTemplate(c.popup_whatsapp_message || "", {
+          nome: name.trim(),
+          pedido: order.order_number ?? "",
+          total: brl(total),
+        });
+        const url = buildWhatsappUrl(phoneSrc, msg);
+        if (url) {
+          setSuccessPopup({
+            open: true,
+            text: c.popup_text || "Obrigado pelo pedido! Fale com a gente no WhatsApp.",
+            whatsappUrl: url,
+          });
+        }
+      }
+    } catch (_) { /* não bloqueia */ }
   };
 
   // Indicador de progresso
   const stepIndex = isPickup ? (step === 1 ? 1 : 2) : step;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-full sm:max-w-2xl w-screen h-[100dvh] sm:h-[100dvh] max-h-[100dvh] sm:rounded-none p-0 gap-0 flex flex-col overflow-hidden" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader className="px-6 pt-6 pb-3 border-b shrink-0 text-left">
@@ -960,6 +989,13 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
         </div>
       </DialogContent>
     </Dialog>
+    <OrderSuccessWhatsAppDialog
+      open={successPopup.open}
+      onOpenChange={(o) => setSuccessPopup((s) => ({ ...s, open: o }))}
+      text={successPopup.text}
+      whatsappUrl={successPopup.whatsappUrl}
+    />
+    </>
   );
 }
 
