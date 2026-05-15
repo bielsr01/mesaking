@@ -279,7 +279,7 @@ export function PdvDialog({
 
   const reset = () => {
     setCart([]); setCustomerName(""); setCustomerPhone(""); setLoyaltyOptIn(false);
-    setDiscountValue(0); setServiceFeeValue(0); setServiceFeeType("percent"); setPayment(null);
+    setDiscountValue(0); setServiceFeeValue(0); setServiceFeeType("percent"); setPayment(null); setChangeForInput("");
     setSearch("");
     try { localStorage.removeItem(STORAGE_KEY(restaurantId)); } catch { /* noop */ }
   };
