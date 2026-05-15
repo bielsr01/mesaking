@@ -104,14 +104,14 @@ export async function fetchOrders(restaurantId: string): Promise<{ orders: Order
   }
   return { orders, items: grouped };
 }
-function Column({ title, count, accent, children }: { title: string; count: number; accent?: string; children: React.ReactNode }) {
+function Column({ title, count, accent, children, className }: { title: string; count: number; accent?: string; children: React.ReactNode; className?: string }) {
   return (
-    <div className="flex flex-col min-w-0 bg-muted/30 rounded-lg border">
-      <div className={`px-3 py-2 border-b flex items-center justify-between rounded-t-lg ${accent ?? "bg-background"}`}>
+    <div className={`flex flex-col min-w-0 min-h-0 bg-muted/30 rounded-lg border ${className ?? ""}`}>
+      <div className={`px-3 py-2 border-b flex items-center justify-between rounded-t-lg shrink-0 ${accent ?? "bg-background"}`}>
         <span className="text-sm font-semibold">{title}</span>
         <Badge variant="secondary" className="h-5 min-w-5 px-1.5 text-xs">{count}</Badge>
       </div>
-      <div className="p-2 space-y-2 flex-1 overflow-y-auto max-h-[calc(100vh-260px)]">
+      <div className="p-2 space-y-2 flex-1 min-h-0 overflow-y-auto">
         {count === 0 ? (
           <div className="text-xs text-muted-foreground text-center py-6">—</div>
         ) : children}
