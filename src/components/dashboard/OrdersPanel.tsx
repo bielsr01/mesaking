@@ -195,13 +195,30 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     else if (canQuero) setChannel("quero");
   }, [channel, canPdv, canDelivery, canIfood, canQuero]);
 
-  const doPrint = (o: Order, mode: TicketMode) => {
+  const doPrint = async (o: Order, mode: TicketMode) => {
+    const orderItems = items[o.id] ?? [];
+    const itemIds = orderItems.map((it) => it.id).filter(Boolean);
+    let orderOptions: Record<string, { group_name: string | null; item_name: string | null; extra_price: number }[]> = {};
+    if (itemIds.length) {
+      const { data } = await supabase
+        .from("order_item_options")
+        .select("order_item_id,group_name,item_name,extra_price")
+        .in("order_item_id", itemIds);
+      (data ?? []).forEach((row: any) => {
+        (orderOptions[row.order_item_id] ||= []).push({
+          group_name: row.group_name,
+          item_name: row.item_name,
+          extra_price: Number(row.extra_price ?? 0),
+        });
+      });
+    }
     const html = buildTicketHtml(
       o,
-      items[o.id] ?? [],
+      orderItems,
       (restaurantInfo as unknown as TicketRestaurant | null) ?? null,
       optionCatalog,
       mode,
+      orderOptions,
     );
     const w = window.open("", "_blank", "width=420,height=720");
     if (!w) {
