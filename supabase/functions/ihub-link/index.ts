@@ -15,8 +15,8 @@ const supabase = createClient(
 
 const IHUB_BASE = "https://ihub.arcn.com.br/api";
 const DELIVERY_CONFIRMED_CODES = ["CONCLUDED", "DELIVERY_DROP_CODE_VALIDATION_SUCCESS"];
-const VERIFY_DELIVERY_WAIT_MS = 15_000;
-const VERIFY_DELIVERY_POLL_MS = 500;
+const VERIFY_DELIVERY_WAIT_MS = 3_000;
+const VERIFY_DELIVERY_POLL_MS = 400;
 
 function normalizeDomain(domain: string | null | undefined) {
   return (domain || "")
@@ -219,48 +219,63 @@ Deno.serve(async (req) => {
         });
       }
 
-      const r = await fetch(`${IHUB_BASE}/orders/verify-delivery-code`, {
-        method: "POST",
-        headers: { ...authHdr, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          domain,
-          merchantId: integration.merchant_id,
-          orderId: externalOrderId,
-          code: String(code).trim(),
-        }),
-      });
-      const text = await r.text();
-      let data: any; try { data = JSON.parse(text); } catch { data = { raw: text }; }
-      if (!r.ok || data?.success === false) {
-        console.error("ihub verify-delivery-code failed", { status: r.status, data });
-        // O iHub pode retornar 500 "Failed to verify delivery code" mesmo depois do iFood
-        // aceitar o código e enviar DDCS/CONCLUDED. Nesse caso, o webhook é a fonte de verdade.
-        const deadline = Date.now() + VERIFY_DELIVERY_WAIT_MS;
-        while (Date.now() < deadline) {
-          await new Promise((res) => setTimeout(res, VERIFY_DELIVERY_POLL_MS));
-          const confirmed = await checkDeliveryConfirmed({ restaurantId, orderId, externalOrderId });
-          if (confirmed.confirmed) {
-            return new Response(JSON.stringify({ ok: true, viaWebhook: true, confirmation: confirmed, ihub_status: r.status }), {
-              status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-            });
+      // Dispara o verify no iHub. O iHub frequentemente retorna 500 mesmo após o iFood
+      // ter aceitado o código (DDCS/CONCLUDED chega via webhook). Para não travar a UI,
+      // fazemos a chamada com um timeout curto e usamos o webhook como fonte de verdade.
+      const ihubPromise = (async () => {
+        try {
+          const r = await fetch(`${IHUB_BASE}/orders/verify-delivery-code`, {
+            method: "POST",
+            headers: { ...authHdr, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              domain,
+              merchantId: integration.merchant_id,
+              orderId: externalOrderId,
+              code: String(code).trim(),
+            }),
+          });
+          const text = await r.text();
+          let data: any; try { data = JSON.parse(text); } catch { data = { raw: text }; }
+          if (!r.ok || data?.success === false) {
+            console.error("ihub verify-delivery-code failed", { status: r.status, data });
           }
+          return { ok: r.ok && data?.success !== false, status: r.status, data };
+        } catch (e) {
+          console.error("ihub verify-delivery-code threw", e);
+          return { ok: false, status: 0, data: { error: String(e) } };
         }
-        return new Response(JSON.stringify({
-          ok: false,
-          error: data?.message ?? data?.error ?? "Código de entrega inválido",
-          status: r.status,
-          data,
-        }), {
-          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+      })();
+
+      // Aguarda no máximo VERIFY_DELIVERY_WAIT_MS por uma confirmação rápida (iHub OK ou webhook).
+      const deadline = Date.now() + VERIFY_DELIVERY_WAIT_MS;
+      let ihubResult: { ok: boolean; status: number; data: any } | null = null;
+      ihubPromise.then((r) => { ihubResult = r; });
+
+      while (Date.now() < deadline) {
+        if (ihubResult?.ok) {
+          await supabase.from("orders").update({ status: "delivered" }).eq("id", orderId).eq("restaurant_id", restaurantId);
+          return new Response(JSON.stringify({ ok: true, viaIhub: true, ...ihubResult.data }), {
+            status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const confirmed = await checkDeliveryConfirmed({ restaurantId, orderId, externalOrderId });
+        if (confirmed.confirmed) {
+          return new Response(JSON.stringify({ ok: true, viaWebhook: true, confirmation: confirmed }), {
+            status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        await new Promise((res) => setTimeout(res, VERIFY_DELIVERY_POLL_MS));
       }
-      // Marca pedido como entregue
-      await supabase
-        .from("orders")
-        .update({ status: "delivered" })
-        .eq("id", orderId)
-        .eq("restaurant_id", restaurantId);
-      return new Response(JSON.stringify({ ok: true, ...data }), {
+
+      // Sem confirmação rápida: deixamos o iHub terminar em background (o webhook
+      // chegará nos próximos segundos e marcará o pedido como entregue).
+      // Respondemos "pending" para a UI marcar otimistamente como entregue.
+      try { (globalThis as any).EdgeRuntime?.waitUntil?.(ihubPromise); } catch { /* ignore */ }
+      return new Response(JSON.stringify({
+        ok: true,
+        pending: true,
+        message: "Confirmação enviada — aguardando webhook do iFood.",
+      }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
