@@ -314,7 +314,17 @@ export function PdvDialog({
       quantity: Number(it.quantity),
       notes: it.notes ?? null,
     }));
-    const html = buildTicketHtml(ticketOrder, ticketItems, (restaurantInfo as unknown as TicketRestaurant) ?? null, optionCatalog, "customer");
+    const orderOptions: Record<string, { group_name: string | null; item_name: string | null; extra_price: number }[]> = {};
+    cart.forEach((l, ix) => {
+      const tid = ticketItems[ix]?.id;
+      if (!tid || !l.options?.length) return;
+      orderOptions[tid] = l.options.map((o) => ({
+        group_name: o.groupName,
+        item_name: o.itemName,
+        extra_price: Number(o.extraPrice) || 0,
+      }));
+    });
+    const html = buildTicketHtml(ticketOrder, ticketItems, (restaurantInfo as unknown as TicketRestaurant) ?? null, optionCatalog, "customer", orderOptions);
     const w = window.open("", "_blank", "width=420,height=720");
     if (!w) return;
     w.document.open(); w.document.write(html); w.document.close();
