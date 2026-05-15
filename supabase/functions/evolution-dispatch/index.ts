@@ -65,15 +65,23 @@ Deno.serve(async (req) => {
     if (claim) locked.push(row);
   }
 
+  const ENV_URL = Deno.env.get("EVOLUTION_API_URL") || "";
+  const ENV_KEY = Deno.env.get("EVOLUTION_API_KEY") || "";
+
   // Cache de configs por restaurante
   const cfgCache = new Map<string, any>();
   async function getCfg(restaurantId: string) {
     if (cfgCache.has(restaurantId)) return cfgCache.get(restaurantId);
     const { data: cfg } = await supabase
       .from("evolution_integrations")
-      .select("api_url,api_key,instance_name,enabled")
+      .select("api_url,api_key,instance_name,instance_token,enabled")
       .eq("restaurant_id", restaurantId)
       .maybeSingle();
+    if (cfg) {
+      cfg.api_url = cfg.api_url || ENV_URL;
+      // For sending messages we use the instance token; fall back to global key only if no instance token
+      cfg.send_key = cfg.instance_token || cfg.api_key || ENV_KEY;
+    }
     cfgCache.set(restaurantId, cfg);
     return cfg;
   }
