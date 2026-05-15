@@ -2195,6 +2195,14 @@ export type Database = {
         Returns: undefined
       }
       credit_loyalty_points: { Args: { _tx_id: string }; Returns: undefined }
+      get_restaurant_popup_config: {
+        Args: { _restaurant_id: string }
+        Returns: {
+          popup_enabled: boolean
+          popup_text: string
+          popup_whatsapp_message: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
