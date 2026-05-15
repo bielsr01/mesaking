@@ -17,6 +17,19 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
 );
 
+// Formata telefone BR no padrão (XX)XXXXX-XXXX ou (XX)XXXX-XXXX, removendo
+// código do país (55) quando vier do Quero.
+function formatBrPhone(raw: string): string {
+  let d = (raw || "").replace(/\D/g, "");
+  if (!d) return "";
+  // Remove DDI 55 quando o restante tiver DDD + 8 ou 9 dígitos
+  if (d.length === 13 && d.startsWith("55")) d = d.slice(2);
+  else if (d.length === 12 && d.startsWith("55")) d = d.slice(2);
+  if (d.length === 11) return `(${d.slice(0, 2)})${d.slice(2, 7)}-${d.slice(7)}`;
+  if (d.length === 10) return `(${d.slice(0, 2)})${d.slice(2, 6)}-${d.slice(6)}`;
+  return d;
+}
+
 // Mapeia status do Quero -> status interno
 function mapStatus(s?: string): string | null {
   switch (s) {
@@ -168,7 +181,8 @@ async function ingestOrder(integration: any, ev: any) {
   const methods = od?.payments?.methods ?? [];
   const m0 = Array.isArray(methods) && methods.length ? methods[0] : null;
 
-  const phoneNumber = customer?.phone?.number ?? "";
+  const rawPhone = customer?.phone?.number ?? "";
+  const phoneNumber = formatBrPhone(rawPhone);
 
   const { data: inserted, error } = await supabase.from("orders").insert({
     restaurant_id: integration.restaurant_id,
