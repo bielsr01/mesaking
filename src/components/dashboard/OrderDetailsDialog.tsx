@@ -559,7 +559,7 @@ export function OrderDetailsDialog({
                 <X className="w-4 h-4" /> Cancelar
               </Button>
             )}
-            {canEditOrders && (
+            {canEditOrders && order.status === "pending" && (
               <Button size="sm" variant="outline" onClick={handleDelete}
                 className="text-destructive hover:bg-destructive hover:text-destructive-foreground gap-1">
                 <Trash2 className="w-4 h-4" /> Excluir
