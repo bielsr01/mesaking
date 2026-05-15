@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { MessageCircle, Utensils, Truck } from "lucide-react";
 import { IntegrationStatusCard, IntegrationStatus } from "./IntegrationStatusCard";
+import { EvolutionMessagesPanel } from "./EvolutionMessagesPanel";
 
 const sb = supabase as any;
 
@@ -108,6 +109,10 @@ export function IntegrationsPanel({ restaurantId }: { restaurantId: string }) {
           }}
         />
       </div>
+
+      {evoStatus !== "not_configured" && (
+        <EvolutionMessagesPanel restaurantId={restaurantId} />
+      )}
     </div>
   );
 }

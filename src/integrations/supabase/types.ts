@@ -528,6 +528,84 @@ export type Database = {
         }
         Relationships: []
       }
+      evolution_message_queue: {
+        Row: {
+          attempts: number
+          created_at: string
+          error: string | null
+          event_key: string
+          id: string
+          message: string
+          order_id: string | null
+          phone: string
+          restaurant_id: string
+          scheduled_at: string
+          sent_at: string | null
+          status: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          error?: string | null
+          event_key: string
+          id?: string
+          message: string
+          order_id?: string | null
+          phone: string
+          restaurant_id: string
+          scheduled_at?: string
+          sent_at?: string | null
+          status?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          error?: string | null
+          event_key?: string
+          id?: string
+          message?: string
+          order_id?: string | null
+          phone?: string
+          restaurant_id?: string
+          scheduled_at?: string
+          sent_at?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
+      evolution_message_templates: {
+        Row: {
+          created_at: string
+          delay_minutes: number
+          enabled: boolean
+          event_key: string
+          id: string
+          restaurant_id: string
+          template: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          delay_minutes?: number
+          enabled?: boolean
+          event_key: string
+          id?: string
+          restaurant_id: string
+          template?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          delay_minutes?: number
+          enabled?: boolean
+          event_key?: string
+          id?: string
+          restaurant_id?: string
+          template?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       expense_categories: {
         Row: {
           created_at: string
