@@ -73,6 +73,7 @@ export const FULL_PERMISSIONS: Permissions = {
     view: true,
     toggle_program: true,
     credit_points: true,
+    delete_credit_tx: true,
     redeem_points: true,
     manual_adjust: true,
     member_create: true,
@@ -109,6 +110,7 @@ export const EMPTY_PERMISSIONS: Permissions = {
     view: false,
     toggle_program: false,
     credit_points: false,
+    delete_credit_tx: false,
     redeem_points: false,
     manual_adjust: false,
     member_create: false,
@@ -147,6 +149,7 @@ const PERMISSION_DEPENDENCIES: Record<string, string> = {
   "loyalty.member_create": "loyalty.view",
   "loyalty.member_delete": "loyalty.view",
   "loyalty.credit_points": "loyalty.view",
+  "loyalty.delete_credit_tx": "loyalty.credit_points",
   "loyalty.redeem_points": "loyalty.view",
   "loyalty.manual_adjust": "loyalty.view",
   "loyalty.rewards.view": "loyalty.view",
@@ -163,6 +166,7 @@ const PERMISSION_DEPENDENCIES: Record<string, string> = {
 // quem já tinha permissão antes de a chave existir.
 const LEGACY_INHERIT_FROM_PARENT: string[] = [
   "expenses.edit",
+  "loyalty.delete_credit_tx",
   ...PDV_STATUSES.map((s) => `orders.statuses.pdv.${s}`),
   ...DELIVERY_STATUSES.map((s) => `orders.statuses.delivery.${s}`),
   ...IFOOD_STATUSES.map((s) => `orders.statuses.ifood.${s}`),
