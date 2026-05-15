@@ -180,47 +180,6 @@ function EvolutionDialog({
             <p className="text-xs text-muted-foreground">Última verificação: {new Date(existing.last_check_at).toLocaleString("pt-BR")}</p>
           )}
 
-          {scope === "restaurant" && (
-            <div className="space-y-3 rounded-lg border p-4 bg-muted/30">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <Label className="cursor-pointer text-sm font-semibold">Popup pós-pedido (cardápio)</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Ao finalizar o pedido, exibe um popup convidando o cliente a abrir o WhatsApp da loja.
-                  </p>
-                </div>
-                <Switch checked={popupEnabled} onCheckedChange={setPopupEnabled} />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs">Texto do popup</Label>
-                <Textarea
-                  rows={2}
-                  value={popupText}
-                  onChange={(e) => setPopupText(e.target.value)}
-                  disabled={!popupEnabled}
-                  placeholder="Mensagem exibida ao cliente na tela"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs">Mensagem pré-preenchida no WhatsApp</Label>
-                <Textarea
-                  rows={3}
-                  value={popupMsg}
-                  onChange={(e) => setPopupMsg(e.target.value)}
-                  disabled={!popupEnabled}
-                  placeholder="Texto que será aberto no WhatsApp ao clicar no botão"
-                />
-                <p className="text-[11px] text-muted-foreground">
-                  Variáveis: <code className="bg-background px-1 rounded">{"{{nome}}"}</code>{" "}
-                  <code className="bg-background px-1 rounded">{"{{pedido}}"}</code>{" "}
-                  <code className="bg-background px-1 rounded">{"{{total}}"}</code>
-                </p>
-                <p className="text-[11px] text-muted-foreground">
-                  O número usado é o telefone cadastrado da loja.
-                </p>
-              </div>
-            </div>
-          )}
         </div>
 
         <DialogFooter className="flex-col sm:flex-row gap-2">
