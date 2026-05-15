@@ -1,10 +1,14 @@
-// Cron worker: envia mensagens da fila evolution_message_queue cujo scheduled_at <= now()
+// Worker: envia mensagens da fila evolution_message_queue cujo scheduled_at <= now()
+// Disparado por: (1) cron 2x/min, (2) trigger pg_net imediato quando delay=0.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const BATCH_LIMIT = 200;
+const PARALLELISM = 20;
 
 function normalizePhone(p: string) {
   const d = (p || "").replace(/\D/g, "");
@@ -16,6 +20,14 @@ function sanitizeBase(apiUrl: string) {
   return (apiUrl || "").replace(/\/+$/, "").replace(/\/manager$/i, "");
 }
 
+type QueueRow = {
+  id: string;
+  restaurant_id: string;
+  phone: string;
+  message: string;
+  attempts: number;
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -24,14 +36,14 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
-  // Pega até 25 itens vencidos
-  const { data: queue, error } = await supabase
+  // 1) Buscar candidatos vencidos
+  const { data: candidates, error } = await supabase
     .from("evolution_message_queue")
     .select("id,restaurant_id,phone,message,attempts")
     .eq("status", "pending")
     .lte("scheduled_at", new Date().toISOString())
     .order("scheduled_at", { ascending: true })
-    .limit(25);
+    .limit(BATCH_LIMIT);
 
   if (error) {
     return new Response(JSON.stringify({ ok: false, error: error.message }), {
@@ -40,17 +52,36 @@ Deno.serve(async (req) => {
     });
   }
 
-  let sent = 0, failed = 0;
-  const results: any[] = [];
+  // 2) Lock otimista: tenta marcar cada um como "processing"
+  const locked: QueueRow[] = [];
+  for (const row of (candidates ?? []) as QueueRow[]) {
+    const { data: claim } = await supabase
+      .from("evolution_message_queue")
+      .update({ status: "processing" })
+      .eq("id", row.id)
+      .eq("status", "pending")
+      .select("id")
+      .maybeSingle();
+    if (claim) locked.push(row);
+  }
 
-  for (const row of queue ?? []) {
-    // Busca config Evolution do restaurante (deve estar habilitada)
+  // Cache de configs por restaurante
+  const cfgCache = new Map<string, any>();
+  async function getCfg(restaurantId: string) {
+    if (cfgCache.has(restaurantId)) return cfgCache.get(restaurantId);
     const { data: cfg } = await supabase
       .from("evolution_integrations")
       .select("api_url,api_key,instance_name,enabled")
-      .eq("restaurant_id", row.restaurant_id)
+      .eq("restaurant_id", restaurantId)
       .maybeSingle();
+    cfgCache.set(restaurantId, cfg);
+    return cfg;
+  }
 
+  let sent = 0, failed = 0;
+
+  async function processOne(row: QueueRow) {
+    const cfg = await getCfg(row.restaurant_id);
     if (!cfg || !cfg.enabled || !cfg.api_url || !cfg.api_key || !cfg.instance_name) {
       await supabase.from("evolution_message_queue").update({
         status: "failed",
@@ -58,7 +89,7 @@ Deno.serve(async (req) => {
         attempts: (row.attempts ?? 0) + 1,
       }).eq("id", row.id);
       failed++;
-      continue;
+      return;
     }
 
     const number = normalizePhone(row.phone);
@@ -68,7 +99,7 @@ Deno.serve(async (req) => {
         attempts: (row.attempts ?? 0) + 1,
       }).eq("id", row.id);
       failed++;
-      continue;
+      return;
     }
 
     const url = sanitizeBase(cfg.api_url) + `/message/sendText/${encodeURIComponent(cfg.instance_name)}`;
@@ -85,7 +116,6 @@ Deno.serve(async (req) => {
           attempts: (row.attempts ?? 0) + 1,
         }).eq("id", row.id);
         sent++;
-        results.push({ id: row.id, ok: true });
       } else {
         const attempts = (row.attempts ?? 0) + 1;
         await supabase.from("evolution_message_queue").update({
@@ -95,7 +125,6 @@ Deno.serve(async (req) => {
           scheduled_at: new Date(Date.now() + 60_000 * attempts).toISOString(),
         }).eq("id", row.id);
         failed++;
-        results.push({ id: row.id, ok: false, status: res.status });
       }
     } catch (e) {
       const attempts = (row.attempts ?? 0) + 1;
@@ -106,11 +135,21 @@ Deno.serve(async (req) => {
         scheduled_at: new Date(Date.now() + 60_000 * attempts).toISOString(),
       }).eq("id", row.id);
       failed++;
-      results.push({ id: row.id, ok: false, error: (e as Error).message });
     }
   }
 
-  return new Response(JSON.stringify({ ok: true, processed: queue?.length ?? 0, sent, failed, results }), {
+  // 3) Processar em chunks paralelos
+  for (let i = 0; i < locked.length; i += PARALLELISM) {
+    const chunk = locked.slice(i, i + PARALLELISM);
+    await Promise.all(chunk.map(processOne));
+  }
+
+  return new Response(JSON.stringify({
+    ok: true,
+    candidates: candidates?.length ?? 0,
+    processed: locked.length,
+    sent, failed,
+  }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 });
