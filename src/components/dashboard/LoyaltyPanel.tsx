@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { brl, formatPhone, normalizeBrPhone, statusLabelFor } from "@/lib/format";
-import { Plus, Check, Trash2, Award, RefreshCw, Pencil, History, Search, BarChart3 } from "lucide-react";
+import { Plus, Check, Trash2, Award, RefreshCw, Pencil, History, Search, BarChart3, Loader2 } from "lucide-react";
 import { LoyaltyRewardsTab } from "./LoyaltyRewardsTab";
 import { LoyaltyMetricsDialog } from "./LoyaltyMetricsDialog";
 import { usePermissions } from "@/hooks/usePermissions";
