@@ -1,0 +1,183 @@
+// Manage Evolution API instances per restaurant using GLOBAL credentials from env.
+// Actions: env_status, create, connect, state, logout, delete
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+function sanitizeBase(u: string) {
+  return (u || "").replace(/\/+$/, "").replace(/\/manager$/i, "");
+}
+
+async function evoFetch(base: string, path: string, apiKey: string, body?: any, method = "POST") {
+  const res = await fetch(sanitizeBase(base) + path, {
+    method,
+    headers: { "Content-Type": "application/json", apikey: apiKey },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const text = await res.text();
+  let data: any = null;
+  try { data = text ? JSON.parse(text) : null; } catch { data = { raw: text }; }
+  return { ok: res.ok, status: res.status, data };
+}
+
+function genInstanceName(restaurantId: string) {
+  const short = restaurantId.replace(/-/g, "").slice(0, 8);
+  const rand = Math.random().toString(36).slice(2, 8);
+  return `mk_${short}_${rand}`;
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  const URL_ENV = Deno.env.get("EVOLUTION_API_URL") || "";
+  const KEY_ENV = Deno.env.get("EVOLUTION_API_KEY") || "";
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+  const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+  try {
+    const body = await req.json().catch(() => ({}));
+    const { action, restaurantId } = body ?? {};
+
+    if (action === "env_status") {
+      return new Response(JSON.stringify({
+        ok: true,
+        configured: !!URL_ENV && !!KEY_ENV,
+        apiUrl: URL_ENV ? sanitizeBase(URL_ENV) : null,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    if (!URL_ENV || !KEY_ENV) {
+      throw new Error("EVOLUTION_API_URL ou EVOLUTION_API_KEY não configurados no servidor.");
+    }
+
+    // Auth: must be authenticated
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) throw new Error("Unauthorized");
+    const userClient = createClient(SUPABASE_URL, ANON, { global: { headers: { Authorization: authHeader } } });
+    const { data: claims } = await userClient.auth.getClaims(authHeader.replace("Bearer ", ""));
+    if (!claims?.claims?.sub) throw new Error("Unauthorized");
+    const uid = claims.claims.sub as string;
+
+    const admin = createClient(SUPABASE_URL, SERVICE);
+
+    if (!restaurantId) throw new Error("restaurantId obrigatório");
+
+    // Permission: master_admin OR manager of restaurant
+    const { data: isAdminRow } = await admin.from("user_roles").select("role").eq("user_id", uid).eq("role", "master_admin").maybeSingle();
+    const isAdmin = !!isAdminRow;
+    if (!isAdmin) {
+      const { data: ok } = await admin.rpc("is_restaurant_manager", { _user_id: uid, _restaurant_id: restaurantId });
+      if (!ok) throw new Error("Sem permissão para este restaurante");
+    }
+
+    // Load or initialize integration row
+    const { data: existing } = await admin.from("evolution_integrations")
+      .select("*").eq("restaurant_id", restaurantId).maybeSingle();
+
+    async function upsertRow(fields: Record<string, any>) {
+      if (existing?.id) {
+        await admin.from("evolution_integrations").update(fields).eq("id", existing.id);
+      } else {
+        await admin.from("evolution_integrations").insert({ restaurant_id: restaurantId, ...fields });
+      }
+    }
+
+    if (action === "create") {
+      // If already has an instance, reuse it
+      let instanceName = existing?.instance_name as string | undefined;
+      let instanceToken = existing?.instance_token as string | undefined;
+
+      if (!instanceName) {
+        instanceName = genInstanceName(restaurantId);
+        const r = await evoFetch(URL_ENV, "/instance/create", KEY_ENV, {
+          instanceName,
+          integration: "WHATSAPP-BAILEYS",
+          qrcode: true,
+        });
+        if (!r.ok) throw new Error(`Falha ao criar instância (${r.status}): ${JSON.stringify(r.data).slice(0, 300)}`);
+        instanceToken = r.data?.hash || r.data?.instance?.hash || r.data?.token || null;
+        const qr = r.data?.qrcode?.base64 || r.data?.qrcode || null;
+        await upsertRow({
+          api_url: sanitizeBase(URL_ENV),
+          api_key: KEY_ENV,
+          instance_name: instanceName,
+          instance_token: instanceToken,
+          enabled: true,
+          qrcode: qr,
+          last_status: r.data?.instance?.status || "created",
+          last_check_at: new Date().toISOString(),
+        });
+        return new Response(JSON.stringify({ ok: true, instanceName, qrcode: qr, status: "created" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ ok: true, instanceName, status: existing?.last_status }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "connect") {
+      const instanceName = existing?.instance_name;
+      if (!instanceName) throw new Error("Instância não criada ainda");
+      const r = await evoFetch(URL_ENV, `/instance/connect/${encodeURIComponent(instanceName)}`, KEY_ENV, undefined, "GET");
+      if (!r.ok) throw new Error(`Falha ao obter QR (${r.status})`);
+      let qr = r.data?.qrcode?.base64 || r.data?.base64 || r.data?.qrcode || null;
+      if (qr && typeof qr === "string" && !qr.startsWith("data:image")) {
+        qr = `data:image/png;base64,${qr}`;
+      }
+      const code = r.data?.code || r.data?.qrcode?.code || null;
+      await upsertRow({ qrcode: qr, last_check_at: new Date().toISOString() });
+      return new Response(JSON.stringify({ ok: true, qrcode: qr, code }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "state") {
+      const instanceName = existing?.instance_name;
+      if (!instanceName) throw new Error("Instância não criada");
+      const r = await evoFetch(URL_ENV, `/instance/connectionState/${encodeURIComponent(instanceName)}`, KEY_ENV, undefined, "GET");
+      const state = r.data?.instance?.state || r.data?.state || (r.ok ? "unknown" : `erro ${r.status}`);
+      const update: any = { last_status: state, last_check_at: new Date().toISOString() };
+      if (state === "open") update.qrcode = null;
+      await upsertRow(update);
+      return new Response(JSON.stringify({ ok: r.ok, state }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "logout") {
+      const instanceName = existing?.instance_name;
+      if (!instanceName) throw new Error("Instância não criada");
+      const r = await evoFetch(URL_ENV, `/instance/logout/${encodeURIComponent(instanceName)}`, KEY_ENV, undefined, "DELETE");
+      await upsertRow({ last_status: "close", qrcode: null, last_check_at: new Date().toISOString() });
+      return new Response(JSON.stringify({ ok: r.ok }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "delete") {
+      const instanceName = existing?.instance_name;
+      if (instanceName) {
+        await evoFetch(URL_ENV, `/instance/delete/${encodeURIComponent(instanceName)}`, KEY_ENV, undefined, "DELETE");
+      }
+      await upsertRow({
+        instance_name: null, instance_token: null, qrcode: null,
+        phone_number: null, last_status: "deleted", last_check_at: new Date().toISOString(),
+      });
+      return new Response(JSON.stringify({ ok: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    throw new Error("Ação desconhecida");
+  } catch (e) {
+    return new Response(JSON.stringify({ ok: false, error: (e as Error).message }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});
