@@ -152,17 +152,27 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
         if (existing) {
           return toast.error("Já existe um cliente cadastrado com este telefone.");
         }
-        const { error } = await sb.from("loyalty_members").insert({
+        const { data: inserted, error } = await sb.from("loyalty_members").insert({
           restaurant_id: restaurantId,
           name: newName.trim(),
           phone: phoneFmt,
           points,
-        });
+        }).select("id").single();
         if (error) {
           if ((error.code === "23505") || /duplicate|unique/i.test(error.message)) {
             return toast.error("Já existe um cliente cadastrado com este telefone.");
           }
           return toast.error(error.message);
+        }
+        if (inserted && points !== 0) {
+          await sb.from("loyalty_transactions").insert({
+            restaurant_id: restaurantId,
+            member_id: inserted.id,
+            points,
+            type: "manual",
+            status: "credited",
+            credited_at: new Date().toISOString(),
+          });
         }
         toast.success("Cliente cadastrado");
       }
