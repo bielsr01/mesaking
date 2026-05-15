@@ -68,7 +68,6 @@ const SECTIONS: Array<{ key: keyof Permissions; label: string; rows: Row[] }> = 
   ]},
   { key: "loyalty", label: "Programa de fidelidade", rows: [
     { path: "loyalty.view", label: "Acessar programa" },
-    { path: "loyalty.toggle_program", label: "Pode ativar/desativar o programa" },
     { path: "loyalty.member_create", label: "Cadastrar cliente no programa" },
     { path: "loyalty.member_delete", label: "Excluir cliente do programa" },
     { path: "loyalty.credit_points", label: "Creditar pontos" },
@@ -76,8 +75,6 @@ const SECTIONS: Array<{ key: keyof Permissions; label: string; rows: Row[] }> = 
     { path: "loyalty.redeem_points", label: "Resgatar pontos" },
     { path: "loyalty.manual_adjust", label: "Ajuste manual de pontos" },
     { path: "loyalty.rewards.view", label: "Ver recompensas" },
-    { path: "loyalty.rewards.edit", label: "Editar/criar recompensas" },
-    { path: "loyalty.rewards.delete", label: "Excluir recompensas" },
   ]},
   { key: "settings", label: "Configurações", rows: [{ path: "settings.view", label: "Visualizar configurações" }] },
   { key: "supply_orders", label: "Pedido de Insumos", rows: [

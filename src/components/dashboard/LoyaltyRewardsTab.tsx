@@ -63,11 +63,12 @@ async function fetchProductOptionGroups(restaurantId: string, productId: string)
   return out.sort((a, b) => a.sort - b.sort).map((x) => x.g);
 }
 
-export function LoyaltyRewardsTab({ restaurantId }: { restaurantId: string }) {
+export function LoyaltyRewardsTab({ restaurantId, isAdmin = false }: { restaurantId: string; isAdmin?: boolean }) {
   const qc = useQueryClient();
   const { can } = usePermissions(restaurantId);
-  const canRewardsEdit = can("loyalty.rewards.edit");
-  const canRewardsDelete = can("loyalty.rewards.delete");
+  // Criar/editar/excluir recompensas são exclusivos do admin do sistema
+  const canRewardsEdit = isAdmin;
+  const canRewardsDelete = isAdmin;
   const canRedeem = can("loyalty.redeem_points");
   const productsQ = useQuery({
     queryKey: ["loyalty-products-list", restaurantId],

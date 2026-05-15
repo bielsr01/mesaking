@@ -37,7 +37,8 @@ type Tx = {
 export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: string; isAdmin?: boolean }) {
   const qc = useQueryClient();
   const { can } = usePermissions(restaurantId);
-  const canToggle = can("loyalty.toggle_program");
+  // Ativar/desativar programa é exclusivo do admin do sistema
+  const canToggle = isAdmin;
   const canMemberCreate = can("loyalty.member_create");
   const canMemberDelete = can("loyalty.member_delete");
   const canCredit = can("loyalty.credit_points");
@@ -280,7 +281,7 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
 
           {canRewardsView && (
           <TabsContent value="rewards">
-            <LoyaltyRewardsTab restaurantId={restaurantId} />
+            <LoyaltyRewardsTab restaurantId={restaurantId} isAdmin={isAdmin} />
           </TabsContent>
           )}
 
