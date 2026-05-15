@@ -154,6 +154,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
 
   const confirmIfoodDelivery = async () => {
     if (!ifoodCodeTarget) return;
+    const targetOrderId = ifoodCodeTarget.id;
     const code = ifoodCodeValue.trim();
     if (!code) { toast.error("Informe o código de entrega"); return; }
     setIfoodCodeSubmitting(true);
@@ -170,9 +171,10 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
       if (error) throw error;
       if (!data?.ok) throw new Error(data?.error ?? "Falha ao validar código");
       toast.success("Entrega confirmada");
+      patchOrder(targetOrderId, { status: "delivered" });
       setIfoodCodeTarget(null);
       setIfoodCodeValue("");
-      qc.invalidateQueries({ queryKey: ["orders", restaurantId] });
+      await qc.invalidateQueries({ queryKey: ordersKey(restaurantId) });
     } catch (e: any) {
       toast.error(e?.message ?? "Erro");
     } finally {
