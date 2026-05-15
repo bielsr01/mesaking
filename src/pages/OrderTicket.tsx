@@ -201,6 +201,13 @@ export default function OrderTicket() {
           </div>
         )}
 
+        {ps.extra_message_enabled && (ps.extra_message ?? "").trim() && (
+          <>
+            <div className="sep" />
+            <div className="center" style={{ whiteSpace: "pre-wrap" }}>{ps.extra_message}</div>
+          </>
+        )}
+
         <div className="sep" />
         <div className="center muted" style={{ fontSize: 10 }}>
           Esse documento não tem valor fiscal.
