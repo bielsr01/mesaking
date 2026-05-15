@@ -69,9 +69,9 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) throw new Error("Unauthorized");
     const userClient = createClient(SUPABASE_URL, ANON, { global: { headers: { Authorization: authHeader } } });
-    const { data: claims } = await userClient.auth.getClaims(authHeader.replace("Bearer ", ""));
-    if (!claims?.claims?.sub) throw new Error("Unauthorized");
-    const uid = claims.claims.sub as string;
+    const { data: userData, error: userErr } = await userClient.auth.getUser(authHeader.replace("Bearer ", ""));
+    if (userErr || !userData?.user?.id) throw new Error("Unauthorized");
+    const uid = userData.user.id;
 
     const admin = createClient(SUPABASE_URL, SERVICE);
 
