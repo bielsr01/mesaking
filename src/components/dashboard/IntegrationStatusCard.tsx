@@ -93,7 +93,11 @@ export function IntegrationStatusCard({
 
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setOpen(false)}>Fechar</Button>
-            <Button onClick={handleVerify} disabled={verifying || status === "not_configured"}>
+            <Button
+              onClick={handleVerify}
+              disabled={verifying || status === "not_configured" || status === "disabled"}
+              className={status === "disabled" ? "opacity-50" : undefined}
+            >
               {verifying ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
               Verificar conexão
             </Button>
