@@ -289,8 +289,8 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
           <TabsContent value="settings" className="space-y-4 pt-4 max-w-md">
             <div className="flex items-center justify-between border rounded-lg p-3">
               <div>
-                <div className="font-medium">Ativar programa</div>
-                <p className="text-xs text-muted-foreground">Quando ativo, clientes podem optar por pontuar ao fazer pedido.</p>
+                <div className="font-medium">Status do programa</div>
+                <p className="text-xs text-muted-foreground">{isAdmin ? "Quando ativo, clientes podem optar por pontuar ao fazer pedido." : "A ativação ou desativação do programa é feita pelo administrador do sistema."}</p>
               </div>
               {canToggle ? <Switch checked={enabled} onCheckedChange={setEnabled} /> : <Badge variant={enabled ? "default" : "secondary"}>{enabled ? "Ativo" : "Inativo"}</Badge>}
             </div>
