@@ -175,8 +175,8 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
       setIfoodCodeTarget(null);
       setIfoodCodeValue("");
       await qc.invalidateQueries({ queryKey: ordersKey(restaurantId) });
-    } catch (e: any) {
-      toast.error(e?.message ?? "Erro");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Erro");
     } finally {
       setIfoodCodeSubmitting(false);
     }
