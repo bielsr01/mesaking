@@ -727,7 +727,16 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
       });
       const c = Array.isArray(cfg) ? cfg[0] : cfg;
       if (c?.popup_enabled) {
-        const phoneSrc = restaurant.phone || restaurant.whatsapp_url || "";
+        // Fallback: número da instância Evolution conectada se a loja não tem telefone cadastrado
+        let phoneSrc = restaurant.phone || restaurant.whatsapp_url || "";
+        if (!phoneSrc) {
+          const { data: evo } = await (supabase as any)
+            .from("evolution_integrations")
+            .select("phone_number")
+            .eq("restaurant_id", restaurant.id)
+            .maybeSingle();
+          phoneSrc = evo?.phone_number || "";
+        }
         const msg = renderTemplate(c.popup_whatsapp_message || "", {
           nome: name.trim(),
           pedido: order.order_number ?? "",
