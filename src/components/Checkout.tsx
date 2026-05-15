@@ -16,6 +16,7 @@ import { DeliveryZone, GeoPoint, findDeliveryFee, geocodeAddress, haversineKm } 
 import { Loader2, MapPin, Bike, Store, ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { LocationPicker } from "@/components/LocationPicker";
 import { AddressSearchDialog } from "@/components/AddressSearchDialog";
+import { OrderSuccessWhatsAppDialog, buildWhatsappUrl, renderTemplate } from "@/components/OrderSuccessWhatsAppDialog";
 
 // ---------- Helpers de CPF ----------
 const onlyDigits = (v: string) => v.replace(/\D/g, "");
