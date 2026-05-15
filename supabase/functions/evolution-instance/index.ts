@@ -160,7 +160,7 @@ Deno.serve(async (req) => {
         }
         if (!r.ok) throw new Error(`Falha ao criar instância (${r.status}): ${JSON.stringify(r.data).slice(0, 300)}`);
         instanceToken = r.data?.hash || r.data?.instance?.hash || r.data?.token || null;
-        const qr = r.data?.qrcode?.base64 || r.data?.qrcode || null;
+        const qr = await buildPureQrImage(r.data);
         await upsertRow({
           api_url: sanitizeBase(URL_ENV),
           api_key: KEY_ENV,
@@ -185,13 +185,7 @@ Deno.serve(async (req) => {
       if (!instanceName) throw new Error("Instância não criada ainda");
       const r = await evoFetch(URL_ENV, `/instance/connect/${encodeURIComponent(instanceName)}`, KEY_ENV, undefined, "GET");
       if (!r.ok) throw new Error(`Falha ao obter QR (${r.status})`);
-      let qr: string | null = r.data?.qrcode?.base64 || r.data?.base64 || null;
-      // Only accept actual base64 PNG images. Never fabricate from text codes.
-      if (qr && typeof qr === "string") {
-        if (!qr.startsWith("data:image")) qr = `data:image/png;base64,${qr}`;
-      } else {
-        qr = null;
-      }
+      const qr = await buildPureQrImage(r.data);
       const code = r.data?.code || r.data?.qrcode?.code || null;
       await upsertRow({ qrcode: qr, last_check_at: new Date().toISOString() });
       return new Response(JSON.stringify({ ok: true, qrcode: qr, code }), {
