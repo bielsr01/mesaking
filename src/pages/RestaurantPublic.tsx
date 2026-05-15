@@ -135,12 +135,19 @@ export default function RestaurantPublic() {
   }, [selected, groupsByProduct]);
 
   const grouped = useMemo(() => {
+    const suggSet = new Set(suggestionIds);
+    const visibleProducts = products.filter((p) => !suggSet.has(p.id));
     const m: { cat: Category | null; products: Product[] }[] = [];
-    categories.forEach((c) => m.push({ cat: c, products: products.filter((p) => p.category_id === c.id) }));
-    const orphans = products.filter((p) => !p.category_id || !categories.find((c) => c.id === p.category_id));
+    categories.forEach((c) => m.push({ cat: c, products: visibleProducts.filter((p) => p.category_id === c.id) }));
+    const orphans = visibleProducts.filter((p) => !p.category_id || !categories.find((c) => c.id === p.category_id));
     if (orphans.length) m.push({ cat: null, products: orphans });
     return m.filter((g) => g.products.length > 0);
-  }, [categories, products]);
+  }, [categories, products, suggestionIds]);
+
+  const suggestionProducts = useMemo(() => {
+    const byId = new Map(products.map((p) => [p.id, p]));
+    return suggestionIds.map((id) => byId.get(id)).filter(Boolean) as Product[];
+  }, [products, suggestionIds]);
 
   const itemCount = cart.items.reduce((s, i) => s + i.quantity, 0);
 
