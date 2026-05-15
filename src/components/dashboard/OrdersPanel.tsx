@@ -422,11 +422,6 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
       toast.error(error.message);
     } else {
       toast.success(`Pedido #${o.order_number} → "${orderStatusLabel[next]}"`);
-      // Acompanha o card para a nova aba (evita a sensação de "sumiu" quando
-      // o usuário está num filtro específico, ex.: "Em preparo" → "Em entrega").
-      if (filter !== "all" && filter !== "active" && can(statusKey(channel, next))) {
-        setFilter(next);
-      }
     }
     setPending(o.id, false);
   };
