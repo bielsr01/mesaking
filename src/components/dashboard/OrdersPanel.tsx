@@ -130,7 +130,6 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const [pdvOpen, setPdvOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [deliveryBlink, setDeliveryBlink] = useState(false);
-  const [ifoodView, setIfoodView] = useState<"orders" | "events">("orders");
   const [pendingAction, setPendingAction] = useState<Record<string, boolean>>({});
   const [ifoodCodeTarget, setIfoodCodeTarget] = useState<Order | null>(null);
   const [ifoodCodeValue, setIfoodCodeValue] = useState("");
