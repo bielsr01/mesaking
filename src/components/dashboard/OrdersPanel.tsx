@@ -474,6 +474,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
 
   const deleteOrder = async (o: Order) => {
     if (!canEditOrders) return toast.error("Sem permissão para excluir pedido");
+    if (o.status !== "pending") return toast.error("Só é possível excluir pedidos que ainda não foram aceitos. Use 'Cancelar'.");
     const prev = qc.getQueryData<{ orders: Order[]; items: Record<string, Item[]> }>(ordersKey(restaurantId));
     qc.setQueryData<{ orders: Order[]; items: Record<string, Item[]> }>(ordersKey(restaurantId), (p) => {
       if (!p) return p;
