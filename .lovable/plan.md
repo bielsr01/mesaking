@@ -1,76 +1,47 @@
-## Objetivo
+## Diagnóstico
 
-Simplificar a conexão WhatsApp de cada restaurante. O admin não configura mais URL/token/instância manualmente — o sistema usa **env globais** (URL da Evolution + API Key Global) e cria automaticamente uma instância por restaurante. O lojista só clica em "Conectar WhatsApp" e escaneia um QR code.
+Sua última campanha está configurada com **`interval_seconds = 3`** (3 segundos entre mensagens). Isso vem da tabela `bulk_campaigns` — cada campanha tem o seu próprio delay configurável na UI.
 
-As regras de envio de mensagens, popup pós-pedido e templates **permanecem intactas**.
+O envio está demorando **muito mais que 3s** por causa de **dois problemas** no `supabase/functions/bulk-campaign-worker/index.ts`:
 
----
+### Bug #1 (crítico) — `startedAt` no escopo do módulo
 
-## 1. Secrets (env do projeto)
+```ts
+const MAX_RUN_MS = 50_000;
+const startedAt = Date.now();   // ← avaliado UMA VEZ quando o módulo carrega
+...
+Deno.serve(async (req) => {
+  while (Date.now() - startedAt < MAX_RUN_MS) { ... }
+});
+```
 
-Adicionar dois secrets:
-- `EVOLUTION_API_URL` — base da Evolution (ex.: `https://evo.suaempresa.com`)
-- `EVOLUTION_API_KEY` — token **global** (gerencia instâncias)
+Em Edge Functions o módulo é reaproveitado entre invocações (instância "quente"). Depois da primeira chamada, `Date.now() - startedAt` já passou de 50s → o `while` **nem entra** nas próximas execuções. Resultado: o worker só processa de fato quando a instância sobe do zero (cold start). Nas chamadas mornas ele retorna imediatamente sem enviar nada, e você só vê movimento quando o cron aciona uma instância nova.
 
-Vou pedir esses valores via `add_secret` antes de seguir.
+### Bug #2 — Throttle sem espera
 
-## 2. Banco
+Quando a campanha está dentro do `interval_seconds`, o código faz `continue` e refaz o `select` em loop apertado, queimando CPU sem aguardar. Tecnicamente funciona, mas combinado com o bug #1 ajuda a estourar o `MAX_RUN_MS`.
 
-Migration em `evolution_integrations`:
-- Adicionar colunas: `instance_token text`, `qrcode text`, `phone_number text`
-- Tornar `api_url`, `api_key`, `instance_name` **nullable** (passam a ser preenchidos automaticamente)
-- Manter colunas existentes (`enabled`, `popup_*`, `last_status`, etc.)
+### Cron
 
-Sem mudança nas RLS, triggers, ou na função `enqueue_evolution_message_for_order`.
+O cron dispara o worker a cada 30s. Com o bug #1, na prática o intervalo efetivo entre mensagens vira o intervalo entre cold starts (pode passar de minutos), em vez dos 3s configurados.
 
-## 3. Nova edge function: `evolution-instance`
+## Correção proposta
 
-Tudo usa o token global do env. Ações:
-- `create` — gera `instanceName` único (`mk_<restaurantId8>_<rand>`), chama `POST /instance/create`, salva `instance_name` + `instance_token` (campo `hash`) no registro do restaurante. Cria a linha em `evolution_integrations` se não existir.
-- `connect` — `GET /instance/connect/{instance}`, retorna QR code base64; salva em `qrcode`.
-- `state` — `GET /instance/connectionState/{instance}`, atualiza `last_status` e, se `open`, marca `enabled=true` e limpa `qrcode`.
-- `logout` — `POST /instance/logout/{instance}`, marca status disconnected.
-- `delete` — `DELETE /instance/delete/{instance}`, limpa campos da instância.
+Arquivo: `supabase/functions/bulk-campaign-worker/index.ts`
 
-Validação: usuário tem que ser manager do `restaurant_id` (ou master_admin).
+1. **Mover `startedAt` para dentro do handler** (`Deno.serve`), para que cada invocação tenha sua própria janela de 50s.
+2. **Aguardar o tempo restante do intervalo** quando a campanha está throttled, em vez de `continue` em loop:
+   ```ts
+   const waitMs = interval - (Date.now() - new Date(c.last_run_at).getTime());
+   if (waitMs > 0) { await sleep(Math.min(waitMs, 2000)); continue; }
+   ```
+3. (Opcional) Ajustar o `sleep(1000)` final para algo menor quando há campanhas ativas, para não desperdiçar a janela.
 
-## 4. Atualizar funções existentes
+## Resultado esperado
 
-- `evolution-send` e `evolution-dispatch`: quando `api_url`/`api_key` da linha estiverem vazios, usar env globais; e ao enviar mensagens (`/message/sendText`, `/message/sendMedia`), usar `instance_token` (token da instância) em vez do global. Para `verify`/`connectionState`, continua o global.
-- `admin-create-restaurant`: depois de criar o restaurante, invoca internamente o fluxo `create` da Evolution (best-effort — se falhar, restaurante segue criado e o lojista cria manualmente depois).
+Com `interval_seconds = 3` e a correção:
+- Primeira mensagem: imediata ao iniciar a campanha
+- Próximas: a cada ~3s (dentro da janela de 50s do worker)
+- Cron de 30s garante continuidade entre invocações
 
-## 5. UI — Admin
-
-`EvolutionIntegrationCard` (escopo admin):
-- Remover inputs de URL/API Key/Instance.
-- Mostrar apenas status do env (configurado? / quantas instâncias ativas) e um único Switch para habilitar/desabilitar globalmente o uso da integração.
-
-## 6. UI — Restaurante
-
-`IntegrationStatusCard` da Evolution / `IntegrationsPanel`:
-- Se ainda não há instância criada → botão grande **"Criar instância WhatsApp"** (chama `create`).
-- Se há instância mas status ≠ `open` → botão grande **"Conectar WhatsApp"** que abre dialog com QR code (chama `connect`, exibe imagem, faz polling em `state` a cada 3s; ao detectar `open`, fecha o dialog e atualiza badge para "Conectado").
-- Se status = `open` → mostrar número conectado + botão "Desconectar" (`logout`) e "Mostrar novo QR" (recria sessão).
-- Mantém o `extraContent` com `EvolutionMessagesPanel` (popup pós-pedido + templates) inalterado.
-
-## 7. Sem mudanças
-
-- `evolution_message_templates`, `evolution_message_queue` e trigger `enqueue_evolution_message_for_order`.
-- `EvolutionMessagesPanel` (popup + templates).
-- Checkout / `OrderSuccessWhatsAppDialog`.
-
----
-
-## Detalhes técnicos
-
-- Endpoints Evolution conforme gist: `/instance/create`, `/instance/connect/{name}`, `/instance/connectionState/{name}`, `/instance/logout/{name}`, `/instance/delete/{name}`. Header `apikey: <token>`.
-- `instance_token` vem do campo `hash` da resposta de `create`.
-- Polling do QR no front: `setInterval(3000)` chamando `state`; para quando `open` ou após 2 min.
-- Backfill: para restaurantes já existentes sem instância, o botão "Criar instância" resolve.
-
-## Próximos passos após aprovação
-
-1. Pedir os dois secrets (`EVOLUTION_API_URL`, `EVOLUTION_API_KEY`).
-2. Rodar migration.
-3. Criar `evolution-instance` e ajustar `evolution-send` / `evolution-dispatch` / `admin-create-restaurant`.
-4. Reescrever os dois cards (admin e restaurante).
+Posso aplicar essa correção?
