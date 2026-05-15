@@ -302,22 +302,13 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
       .channel(`orders-${restaurantId}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` }, (payload) => {
         const row = payload.new as Order;
-        if (row?.order_type === "pdv") {
-          setChannel("pdv");
-          setFilter("preparing");
-        } else if (row?.external_source === "ifood") {
-          setChannel("ifood");
-          setIfoodView("orders");
-          setFilter("pending");
-        } else if (row?.external_source === "quero") {
-          setChannel("quero");
-          setFilter("pending");
-        } else {
+        if (row?.external_source === "ifood") {
+          // não troca canal automaticamente — usuário pode estar no "Todos"
+        } else if (row?.order_type !== "pdv" && row?.external_source !== "quero") {
           setChannel((cur) => {
-            if (cur !== "delivery") setDeliveryBlink(true);
+            if (cur !== "delivery" && cur !== "all") setDeliveryBlink(true);
             return cur;
           });
-          setFilter("pending");
         }
         qc.invalidateQueries({ queryKey: ordersKey(restaurantId) });
       })
