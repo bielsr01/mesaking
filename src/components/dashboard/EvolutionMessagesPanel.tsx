@@ -81,12 +81,25 @@ export function EvolutionMessagesPanel({ restaurantId }: { restaurantId: string 
     qc.invalidateQueries({ queryKey: ["evolution-templates", restaurantId] });
   };
 
+  const [historyOpen, setHistoryOpen] = useState(false);
+
+  const eventTitle = (k: string) => EVENTS.find((e) => e.key === k)?.title ?? k;
+
   return (
     <Card className="p-5 space-y-4">
       <div className="flex items-center gap-2">
         <MessageCircle className="w-5 h-5 text-green-600" />
         <h3 className="text-lg font-semibold">Mensagens automáticas (WhatsApp)</h3>
+        <Button variant="outline" size="sm" className="ml-auto" onClick={() => setHistoryOpen(true)}>
+          <History className="w-4 h-4 mr-1" /> Registro de disparos
+        </Button>
       </div>
+      <DispatchHistoryDialog
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        restaurantId={restaurantId}
+        eventTitle={eventTitle}
+      />
       <p className="text-sm text-muted-foreground">
         Configure mensagens automáticas enviadas ao cliente em cada etapa do pedido. Variáveis disponíveis:{" "}
         <code className="text-xs bg-muted px-1 rounded">{"{{nome}}"}</code>{" "}
