@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { Printer, ChefHat } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 
 export interface PrintSettings {
   logo: boolean;
@@ -20,6 +21,8 @@ export interface PrintSettings {
   products: boolean;
   prices: boolean;
   payment_method: boolean;
+  extra_message_enabled: boolean;
+  extra_message: string;
   /** @deprecated kept for backwards-compat with old DB rows */
   products_with_prices?: boolean;
 }
@@ -35,6 +38,8 @@ export const DEFAULT_PRINT_SETTINGS: PrintSettings = {
   products: true,
   prices: true,
   payment_method: true,
+  extra_message_enabled: false,
+  extra_message: "",
 };
 
 export const DEFAULT_KITCHEN_PRINT_SETTINGS: PrintSettings = {
@@ -48,6 +53,8 @@ export const DEFAULT_KITCHEN_PRINT_SETTINGS: PrintSettings = {
   products: true,
   prices: false,
   payment_method: false,
+  extra_message_enabled: false,
+  extra_message: "",
 };
 
 /** Normalize legacy `products_with_prices` into split fields */
