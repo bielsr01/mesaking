@@ -35,6 +35,7 @@ async function evoFetch(apiUrl: string, path: string, apiKey: string, body: any)
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  const startedAt = Date.now();
   const log: any[] = [];
   let processed = 0;
 
