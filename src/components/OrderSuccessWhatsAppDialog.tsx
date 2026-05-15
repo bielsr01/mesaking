@@ -21,7 +21,7 @@ export function OrderSuccessWhatsAppDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md" onInteractOutside={(e) => e.preventDefault()}>
+      <DialogContent className="max-w-md rounded-2xl" onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <div className="mx-auto w-14 h-14 rounded-full bg-green-500/10 grid place-items-center mb-2">
             <MessageCircle className="w-7 h-7 text-green-600" />
