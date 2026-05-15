@@ -571,10 +571,10 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
     }
 
     // Remove customer_cpf se a coluna não existir (failsafe)
-    let { data: order, error } = await supabase.from("orders").insert(payload).select("id, public_token").single();
+    let { data: order, error } = await supabase.from("orders").insert(payload).select("id, public_token, order_number").single();
     if (error && /customer_cpf/i.test(error.message)) {
       delete payload.customer_cpf;
-      const retry = await supabase.from("orders").insert(payload).select("id, public_token").single();
+      const retry = await supabase.from("orders").insert(payload).select("id, public_token, order_number").single();
       order = retry.data; error = retry.error;
     }
 
