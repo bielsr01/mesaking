@@ -1,7 +1,7 @@
 // Manage Evolution API instances per restaurant using GLOBAL credentials from env.
 // Actions: env_status, create, connect, state, logout, delete
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import QRCode from "npm:qrcode@1.5.4";
+import QRCode from "https://esm.sh/qrcode@1.5.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
