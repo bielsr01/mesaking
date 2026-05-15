@@ -488,50 +488,59 @@ export type Database = {
       }
       evolution_integrations: {
         Row: {
-          api_key: string
-          api_url: string
+          api_key: string | null
+          api_url: string | null
           created_at: string
           enabled: boolean
           id: string
-          instance_name: string
+          instance_name: string | null
+          instance_token: string | null
           is_admin: boolean
           last_check_at: string | null
           last_status: string | null
+          phone_number: string | null
           popup_enabled: boolean
           popup_text: string | null
           popup_whatsapp_message: string | null
+          qrcode: string | null
           restaurant_id: string | null
           updated_at: string
         }
         Insert: {
-          api_key: string
-          api_url: string
+          api_key?: string | null
+          api_url?: string | null
           created_at?: string
           enabled?: boolean
           id?: string
-          instance_name: string
+          instance_name?: string | null
+          instance_token?: string | null
           is_admin?: boolean
           last_check_at?: string | null
           last_status?: string | null
+          phone_number?: string | null
           popup_enabled?: boolean
           popup_text?: string | null
           popup_whatsapp_message?: string | null
+          qrcode?: string | null
           restaurant_id?: string | null
           updated_at?: string
         }
         Update: {
-          api_key?: string
-          api_url?: string
+          api_key?: string | null
+          api_url?: string | null
           created_at?: string
           enabled?: boolean
           id?: string
-          instance_name?: string
+          instance_name?: string | null
+          instance_token?: string | null
           is_admin?: boolean
           last_check_at?: string | null
           last_status?: string | null
+          phone_number?: string | null
           popup_enabled?: boolean
           popup_text?: string | null
           popup_whatsapp_message?: string | null
+          qrcode?: string | null
           restaurant_id?: string | null
           updated_at?: string
         }

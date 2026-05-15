@@ -1,4 +1,5 @@
-// Evolution API helper: verify connection or send a single message
+// Evolution API helper: verify connection or send a single message.
+// Now uses ENV globals as fallback and the instance_token (per-instance) for /message/* calls.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -16,6 +17,7 @@ function normalizePhone(p: string) {
 function sanitizeBase(apiUrl: string) {
   return (apiUrl || "").replace(/\/+$/, "").replace(/\/manager$/i, "");
 }
+
 async function evoFetch(apiUrl: string, path: string, apiKey: string, body?: any, method = "POST") {
   const url = sanitizeBase(apiUrl) + path;
   const res = await fetch(url, {
@@ -34,12 +36,22 @@ Deno.serve(async (req) => {
   try {
     const { action, integrationId, apiUrl, apiKey, instance, phone, text, mediaUrl } = await req.json();
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const ENV_URL = Deno.env.get("EVOLUTION_API_URL") || "";
+    const ENV_KEY = Deno.env.get("EVOLUTION_API_KEY") || "";
 
-    let cfg = { apiUrl, apiKey, instance };
+    let cfg: any = { apiUrl, apiKey, instance, instanceToken: null };
     if (integrationId) {
       const { data } = await supabase.from("evolution_integrations").select("*").eq("id", integrationId).maybeSingle();
       if (!data) throw new Error("Integração não encontrada");
-      cfg = { apiUrl: data.api_url, apiKey: data.api_key, instance: data.instance_name };
+      cfg = {
+        apiUrl: data.api_url || ENV_URL,
+        apiKey: data.api_key || ENV_KEY,
+        instance: data.instance_name,
+        instanceToken: data.instance_token || null,
+      };
+    } else {
+      cfg.apiUrl = cfg.apiUrl || ENV_URL;
+      cfg.apiKey = cfg.apiKey || ENV_KEY;
     }
     if (!cfg.apiUrl || !cfg.apiKey || !cfg.instance) throw new Error("Credenciais incompletas");
 
@@ -60,16 +72,18 @@ Deno.serve(async (req) => {
     if (action === "send") {
       const number = normalizePhone(phone);
       if (!number) throw new Error("Telefone inválido");
+      // For sending, prefer the instance token (Evolution requires it)
+      const sendKey = cfg.instanceToken || cfg.apiKey;
       let r;
       if (mediaUrl) {
-        r = await evoFetch(cfg.apiUrl, `/message/sendMedia/${inst}`, cfg.apiKey, {
+        r = await evoFetch(cfg.apiUrl, `/message/sendMedia/${inst}`, sendKey, {
           number,
           mediatype: "image",
           media: mediaUrl,
           caption: text || "",
         });
       } else {
-        r = await evoFetch(cfg.apiUrl, `/message/sendText/${inst}`, cfg.apiKey, {
+        r = await evoFetch(cfg.apiUrl, `/message/sendText/${inst}`, sendKey, {
           number,
           text: text || "",
         });
@@ -85,8 +99,7 @@ Deno.serve(async (req) => {
     if (/CaUsedAsEndEntity|invalid peer certificate|UnknownIssuer|certificate/i.test(msg)) {
       msg =
         "Certificado TLS do servidor Evolution inválido. Verifique se a URL da API está correta " +
-        "(sem duplicações como 'evolution-evolution') e se o certificado HTTPS do host está " +
-        "configurado corretamente no Easypanel (Let's Encrypt). Detalhe técnico: " + msg;
+        "e se o certificado HTTPS do host está configurado corretamente. Detalhe técnico: " + msg;
     }
     return new Response(JSON.stringify({ ok: false, error: msg }), {
       status: 400,

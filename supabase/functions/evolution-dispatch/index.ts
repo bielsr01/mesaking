@@ -65,15 +65,23 @@ Deno.serve(async (req) => {
     if (claim) locked.push(row);
   }
 
+  const ENV_URL = Deno.env.get("EVOLUTION_API_URL") || "";
+  const ENV_KEY = Deno.env.get("EVOLUTION_API_KEY") || "";
+
   // Cache de configs por restaurante
   const cfgCache = new Map<string, any>();
   async function getCfg(restaurantId: string) {
     if (cfgCache.has(restaurantId)) return cfgCache.get(restaurantId);
     const { data: cfg } = await supabase
       .from("evolution_integrations")
-      .select("api_url,api_key,instance_name,enabled")
+      .select("api_url,api_key,instance_name,instance_token,enabled")
       .eq("restaurant_id", restaurantId)
       .maybeSingle();
+    if (cfg) {
+      cfg.api_url = cfg.api_url || ENV_URL;
+      // For sending messages we use the instance token; fall back to global key only if no instance token
+      cfg.send_key = cfg.instance_token || cfg.api_key || ENV_KEY;
+    }
     cfgCache.set(restaurantId, cfg);
     return cfg;
   }
@@ -82,7 +90,7 @@ Deno.serve(async (req) => {
 
   async function processOne(row: QueueRow) {
     const cfg = await getCfg(row.restaurant_id);
-    if (!cfg || !cfg.enabled || !cfg.api_url || !cfg.api_key || !cfg.instance_name) {
+    if (!cfg || !cfg.enabled || !cfg.api_url || !cfg.send_key || !cfg.instance_name) {
       await supabase.from("evolution_message_queue").update({
         status: "failed",
         error: "Integração Evolution não configurada/desativada",
@@ -106,7 +114,7 @@ Deno.serve(async (req) => {
     try {
       const res = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json", apikey: cfg.api_key },
+        headers: { "Content-Type": "application/json", apikey: cfg.send_key },
         body: JSON.stringify({ number, text: row.message }),
       });
       const text = await res.text();

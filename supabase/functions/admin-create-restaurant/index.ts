@@ -79,6 +79,42 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: restErr.message }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // Best-effort: auto-create Evolution WhatsApp instance for the new restaurant.
+    // We swallow errors so a missing/invalid Evolution env doesn't block restaurant creation.
+    try {
+      const evoUrl = Deno.env.get("EVOLUTION_API_URL") || "";
+      const evoKey = Deno.env.get("EVOLUTION_API_KEY") || "";
+      if (evoUrl && evoKey) {
+        const base = evoUrl.replace(/\/+$/, "").replace(/\/manager$/i, "");
+        const short = rest.id.replace(/-/g, "").slice(0, 8);
+        const rand = Math.random().toString(36).slice(2, 8);
+        const instanceName = `mk_${short}_${rand}`;
+        const r = await fetch(`${base}/instance/create`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", apikey: evoKey },
+          body: JSON.stringify({ instanceName, integration: "WHATSAPP-BAILEYS", qrcode: true }),
+        });
+        const txt = await r.text();
+        let json: any = null;
+        try { json = txt ? JSON.parse(txt) : null; } catch { /* ignore */ }
+        if (r.ok && json) {
+          const instanceToken = json?.hash || json?.instance?.hash || json?.token || null;
+          const qr = json?.qrcode?.base64 || json?.qrcode || null;
+          await admin.from("evolution_integrations").insert({
+            restaurant_id: rest.id,
+            api_url: base,
+            api_key: evoKey,
+            instance_name: instanceName,
+            instance_token: instanceToken,
+            enabled: true,
+            qrcode: qr,
+            last_status: "created",
+            last_check_at: new Date().toISOString(),
+          });
+        }
+      }
+    } catch (_e) { /* best-effort */ }
+
     return new Response(JSON.stringify({ restaurant: rest, user_id: newUserId }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     return new Response(JSON.stringify({ error: (e as Error).message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
