@@ -41,6 +41,7 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
   const canMemberCreate = can("loyalty.member_create");
   const canMemberDelete = can("loyalty.member_delete");
   const canCredit = can("loyalty.credit_points");
+  const canDeleteCreditTx = can("loyalty.delete_credit_tx");
   const canRedeem = can("loyalty.redeem_points");
   const canRewardsView = can("loyalty.rewards.view");
   const canManualAdjust = can("loyalty.manual_adjust");
@@ -397,7 +398,7 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
                             {creditingIds.has(t.id) ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Check className="w-4 h-4 mr-1" />}
                             {creditingIds.has(t.id) ? "Processando..." : "Creditar"}
                           </Button>
-                          <Button size="sm" variant="ghost" onClick={() => deleteTx(t.id)}><Trash2 className="w-4 h-4" /></Button>
+                          {canDeleteCreditTx && <Button size="sm" variant="ghost" onClick={() => deleteTx(t.id)}><Trash2 className="w-4 h-4" /></Button>}
                         </div>
                       </TableCell>
                     </TableRow>
