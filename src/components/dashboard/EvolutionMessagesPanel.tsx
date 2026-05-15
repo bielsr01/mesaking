@@ -8,7 +8,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { MessageCircle, Save } from "lucide-react";
+import { MessageCircle, Save, History } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const sb = supabase as any;
 
@@ -78,12 +81,25 @@ export function EvolutionMessagesPanel({ restaurantId }: { restaurantId: string 
     qc.invalidateQueries({ queryKey: ["evolution-templates", restaurantId] });
   };
 
+  const [historyOpen, setHistoryOpen] = useState(false);
+
+  const eventTitle = (k: string) => EVENTS.find((e) => e.key === k)?.title ?? k;
+
   return (
     <Card className="p-5 space-y-4">
       <div className="flex items-center gap-2">
         <MessageCircle className="w-5 h-5 text-green-600" />
         <h3 className="text-lg font-semibold">Mensagens automáticas (WhatsApp)</h3>
+        <Button variant="outline" size="sm" className="ml-auto" onClick={() => setHistoryOpen(true)}>
+          <History className="w-4 h-4 mr-1" /> Registro de disparos
+        </Button>
       </div>
+      <DispatchHistoryDialog
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        restaurantId={restaurantId}
+        eventTitle={eventTitle}
+      />
       <p className="text-sm text-muted-foreground">
         Configure mensagens automáticas enviadas ao cliente em cada etapa do pedido. Variáveis disponíveis:{" "}
         <code className="text-xs bg-muted px-1 rounded">{"{{nome}}"}</code>{" "}
@@ -137,5 +153,88 @@ export function EvolutionMessagesPanel({ restaurantId }: { restaurantId: string 
         })}
       </div>
     </Card>
+  );
+}
+
+function statusBadge(s: string) {
+  if (s === "sent") return <Badge className="bg-green-600 hover:bg-green-600">Enviado</Badge>;
+  if (s === "failed") return <Badge variant="destructive">Falhou</Badge>;
+  return <Badge variant="secondary">Pendente</Badge>;
+}
+
+function DispatchHistoryDialog({
+  open, onOpenChange, restaurantId, eventTitle,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  restaurantId: string;
+  eventTitle: (k: string) => string;
+}) {
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ["evolution-queue", restaurantId],
+    queryFn: async () => {
+      const { data } = await sb
+        .from("evolution_message_queue")
+        .select("id,event_key,phone,message,status,attempts,error,scheduled_at,sent_at,created_at")
+        .eq("restaurant_id", restaurantId)
+        .order("created_at", { ascending: false })
+        .limit(200);
+      return (data ?? []) as any[];
+    },
+    enabled: open,
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-5xl max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <History className="w-5 h-5" /> Registro de disparos
+          </DialogTitle>
+          <DialogDescription>Últimas 200 mensagens enfileiradas para envio via WhatsApp.</DialogDescription>
+        </DialogHeader>
+        <div className="flex justify-end">
+          <Button variant="outline" size="sm" onClick={() => refetch()}>Atualizar</Button>
+        </div>
+        <div className="overflow-auto border rounded-md">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Evento</TableHead>
+                <TableHead>Telefone</TableHead>
+                <TableHead>Mensagem</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Agendado</TableHead>
+                <TableHead>Enviado</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading && (
+                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Carregando...</TableCell></TableRow>
+              )}
+              {!isLoading && (data?.length ?? 0) === 0 && (
+                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Nenhum disparo registrado.</TableCell></TableRow>
+              )}
+              {data?.map((r) => (
+                <TableRow key={r.id}>
+                  <TableCell className="text-xs">{eventTitle(r.event_key)}</TableCell>
+                  <TableCell className="text-xs whitespace-nowrap">{r.phone}</TableCell>
+                  <TableCell className="text-xs max-w-[280px]">
+                    <div className="truncate" title={r.message}>{r.message}</div>
+                    {r.error && <div className="text-destructive text-[11px] mt-1 truncate" title={r.error}>Erro: {r.error}</div>}
+                  </TableCell>
+                  <TableCell>
+                    {statusBadge(r.status)}
+                    {r.attempts > 0 && <div className="text-[11px] text-muted-foreground mt-1">Tent.: {r.attempts}</div>}
+                  </TableCell>
+                  <TableCell className="text-xs whitespace-nowrap">{r.scheduled_at ? new Date(r.scheduled_at).toLocaleString("pt-BR") : "-"}</TableCell>
+                  <TableCell className="text-xs whitespace-nowrap">{r.sent_at ? new Date(r.sent_at).toLocaleString("pt-BR") : "-"}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
