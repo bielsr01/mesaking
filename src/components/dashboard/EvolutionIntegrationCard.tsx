@@ -88,6 +88,9 @@ function EvolutionDialog({
   const [apiKey, setApiKey] = useState(existing?.api_key ?? "");
   const [instance, setInstance] = useState(existing?.instance_name ?? "");
   const [enabled, setEnabled] = useState(existing?.enabled ?? true);
+  const [popupEnabled, setPopupEnabled] = useState<boolean>(existing?.popup_enabled ?? false);
+  const [popupText, setPopupText] = useState<string>(existing?.popup_text ?? "Obrigado pelo seu pedido! Que tal mandar um oi pra gente no WhatsApp? 💚");
+  const [popupMsg, setPopupMsg] = useState<string>(existing?.popup_whatsapp_message ?? "Olá! Acabei de fazer o pedido #{{pedido}} no valor de {{total}}. Meu nome é {{nome}}.");
   const [verifying, setVerifying] = useState(false);
   const [saving, setSaving] = useState(false);
   const [verifyResult, setVerifyResult] = useState<{ ok: boolean; msg: string } | null>(null);
@@ -97,6 +100,9 @@ function EvolutionDialog({
     setApiKey(existing?.api_key ?? "");
     setInstance(existing?.instance_name ?? "");
     setEnabled(existing?.enabled ?? true);
+    setPopupEnabled(existing?.popup_enabled ?? false);
+    setPopupText(existing?.popup_text ?? "Obrigado pelo seu pedido! Que tal mandar um oi pra gente no WhatsApp? 💚");
+    setPopupMsg(existing?.popup_whatsapp_message ?? "Olá! Acabei de fazer o pedido #{{pedido}} no valor de {{total}}. Meu nome é {{nome}}.");
   }, [existing, open]);
 
   const handleVerify = async () => {
