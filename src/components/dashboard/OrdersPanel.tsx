@@ -741,8 +741,8 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
 
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="flex flex-col gap-4 h-[calc(100vh-7rem)] pb-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 shrink-0">
         <Tabs value={channel} onValueChange={(v) => {
           const nv = v as Channel;
           setChannel(nv);
