@@ -15,8 +15,8 @@ const supabase = createClient(
 
 const IHUB_BASE = "https://ihub.arcn.com.br/api";
 const DELIVERY_CONFIRMED_CODES = ["CONCLUDED", "DELIVERY_DROP_CODE_VALIDATION_SUCCESS"];
-const VERIFY_DELIVERY_WAIT_MS = 15_000;
-const VERIFY_DELIVERY_POLL_MS = 500;
+const VERIFY_DELIVERY_WAIT_MS = 3_000;
+const VERIFY_DELIVERY_POLL_MS = 400;
 
 function normalizeDomain(domain: string | null | undefined) {
   return (domain || "")
