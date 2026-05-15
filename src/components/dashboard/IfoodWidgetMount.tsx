@@ -43,12 +43,29 @@ export function IfoodWidgetMount({ restaurantId }: { restaurantId?: string }) {
   const enabled = !!data?.widget_enabled;
   const merchantId = (data?.widget_merchant_id ?? "").trim();
 
+  // Remove qualquer DOM injetado pelo widget da iFood (botão flutuante + iframe).
+  // A sessão fica nos cookies/localStorage de widgets.ifood.com.br, então
+  // remover do DOM não desloga — apenas oculta enquanto a condição não é atendida.
+  const cleanupWidgetDom = () => {
+    const selectors = [
+      'iframe[src*="widgets.ifood.com.br"]',
+      'iframe[src*="ifood-widget"]',
+      '[id^="ifood-widget"]',
+      '[class*="ifood-widget"]',
+      '[data-ifood-widget]',
+    ];
+    document.querySelectorAll(selectors.join(",")).forEach((el) => el.remove());
+    window.__ifoodWidgetInitedFor = null;
+  };
+
   useEffect(() => {
     let cancelled = false;
-    if (!enabled || !merchantId) return;
-    // Sessão do widget é mantida pela própria iFood (cookies/localStorage do
-    // domínio widgets.ifood.com.br). Para não derrubar a sessão a cada
-    // remount/login, só chamamos init() uma vez por merchantId no ciclo da página.
+    if (!enabled || !merchantId) {
+      cleanupWidgetDom();
+      return;
+    }
+    // Só chamamos init() uma vez por merchantId no ciclo da página para
+    // evitar que cada remount/login force uma reinicialização.
     if (window.__ifoodWidgetInitedFor === merchantId) return;
     (async () => {
       await ensureScript();
@@ -68,7 +85,11 @@ export function IfoodWidgetMount({ restaurantId }: { restaurantId?: string }) {
       };
       tryInit();
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      // Ao desmontar (logout, troca de rota etc.) remove o widget da tela.
+      cleanupWidgetDom();
+    };
   }, [enabled, merchantId]);
 
   return null;
