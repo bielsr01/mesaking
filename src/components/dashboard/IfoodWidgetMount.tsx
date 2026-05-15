@@ -51,6 +51,17 @@ function hideIfoodWidgetFallback() {
   } catch {}
 }
 
+function showIfoodWidgetFallback() {
+  try {
+    [".embeddables-iframe", ".embeddables-focus-wrapper", '[data-embdd-hit-region-id]'].forEach((s) => {
+      document.querySelectorAll<HTMLElement>(s).forEach((el) => {
+        el.style.display = "";
+        el.style.pointerEvents = "";
+      });
+    });
+  } catch {}
+}
+
 // Mantém a sessão local do iFood preservada: escondemos o widget pela API
 // oficial em vez de remover o iframe ou reinicializar em cada logout/troca.
 export function cleanupIfoodWidgetDom() {
@@ -90,6 +101,7 @@ export function IfoodWidgetMount({ restaurantId }: { restaurantId?: string }) {
       return;
     }
     if (window.__ifoodWidgetInitedFor === merchantId) {
+      showIfoodWidgetFallback();
       try { window.iFoodWidget?.show?.(); } catch {}
       return () => cleanupIfoodWidgetDom();
     }
@@ -98,6 +110,7 @@ export function IfoodWidgetMount({ restaurantId }: { restaurantId?: string }) {
       if (cancelled) return;
       const tryInit = (attempts = 0) => {
         if (window.__ifoodWidgetInitedFor === merchantId) {
+          showIfoodWidgetFallback();
           try { window.iFoodWidget?.show?.(); } catch {}
           return;
         }
@@ -105,6 +118,7 @@ export function IfoodWidgetMount({ restaurantId }: { restaurantId?: string }) {
           try {
             window.iFoodWidget.init({ widgetId: WIDGET_ID, merchantIds: [merchantId], autoShow: true });
             window.__ifoodWidgetInitedFor = merchantId;
+            showIfoodWidgetFallback();
             try { window.iFoodWidget.show?.(); } catch {}
           } catch (e) {
             console.warn("iFood widget init error", e);
