@@ -62,12 +62,12 @@ function showIfoodWidgetFallback() {
   } catch {}
 }
 
-// Mantém a sessão local do iFood preservada: escondemos o widget pela API
-// oficial em vez de remover o iframe ou reinicializar em cada logout/troca.
+// IMPORTANTE: NUNCA remover iframe/script nem limpar cache/cookies do iFood.
+// O cache (accessToken/refreshToken) fica em localStorage/cookies do domínio
+// e é compartilhado entre usuários do mesmo navegador. Apenas escondemos.
 export function cleanupIfoodWidgetDom() {
   try { window.iFoodWidget?.hide?.(); } catch {}
   hideIfoodWidgetFallback();
-  setTimeout(hideIfoodWidgetFallback, 250);
 }
 
 export function IfoodWidgetMount({ restaurantId }: { restaurantId?: string }) {
@@ -89,48 +89,53 @@ export function IfoodWidgetMount({ restaurantId }: { restaurantId?: string }) {
   const enabled = !!data?.widget_enabled;
   const merchantId = (data?.widget_merchant_id ?? "").trim();
 
+  // Carrega o script uma única vez, independente de estar logado, para
+  // manter a sessão/cache do widget aquecida em qualquer página.
+  useEffect(() => {
+    ensureScript();
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     if (!enabled || !merchantId) {
       cleanupIfoodWidgetDom();
       return;
     }
-    if (window.__ifoodWidgetInitedFor && window.__ifoodWidgetInitedFor !== merchantId) {
-      cleanupIfoodWidgetDom();
-      window.location.reload();
-      return;
-    }
-    if (window.__ifoodWidgetInitedFor === merchantId) {
-      showIfoodWidgetFallback();
-      try { window.iFoodWidget?.show?.(); } catch {}
-      return () => cleanupIfoodWidgetDom();
-    }
+
     (async () => {
       await ensureScript();
       if (cancelled) return;
       const tryInit = (attempts = 0) => {
-        if (window.__ifoodWidgetInitedFor === merchantId) {
-          showIfoodWidgetFallback();
-          try { window.iFoodWidget?.show?.(); } catch {}
+        if (!window.iFoodWidget?.init) {
+          if (attempts < 40) setTimeout(() => tryInit(attempts + 1), 200);
           return;
         }
-        if (window.iFoodWidget?.init) {
-          try {
-            window.iFoodWidget.init({ widgetId: WIDGET_ID, merchantIds: [merchantId], autoShow: true });
-            window.__ifoodWidgetInitedFor = merchantId;
-            showIfoodWidgetFallback();
-            try { window.iFoodWidget.show?.(); } catch {}
-          } catch (e) {
-            console.warn("iFood widget init error", e);
-          }
-        } else if (attempts < 30) {
-          setTimeout(() => tryInit(attempts + 1), 200);
+        // Se já está inicializado para esse merchant, só mostra (preserva cache)
+        if (window.__ifoodWidgetInitedFor === merchantId) {
+          showIfoodWidgetFallback();
+          try { window.iFoodWidget.show?.(); } catch {}
+          return;
+        }
+        try {
+          // Trocar merchant: re-init SEM reload, sem limpar cache.
+          window.iFoodWidget.init({
+            widgetId: WIDGET_ID,
+            merchantIds: [merchantId],
+            autoShow: true,
+          });
+          window.__ifoodWidgetInitedFor = merchantId;
+          showIfoodWidgetFallback();
+          try { window.iFoodWidget.show?.(); } catch {}
+        } catch (e) {
+          console.warn("iFood widget init error", e);
         }
       };
       tryInit();
     })();
+
     return () => {
       cancelled = true;
+      // Apenas esconde ao desmontar — NUNCA destrói nem limpa cache.
       cleanupIfoodWidgetDom();
     };
   }, [enabled, merchantId]);
