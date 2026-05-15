@@ -292,6 +292,7 @@ export function PdvDialog({
       customer_name: orderRow.customer_name,
       customer_phone: orderRow.customer_phone,
       payment_method: orderRow.payment_method,
+      change_for: orderRow.change_for ?? null,
       subtotal: Number(orderRow.subtotal),
       delivery_fee: 0,
       total: Number(orderRow.total),
