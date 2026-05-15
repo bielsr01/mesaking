@@ -515,11 +515,13 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const queroPendingCount = orders.filter((o) => o.external_source === "quero" && o.status === "pending").length;
   const allPendingCount = deliveryPendingCount + ifoodPendingCount + queroPendingCount;
 
-  const pendingOrders = channelOrders.filter((o) => o.status === "pending");
-  const preparingOrders = channelOrders.filter((o) => o.status === "preparing");
-  const readyOrders = channelOrders.filter((o) => o.status === "awaiting_pickup");
-  const outForDeliveryOrders = channelOrders.filter((o) => o.status === "out_for_delivery");
-  const finalizedOrders = channelOrders.filter((o) => o.status === "delivered" || o.status === "cancelled");
+  const sortRecent = (a: Order, b: Order) =>
+    new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  const pendingOrders = channelOrders.filter((o) => o.status === "pending").sort(sortRecent);
+  const preparingOrders = channelOrders.filter((o) => o.status === "preparing").sort(sortRecent);
+  const readyOrders = channelOrders.filter((o) => o.status === "awaiting_pickup").sort(sortRecent);
+  const outForDeliveryOrders = channelOrders.filter((o) => o.status === "out_for_delivery").sort(sortRecent);
+  const finalizedOrders = channelOrders.filter((o) => o.status === "delivered" || o.status === "cancelled").sort(sortRecent);
 
   const renderCard = (o: Order) => {
     const isPickup = o.order_type === "pickup";
