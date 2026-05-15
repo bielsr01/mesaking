@@ -23,10 +23,21 @@ async function evoFetch(base: string, path: string, apiKey: string, body?: any, 
   return { ok: res.ok, status: res.status, data };
 }
 
-function genInstanceName(restaurantId: string) {
-  const short = restaurantId.replace(/-/g, "").slice(0, 8);
-  const rand = Math.random().toString(36).slice(2, 8);
-  return `mk_${short}_${rand}`;
+function slugify(s: string) {
+  return (s || "")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 40);
+}
+function genInstanceName(restaurantId: string, base?: string | null, withSuffix = false) {
+  const slug = slugify(base || "");
+  const short = restaurantId.replace(/-/g, "").slice(0, 6);
+  const core = slug ? `mk_${slug}` : `mk_${short}`;
+  if (!withSuffix) return core;
+  const rand = Math.random().toString(36).slice(2, 6);
+  return `${core}_${rand}`;
 }
 
 Deno.serve(async (req) => {
