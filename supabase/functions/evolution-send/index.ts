@@ -81,7 +81,14 @@ Deno.serve(async (req) => {
 
     throw new Error("Ação desconhecida");
   } catch (e) {
-    return new Response(JSON.stringify({ ok: false, error: (e as Error).message }), {
+    let msg = (e as Error).message || "Erro desconhecido";
+    if (/CaUsedAsEndEntity|invalid peer certificate|UnknownIssuer|certificate/i.test(msg)) {
+      msg =
+        "Certificado TLS do servidor Evolution inválido. Verifique se a URL da API está correta " +
+        "(sem duplicações como 'evolution-evolution') e se o certificado HTTPS do host está " +
+        "configurado corretamente no Easypanel (Let's Encrypt). Detalhe técnico: " + msg;
+    }
+    return new Response(JSON.stringify({ ok: false, error: msg }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
