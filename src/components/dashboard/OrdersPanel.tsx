@@ -764,7 +764,39 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                       </div>
                     )}
                   </div>
-                </div>
+      <Dialog open={!!ifoodCodeTarget} onOpenChange={(o) => { if (!o) { setIfoodCodeTarget(null); setIfoodCodeValue(""); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Confirmar entrega iFood</DialogTitle>
+            <DialogDescription>
+              Digite o código de entrega informado pelo cliente para confirmar o pedido
+              {ifoodCodeTarget ? ` #${ifoodCodeTarget.order_number}` : ""}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="ifood-delivery-code">Código de entrega</Label>
+            <Input
+              id="ifood-delivery-code"
+              value={ifoodCodeValue}
+              onChange={(e) => setIfoodCodeValue(e.target.value.replace(/\D/g, ""))}
+              placeholder="Ex: 9999"
+              inputMode="numeric"
+              autoFocus
+              onKeyDown={(e) => { if (e.key === "Enter" && !ifoodCodeSubmitting) confirmIfoodDelivery(); }}
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => { setIfoodCodeTarget(null); setIfoodCodeValue(""); }} disabled={ifoodCodeSubmitting}>
+              Cancelar
+            </Button>
+            <Button onClick={confirmIfoodDelivery} disabled={ifoodCodeSubmitting || !ifoodCodeValue.trim()}>
+              {ifoodCodeSubmitting ? "Confirmando…" : "Confirmar entrega"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+    </div>
 
                 <div className="flex gap-2 pt-1">
                   <Button
