@@ -67,8 +67,12 @@ Deno.serve(async (req) => {
 
       // Throttle by configured interval
       const interval = Math.max(1, Number(c.interval_seconds ?? 8)) * 1000;
-      if (c.last_run_at && Date.now() - new Date(c.last_run_at).getTime() < interval) {
-        continue;
+      if (c.last_run_at) {
+        const waitMs = interval - (Date.now() - new Date(c.last_run_at).getTime());
+        if (waitMs > 0) {
+          await sleep(Math.min(waitMs, 2000));
+          continue;
+        }
       }
 
       // Integration
