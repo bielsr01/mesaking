@@ -132,6 +132,7 @@ export function PdvDialog({
 
   const [payment, setPayment] = useState<PaymentMethod | null>(null);
   const [paymentShake, setPaymentShake] = useState(false);
+  const [changeForInput, setChangeForInput] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [activeCat, setActiveCat] = useState<string | null>(null);
   const productsScrollRef = useRef<HTMLDivElement | null>(null);
@@ -163,6 +164,7 @@ export function PdvDialog({
         setServiceFeeType(d.serviceFeeType ?? "percent");
         setServiceFeeValue(Number(d.serviceFeeValue) || 0);
         setPayment(d.payment ?? null);
+        setChangeForInput(d.changeForInput ?? "");
       }
     } catch { /* noop */ }
   }, [open, restaurantId]);
@@ -170,9 +172,9 @@ export function PdvDialog({
   useEffect(() => {
     if (!open) return;
     try { localStorage.setItem(STORAGE_KEY(restaurantId), JSON.stringify({
-      cart, customerName, customerPhone, loyaltyOptIn, discountType, discountValue, serviceFeeType, serviceFeeValue, payment,
+      cart, customerName, customerPhone, loyaltyOptIn, discountType, discountValue, serviceFeeType, serviceFeeValue, payment, changeForInput,
     })); } catch { /* noop */ }
-  }, [open, restaurantId, cart, customerName, customerPhone, loyaltyOptIn, discountType, discountValue, serviceFeeType, serviceFeeValue, payment]);
+  }, [open, restaurantId, cart, customerName, customerPhone, loyaltyOptIn, discountType, discountValue, serviceFeeType, serviceFeeValue, payment, changeForInput]);
 
   const filteredProducts = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -277,7 +279,7 @@ export function PdvDialog({
 
   const reset = () => {
     setCart([]); setCustomerName(""); setCustomerPhone(""); setLoyaltyOptIn(false);
-    setDiscountValue(0); setServiceFeeValue(0); setServiceFeeType("percent"); setPayment(null);
+    setDiscountValue(0); setServiceFeeValue(0); setServiceFeeType("percent"); setPayment(null); setChangeForInput("");
     setSearch("");
     try { localStorage.removeItem(STORAGE_KEY(restaurantId)); } catch { /* noop */ }
   };
@@ -290,6 +292,7 @@ export function PdvDialog({
       customer_name: orderRow.customer_name,
       customer_phone: orderRow.customer_phone,
       payment_method: orderRow.payment_method,
+      change_for: orderRow.change_for ?? null,
       subtotal: Number(orderRow.subtotal),
       delivery_fee: 0,
       total: Number(orderRow.total),
@@ -325,6 +328,17 @@ export function PdvDialog({
       toast.error("Selecione uma forma de pagamento");
       return;
     }
+    let changeForValue: number | null = null;
+    if (payment === "cash" && changeForInput.trim() !== "") {
+      const parsed = Number(changeForInput.replace(",", "."));
+      if (!isNaN(parsed) && parsed > 0) {
+        if (parsed < total) {
+          toast.error("O valor para troco deve ser maior ou igual ao total");
+          return;
+        }
+        changeForValue = parsed;
+      }
+    }
     setSubmitting(true);
     const phoneDigits = unmaskPhone(customerPhone);
     const trimmedName = customerName.trim() || "Cliente Balcão";
@@ -335,6 +349,7 @@ export function PdvDialog({
       customer_name: trimmedName,
       customer_phone: phoneDigits || "0000000000",
       payment_method: payment,
+      change_for: changeForValue,
       subtotal,
       discount: discountApplied,
       service_fee: serviceFeeApplied,
@@ -345,7 +360,7 @@ export function PdvDialog({
     try {
       const { data: order, error } = await supabase
         .from("orders").insert(orderPayload)
-        .select("id, order_number, customer_name, customer_phone, payment_method, subtotal, total, created_at, status, order_type")
+        .select("id, order_number, customer_name, customer_phone, payment_method, change_for, subtotal, total, created_at, status, order_type")
         .single();
       if (error || !order) throw error || new Error("Falha ao criar pedido");
 
@@ -663,8 +678,8 @@ export function PdvDialog({
                           <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => updateQty(l.key, l.quantity + 1)}><Plus className="w-3 h-3" /></Button>
                         </div>
                         <div className="font-semibold text-sm">{brl(l.unit_price * l.quantity)}</div>
-                      </div>
-                    </div>
+                  </div>
+                </div>
                   ))}
                 </div>
               </ScrollArea>
@@ -689,6 +704,25 @@ export function PdvDialog({
                       </Button>
                     ))}
                   </div>
+                  {payment === "cash" && (
+                    <div className="mt-2 space-y-1">
+                      <Label className="text-xs">Troco para (opcional)</Label>
+                      <Input
+                        type="number"
+                        inputMode="decimal"
+                        min={0}
+                        step="0.01"
+                        placeholder={`Valor pago (total: ${brl(total)})`}
+                        value={changeForInput}
+                        onChange={(e) => setChangeForInput(e.target.value)}
+                      />
+                      {changeForInput.trim() !== "" && Number(changeForInput.replace(",", ".")) >= total && (
+                        <p className="text-xs text-muted-foreground">
+                          Troco: <strong>{brl(Number(changeForInput.replace(",", ".")) - total)}</strong>
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <Separator />
