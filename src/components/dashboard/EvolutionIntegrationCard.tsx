@@ -129,6 +129,11 @@ function EvolutionDialog({
         is_admin: scope === "admin",
         restaurant_id: scope === "admin" ? null : restaurantId,
       };
+      if (scope === "restaurant") {
+        payload.popup_enabled = popupEnabled;
+        payload.popup_text = popupText;
+        payload.popup_whatsapp_message = popupMsg;
+      }
       if (existing?.id) {
         const { error } = await sb.from("evolution_integrations").update(payload).eq("id", existing.id);
         if (error) throw error;
