@@ -91,11 +91,12 @@ export default function RestaurantPublic() {
       if (cancelled) return;
       if (!r) { setLoading(false); return; }
       setRestaurant(r as unknown as Restaurant);
-      const { cats, prods, idx } = await loadMenu(r.id);
+      const { cats, prods, idx, suggestionIds: sIds } = await loadMenu(r.id);
       if (cancelled) return;
       setCategories(cats);
       setProducts(prods);
       setGroupsByProduct(idx);
+      setSuggestionIds(sIds);
       setLoading(false);
     })();
     return () => { cancelled = true; };
