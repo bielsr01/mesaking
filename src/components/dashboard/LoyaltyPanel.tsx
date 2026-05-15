@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { brl, formatPhone, normalizeBrPhone, statusLabelFor } from "@/lib/format";
-import { Plus, Check, Trash2, Award, RefreshCw, Pencil, History, Search, BarChart3 } from "lucide-react";
+import { Plus, Check, Trash2, Award, RefreshCw, Pencil, History, Search, BarChart3, Loader2 } from "lucide-react";
 import { LoyaltyRewardsTab } from "./LoyaltyRewardsTab";
 import { LoyaltyMetricsDialog } from "./LoyaltyMetricsDialog";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -96,6 +96,7 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
   const [search, setSearch] = useState("");
   const [historyMember, setHistoryMember] = useState<Member | null>(null);
   const [savingMember, setSavingMember] = useState(false);
+  const [creditingIds, setCreditingIds] = useState<Set<string>>(new Set());
 
   const openCreate = () => {
     if (!canMemberCreate) return;
@@ -212,11 +213,20 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
   });
 
   const creditTx = async (id: string) => {
-    const { error } = await sb.rpc("credit_loyalty_points", { _tx_id: id });
-    if (error) return toast.error(error.message);
-    toast.success("Pontos creditados");
-    qc.invalidateQueries({ queryKey: ["loyalty-tx", restaurantId] });
-    qc.invalidateQueries({ queryKey: ["loyalty-members", restaurantId] });
+    setCreditingIds((prev) => new Set(prev).add(id));
+    try {
+      const { error } = await sb.rpc("credit_loyalty_points", { _tx_id: id });
+      if (error) return toast.error(error.message);
+      toast.success("Pontos creditados");
+      qc.invalidateQueries({ queryKey: ["loyalty-tx", restaurantId] });
+      qc.invalidateQueries({ queryKey: ["loyalty-members", restaurantId] });
+    } finally {
+      setCreditingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
   };
 
   const deleteTx = async (id: string) => {
@@ -383,7 +393,10 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
                       <TableCell className="text-right font-bold">{t.points}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
-                          <Button size="sm" onClick={() => creditTx(t.id)}><Check className="w-4 h-4 mr-1" />Creditar</Button>
+                          <Button size="sm" onClick={() => creditTx(t.id)} disabled={creditingIds.has(t.id)}>
+                            {creditingIds.has(t.id) ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Check className="w-4 h-4 mr-1" />}
+                            {creditingIds.has(t.id) ? "Processando..." : "Creditar"}
+                          </Button>
                           <Button size="sm" variant="ghost" onClick={() => deleteTx(t.id)}><Trash2 className="w-4 h-4" /></Button>
                         </div>
                       </TableCell>

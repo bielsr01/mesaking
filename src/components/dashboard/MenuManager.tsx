@@ -95,6 +95,7 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
   const [stockConsumption, setStockConsumption] = useState<StockConsumption[]>([]);
   const [loadingProdId, setLoadingProdId] = useState<string | null>(null);
+  const [savingProduct, setSavingProduct] = useState(false);
 
   const { data: stockGroups = [] } = useQuery({
     queryKey: ["stock_groups_active"],
@@ -164,6 +165,7 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
 
   const saveProduct = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (savingProduct) return;
     const fd = new FormData(e.currentTarget);
     const name = String(fd.get("name") || "").trim();
     const description = String(fd.get("description") || "").trim() || null;
@@ -173,44 +175,49 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
 
     if (!name || price < 0) return toast.error("Verifique nome e preço");
 
-    let image_url = editingProd?.image_url ?? null;
-    if (file && file.size > 0) {
-      const path = `${restaurantId}/${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
-      const { error: upErr } = await supabase.storage.from("menu-images").upload(path, file, { upsert: true });
-      if (upErr) return toast.error(upErr.message);
-      image_url = supabase.storage.from("menu-images").getPublicUrl(path).data.publicUrl;
-    }
+    setSavingProduct(true);
+    try {
+      let image_url = editingProd?.image_url ?? null;
+      if (file && file.size > 0) {
+        const path = `${restaurantId}/${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
+        const { error: upErr } = await supabase.storage.from("menu-images").upload(path, file, { upsert: true });
+        if (upErr) return toast.error(upErr.message);
+        image_url = supabase.storage.from("menu-images").getPublicUrl(path).data.publicUrl;
+      }
 
-    let productId: string;
-    if (editingProd) {
-      const { error } = await supabase.from("products").update({ name, description, price, category_id, image_url }).eq("id", editingProd.id);
-      if (error) return toast.error(error.message);
-      productId = editingProd.id;
-    } else {
-      const { data, error } = await supabase.from("products").insert({ name, description, price, category_id, image_url, restaurant_id: restaurantId }).select("id").single();
-      if (error || !data) return toast.error(error?.message || "Erro");
-      productId = data.id;
-    }
+      let productId: string;
+      if (editingProd) {
+        const { error } = await supabase.from("products").update({ name, description, price, category_id, image_url }).eq("id", editingProd.id);
+        if (error) return toast.error(error.message);
+        productId = editingProd.id;
+      } else {
+        const { data, error } = await supabase.from("products").insert({ name, description, price, category_id, image_url, restaurant_id: restaurantId }).select("id").single();
+        if (error || !data) return toast.error(error?.message || "Erro");
+        productId = data.id;
+      }
 
-    // Sync product_option_groups (preserve order)
-    await supabase.from("product_option_groups").delete().eq("product_id", productId);
-    if (selectedGroupIds.length) {
-      await supabase.from("product_option_groups").insert(
-        selectedGroupIds.map((gid, idx) => ({ product_id: productId, group_id: gid, sort_order: idx }))
-      );
-    }
+      // Sync product_option_groups (preserve order)
+      await supabase.from("product_option_groups").delete().eq("product_id", productId);
+      if (selectedGroupIds.length) {
+        await supabase.from("product_option_groups").insert(
+          selectedGroupIds.map((gid, idx) => ({ product_id: productId, group_id: gid, sort_order: idx }))
+        );
+      }
 
-    // Sync stock consumption rules
-    await supabase.from("product_stock_consumption").delete().eq("product_id", productId);
-    const validConsumption = stockConsumption.filter(c => c.group_id && c.quantity_per_unit > 0);
-    if (validConsumption.length) {
-      await supabase.from("product_stock_consumption").insert(
-        validConsumption.map(c => ({ product_id: productId, group_id: c.group_id, quantity_per_unit: c.quantity_per_unit }))
-      );
-    }
+      // Sync stock consumption rules
+      await supabase.from("product_stock_consumption").delete().eq("product_id", productId);
+      const validConsumption = stockConsumption.filter(c => c.group_id && c.quantity_per_unit > 0);
+      if (validConsumption.length) {
+        await supabase.from("product_stock_consumption").insert(
+          validConsumption.map(c => ({ product_id: productId, group_id: c.group_id, quantity_per_unit: c.quantity_per_unit }))
+        );
+      }
 
-    toast.success("Produto salvo");
-    setProdOpen(false); setEditingProd(null); setSelectedGroupIds([]); setStockConsumption([]); reload();
+      toast.success("Produto salvo");
+      setProdOpen(false); setEditingProd(null); setSelectedGroupIds([]); setStockConsumption([]); reload();
+    } finally {
+      setSavingProduct(false);
+    }
   };
 
   const toggleProd = async (p: Product) => {
@@ -344,7 +351,12 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
                   )}
                 </div>
 
-                <DialogFooter><Button type="submit">Salvar</Button></DialogFooter>
+                <DialogFooter>
+                  <Button type="submit" disabled={savingProduct}>
+                    {savingProduct ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null}
+                    {savingProduct ? "Salvando..." : "Salvar"}
+                  </Button>
+                </DialogFooter>
               </form>
             </DialogContent>
           </Dialog>}
