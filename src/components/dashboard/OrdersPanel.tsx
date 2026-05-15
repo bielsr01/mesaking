@@ -170,7 +170,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
 
   // If current channel becomes forbidden, switch to first allowed
   useEffect(() => {
-    const allowed = (channel === "pdv" && canPdv) || (channel === "delivery" && canDelivery) || (channel === "ifood" && canIfood) || (channel === "quero" && canQuero);
+    const allowed = channel === "all" || (channel === "pdv" && canPdv) || (channel === "delivery" && canDelivery) || (channel === "ifood" && canIfood) || (channel === "quero" && canQuero);
     if (allowed) return;
     if (canPdv) setChannel("pdv");
     else if (canDelivery) setChannel("delivery");
