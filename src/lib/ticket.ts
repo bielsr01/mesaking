@@ -280,6 +280,10 @@ export function buildTicketHtml(
   ${ps.payment_method ? `
     <div class="muted" style="margin-top:4px">Pagamento: ${esc(paymentLabel[order.payment_method] ?? order.payment_method)}${order.change_for ? ` (troco p/ ${brl(order.change_for)})` : ""}</div>
   ` : ""}
+  ${(ps as any).extra_message_enabled && ((ps as any).extra_message ?? "").trim() ? `
+    <div class="sep"></div>
+    <div class="center" style="white-space:pre-wrap">${esc((ps as any).extra_message)}</div>
+  ` : ""}
   <div class="sep"></div>
   <div class="center muted" style="font-size:10px">Esse documento não tem valor fiscal.</div>
 </div>
