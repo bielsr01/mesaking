@@ -90,7 +90,7 @@ Deno.serve(async (req) => {
 
   async function processOne(row: QueueRow) {
     const cfg = await getCfg(row.restaurant_id);
-    if (!cfg || !cfg.enabled || !cfg.api_url || !cfg.api_key || !cfg.instance_name) {
+    if (!cfg || !cfg.enabled || !cfg.api_url || !cfg.send_key || !cfg.instance_name) {
       await supabase.from("evolution_message_queue").update({
         status: "failed",
         error: "Integração Evolution não configurada/desativada",
@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
     try {
       const res = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json", apikey: cfg.api_key },
+        headers: { "Content-Type": "application/json", apikey: cfg.send_key },
         body: JSON.stringify({ number, text: row.message }),
       });
       const text = await res.text();
