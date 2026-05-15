@@ -172,6 +172,23 @@ export const formatPhone = (input: string | null | undefined): string => {
 export const unmaskPhone = (input: string | null | undefined): string =>
   String(input ?? "").replace(/\D/g, "");
 
+/**
+ * Normaliza telefone BR para o mesmo formato gravado pelo banco
+ * (`(XX)XXXXX-XXXX`), removendo DDI 55 e adicionando o 9º dígito quando faltar.
+ * Mantém em sincronia com a função SQL `public.normalize_br_phone`.
+ */
+export const normalizeBrPhone = (input: string | null | undefined): string => {
+  if (!input) return "";
+  let d = String(input).replace(/\D/g, "");
+  if (!d) return String(input);
+  if (d.length === 13 && d.startsWith("55")) d = d.slice(2);
+  else if (d.length === 12 && d.startsWith("55")) d = d.slice(2);
+  if (d.length === 10) d = d.slice(0, 2) + "9" + d.slice(2);
+  if (d.length === 11) return `(${d.slice(0, 2)})${d.slice(2, 7)}-${d.slice(7)}`;
+  if (d.length === 10) return `(${d.slice(0, 2)})${d.slice(2, 6)}-${d.slice(6)}`;
+  return String(input);
+};
+
 /** Formata telefone iFood (proxy 0800) com código localizador entre parênteses. */
 export const formatIfoodPhone = (input: string | null | undefined): string => {
   const raw = String(input ?? "");
