@@ -66,6 +66,7 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
   const [busy, setBusy] = useState(false);
   const [step, setStep] = useState<Step>(1);
   const [orderType, setOrderType] = useState<"delivery" | "pickup">("delivery");
+  const [successPopup, setSuccessPopup] = useState<{ open: boolean; text: string; whatsappUrl: string }>({ open: false, text: "", whatsappUrl: "" });
 
   // Etapa 1 — cliente
   const [name, setName] = useState("");
