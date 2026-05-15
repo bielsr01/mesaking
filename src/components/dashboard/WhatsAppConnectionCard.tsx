@@ -187,11 +187,14 @@ export function WhatsAppConnectionCard({ restaurantId }: { restaurantId: string 
             )}
           </div>
 
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>Fechar</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={qrOpen} onOpenChange={(v) => { setQrOpen(v); if (!v) stopPoll(); }}>
-        <DialogContent className="max-w-sm" onInteractOutside={(e) => e.preventDefault()}>
+        <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Escaneie o QR Code</DialogTitle>
             <DialogDescription>
