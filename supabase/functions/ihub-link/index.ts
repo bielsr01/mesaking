@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  const { action, restaurantId, authorizationCode, authorizationCodeVerifier, merchantId: manualMerchantId, orderId, code } = body;
+  const { action, restaurantId, authorizationCode, authorizationCodeVerifier, merchantId: manualMerchantId, orderId, externalOrderId, code } = body;
   if (!action || !restaurantId) {
     return new Response(JSON.stringify({ error: "Missing action or restaurantId" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
