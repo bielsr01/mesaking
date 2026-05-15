@@ -8,7 +8,11 @@ const SCRIPT_SRC = "https://widgets.ifood.com.br/widget.js";
 
 declare global {
   interface Window {
-    iFoodWidget?: { init: (opts: { widgetId: string; merchantIds: string[] }) => void };
+    iFoodWidget?: {
+      init: (opts: { widgetId: string; merchantIds: string[]; autoShow?: boolean }) => void | Promise<void>;
+      show?: () => void;
+      hide?: () => void;
+    };
     __ifoodWidgetInitedFor?: string | null;
   }
 }
@@ -25,32 +29,53 @@ function ensureScript(): Promise<void> {
   });
 }
 
-// Remove TUDO que o widget da iFood injeta na página. O widget cria iframes
-// e contêineres flutuantes em <body>; varremos qualquer elemento que
-// referencie "ifood" no id/class/src ou data-attrs.
-export function cleanupIfoodWidgetDom() {
+function hideIfoodWidgetFallback() {
   try {
-    const matches = new Set<Element>();
     const sels = [
+      ".embeddables-iframe",
+      ".embeddables-focus-wrapper",
+      '[data-embdd-hit-region-id]',
+      'iframe[src*="widgets.ifood"]',
       'iframe[src*="ifood"]',
-      '[id*="ifood" i]',
-      '[class*="ifood" i]',
       '[data-ifood]',
       '[data-ifood-widget]',
     ];
     sels.forEach((s) => {
-      try { document.querySelectorAll(s).forEach((el) => matches.add(el)); } catch {}
+      try {
+        document.querySelectorAll<HTMLElement>(s).forEach((el) => {
+          el.style.display = "none";
+          el.style.pointerEvents = "none";
+        });
+      } catch {}
     });
-    matches.forEach((el) => el.remove());
-    window.__ifoodWidgetInitedFor = null;
   } catch {}
+}
+
+function showIfoodWidgetFallback() {
+  try {
+    [".embeddables-iframe", ".embeddables-focus-wrapper", '[data-embdd-hit-region-id]'].forEach((s) => {
+      document.querySelectorAll<HTMLElement>(s).forEach((el) => {
+        el.style.display = "";
+        el.style.pointerEvents = "";
+      });
+    });
+  } catch {}
+}
+
+// Mantém a sessão local do iFood preservada: escondemos o widget pela API
+// oficial em vez de remover o iframe ou reinicializar em cada logout/troca.
+export function cleanupIfoodWidgetDom() {
+  try { window.iFoodWidget?.hide?.(); } catch {}
+  hideIfoodWidgetFallback();
+  setTimeout(hideIfoodWidgetFallback, 250);
 }
 
 export function IfoodWidgetMount({ restaurantId }: { restaurantId?: string }) {
   const { data } = useQuery({
     queryKey: ["ifood-widget-cfg", restaurantId],
     enabled: !!restaurantId,
-    staleTime: 60_000,
+    staleTime: 0,
+    refetchOnMount: "always",
     queryFn: async () => {
       const { data } = await sb
         .from("ifood_fee_settings")
@@ -70,16 +95,31 @@ export function IfoodWidgetMount({ restaurantId }: { restaurantId?: string }) {
       cleanupIfoodWidgetDom();
       return;
     }
-    if (window.__ifoodWidgetInitedFor === merchantId) return;
+    if (window.__ifoodWidgetInitedFor && window.__ifoodWidgetInitedFor !== merchantId) {
+      cleanupIfoodWidgetDom();
+      window.location.reload();
+      return;
+    }
+    if (window.__ifoodWidgetInitedFor === merchantId) {
+      showIfoodWidgetFallback();
+      try { window.iFoodWidget?.show?.(); } catch {}
+      return () => cleanupIfoodWidgetDom();
+    }
     (async () => {
       await ensureScript();
       if (cancelled) return;
       const tryInit = (attempts = 0) => {
-        if (window.__ifoodWidgetInitedFor === merchantId) return;
+        if (window.__ifoodWidgetInitedFor === merchantId) {
+          showIfoodWidgetFallback();
+          try { window.iFoodWidget?.show?.(); } catch {}
+          return;
+        }
         if (window.iFoodWidget?.init) {
           try {
-            window.iFoodWidget.init({ widgetId: WIDGET_ID, merchantIds: [merchantId] });
+            window.iFoodWidget.init({ widgetId: WIDGET_ID, merchantIds: [merchantId], autoShow: true });
             window.__ifoodWidgetInitedFor = merchantId;
+            showIfoodWidgetFallback();
+            try { window.iFoodWidget.show?.(); } catch {}
           } catch (e) {
             console.warn("iFood widget init error", e);
           }
