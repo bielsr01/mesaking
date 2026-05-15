@@ -678,8 +678,27 @@ export function PdvDialog({
                           <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => updateQty(l.key, l.quantity + 1)}><Plus className="w-3 h-3" /></Button>
                         </div>
                         <div className="font-semibold text-sm">{brl(l.unit_price * l.quantity)}</div>
-                      </div>
+                  </div>
+                  {payment === "cash" && (
+                    <div className="mt-2 space-y-1">
+                      <Label className="text-xs">Troco para (opcional)</Label>
+                      <Input
+                        type="number"
+                        inputMode="decimal"
+                        min={0}
+                        step="0.01"
+                        placeholder={`Valor pago (total: ${brl(total)})`}
+                        value={changeForInput}
+                        onChange={(e) => setChangeForInput(e.target.value)}
+                      />
+                      {changeForInput.trim() !== "" && Number(changeForInput.replace(",", ".")) >= total && (
+                        <p className="text-xs text-muted-foreground">
+                          Troco: <strong>{brl(Number(changeForInput.replace(",", ".")) - total)}</strong>
+                        </p>
+                      )}
                     </div>
+                  )}
+                </div>
                   ))}
                 </div>
               </ScrollArea>
