@@ -96,6 +96,7 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
   const [search, setSearch] = useState("");
   const [historyMember, setHistoryMember] = useState<Member | null>(null);
   const [savingMember, setSavingMember] = useState(false);
+  const [creditingIds, setCreditingIds] = useState<Set<string>>(new Set());
 
   const openCreate = () => {
     if (!canMemberCreate) return;
