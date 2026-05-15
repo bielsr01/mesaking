@@ -104,14 +104,14 @@ export async function fetchOrders(restaurantId: string): Promise<{ orders: Order
   }
   return { orders, items: grouped };
 }
-function Column({ title, count, accent, children }: { title: string; count: number; accent?: string; children: React.ReactNode }) {
+function Column({ title, count, accent, children, className }: { title: string; count: number; accent?: string; children: React.ReactNode; className?: string }) {
   return (
-    <div className="flex flex-col min-w-0 bg-muted/30 rounded-lg border">
-      <div className={`px-3 py-2 border-b flex items-center justify-between rounded-t-lg ${accent ?? "bg-background"}`}>
+    <div className={`flex flex-col min-w-0 min-h-0 bg-muted/30 rounded-lg border ${className ?? ""}`}>
+      <div className={`px-3 py-2 border-b flex items-center justify-between rounded-t-lg shrink-0 ${accent ?? "bg-background"}`}>
         <span className="text-sm font-semibold">{title}</span>
         <Badge variant="secondary" className="h-5 min-w-5 px-1.5 text-xs">{count}</Badge>
       </div>
-      <div className="p-2 space-y-2 flex-1 overflow-y-auto max-h-[calc(100vh-260px)]">
+      <div className="p-2 space-y-2 flex-1 min-h-0 overflow-y-auto">
         {count === 0 ? (
           <div className="text-xs text-muted-foreground text-center py-6">—</div>
         ) : children}
@@ -539,10 +539,70 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const outForDeliveryOrders = channelOrders.filter((o) => o.status === "out_for_delivery").sort(sortRecent);
   const finalizedOrders = channelOrders.filter((o) => o.status === "delivered" || o.status === "cancelled").sort(sortRecent);
 
-  const renderCard = (o: Order) => {
+  const renderCard = (o: Order, compact = false) => {
     const isPickup = o.order_type === "pickup";
     const isPdv = o.order_type === "pdv";
     const next = getNextStatus(o.status, o.order_type);
+    if (compact) {
+      return (
+        <Card key={o.id} className="shadow-soft cursor-pointer hover:bg-accent/30 transition-colors" onClick={() => setDetailsTarget(o)}>
+          <CardContent className="p-2 space-y-1.5" onClick={(e) => {
+            const t = e.target as HTMLElement;
+            if (t.closest('button,a,[role="button"]')) e.stopPropagation();
+          }}>
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0 flex items-center gap-1.5">
+                <User className="w-3 h-3 shrink-0" />
+                <span className="truncate text-xs font-semibold">{o.customer_name}</span>
+                <Badge variant="outline" className="font-mono text-[10px] px-1 py-0">#{o.order_number}</Badge>
+              </div>
+              <div className="text-[10px] text-muted-foreground flex items-center gap-0.5 shrink-0">
+                <Clock className="w-2.5 h-2.5" />
+                {new Date(o.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[10px] text-muted-foreground truncate">
+                {o.external_source === "ifood" ? "iFood" : o.external_source === "quero" ? "Quero" : (orderTypeLabel[o.order_type] ?? "Delivery")}
+              </span>
+              <span className="text-xs font-bold">{brl(o.total)}</span>
+            </div>
+            <div className="flex gap-1">
+              {canChangeStatus && next && (
+                <Button size="sm" className="flex-1 h-7 text-[11px]" onClick={() => advance(o)} disabled={!!pendingAction[o.id]}>
+                  {pendingAction[o.id] ? "…" : "✓ Aceitar"}
+                </Button>
+              )}
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 px-2"
+                onClick={() => {
+                  if (o.external_source === "quero") setQueroCancelInfoOpen(true);
+                  else setCancelTarget(o);
+                }}
+                disabled={!!pendingAction[o.id]}
+                aria-label="Cancelar pedido"
+              >
+                <X className="w-3 h-3" />
+              </Button>
+              {canEditOrders && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 px-2"
+                  onClick={() => setDeleteTarget(o)}
+                  aria-label="Excluir pedido"
+                  title="Excluir permanentemente"
+                >
+                  <Trash2 className="w-3 h-3 text-destructive" />
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
     return (
       <Card key={o.id} className="shadow-soft cursor-pointer hover:bg-accent/30 transition-colors" onClick={() => setDetailsTarget(o)}>
         <CardContent className="p-2.5 space-y-2" onClick={(e) => {
@@ -681,8 +741,8 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
 
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="flex flex-col gap-4 h-[calc(100vh-7rem)] pb-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 shrink-0">
         <Tabs value={channel} onValueChange={(v) => {
           const nv = v as Channel;
           setChannel(nv);
@@ -742,25 +802,25 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
           <Skeleton className="h-56 w-full" />
         </div>
       ) : (
-        <div className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-4 items-start">
-          <div className="flex flex-col gap-3 min-w-0">
+        <div className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-4 items-stretch flex-1 min-h-0">
+          <div className="flex flex-col gap-3 min-w-0 min-h-0">
             {pendingOrders.length > 0 && (
-              <Column title="Aguardando aceitação" count={pendingOrders.length} accent="bg-destructive/15 text-destructive">
-                {pendingOrders.map(renderCard)}
+              <Column title="Aguardando aceitação" count={pendingOrders.length} accent="bg-destructive/15 text-destructive" className="max-h-[40%] shrink-0">
+                {pendingOrders.map((o) => renderCard(o, true))}
               </Column>
             )}
-            <Column title="Em preparo" count={preparingOrders.length}>
-              {preparingOrders.map(renderCard)}
+            <Column title="Em preparo" count={preparingOrders.length} className="flex-1 min-h-0">
+              {preparingOrders.map((o) => renderCard(o))}
             </Column>
           </div>
           <Column title="Pronto" count={readyOrders.length}>
-            {readyOrders.map(renderCard)}
+            {readyOrders.map((o) => renderCard(o))}
           </Column>
           <Column title="Em entrega" count={outForDeliveryOrders.length}>
-            {outForDeliveryOrders.map(renderCard)}
+            {outForDeliveryOrders.map((o) => renderCard(o))}
           </Column>
           <Column title="Finalizados" count={finalizedOrders.length}>
-            {finalizedOrders.map(renderCard)}
+            {finalizedOrders.map((o) => renderCard(o))}
           </Column>
         </div>
       )}
