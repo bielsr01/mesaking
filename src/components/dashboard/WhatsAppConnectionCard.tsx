@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MessageCircle, Loader2, QrCode, LogOut, RefreshCw, CheckCircle2 } from "lucide-react";
@@ -140,7 +140,7 @@ export function WhatsAppConnectionCard({ restaurantId }: { restaurantId: string 
       </Card>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <MessageCircle className="w-5 h-5 text-green-600" />
@@ -187,14 +187,11 @@ export function WhatsAppConnectionCard({ restaurantId }: { restaurantId: string 
             )}
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Fechar</Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={qrOpen} onOpenChange={(v) => { setQrOpen(v); if (!v) stopPoll(); }}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-sm" onInteractOutside={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>Escaneie o QR Code</DialogTitle>
             <DialogDescription>
