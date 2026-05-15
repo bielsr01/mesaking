@@ -109,6 +109,10 @@ export function IntegrationsPanel({ restaurantId }: { restaurantId: string }) {
           }}
         />
       </div>
+
+      {evoStatus !== "not_configured" && (
+        <EvolutionMessagesPanel restaurantId={restaurantId} />
+      )}
     </div>
   );
 }
