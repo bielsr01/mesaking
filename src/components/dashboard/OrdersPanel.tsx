@@ -642,7 +642,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                 </Button>
               </>
             )}
-            {canEditOrders && o.status !== "delivered" && o.status !== "cancelled" && (
+            {canEditOrders && o.status === "pending" && (
               <Button
                 size="sm"
                 variant="outline"
