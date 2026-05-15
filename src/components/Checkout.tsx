@@ -652,7 +652,8 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
     let earnedPoints = 0;
     if (loyaltyEnabled && loyaltyOptIn) {
       try {
-        const phoneFmt = formatPhone(phone);
+        const { normalizeBrPhone } = await import("@/lib/format");
+        const phoneFmt = normalizeBrPhone(phone);
         earnedPoints = Math.floor(Number(subtotal) * Number(loyaltyPointsPerReal || 0));
         const sb = supabase as any;
         const { data: existing } = await sb
@@ -663,12 +664,22 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
           .maybeSingle();
         let memberId = existing?.id as string | undefined;
         if (!memberId) {
-          const { data: created } = await sb
+          const { data: created, error: insErr } = await sb
             .from("loyalty_members")
             .insert({ restaurant_id: restaurant.id, name: name.trim(), phone: phoneFmt, points: 0 })
             .select("id")
             .single();
-          memberId = created?.id;
+          if (insErr && (insErr.code === "23505" || /duplicate/i.test(insErr.message ?? ""))) {
+            const { data: again } = await sb
+              .from("loyalty_members")
+              .select("id")
+              .eq("restaurant_id", restaurant.id)
+              .eq("phone", phoneFmt)
+              .maybeSingle();
+            memberId = again?.id;
+          } else {
+            memberId = created?.id;
+          }
         }
         if (memberId && earnedPoints > 0) {
           await sb.from("loyalty_transactions").insert({
