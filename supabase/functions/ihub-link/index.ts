@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  const { action, restaurantId, authorizationCode, authorizationCodeVerifier, merchantId: manualMerchantId } = body;
+  const { action, restaurantId, authorizationCode, authorizationCodeVerifier, merchantId: manualMerchantId, orderId, externalOrderId, code } = body;
   if (!action || !restaurantId) {
     return new Response(JSON.stringify({ error: "Missing action or restaurantId" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -152,6 +152,51 @@ Deno.serve(async (req) => {
           .eq("id", integration.id);
       }
       return new Response(JSON.stringify({ ok: true, merchantId, merchantName, ...data }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "verify-delivery-code") {
+      if (!externalOrderId || !code) {
+        return new Response(JSON.stringify({ ok: false, error: "externalOrderId e code são obrigatórios" }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (!integration.merchant_id) {
+        return new Response(JSON.stringify({ ok: false, error: "Loja iFood não vinculada a este restaurante" }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const r = await fetch(`${IHUB_BASE}/orders/verify-delivery-code`, {
+        method: "POST",
+        headers: { ...authHdr, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          domain,
+          merchantId: integration.merchant_id,
+          orderId: externalOrderId,
+          code: String(code).trim(),
+        }),
+      });
+      const text = await r.text();
+      let data: any; try { data = JSON.parse(text); } catch { data = { raw: text }; }
+      if (!r.ok || data?.success === false) {
+        console.error("ihub verify-delivery-code failed", { status: r.status, data });
+        return new Response(JSON.stringify({
+          ok: false,
+          error: data?.message ?? data?.error ?? "Código de entrega inválido",
+          status: r.status,
+          data,
+        }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      // Marca pedido como entregue
+      await supabase
+        .from("orders")
+        .update({ status: "delivered" })
+        .eq("id", orderId)
+        .eq("restaurant_id", restaurantId);
+      return new Response(JSON.stringify({ ok: true, ...data }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

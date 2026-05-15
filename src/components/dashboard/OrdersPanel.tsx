@@ -36,6 +36,7 @@ import { buildTicketHtml, TicketMode, TicketOptionCatalog, TicketRestaurant } fr
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { PdvDialog } from "./PdvDialog";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -147,6 +148,38 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const [deliveryBlink, setDeliveryBlink] = useState(false);
   const [ifoodView, setIfoodView] = useState<"orders" | "events">("orders");
   const [pendingAction, setPendingAction] = useState<Record<string, boolean>>({});
+  const [ifoodCodeTarget, setIfoodCodeTarget] = useState<Order | null>(null);
+  const [ifoodCodeValue, setIfoodCodeValue] = useState("");
+  const [ifoodCodeSubmitting, setIfoodCodeSubmitting] = useState(false);
+
+  const confirmIfoodDelivery = async () => {
+    if (!ifoodCodeTarget) return;
+    const code = ifoodCodeValue.trim();
+    if (!code) { toast.error("Informe o código de entrega"); return; }
+    setIfoodCodeSubmitting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("ihub-link", {
+        body: {
+          action: "verify-delivery-code",
+          restaurantId,
+          orderId: ifoodCodeTarget.id,
+          externalOrderId: ifoodCodeTarget.external_order_id,
+          code,
+        },
+      });
+      if (error) throw error;
+      if (!data?.ok) throw new Error(data?.error ?? "Falha ao validar código");
+      toast.success("Entrega confirmada");
+      setIfoodCodeTarget(null);
+      setIfoodCodeValue("");
+      qc.invalidateQueries({ queryKey: ["orders", restaurantId] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro");
+    } finally {
+      setIfoodCodeSubmitting(false);
+    }
+  };
+
   const setPending = (id: string, v: boolean) =>
     setPendingAction((m) => ({ ...m, [id]: v }));
 
@@ -757,17 +790,11 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                         </Button>
                       ) : o.external_source === "ifood" && o.status === "out_for_delivery" && o.order_type !== "pickup" && o.external_order_id ? (
                         <Button
-                          asChild
                           size="sm"
                           className="flex-1"
+                          onClick={() => { setIfoodCodeTarget(o); setIfoodCodeValue(""); }}
                         >
-                          <a
-                            href={`https://confirmacao-entrega-propria.ifood.com.br/pedido/${o.external_order_id}/codigo-cliente`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            📦 Confirmar entrega no iFood
-                          </a>
+                          📦 Confirmar entrega
                         </Button>
                       ) : null}
                       <Button
@@ -960,6 +987,38 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
 
       <PdvDialog open={pdvOpen} onOpenChange={setPdvOpen} restaurantId={restaurantId} />
       <OrderHistoryDialog open={historyOpen} onOpenChange={setHistoryOpen} restaurantId={restaurantId} />
+
+      <Dialog open={!!ifoodCodeTarget} onOpenChange={(o) => { if (!o) { setIfoodCodeTarget(null); setIfoodCodeValue(""); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Confirmar entrega iFood</DialogTitle>
+            <DialogDescription>
+              Digite o código de entrega informado pelo cliente para confirmar o pedido
+              {ifoodCodeTarget ? ` #${ifoodCodeTarget.order_number}` : ""}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="ifood-delivery-code">Código de entrega</Label>
+            <Input
+              id="ifood-delivery-code"
+              value={ifoodCodeValue}
+              onChange={(e) => setIfoodCodeValue(e.target.value.replace(/\D/g, ""))}
+              placeholder="Ex: 9999"
+              inputMode="numeric"
+              autoFocus
+              onKeyDown={(e) => { if (e.key === "Enter" && !ifoodCodeSubmitting) confirmIfoodDelivery(); }}
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => { setIfoodCodeTarget(null); setIfoodCodeValue(""); }} disabled={ifoodCodeSubmitting}>
+              Cancelar
+            </Button>
+            <Button onClick={confirmIfoodDelivery} disabled={ifoodCodeSubmitting || !ifoodCodeValue.trim()}>
+              {ifoodCodeSubmitting ? "Confirmando…" : "Confirmar entrega"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );
