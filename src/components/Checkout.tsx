@@ -988,6 +988,13 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
         </div>
       </DialogContent>
     </Dialog>
+    <OrderSuccessWhatsAppDialog
+      open={successPopup.open}
+      onOpenChange={(o) => setSuccessPopup((s) => ({ ...s, open: o }))}
+      text={successPopup.text}
+      whatsappUrl={successPopup.whatsappUrl}
+    />
+    </>
   );
 }
 
