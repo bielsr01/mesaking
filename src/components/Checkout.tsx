@@ -719,6 +719,30 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
       ),
       { duration: 5000 },
     );
+
+    // Popup pós-pedido com botão WhatsApp da loja (configurável)
+    try {
+      const { data: cfg } = await (supabase as any).rpc("get_restaurant_popup_config", {
+        _restaurant_id: restaurant.id,
+      });
+      const c = Array.isArray(cfg) ? cfg[0] : cfg;
+      if (c?.popup_enabled) {
+        const phoneSrc = restaurant.phone || restaurant.whatsapp_url || "";
+        const msg = renderTemplate(c.popup_whatsapp_message || "", {
+          nome: name.trim(),
+          pedido: order.order_number ?? "",
+          total: brl(total),
+        });
+        const url = buildWhatsappUrl(phoneSrc, msg);
+        if (url) {
+          setSuccessPopup({
+            open: true,
+            text: c.popup_text || "Obrigado pelo pedido! Fale com a gente no WhatsApp.",
+            whatsappUrl: url,
+          });
+        }
+      }
+    } catch (_) { /* não bloqueia */ }
   };
 
   // Indicador de progresso
