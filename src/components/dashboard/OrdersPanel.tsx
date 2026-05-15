@@ -497,16 +497,18 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                       <Button size="sm" variant="outline" onClick={() => setCancelTarget(o)} aria-label="Cancelar pedido"><X className="w-4 h-4" /></Button>
                     </>
                   )}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setDeleteTarget(o)}
-                    aria-label="Excluir pedido permanentemente"
-                    title="Excluir permanentemente"
-                    className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  {o.status !== "delivered" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setDeleteTarget(o)}
+                      aria-label="Excluir pedido permanentemente"
+                      title="Excluir permanentemente"
+                      className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
