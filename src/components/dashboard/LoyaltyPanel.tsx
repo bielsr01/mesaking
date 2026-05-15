@@ -393,7 +393,10 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
                       <TableCell className="text-right font-bold">{t.points}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
-                          <Button size="sm" onClick={() => creditTx(t.id)}><Check className="w-4 h-4 mr-1" />Creditar</Button>
+                          <Button size="sm" onClick={() => creditTx(t.id)} disabled={creditingIds.has(t.id)}>
+                            {creditingIds.has(t.id) ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Check className="w-4 h-4 mr-1" />}
+                            {creditingIds.has(t.id) ? "Processando..." : "Creditar"}
+                          </Button>
                           <Button size="sm" variant="ghost" onClick={() => deleteTx(t.id)}><Trash2 className="w-4 h-4" /></Button>
                         </div>
                       </TableCell>
