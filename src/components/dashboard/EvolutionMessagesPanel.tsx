@@ -107,6 +107,8 @@ export function EvolutionMessagesPanel({ restaurantId }: { restaurantId: string 
         <code className="text-xs bg-muted px-1 rounded">{"{{total}}"}</code>
       </p>
 
+      <PopupConfigSection restaurantId={restaurantId} />
+
       <div className="space-y-3">
         {EVENTS.map((ev) => {
           const d = drafts[ev.key];
