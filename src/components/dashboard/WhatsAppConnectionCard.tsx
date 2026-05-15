@@ -203,7 +203,7 @@ export function WhatsAppConnectionCard({ restaurantId }: { restaurantId: string 
           </DialogHeader>
           <div className="flex flex-col items-center gap-3 py-2">
             {qr ? (
-              <img src={qr} alt="QR Code WhatsApp" className="w-64 h-64 rounded-md border" />
+              <img src={qr} alt="QR Code WhatsApp" className="w-64 h-64 rounded-md border bg-white p-2" style={{ imageRendering: "pixelated", filter: "none" }} />
             ) : (
               <div className="w-64 h-64 grid place-items-center border rounded-md">
                 <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />

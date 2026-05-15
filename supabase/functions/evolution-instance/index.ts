@@ -147,9 +147,12 @@ Deno.serve(async (req) => {
       if (!instanceName) throw new Error("Instância não criada ainda");
       const r = await evoFetch(URL_ENV, `/instance/connect/${encodeURIComponent(instanceName)}`, KEY_ENV, undefined, "GET");
       if (!r.ok) throw new Error(`Falha ao obter QR (${r.status})`);
-      let qr = r.data?.qrcode?.base64 || r.data?.base64 || r.data?.qrcode || null;
-      if (qr && typeof qr === "string" && !qr.startsWith("data:image")) {
-        qr = `data:image/png;base64,${qr}`;
+      let qr: string | null = r.data?.qrcode?.base64 || r.data?.base64 || null;
+      // Only accept actual base64 PNG images. Never fabricate from text codes.
+      if (qr && typeof qr === "string") {
+        if (!qr.startsWith("data:image")) qr = `data:image/png;base64,${qr}`;
+      } else {
+        qr = null;
       }
       const code = r.data?.code || r.data?.qrcode?.code || null;
       await upsertRow({ qrcode: qr, last_check_at: new Date().toISOString() });
