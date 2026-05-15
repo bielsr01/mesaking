@@ -814,7 +814,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                       </Button>
                     </>
                   )}
-                  {canEditOrders && (
+                  {canEditOrders && filter !== "delivered" && (
                     <Button
                       size="sm"
                       variant="outline"
