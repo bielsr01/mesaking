@@ -172,9 +172,9 @@ export function PdvDialog({
   useEffect(() => {
     if (!open) return;
     try { localStorage.setItem(STORAGE_KEY(restaurantId), JSON.stringify({
-      cart, customerName, customerPhone, loyaltyOptIn, discountType, discountValue, serviceFeeType, serviceFeeValue, payment,
+      cart, customerName, customerPhone, loyaltyOptIn, discountType, discountValue, serviceFeeType, serviceFeeValue, payment, changeForInput,
     })); } catch { /* noop */ }
-  }, [open, restaurantId, cart, customerName, customerPhone, loyaltyOptIn, discountType, discountValue, serviceFeeType, serviceFeeValue, payment]);
+  }, [open, restaurantId, cart, customerName, customerPhone, loyaltyOptIn, discountType, discountValue, serviceFeeType, serviceFeeValue, payment, changeForInput]);
 
   const filteredProducts = useMemo(() => {
     const q = search.trim().toLowerCase();
