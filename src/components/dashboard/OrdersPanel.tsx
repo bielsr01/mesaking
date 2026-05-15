@@ -539,10 +539,70 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const outForDeliveryOrders = channelOrders.filter((o) => o.status === "out_for_delivery").sort(sortRecent);
   const finalizedOrders = channelOrders.filter((o) => o.status === "delivered" || o.status === "cancelled").sort(sortRecent);
 
-  const renderCard = (o: Order) => {
+  const renderCard = (o: Order, compact = false) => {
     const isPickup = o.order_type === "pickup";
     const isPdv = o.order_type === "pdv";
     const next = getNextStatus(o.status, o.order_type);
+    if (compact) {
+      return (
+        <Card key={o.id} className="shadow-soft cursor-pointer hover:bg-accent/30 transition-colors" onClick={() => setDetailsTarget(o)}>
+          <CardContent className="p-2 space-y-1.5" onClick={(e) => {
+            const t = e.target as HTMLElement;
+            if (t.closest('button,a,[role="button"]')) e.stopPropagation();
+          }}>
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0 flex items-center gap-1.5">
+                <User className="w-3 h-3 shrink-0" />
+                <span className="truncate text-xs font-semibold">{o.customer_name}</span>
+                <Badge variant="outline" className="font-mono text-[10px] px-1 py-0">#{o.order_number}</Badge>
+              </div>
+              <div className="text-[10px] text-muted-foreground flex items-center gap-0.5 shrink-0">
+                <Clock className="w-2.5 h-2.5" />
+                {new Date(o.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[10px] text-muted-foreground truncate">
+                {o.external_source === "ifood" ? "iFood" : o.external_source === "quero" ? "Quero" : (orderTypeLabel[o.order_type] ?? "Delivery")}
+              </span>
+              <span className="text-xs font-bold">{brl(o.total)}</span>
+            </div>
+            <div className="flex gap-1">
+              {canChangeStatus && next && (
+                <Button size="sm" className="flex-1 h-7 text-[11px]" onClick={() => advance(o)} disabled={!!pendingAction[o.id]}>
+                  {pendingAction[o.id] ? "…" : "✓ Aceitar"}
+                </Button>
+              )}
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 px-2"
+                onClick={() => {
+                  if (o.external_source === "quero") setQueroCancelInfoOpen(true);
+                  else setCancelTarget(o);
+                }}
+                disabled={!!pendingAction[o.id]}
+                aria-label="Cancelar pedido"
+              >
+                <X className="w-3 h-3" />
+              </Button>
+              {canEditOrders && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 px-2"
+                  onClick={() => setDeleteTarget(o)}
+                  aria-label="Excluir pedido"
+                  title="Excluir permanentemente"
+                >
+                  <Trash2 className="w-3 h-3 text-destructive" />
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
     return (
       <Card key={o.id} className="shadow-soft cursor-pointer hover:bg-accent/30 transition-colors" onClick={() => setDetailsTarget(o)}>
         <CardContent className="p-2.5 space-y-2" onClick={(e) => {
