@@ -13,6 +13,7 @@ import { Plus, Pencil, Trash2, Image as ImageIcon, GripVertical, Loader2 } from 
 import { toast } from "sonner";
 import { brl } from "@/lib/format";
 import { OptionGroupsManager, fetchGroups, optionKeys, OptionGroup } from "./OptionGroupsManager";
+import { OrderSuggestionsPanel } from "./OrderSuggestionsPanel";
 import { usePermissions } from "@/hooks/usePermissions";
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
