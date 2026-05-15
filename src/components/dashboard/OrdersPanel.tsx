@@ -10,9 +10,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { brl, orderStatusLabel, getNextStatus, paymentLabel, formatPhone, orderTypeLabel } from "@/lib/format";
+import { brl, orderStatusLabel, getNextStatus, paymentLabel, paymentLabelFor, formatPhone, orderTypeLabel } from "@/lib/format";
 import { toast } from "sonner";
-import { Bike, ChefHat, Clock, MapPin, MessageCircle, Phone, Plus, Printer, Store, Trash2, User, X } from "lucide-react";
+import { Bike, ChefHat, Clock, History, MapPin, MessageCircle, Phone, Plus, Printer, Store, Trash2, User, X, Utensils } from "lucide-react";
+import { IfoodEventsTab } from "./IfoodEventsTab";
+import { usePermissions } from "@/hooks/usePermissions";
+import { OrderDetailsDialog } from "./OrderDetailsDialog";
+import { OrderHistoryDialog } from "./OrderHistoryDialog";
 
 /** Monta link wa.me garantindo DDI 55 (Brasil) sem duplicar */
 function waLink(phone: string | null | undefined): string | null {
@@ -31,6 +35,10 @@ function waLink(phone: string | null | undefined): string | null {
 import { buildTicketHtml, TicketMode, TicketOptionCatalog, TicketRestaurant } from "@/lib/ticket";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { PdvDialog } from "./PdvDialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Order {
   id: string;
@@ -55,9 +63,12 @@ interface Order {
   discount?: number | null;
   service_fee?: number | null;
   created_at: string;
+  updated_at: string;
   delivery_latitude: number | null;
   delivery_longitude: number | null;
   external_source?: string | null;
+  external_order_id?: string | null;
+  external_display_id?: string | null;
 }
 
 interface Item {
@@ -80,6 +91,7 @@ const FILTERS = [
   { value: "out_for_delivery", label: "Em entrega" },
   { value: "awaiting_pickup", label: "Aguardando retirada" },
   { value: "delivered", label: "Entregues" },
+  { value: "cancelled", label: "Cancelados" },
   { value: "active", label: "Ativos" },
   { value: "all", label: "Todos" },
 ];
@@ -92,7 +104,7 @@ export async function fetchOrders(restaurantId: string): Promise<{ orders: Order
     .select("*")
     .eq("restaurant_id", restaurantId)
     .order("created_at", { ascending: false })
-    .limit(100);
+    .limit(500);
   const orders = (data ?? []) as Order[];
   const ids = orders.map((o) => o.id);
   const grouped: Record<string, Item[]> = {};
@@ -105,13 +117,81 @@ export async function fetchOrders(restaurantId: string): Promise<{ orders: Order
 
 export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const qc = useQueryClient();
-  const [channel, setChannel] = useState<"delivery" | "pdv">("pdv");
-  const [filter, setFilter] = useState("pending");
+  const { can } = usePermissions(restaurantId);
+  const canPdv = can("orders.channels.pdv");
+  const canDelivery = can("orders.channels.delivery") || can("orders.channels.pickup");
+  const canIfood = can("orders.channels.ifood");
+  const canQuero = can("orders.channels.quero");
+  const canChangeStatus = can("orders.change_status");
+  const canEditOrders = can("orders.edit");
+  const canViewFeeBreakdown = can("finance.view_fee_breakdown");
+  const canCreatePdv = can("orders.create_pdv_order");
+  type Channel = "delivery" | "pdv" | "ifood" | "quero";
+  const initialChannel: Channel = canPdv ? "pdv" : canDelivery ? "delivery" : canIfood ? "ifood" : canQuero ? "quero" : "pdv";
+  const [channel, setChannel] = useState<Channel>(initialChannel);
+  const statusKey = (ch: Channel, s: string) => `orders.statuses.${ch}.${s}`;
+  const firstAllowedStatus = (ch: Channel, preferred: string[]) => {
+    for (const p of preferred) if (can(statusKey(ch, p))) return p;
+    const list = ch === "pdv" ? ["preparing", "delivered", "cancelled", "all"] : ["pending", "preparing", "out_for_delivery", "awaiting_pickup", "delivered", "cancelled", "active", "all"];
+    return list.find((s) => can(statusKey(ch, s))) ?? (ch === "pdv" ? "preparing" : "pending");
+  };
+  const [filter, setFilter] = useState(() => firstAllowedStatus(initialChannel, initialChannel === "pdv" ? ["preparing"] : ["pending"]));
   const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
+  const [queroCancelInfoOpen, setQueroCancelInfoOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelCode, setCancelCode] = useState<string>("INTERNAL_DIFFICULTIES_OF_THE_RESTAURANT");
   const [deleteTarget, setDeleteTarget] = useState<Order | null>(null);
   const [printTarget, setPrintTarget] = useState<Order | null>(null);
+  const [detailsTarget, setDetailsTarget] = useState<Order | null>(null);
   const [pdvOpen, setPdvOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [deliveryBlink, setDeliveryBlink] = useState(false);
+  const [ifoodView, setIfoodView] = useState<"orders" | "events">("orders");
+  const [pendingAction, setPendingAction] = useState<Record<string, boolean>>({});
+  const [ifoodCodeTarget, setIfoodCodeTarget] = useState<Order | null>(null);
+  const [ifoodCodeValue, setIfoodCodeValue] = useState("");
+  const [ifoodCodeSubmitting, setIfoodCodeSubmitting] = useState(false);
+
+  const confirmIfoodDelivery = async () => {
+    if (!ifoodCodeTarget) return;
+    const code = ifoodCodeValue.trim();
+    if (!code) { toast.error("Informe o código de entrega"); return; }
+    setIfoodCodeSubmitting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("ihub-link", {
+        body: {
+          action: "verify-delivery-code",
+          restaurantId,
+          orderId: ifoodCodeTarget.id,
+          externalOrderId: ifoodCodeTarget.external_order_id,
+          code,
+        },
+      });
+      if (error) throw error;
+      if (!data?.ok) throw new Error(data?.error ?? "Falha ao validar código");
+      toast.success("Entrega confirmada");
+      setIfoodCodeTarget(null);
+      setIfoodCodeValue("");
+      qc.invalidateQueries({ queryKey: ["orders", restaurantId] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro");
+    } finally {
+      setIfoodCodeSubmitting(false);
+    }
+  };
+
+  const setPending = (id: string, v: boolean) =>
+    setPendingAction((m) => ({ ...m, [id]: v }));
+
+  // If current channel becomes forbidden, switch to first allowed
+  useEffect(() => {
+    const allowed = (channel === "pdv" && canPdv) || (channel === "delivery" && canDelivery) || (channel === "ifood" && canIfood) || (channel === "quero" && canQuero);
+    if (allowed) return;
+    if (canPdv) setChannel("pdv");
+    else if (canDelivery) setChannel("delivery");
+    else if (canIfood) setChannel("ifood");
+    else if (canQuero) setChannel("quero");
+  }, [channel, canPdv, canDelivery, canIfood, canQuero]);
 
   const doPrint = (o: Order, mode: TicketMode) => {
     const html = buildTicketHtml(
@@ -159,8 +239,16 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     refetchOnWindowFocus: true,
   });
 
-  const orders = data?.orders ?? [];
+  const allOrders = data?.orders ?? [];
   const items = data?.items ?? {};
+  // Pedidos entregues/cancelados somem do painel principal após 12h.
+  // Continuam visíveis no Histórico de Pedidos.
+  const cutoff = Date.now() - 12 * 60 * 60 * 1000;
+  const orders = allOrders.filter((o) => {
+    if (o.status !== "delivered" && o.status !== "cancelled") return true;
+    const ref = new Date(o.updated_at ?? o.created_at).getTime();
+    return ref >= cutoff;
+  });
   const productIds = Array.from(new Set(Object.values(items).flat().map((it) => it.product_id).filter(Boolean))) as string[];
 
   const { data: optionCatalog = {} } = useQuery({
@@ -214,12 +302,19 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
         if (row?.order_type === "pdv") {
           setChannel("pdv");
           setFilter("preparing");
+        } else if (row?.external_source === "ifood") {
+          setChannel("ifood");
+          setIfoodView("orders");
+          setFilter("pending");
+        } else if (row?.external_source === "quero") {
+          setChannel("quero");
+          setFilter("pending");
         } else {
           setChannel((cur) => {
             if (cur !== "delivery") setDeliveryBlink(true);
             return cur;
           });
-          setFilter((cur) => (cur === "pending" ? cur : cur));
+          setFilter("pending");
         }
         qc.invalidateQueries({ queryKey: ordersKey(restaurantId) });
       })
@@ -252,32 +347,145 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   };
 
   const advance = async (o: Order) => {
+    if (!canChangeStatus) return toast.error("Sem permissão para mudar status");
+    if (pendingAction[o.id]) return; // evita duplo-clique / corrida com outro pedido
     const next = getNextStatus(o.status, o.order_type) as Order["status"] | null;
     if (!next) return;
+    setPending(o.id, true);
     const prevStatus = o.status;
     patchOrder(o.id, { status: next });
+
+    // For iFood orders, forward the action to iHub first.
+    // No iFood, "delivered" é atualizado automaticamente pelo webhook (CONCLUDED) — não enviamos ação.
+    if (o.external_source === "ifood") {
+      if (next === "delivered") {
+        patchOrder(o.id, { status: prevStatus });
+        toast.info("Pedidos do iFood são marcados como entregues automaticamente pelo iFood.");
+        setPending(o.id, false);
+        return;
+      }
+      // Defesa: precisa ter external_order_id para mandar a ação só desse pedido
+      if (!o.external_order_id) {
+        patchOrder(o.id, { status: prevStatus });
+        toast.error("Pedido iFood sem external_order_id — não é possível enviar a ação.");
+        setPending(o.id, false);
+        return;
+      }
+      const actionMap: Record<string, string> = {
+        preparing: "confirm",
+        awaiting_pickup: "readyToPickup",
+        out_for_delivery: "dispatch",
+      };
+      const action = actionMap[next];
+      if (action) {
+        console.info("[ifood-action] enviando", { orderId: o.id, externalOrderId: o.external_order_id, customer: o.customer_name, action });
+        const { data: fnData, error: fnErr } = await supabase.functions.invoke("ifood-action", {
+          body: { orderId: o.id, action },
+        });
+        if (fnErr || !fnData?.ok) {
+          // Sem "transient pass-through": qualquer falha reverte o status local
+          // para evitar dessincronia entre o painel e o iFood.
+          patchOrder(o.id, { status: prevStatus });
+          const msg = fnData?.error ?? fnErr?.message ?? "falha";
+          const detail = fnData?.ihub_status ? ` (iHub ${fnData.ihub_status})` : "";
+          toast.error(`iFood: ${msg}${detail}`);
+          setPending(o.id, false);
+          return;
+        }
+      }
+    }
+
+    if (o.external_source === "quero") {
+      if (!o.external_order_id) {
+        patchOrder(o.id, { status: prevStatus });
+        toast.error("Pedido Quero sem external_order_id — não é possível enviar a ação.");
+        setPending(o.id, false);
+        return;
+      }
+      const actionMap: Record<string, string> = {
+        preparing: "confirm",
+        awaiting_pickup: "readyForPickup",
+        out_for_delivery: "dispatch",
+        delivered: "delivered",
+      };
+      const action = actionMap[next];
+      if (action) {
+        const { data: fnData, error: fnErr } = await supabase.functions.invoke("quero-action", {
+          body: { orderId: o.id, action },
+        });
+        if (fnErr || !fnData?.ok) {
+          patchOrder(o.id, { status: prevStatus });
+          toast.error(`Quero: ${fnData?.error ?? fnErr?.message ?? "falha"}`);
+          setPending(o.id, false);
+          return;
+        }
+      }
+    }
+
     const { error } = await supabase.from("orders").update({ status: next }).eq("id", o.id);
     if (error) {
       patchOrder(o.id, { status: prevStatus });
       toast.error(error.message);
     } else {
-      toast.success(`Pedido movido para "${orderStatusLabel[next]}"`);
+      toast.success(`Pedido #${o.order_number} → "${orderStatusLabel[next]}"`);
+      // Acompanha o card para a nova aba (evita a sensação de "sumiu" quando
+      // o usuário está num filtro específico, ex.: "Em preparo" → "Em entrega").
+      if (filter !== "all" && filter !== "active" && can(statusKey(channel, next))) {
+        setFilter(next);
+      }
     }
+    setPending(o.id, false);
   };
 
-  const cancel = async (o: Order) => {
-    const prevStatus = o.status;
-    patchOrder(o.id, { status: "cancelled" });
+  const cancel = async (o: Order, opts?: { cancelReason?: string; cancelCode?: string }) => {
+    if (!canChangeStatus) return toast.error("Sem permissão para cancelar pedido");
+    if (pendingAction[o.id]) return;
+    const reason = opts?.cancelReason?.trim() || "Cancelado pelo restaurante";
+    const code = opts?.cancelCode || "INTERNAL_DIFFICULTIES_OF_THE_RESTAURANT";
+    setPending(o.id, true);
+    if (o.external_source === "ifood") {
+      if (!o.external_order_id) {
+        toast.error("Pedido iFood sem external_order_id — não é possível cancelar.");
+        setPending(o.id, false);
+        return;
+      }
+      console.info("[ifood-action] cancelando", { orderId: o.id, externalOrderId: o.external_order_id, customer: o.customer_name });
+      const { data: fnData, error: fnErr } = await supabase.functions.invoke("ifood-action", {
+        body: { orderId: o.id, action: "cancel", cancelReason: reason },
+      });
+      if (fnErr || (fnData && fnData.ok === false)) {
+        toast.error(`iFood: ${fnData?.error ?? fnErr?.message ?? "falha"}`);
+        setPending(o.id, false);
+        return;
+      }
+    }
+    if (o.external_source === "quero") {
+      if (!o.external_order_id) {
+        toast.error("Pedido Quero sem external_order_id — não é possível cancelar.");
+        setPending(o.id, false);
+        return;
+      }
+      const { data: fnData, error: fnErr } = await supabase.functions.invoke("quero-action", {
+        body: { orderId: o.id, action: "cancel", cancelReason: reason, cancelCode: code },
+      });
+      if (fnErr || (fnData && fnData.ok === false)) {
+        toast.error(`Quero: ${fnData?.error ?? fnErr?.message ?? "falha"}`);
+        setPending(o.id, false);
+        return;
+      }
+    }
     const { error } = await supabase.from("orders").update({ status: "cancelled" }).eq("id", o.id);
     if (error) {
-      patchOrder(o.id, { status: prevStatus });
       toast.error(error.message);
     } else {
-      toast.success("Pedido cancelado");
+      patchOrder(o.id, { status: "cancelled" });
+      toast.success(`Pedido #${o.order_number} cancelado`);
     }
+    setPending(o.id, false);
   };
 
   const deleteOrder = async (o: Order) => {
+    if (!canEditOrders) return toast.error("Sem permissão para excluir pedido");
     const prev = qc.getQueryData<{ orders: Order[]; items: Record<string, Item[]> }>(ordersKey(restaurantId));
     qc.setQueryData<{ orders: Order[]; items: Record<string, Item[]> }>(ordersKey(restaurantId), (p) => {
       if (!p) return p;
@@ -296,7 +504,10 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
 
   const channelOrders = orders.filter((o) => {
     if (channel === "pdv") return o.order_type === "pdv";
-    return o.order_type !== "pdv";
+    if (channel === "ifood") return o.external_source === "ifood";
+    if (channel === "quero") return o.external_source === "quero";
+    // delivery: tudo que não é pdv e não é ifood/quero
+    return o.order_type !== "pdv" && o.external_source !== "ifood" && o.external_source !== "quero";
   });
 
   const filtered = channelOrders.filter((o) => {
@@ -318,45 +529,95 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     out_for_delivery: channelOrders.filter((o) => o.status === "out_for_delivery").length,
     awaiting_pickup: channelOrders.filter((o) => o.status === "awaiting_pickup").length,
     delivered: channelOrders.filter((o) => o.status === "delivered").length,
+    cancelled: channelOrders.filter((o) => o.status === "cancelled").length,
     active: channelOrders.filter((o) => !["delivered", "cancelled"].includes(o.status)).length,
     all: channelOrders.length,
   };
 
-  const deliveryCount = orders.filter((o) => o.order_type !== "pdv").length;
+  const deliveryCount = orders.filter((o) => o.order_type !== "pdv" && o.external_source !== "ifood" && o.external_source !== "quero").length;
+  const deliveryPendingCount = orders.filter((o) => o.order_type !== "pdv" && o.external_source !== "ifood" && o.external_source !== "quero" && o.status === "pending").length;
   const pdvCount = orders.filter((o) => o.order_type === "pdv").length;
+  const ifoodCount = orders.filter((o) => o.external_source === "ifood").length;
+  const ifoodPendingCount = orders.filter((o) => o.external_source === "ifood" && o.status === "pending").length;
+  const queroCount = orders.filter((o) => o.external_source === "quero").length;
+  const queroPendingCount = orders.filter((o) => o.external_source === "quero" && o.status === "pending").length;
 
-  // PDV: em preparo + entregues
-  const visibleFilters = channel === "pdv"
-    ? FILTERS.filter((f) => ["preparing", "delivered", "all"].includes(f.value))
+  // Filtra abas de status conforme permissão por canal
+  const baseFilters = channel === "pdv"
+    ? FILTERS.filter((f) => ["preparing", "delivered", "cancelled", "all"].includes(f.value))
     : FILTERS;
+  const visibleFilters = baseFilters.filter((f) => can(statusKey(channel, f.value)));
+
+  useEffect(() => {
+    if (visibleFilters.length > 0 && !visibleFilters.find((f) => f.value === filter)) {
+      setFilter(visibleFilters[0].value);
+    }
+  }, [channel, filter, visibleFilters]);
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Tabs value={channel} onValueChange={(v) => {
-          const nv = v as "delivery" | "pdv";
+          const nv = v as "delivery" | "pdv" | "ifood" | "quero";
           setChannel(nv);
-          setFilter(nv === "pdv" ? "preparing" : "pending");
-          if (nv === "delivery") setDeliveryBlink(false);
+          if (nv === "pdv") setFilter(firstAllowedStatus(nv, ["preparing"]));
+          else if (nv === "delivery") { setFilter(firstAllowedStatus(nv, ["pending"])); setDeliveryBlink(false); }
+          else if (nv === "ifood") { setFilter(firstAllowedStatus(nv, ["pending"])); setIfoodView("orders"); }
+          else if (nv === "quero") { setFilter(firstAllowedStatus(nv, ["pending"])); }
         }}>
           <TabsList>
-            <TabsTrigger value="pdv" className="gap-2">
-              <Store className="w-4 h-4" /> PDV (Balcão)
-              <Badge variant="secondary" className="h-5 min-w-5 px-1.5 text-xs">{pdvCount}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="delivery" className={`gap-2 ${deliveryBlink ? "animate-pulse text-destructive ring-2 ring-destructive" : ""}`}>
-              <Bike className="w-4 h-4" /> Delivery / Retirada
-              <Badge variant={deliveryBlink ? "destructive" : "secondary"} className="h-5 min-w-5 px-1.5 text-xs">{deliveryCount}</Badge>
-            </TabsTrigger>
+            {canPdv && (
+              <TabsTrigger value="pdv" className="gap-2">
+                <Store className="w-4 h-4" /> PDV (Balcão)
+                <Badge variant="secondary" className="h-5 min-w-5 px-1.5 text-xs">{pdvCount}</Badge>
+              </TabsTrigger>
+            )}
+            {canDelivery && (
+              <TabsTrigger value="delivery" className={`gap-2 ${deliveryPendingCount > 0 ? "animate-pulse text-destructive ring-2 ring-destructive" : ""}`}>
+                <Bike className="w-4 h-4" /> Delivery / Retirada
+                <Badge variant={deliveryPendingCount > 0 ? "destructive" : "secondary"} className="h-5 min-w-5 px-1.5 text-xs">{deliveryPendingCount > 0 ? deliveryPendingCount : deliveryCount}</Badge>
+              </TabsTrigger>
+            )}
+            {canIfood && (
+              <TabsTrigger value="ifood" className={`gap-2 ${ifoodPendingCount > 0 ? "animate-pulse text-destructive ring-2 ring-destructive" : ""}`}>
+                <Utensils className="w-4 h-4" /> iFood
+                <Badge variant={ifoodPendingCount > 0 ? "destructive" : "secondary"} className="h-5 min-w-5 px-1.5 text-xs">{ifoodPendingCount > 0 ? ifoodPendingCount : ifoodCount}</Badge>
+              </TabsTrigger>
+            )}
+            {canQuero && (
+              <TabsTrigger value="quero" className={`gap-2 ${queroPendingCount > 0 ? "animate-pulse text-destructive ring-2 ring-destructive" : ""}`}>
+                <Bike className="w-4 h-4" /> Quero Delivery
+                <Badge variant={queroPendingCount > 0 ? "destructive" : "secondary"} className="h-5 min-w-5 px-1.5 text-xs">{queroPendingCount > 0 ? queroPendingCount : queroCount}</Badge>
+              </TabsTrigger>
+            )}
           </TabsList>
         </Tabs>
 
-        {channel === "pdv" && (
-          <Button onClick={() => setPdvOpen(true)} className="gap-2">
-            <Plus className="w-4 h-4" /> Novo pedido PDV
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setHistoryOpen(true)} className="gap-2">
+            <History className="w-4 h-4" /> Histórico de Pedidos
           </Button>
-        )}
+          {canCreatePdv && (
+            <Button onClick={() => setPdvOpen(true)} className="gap-2">
+              <Plus className="w-4 h-4" /> Novo pedido PDV
+            </Button>
+          )}
+        </div>
       </div>
+
+      {channel === "ifood" && (
+        <Tabs value={ifoodView} onValueChange={(v) => setIfoodView(v as "orders" | "events")}>
+          <TabsList>
+            <TabsTrigger value="orders">Pedidos iFood</TabsTrigger>
+            <TabsTrigger value="events">Histórico de webhooks</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      )}
+
+      {channel === "ifood" && ifoodView === "events" ? (
+        <IfoodEventsTab restaurantId={restaurantId} />
+      ) : (
+      <>
 
       <Tabs value={filter} onValueChange={setFilter}>
         <TabsList className="flex-wrap h-auto">
@@ -388,8 +649,11 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
             const isPdv = o.order_type === "pdv";
             const next = getNextStatus(o.status, o.order_type);
             return (
-            <Card key={o.id} className="shadow-soft">
-              <CardContent className="pt-0 space-y-3">
+            <Card key={o.id} className="shadow-soft cursor-pointer hover:bg-accent/30 transition-colors" onClick={() => setDetailsTarget(o)}>
+              <CardContent className="pt-0 space-y-3" onClick={(e) => {
+                const t = e.target as HTMLElement;
+                if (t.closest('button,a,[role="button"]')) e.stopPropagation();
+              }}>
                 <div className="pt-3" />
                 {/* Tipo do pedido — destaque no topo */}
                 <div className={`-mt-2 -mx-1 px-3 py-1.5 rounded-md flex items-center gap-2 text-xs font-semibold ${isPdv ? "bg-success/15 text-success border border-success/30" : isPickup ? "bg-accent/20 text-accent-foreground border border-accent/40" : "bg-primary/10 text-primary border border-primary/20"}`}>
@@ -408,8 +672,21 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                       {new Date(o.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" })}
                       {" às "}
                       {new Date(o.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                      <Phone className="w-3 h-3 ml-2" />{formatPhone(o.customer_phone)}
-                      {waLink(o.customer_phone) && (
+                      <Phone className="w-3 h-3 ml-2" />
+                      {o.external_source === "ifood"
+                        ? (() => {
+                            const raw = String(o.customer_phone ?? "");
+                            const digits = raw.replace(/\D/g, "");
+                            const locMatch = raw.match(/(?:cód[^\w]*|localizador[^\w]*)([A-Za-z0-9]+)/i);
+                            const loc = locMatch?.[1] ?? digits.slice(11);
+                            const base = digits.slice(0, 11) || digits;
+                            const masked = base.length >= 10
+                              ? `${base.slice(0, 4)} ${base.slice(4, 7)} ${base.slice(7, 11)}`
+                              : base;
+                            return loc ? `${masked} (cód: ${loc})` : masked;
+                          })()
+                        : formatPhone(o.customer_phone)}
+                      {o.external_source !== "ifood" && waLink(o.customer_phone) && (
                         <a
                           href={waLink(o.customer_phone)!}
                           target="_blank"
@@ -445,7 +722,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                       {o.address_street}, {o.address_number} {o.address_complement && `- ${o.address_complement}`}<br />
                       <span className="text-muted-foreground">{o.address_neighborhood} • {o.address_city}</span>
                       {o.address_notes && <div className="text-xs italic text-muted-foreground mt-0.5">"{o.address_notes}"</div>}
-                      {o.delivery_latitude != null && o.delivery_longitude != null && (
+                      {o.external_source !== "quero" && o.delivery_latitude != null && o.delivery_longitude != null && (
                         <a
                           href={`https://www.google.com/maps?q=${o.delivery_latitude},${o.delivery_longitude}`}
                           target="_blank"
@@ -469,12 +746,24 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                   ))}
                 </div>
 
-                <div className="border-t pt-3 flex justify-between items-center">
+                <div className="border-t pt-3 flex justify-between items-start gap-2">
                   <div className="text-xs text-muted-foreground">
-                    {paymentLabel[o.payment_method]}
+                    {paymentLabelFor(o.payment_method, o.external_source)}
                     {o.change_for ? ` • troco p/ ${brl(o.change_for)}` : ""}
                   </div>
-                  <div className="text-lg font-bold">{brl(o.total)}</div>
+                  <div className="text-right">
+                    <div className="text-lg font-bold">{brl(o.total)}</div>
+                    {o.external_source !== "ifood" && o.external_source !== "quero" && (Number(o.delivery_fee) > 0 || Number(o.service_fee ?? 0) > 0) && (
+                      <div className="text-[11px] text-destructive leading-tight mt-0.5 space-y-0.5">
+                        {Number(o.delivery_fee) > 0 && (
+                          <div>Taxa de entrega: {brl(Number(o.delivery_fee))}</div>
+                        )}
+                        {Number(o.service_fee ?? 0) > 0 && (
+                          <div>Taxas da plataforma: {brl(Number(o.service_fee))}</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex gap-2 pt-1">
@@ -487,23 +776,52 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                   >
                     <Printer className="w-4 h-4" />
                   </Button>
-                  {!["delivered", "cancelled"].includes(o.status) && (
+                  {!["delivered", "cancelled"].includes(o.status) && canChangeStatus && (
                     <>
-                      {next && (
-                        <Button size="sm" className="flex-1" onClick={() => advance(o)}>
-                          {o.status === "pending" ? "✓ Aceitar pedido" : `→ ${orderStatusLabel[next]}`}
+                      {next && !(o.external_source === "ifood" && next === "delivered") ? (
+                        <Button size="sm" className="flex-1" onClick={() => advance(o)} disabled={!!pendingAction[o.id]}>
+                          {pendingAction[o.id]
+                            ? "Enviando…"
+                            : o.status === "pending"
+                              ? "✓ Aceitar pedido"
+                              : o.external_source === "ifood" && next === "out_for_delivery"
+                                ? "🛵 Enviar para entrega"
+                                : `→ ${orderStatusLabel[next]}`}
                         </Button>
-                      )}
-                      <Button size="sm" variant="outline" onClick={() => setCancelTarget(o)} aria-label="Cancelar pedido"><X className="w-4 h-4" /></Button>
+                      ) : o.external_source === "ifood" && o.status === "out_for_delivery" && o.order_type !== "pickup" && o.external_order_id ? (
+                        <Button
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => { setIfoodCodeTarget(o); setIfoodCodeValue(""); }}
+                        >
+                          📦 Confirmar entrega
+                        </Button>
+                      ) : null}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          if (o.external_source === "quero") {
+                            setQueroCancelInfoOpen(true);
+                          } else {
+                            setCancelTarget(o);
+                          }
+                        }}
+                        disabled={!!pendingAction[o.id]}
+                        aria-label="Cancelar pedido"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
                     </>
                   )}
-                  {o.status !== "delivered" && (
+                  {canEditOrders && (
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => setDeleteTarget(o)}
+                      disabled={o.status === "delivered"}
                       aria-label="Excluir pedido permanentemente"
-                      title="Excluir permanentemente"
+                      title={o.status === "delivered" ? "Pedido entregue não pode ser excluído" : "Excluir permanentemente"}
                       className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -516,8 +834,19 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
           })}
         </div>
       )}
+      </>
+      )}
 
-      <AlertDialog open={!!cancelTarget} onOpenChange={(o) => !o && setCancelTarget(null)}>
+      <AlertDialog
+        open={!!cancelTarget}
+        onOpenChange={(o) => {
+          if (!o) {
+            setCancelTarget(null);
+            setCancelReason("");
+            setCancelCode("INTERNAL_DIFFICULTIES_OF_THE_RESTAURANT");
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Cancelar este pedido?</AlertDialogTitle>
@@ -527,14 +856,70 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
+
+          {cancelTarget?.external_source === "quero" && (
+            <div className="space-y-3 py-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="cancel-code">Motivo do cancelamento</Label>
+                <Select value={cancelCode} onValueChange={setCancelCode}>
+                  <SelectTrigger id="cancel-code"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="INTERNAL_DIFFICULTIES_OF_THE_RESTAURANT">Dificuldades internas do restaurante</SelectItem>
+                    <SelectItem value="SYSTEMIC_ISSUES">Problemas sistêmicos</SelectItem>
+                    <SelectItem value="DUPLICATE_APPLICATION">Pedido duplicado</SelectItem>
+                    <SelectItem value="UNAVAILABLE_ITEM">Item indisponível</SelectItem>
+                    <SelectItem value="RESTAURANT_WITHOUT_DELIVERY_MAN">Sem entregador disponível</SelectItem>
+                    <SelectItem value="OUTDATED_MENU">Cardápio desatualizado</SelectItem>
+                    <SelectItem value="ORDER_OUTSIDE_THE_DELIVERY_AREA">Pedido fora da área de entrega</SelectItem>
+                    <SelectItem value="BLOCKED_CUSTOMER">Cliente bloqueado</SelectItem>
+                    <SelectItem value="OUTSIDE_DELIVERY_HOURS">Fora do horário de entrega</SelectItem>
+                    <SelectItem value="RISK_AREA">Área de risco</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="cancel-reason">Descrição (opcional)</Label>
+                <Textarea
+                  id="cancel-reason"
+                  placeholder="Detalhe o motivo do cancelamento"
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            </div>
+          )}
+
           <AlertDialogFooter>
             <AlertDialogCancel>Voltar</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => { if (cancelTarget) { cancel(cancelTarget); setCancelTarget(null); } }}
+              onClick={() => {
+                if (cancelTarget) {
+                  const isQuero = cancelTarget.external_source === "quero";
+                  cancel(cancelTarget, isQuero ? { cancelReason, cancelCode } : undefined);
+                  setCancelTarget(null);
+                  setCancelReason("");
+                  setCancelCode("INTERNAL_DIFFICULTIES_OF_THE_RESTAURANT");
+                }
+              }}
             >
               Sim, cancelar
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={queroCancelInfoOpen} onOpenChange={setQueroCancelInfoOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelamento indisponível por aqui</AlertDialogTitle>
+            <AlertDialogDescription>
+              O cancelamento de pedidos do <strong>Quero Delivery</strong> só pode ser feito diretamente pelo <strong>painel do gestor de pedidos do Quero</strong>. Acesse o painel da Quero para concluir o cancelamento — o status será atualizado automaticamente aqui em seguida.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setQueroCancelInfoOpen(false)}>Entendi</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -586,7 +971,55 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
         </DialogContent>
       </Dialog>
 
+      <OrderDetailsDialog
+        order={detailsTarget}
+        items={detailsTarget ? (items[detailsTarget.id] ?? []) : []}
+        onClose={() => setDetailsTarget(null)}
+        onAdvance={(o) => advance(o as Order)}
+        onCancel={(o) => setCancelTarget(o as Order)}
+        onDelete={(o) => setDeleteTarget(o as Order)}
+        onPrint={(o) => setPrintTarget(o as Order)}
+        pending={detailsTarget ? !!pendingAction[detailsTarget.id] : false}
+        canChangeStatus={canChangeStatus}
+        canEditOrders={canEditOrders}
+        canViewFeeBreakdown={canViewFeeBreakdown}
+      />
+
       <PdvDialog open={pdvOpen} onOpenChange={setPdvOpen} restaurantId={restaurantId} />
+      <OrderHistoryDialog open={historyOpen} onOpenChange={setHistoryOpen} restaurantId={restaurantId} />
+
+      <Dialog open={!!ifoodCodeTarget} onOpenChange={(o) => { if (!o) { setIfoodCodeTarget(null); setIfoodCodeValue(""); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Confirmar entrega iFood</DialogTitle>
+            <DialogDescription>
+              Digite o código de entrega informado pelo cliente para confirmar o pedido
+              {ifoodCodeTarget ? ` #${ifoodCodeTarget.order_number}` : ""}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="ifood-delivery-code">Código de entrega</Label>
+            <Input
+              id="ifood-delivery-code"
+              value={ifoodCodeValue}
+              onChange={(e) => setIfoodCodeValue(e.target.value.replace(/\D/g, ""))}
+              placeholder="Ex: 9999"
+              inputMode="numeric"
+              autoFocus
+              onKeyDown={(e) => { if (e.key === "Enter" && !ifoodCodeSubmitting) confirmIfoodDelivery(); }}
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => { setIfoodCodeTarget(null); setIfoodCodeValue(""); }} disabled={ifoodCodeSubmitting}>
+              Cancelar
+            </Button>
+            <Button onClick={confirmIfoodDelivery} disabled={ifoodCodeSubmitting || !ifoodCodeValue.trim()}>
+              {ifoodCodeSubmitting ? "Confirmando…" : "Confirmar entrega"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { ChefHat, Store, Package, ShoppingBag, ChevronDown, BarChart3, Users, Megaphone, Ticket, BookOpen, Send, Plug } from "lucide-react";
+import { ChefHat, Store, Package, ShoppingBag, ChevronDown, BarChart3, Users, Megaphone, Ticket, BookOpen, Send, Plug, Boxes, Receipt, LineChart, Bike, Award } from "lucide-react";
 import { useState } from "react";
 import {
   Sidebar,
@@ -23,17 +23,34 @@ export type AdminView =
   | "customers"
   | "marketing:coupons"
   | "marketing:bulk"
+  | "loyalty"
   | "settings:integrations"
+  | "settings:ifood-fees"
+  | "settings:quero-fees"
   | "supply:catalog"
-  | "supply:orders";
+  | "supply:orders"
+  | "stock:admin"
+  | "stock:restaurants"
+  | "expenses:admin"
+  | "expenses:stores"
+  | "finance:admin"
+  | "finance:restaurants";
 
-export function AdminSidebar({ active, onChange }: { active: AdminView; onChange: (v: AdminView) => void }) {
+export function AdminSidebar({ active, onChange, supplyBadge = 0 }: { active: AdminView; onChange: (v: AdminView) => void; supplyBadge?: number }) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const supplyActive = active.startsWith("supply:");
   const marketingActive = active.startsWith("marketing:");
+  const expensesActive = active.startsWith("expenses:");
+  const settingsActive = active.startsWith("settings:");
+  const financeActive = active.startsWith("finance:");
+  const stockActive = active.startsWith("stock:");
   const [supplyOpen, setSupplyOpen] = useState(supplyActive);
   const [marketingOpen, setMarketingOpen] = useState(marketingActive);
+  const [expensesOpen, setExpensesOpen] = useState(expensesActive);
+  const [settingsOpen, setSettingsOpen] = useState(settingsActive);
+  const [financeOpen, setFinanceOpen] = useState(financeActive);
+  const [stockOpen, setStockOpen] = useState(stockActive);
 
   return (
     <Sidebar collapsible="icon">
@@ -126,14 +143,54 @@ export function AdminSidebar({ active, onChange }: { active: AdminView; onChange
 
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  isActive={active === "settings:integrations"}
-                  onClick={() => onChange("settings:integrations")}
-                  tooltip="Integrações"
+                  isActive={active === "loyalty"}
+                  onClick={() => onChange("loyalty")}
+                  tooltip="Programa de fidelidade"
                 >
-                  <Plug className="h-4 w-4" />
-                  <span>Integrações</span>
+                  <Award className="h-4 w-4" />
+                  <span>Programa de fidelidade</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+
+              <Collapsible open={settingsOpen || collapsed} onOpenChange={setSettingsOpen} asChild>
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton isActive={settingsActive} tooltip="Integrações">
+                      <Plug className="h-4 w-4" />
+                      <span>Integrações</span>
+                      <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={active === "settings:integrations"}>
+                          <button type="button" onClick={() => onChange("settings:integrations")} className="w-full text-left flex items-center gap-2">
+                            <Plug className="h-4 w-4" />
+                            <span>Conexões</span>
+                          </button>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={active === "settings:ifood-fees"}>
+                          <button type="button" onClick={() => onChange("settings:ifood-fees")} className="w-full text-left flex items-center gap-2">
+                            <Bike className="h-4 w-4" />
+                            <span>Configurações iFood</span>
+                          </button>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={active === "settings:quero-fees"}>
+                          <button type="button" onClick={() => onChange("settings:quero-fees")} className="w-full text-left flex items-center gap-2">
+                            <Bike className="h-4 w-4" />
+                            <span>Configurações Quero</span>
+                          </button>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
 
               <Collapsible open={supplyOpen || collapsed} onOpenChange={setSupplyOpen} asChild>
                 <SidebarMenuItem>
@@ -141,6 +198,11 @@ export function AdminSidebar({ active, onChange }: { active: AdminView; onChange
                     <SidebarMenuButton isActive={supplyActive} tooltip="Pedido de Insumos">
                       <Package className="h-4 w-4" />
                       <span>Pedido de Insumos</span>
+                      {supplyBadge > 0 && (
+                        <span className="ml-auto min-w-[20px] h-5 px-1.5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold grid place-items-center">
+                          {supplyBadge > 9 ? "9+" : supplyBadge}
+                        </span>
+                      )}
                       <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
                     </SidebarMenuButton>
                   </CollapsibleTrigger>
@@ -156,9 +218,110 @@ export function AdminSidebar({ active, onChange }: { active: AdminView; onChange
                       </SidebarMenuSubItem>
                       <SidebarMenuSubItem>
                         <SidebarMenuSubButton asChild isActive={active === "supply:orders"}>
-                          <button type="button" onClick={() => onChange("supply:orders")} className="w-full text-left flex items-center gap-2">
-                            <ShoppingBag className="h-4 w-4" />
-                            <span>Pedidos recebidos</span>
+                          <button type="button" onClick={() => onChange("supply:orders")} className="w-full text-left flex items-center gap-1.5 min-w-0">
+                            <ShoppingBag className="h-4 w-4 shrink-0" />
+                            <span className="flex-1 min-w-0 truncate whitespace-nowrap">Pedidos recebidos</span>
+                            {supplyBadge > 0 && (
+                              <span className="shrink-0 min-w-[16px] h-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold grid place-items-center leading-none">
+                                {supplyBadge > 9 ? "9+" : supplyBadge}
+                              </span>
+                            )}
+                          </button>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
+
+              <Collapsible open={stockOpen || collapsed} onOpenChange={setStockOpen} asChild>
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton isActive={stockActive} tooltip="Estoque">
+                      <Boxes className="h-4 w-4" />
+                      <span>Estoque</span>
+                      <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={active === "stock:admin"}>
+                          <button type="button" onClick={() => onChange("stock:admin")} className="w-full text-left flex items-center gap-2">
+                            <Boxes className="h-4 w-4" />
+                            <span>Admin</span>
+                          </button>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={active === "stock:restaurants"}>
+                          <button type="button" onClick={() => onChange("stock:restaurants")} className="w-full text-left flex items-center gap-2">
+                            <Store className="h-4 w-4" />
+                            <span>Restaurantes</span>
+                          </button>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
+
+              <Collapsible open={expensesOpen || collapsed} onOpenChange={setExpensesOpen} asChild>
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton isActive={expensesActive} tooltip="Cadastro de despesas">
+                      <Receipt className="h-4 w-4" />
+                      <span>Cadastro de despesas</span>
+                      <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={active === "expenses:admin"}>
+                          <button type="button" onClick={() => onChange("expenses:admin")} className="w-full text-left flex items-center gap-2">
+                            <Receipt className="h-4 w-4" />
+                            <span>Despesas Admin</span>
+                          </button>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={active === "expenses:stores"}>
+                          <button type="button" onClick={() => onChange("expenses:stores")} className="w-full text-left flex items-center gap-2">
+                            <Store className="h-4 w-4" />
+                            <span>Despesas das lojas</span>
+                          </button>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
+
+              <Collapsible open={financeOpen || collapsed} onOpenChange={setFinanceOpen} asChild>
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton isActive={financeActive} tooltip="Receitas - Despesas">
+                      <LineChart className="h-4 w-4" />
+                      <span>Receitas - Despesas</span>
+                      <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={active === "finance:admin"}>
+                          <button type="button" onClick={() => onChange("finance:admin")} className="w-full text-left flex items-center gap-2">
+                            <LineChart className="h-4 w-4" />
+                            <span>Admin</span>
+                          </button>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={active === "finance:restaurants"}>
+                          <button type="button" onClick={() => onChange("finance:restaurants")} className="w-full text-left flex items-center gap-2">
+                            <Store className="h-4 w-4" />
+                            <span>Restaurantes</span>
                           </button>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>

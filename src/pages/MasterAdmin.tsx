@@ -11,7 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 // tabs removed in favor of sidebar layout
-import { Plus, ChefHat, ExternalLink, LogOut, Store, ShoppingBag, DollarSign, Pencil, Trash2, RefreshCw } from "lucide-react";
+import { Plus, ChefHat, ExternalLink, LogOut, Store, ShoppingBag, DollarSign, Pencil, Trash2, RefreshCw, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { brl, slugify } from "@/lib/format";
@@ -22,8 +22,20 @@ import { AdminOverviewPanel } from "@/components/admin/AdminOverviewPanel";
 import { AdminCustomersPanel } from "@/components/admin/AdminCustomersPanel";
 import { AdminCouponsPanel } from "@/components/admin/AdminCouponsPanel";
 import { AdminMenuPanel } from "@/components/admin/AdminMenuPanel";
+import { AdminStockAdmin } from "@/components/admin/AdminStockAdmin";
+import { AdminStockPanel } from "@/components/admin/AdminStockPanel";
+import { AdminExpenseStoresPanel } from "@/components/admin/AdminExpenseStoresPanel";
+import { AdminOwnExpensesPanel } from "@/components/admin/AdminOwnExpensesPanel";
+import { AdminLoyaltyPanel } from "@/components/admin/AdminLoyaltyPanel";
+import { AdminFinancePanel } from "@/components/admin/AdminFinancePanel";
+import { AdminFinanceAdminPanel } from "@/components/admin/AdminFinanceAdminPanel";
+import { AdminIfoodFeesPanel } from "@/components/admin/AdminIfoodFeesPanel";
+import { AdminQueroFeesPanel } from "@/components/admin/AdminQueroFeesPanel";
 import { BulkCampaignsPanel } from "@/components/dashboard/BulkCampaignsPanel";
-import { EvolutionIntegrationCard } from "@/components/dashboard/EvolutionIntegrationCard";
+import { AdminConnectionsPanel } from "@/components/admin/AdminConnectionsPanel";
+import { useQueryClient } from "@tanstack/react-query";
+import { usePendingSupplyOrdersCount } from "@/hooks/usePendingCounts";
+import { BrasiliaClock } from "@/components/BrasiliaClock";
 
 interface Restaurant {
   id: string;
@@ -44,10 +56,15 @@ const createSchema = z.object({
 const editSchema = z.object({
   name: z.string().trim().min(2).max(80),
   slug: z.string().trim().min(2).max(60).regex(/^[a-z0-9-]+$/),
+  manager_name: z.string().trim().min(2).max(100).optional().or(z.literal("")),
+  manager_email: z.string().trim().email().max(255).optional().or(z.literal("")),
+  manager_password: z.string().min(6).max(72).optional().or(z.literal("")),
 });
 
 export default function MasterAdmin() {
   const { signOut } = useAuth();
+  const qc = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
   const [view, setView] = useState<AdminView>("restaurants");
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [stats, setStats] = useState({ orders: 0, revenue: 0 });
@@ -56,6 +73,26 @@ export default function MasterAdmin() {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showPwd, setShowPwd] = useState(false);
+  const [showEditPwd, setShowEditPwd] = useState(false);
+  const [editManager, setEditManager] = useState<{ email: string; full_name: string }>({ email: "", full_name: "" });
+  const [loadingEditId, setLoadingEditId] = useState<string | null>(null);
+  const openEdit = async (r: Restaurant) => {
+    setShowEditPwd(false);
+    setLoadingEditId(r.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-update-restaurant", { body: { restaurant_id: r.id, mode: "fetch" } });
+      if (error || (data as any)?.error) {
+        toast.error((data as any)?.error ?? error?.message ?? "Erro ao carregar dados");
+        return;
+      }
+      const m = (data as any)?.manager ?? {};
+      setEditManager({ email: m.email ?? "", full_name: m.full_name ?? "" });
+      setEditing(r);
+    } finally {
+      setLoadingEditId(null);
+    }
+  };
 
   const load = async () => {
     const { data } = await supabase.from("restaurants").select("id,name,slug,is_open,owner_id").order("created_at", { ascending: false });
@@ -89,10 +126,11 @@ export default function MasterAdmin() {
     if (!parsed.success) return toast.error(parsed.error.issues[0].message);
     setBusy(true);
     const { data, error } = await supabase.functions.invoke("admin-create-restaurant", { body: parsed.data });
-    setBusy(false);
     if (error || (data as any)?.error) {
+      setBusy(false);
       return toast.error((data as any)?.error ?? error?.message ?? "Erro ao criar");
     }
+    setBusy(false);
     toast.success(`Restaurante criado e gerente cadastrado!`);
     setCreateOpen(false); setName(""); setSlug("");
     load();
@@ -105,9 +143,11 @@ export default function MasterAdmin() {
     const parsed = editSchema.safeParse(Object.fromEntries(fd));
     if (!parsed.success) return toast.error(parsed.error.issues[0].message);
     setBusy(true);
-    const { error } = await supabase.from("restaurants").update(parsed.data).eq("id", editing.id);
+    const { data, error } = await supabase.functions.invoke("admin-update-restaurant", {
+      body: { restaurant_id: editing.id, ...parsed.data },
+    });
     setBusy(false);
-    if (error) return toast.error(error.message);
+    if (error || (data as any)?.error) return toast.error((data as any)?.error ?? error?.message ?? "Erro");
     toast.success("Atualizado");
     setEditing(null);
     load();
@@ -137,15 +177,26 @@ export default function MasterAdmin() {
     customers: "Clientes",
     "marketing:coupons": "Cupons de desconto",
     "marketing:bulk": "Envio em massa",
+    "loyalty": "Programa de fidelidade",
     "settings:integrations": "Integrações",
+    "settings:ifood-fees": "Configurações iFood",
+    "settings:quero-fees": "Configurações Quero",
     "supply:catalog": "Catálogo de insumos",
     "supply:orders": "Pedidos de insumos recebidos",
+    "stock:admin": "Estoque / Admin",
+    "stock:restaurants": "Estoque / Restaurantes",
+    "expenses:admin": "Despesas Admin",
+    "expenses:stores": "Despesas das lojas",
+    "finance:admin": "Receitas - Despesas / Admin",
+    "finance:restaurants": "Receitas - Despesas / Restaurantes",
   };
+
+  const supplyPendingCount = usePendingSupplyOrdersCount();
 
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-muted/30">
-        <AdminSidebar active={view} onChange={setView} />
+        <AdminSidebar active={view} onChange={setView} supplyBadge={supplyPendingCount} />
         <SidebarInset className="flex-1 flex flex-col">
           <header className="bg-background border-b sticky top-0 z-30">
             <div className="h-16 px-4 flex items-center justify-between gap-2">
@@ -159,7 +210,16 @@ export default function MasterAdmin() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => window.location.reload()}><RefreshCw className="w-4 h-4 mr-2" />Atualizar</Button>
+                <BrasiliaClock />
+                <Button variant="outline" size="sm" disabled={refreshing} onClick={async () => {
+                  setRefreshing(true);
+                  try {
+                    await Promise.all([qc.invalidateQueries(), load()]);
+                    toast.success("Dados atualizados");
+                  } finally {
+                    setRefreshing(false);
+                  }
+                }}><RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />{refreshing ? "Atualizando..." : "Atualizar"}</Button>
                 <Button variant="ghost" size="sm" onClick={signOut}><LogOut className="w-4 h-4 mr-2" />Sair</Button>
               </div>
             </div>
@@ -223,7 +283,12 @@ export default function MasterAdmin() {
                           </div>
                           <div className="space-y-2">
                             <Label>Senha</Label>
-                            <Input name="manager_password" type="password" minLength={6} required />
+                            <div className="relative">
+                              <Input name="manager_password" type={showPwd ? "text" : "password"} minLength={6} required className="pr-10" />
+                              <button type="button" onClick={() => setShowPwd((s) => !s)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1} aria-label={showPwd ? "Ocultar senha" : "Mostrar senha"}>
+                                {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              </button>
+                            </div>
                           </div>
                         </div>
                         <DialogFooter>
@@ -255,7 +320,7 @@ export default function MasterAdmin() {
                                 <span className="text-xs text-muted-foreground">{r.is_open ? "Ativo" : "Inativo"}</span>
                               </div>
                               <Button asChild variant="outline" size="sm"><Link to={`/r/${r.slug}`} target="_blank"><ExternalLink className="w-4 h-4" /></Link></Button>
-                              <Button variant="outline" size="sm" onClick={() => setEditing(r)}><Pencil className="w-4 h-4" /></Button>
+                              <Button variant="outline" size="sm" disabled={loadingEditId === r.id} onClick={() => openEdit(r)}>{loadingEditId === r.id ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Pencil className="w-4 h-4" />}</Button>
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                   <Button variant="outline" size="sm" className="text-destructive hover:text-destructive"><Trash2 className="w-4 h-4" /></Button>
@@ -288,31 +353,63 @@ export default function MasterAdmin() {
             {view === "customers" && <AdminCustomersPanel />}
             {view === "marketing:coupons" && <AdminCouponsPanel />}
             {view === "marketing:bulk" && <BulkCampaignsPanel scope="admin" />}
-            {view === "settings:integrations" && (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <EvolutionIntegrationCard scope="admin" />
-              </div>
-            )}
+            {view === "loyalty" && <AdminLoyaltyPanel />}
+            {view === "settings:integrations" && <AdminConnectionsPanel />}
+            {view === "settings:ifood-fees" && <AdminIfoodFeesPanel />}
+            {view === "settings:quero-fees" && <AdminQueroFeesPanel />}
             {view === "supply:catalog" && <SupplyCatalogTab />}
             {view === "supply:orders" && <SupplyOrdersTab />}
+            {view === "stock:admin" && <AdminStockAdmin />}
+            {view === "stock:restaurants" && <AdminStockPanel />}
+            {view === "expenses:admin" && <AdminOwnExpensesPanel />}
+            {view === "expenses:stores" && <AdminExpenseStoresPanel />}
+            {view === "finance:restaurants" && <AdminFinancePanel />}
+            {view === "finance:admin" && <AdminFinanceAdminPanel />}
           </main>
         </SidebarInset>
 
         <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Editar restaurante</DialogTitle></DialogHeader>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Editar restaurante</DialogTitle>
+              <DialogDescription>Atualize os dados do restaurante e o acesso do gerente. Deixe a senha em branco para mantê-la.</DialogDescription>
+            </DialogHeader>
             {editing && (
               <form onSubmit={handleEdit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Nome</Label>
-                  <Input name="name" defaultValue={editing.name} required />
-                </div>
-                <div className="space-y-2">
-                  <Label>Slug</Label>
-                  <Input name="slug" defaultValue={editing.slug} required />
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2 col-span-2">
+                    <Label>Nome do restaurante</Label>
+                    <Input name="name" defaultValue={editing.name} required />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label>Slug (URL pública)</Label>
+                    <Input name="slug" defaultValue={editing.slug} required />
+                    <p className="text-xs text-muted-foreground">/r/{editing.slug}</p>
+                  </div>
+                  <div className="space-y-2 col-span-2 pt-2 border-t">
+                    <Label className="text-base">Acesso do gerente</Label>
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label>Nome do gerente</Label>
+                    <Input name="manager_name" defaultValue={editManager.full_name} key={`mn-${editing.id}-${editManager.full_name}`} />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label>Email (login)</Label>
+                    <Input name="manager_email" type="email" defaultValue={editManager.email} key={`me-${editing.id}-${editManager.email}`} />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label>Nova senha <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+                    <div className="relative">
+                      <Input name="manager_password" type={showEditPwd ? "text" : "password"} minLength={6} placeholder="Deixe em branco para manter a senha atual" className="pr-10" />
+                      <button type="button" onClick={() => setShowEditPwd((s) => !s)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1} aria-label={showEditPwd ? "Ocultar senha" : "Mostrar senha"}>
+                        {showEditPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Por segurança, a senha atual não pode ser exibida — apenas redefinida.</p>
+                  </div>
                 </div>
                 <DialogFooter>
-                  <Button type="submit" disabled={busy}>{busy ? "Salvando..." : "Salvar"}</Button>
+                  <Button type="submit" disabled={busy}>{busy ? "Salvando..." : "Salvar alterações"}</Button>
                 </DialogFooter>
               </form>
             )}

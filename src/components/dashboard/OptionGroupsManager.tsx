@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Pencil, Trash2, X, Link2, GripVertical } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { brl } from "@/lib/format";
 import { fetchProducts, menuKeys } from "./MenuManager";
@@ -24,6 +25,8 @@ export interface OptionGroup {
   max_select: number;
   sort_order: number;
   is_active: boolean;
+  image_url?: string | null;
+  allow_repeat?: boolean;
 }
 export interface OptionItem {
   id: string;
@@ -32,7 +35,12 @@ export interface OptionItem {
   extra_price: number;
   sort_order: number;
   is_active: boolean;
+  image_url?: string | null;
+  stock_group_id?: string | null;
+  stock_quantity_per_unit?: number | null;
 }
+
+type StockGroupLite = { id: string; name: string; is_active: boolean };
 
 export const optionKeys = {
   groups: (rid: string) => ["options", rid, "groups"] as const,
@@ -52,7 +60,7 @@ export async function fetchItems(restaurantId: string): Promise<OptionItem[]> {
   return ((data ?? []) as any[]).map(({ option_groups, ...r }) => r) as OptionItem[];
 }
 
-export function OptionGroupsManager({ restaurantId }: { restaurantId: string }) {
+export function OptionGroupsManager({ restaurantId, canEdit = true }: { restaurantId: string; canEdit?: boolean }) {
   const qc = useQueryClient();
   const { data: groups = [], isLoading: lg } = useQuery({
     queryKey: optionKeys.groups(restaurantId),
@@ -108,7 +116,7 @@ export function OptionGroupsManager({ restaurantId }: { restaurantId: string }) 
           <h3 className="font-semibold">Grupos de opções</h3>
           <p className="text-xs text-muted-foreground">Ex: Sabores, Acompanhamentos, Adicionais. Vincule a um ou mais produtos.</p>
         </div>
-        <Button size="sm" onClick={openNew}><Plus className="w-4 h-4 mr-1" />Novo grupo</Button>
+        {canEdit && <Button size="sm" onClick={openNew}><Plus className="w-4 h-4 mr-1" />Novo grupo</Button>}
       </div>
 
       {isLoading ? (
@@ -124,23 +132,24 @@ export function OptionGroupsManager({ restaurantId }: { restaurantId: string }) 
           onRemove={removeGroup}
           onToggle={toggleGroup}
           onLink={setLinkingGroup}
+          canEdit={canEdit}
         />
       )}
 
-      <GroupDialog
+      {canEdit && <GroupDialog
         open={open}
         onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}
         restaurantId={restaurantId}
         editing={editing}
         existingItems={editing ? items.filter((i) => i.group_id === editing.id) : []}
         onSaved={reload}
-      />
+      />}
 
-      <LinkProductsDialog
+      {canEdit && <LinkProductsDialog
         group={linkingGroup}
         restaurantId={restaurantId}
         onClose={() => setLinkingGroup(null)}
-      />
+      />}
     </div>
   );
 }
@@ -268,28 +277,57 @@ function GroupDialog({
   const [name, setName] = useState("");
   const [minS, setMinS] = useState(0);
   const [maxS, setMaxS] = useState(1);
-  const [rows, setRows] = useState<{ id?: string; name: string; extra_price: string; toDelete?: boolean }[]>([]);
+  const [allowRepeat, setAllowRepeat] = useState(false);
+  const [rows, setRows] = useState<{ id?: string; name: string; extra_price: string; image_url?: string | null; stock_group_id?: string | null; stock_quantity_per_unit?: string; toDelete?: boolean }[]>([]);
   const [busy, setBusy] = useState(false);
+  const [uploadingIdx, setUploadingIdx] = useState<number | null>(null);
+  const [stockGroups, setStockGroups] = useState<StockGroupLite[]>([]);
+
+  useEffect(() => {
+    if (!open) return;
+    (async () => {
+      const { data } = await supabase.from("stock_groups").select("id,name,is_active").eq("is_active", true).order("sort_order");
+      setStockGroups((data ?? []) as StockGroupLite[]);
+    })();
+  }, [open]);
 
   useEffect(() => {
     if (open) {
       setName(editing?.name ?? "");
       setMinS(editing?.min_select ?? 0);
       setMaxS(editing?.max_select ?? 1);
+      setAllowRepeat(Boolean(editing?.allow_repeat));
       setRows(
         existingItems.length > 0
-          ? existingItems.map((i) => ({ id: i.id, name: i.name, extra_price: String(Number(i.extra_price) || 0) }))
-          : [{ name: "", extra_price: "0" }]
+          ? existingItems.map((i) => ({ id: i.id, name: i.name, extra_price: String(Number(i.extra_price) || 0), image_url: i.image_url ?? null, stock_group_id: i.stock_group_id ?? null, stock_quantity_per_unit: String(Number(i.stock_quantity_per_unit ?? 1)) }))
+          : [{ name: "", extra_price: "0", image_url: null, stock_group_id: null, stock_quantity_per_unit: "1" }]
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, editing?.id]);
 
-  const addRow = () => setRows((r) => [...r, { name: "", extra_price: "0" }]);
-  const updateRow = (idx: number, patch: Partial<{ name: string; extra_price: string }>) =>
+  const addRow = () => setRows((r) => [...r, { name: "", extra_price: "0", image_url: null, stock_group_id: null, stock_quantity_per_unit: "1" }]);
+  const updateRow = (idx: number, patch: Partial<{ name: string; extra_price: string; image_url: string | null; stock_group_id: string | null; stock_quantity_per_unit: string }>) =>
     setRows((r) => r.map((x, i) => (i === idx ? { ...x, ...patch } : x)));
   const removeRow = (idx: number) =>
     setRows((r) => r.map((x, i) => (i === idx ? { ...x, toDelete: true } : x)));
+
+  const uploadItemImage = async (idx: number, file: File) => {
+    if (file.size > 5 * 1024 * 1024) return toast.error("Imagem muito grande (máx 5MB)");
+    setUploadingIdx(idx);
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `${restaurantId}/option-items/${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage.from("menu-images").upload(path, file, { upsert: true, contentType: file.type });
+      if (error) throw error;
+      const { data } = supabase.storage.from("menu-images").getPublicUrl(path);
+      updateRow(idx, { image_url: data.publicUrl });
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setUploadingIdx(null);
+    }
+  };
 
   const save = async () => {
     if (!name.trim()) return toast.error("Informe o nome do grupo");
@@ -302,13 +340,13 @@ function GroupDialog({
       let groupId = editing?.id;
       if (editing) {
         const { error } = await supabase.from("option_groups").update({
-          name: name.trim(), min_select: minS, max_select: maxS,
-        }).eq("id", editing.id);
+          name: name.trim(), min_select: minS, max_select: maxS, allow_repeat: allowRepeat,
+        } as any).eq("id", editing.id);
         if (error) throw error;
       } else {
         const { data, error } = await supabase.from("option_groups").insert({
-          restaurant_id: restaurantId, name: name.trim(), min_select: minS, max_select: maxS,
-        }).select("id").single();
+          restaurant_id: restaurantId, name: name.trim(), min_select: minS, max_select: maxS, allow_repeat: allowRepeat,
+        } as any).select("id").single();
         if (error) throw error;
         groupId = data.id;
       }
@@ -322,13 +360,23 @@ function GroupDialog({
       // Update existing
       for (const r of rows.filter((r) => !r.toDelete && r.id)) {
         const { error } = await supabase.from("option_items").update({
-          name: r.name.trim(), extra_price: Number(r.extra_price) || 0,
+          name: r.name.trim(),
+          extra_price: Number(r.extra_price) || 0,
+          image_url: r.image_url ?? null,
+          stock_group_id: r.stock_group_id ?? null,
+          stock_quantity_per_unit: Number(r.stock_quantity_per_unit) || 1,
         }).eq("id", r.id!);
         if (error) throw error;
       }
       // Insert new
       const newOnes = rows.filter((r) => !r.toDelete && !r.id && r.name.trim()).map((r, idx) => ({
-        group_id: groupId!, name: r.name.trim(), extra_price: Number(r.extra_price) || 0, sort_order: idx,
+        group_id: groupId!,
+        name: r.name.trim(),
+        extra_price: Number(r.extra_price) || 0,
+        sort_order: idx,
+        image_url: r.image_url ?? null,
+        stock_group_id: r.stock_group_id ?? null,
+        stock_quantity_per_unit: Number(r.stock_quantity_per_unit) || 1,
       }));
       if (newOnes.length) {
         const { error } = await supabase.from("option_items").insert(newOnes);
@@ -367,13 +415,66 @@ function GroupDialog({
             Dica: mín 1 / máx 1 = obrigatório escolher 1. Mín 0 / máx 3 = opcional, até 3.
           </div>
 
+          <div className="flex items-start justify-between gap-3 rounded-md border p-3">
+            <div className="space-y-0.5">
+              <Label className="text-sm">Permitir repetir o mesmo item</Label>
+              <p className="text-xs text-muted-foreground">
+                Quando ativo, o cliente pode escolher o mesmo item mais de uma vez (respeitando o máximo).
+              </p>
+            </div>
+            <Switch checked={allowRepeat} onCheckedChange={setAllowRepeat} />
+          </div>
+
           <div className="space-y-2">
             <Label>Itens</Label>
+            <p className="text-xs text-muted-foreground">A foto é opcional e aparece para o cliente no cardápio.</p>
             {rows.map((r, idx) => r.toDelete ? null : (
-              <div key={idx} className="flex gap-2 items-center">
-                <Input className="flex-1" placeholder="Nome (ex: Catupiry)" value={r.name} onChange={(e) => updateRow(idx, { name: e.target.value })} />
-                <Input className="w-28" type="number" step="0.01" min="0" placeholder="0,00" value={r.extra_price} onChange={(e) => updateRow(idx, { extra_price: e.target.value })} />
-                <Button size="icon" variant="ghost" onClick={() => removeRow(idx)}><X className="w-4 h-4" /></Button>
+              <div key={idx} className="flex gap-2 items-start border rounded-md p-2">
+                <label className="relative w-14 h-14 shrink-0 rounded-md border bg-muted overflow-hidden cursor-pointer flex items-center justify-center text-[10px] text-muted-foreground text-center">
+                  {r.image_url ? (
+                    <img src={r.image_url} alt={r.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <span>{uploadingIdx === idx ? "..." : "+ foto"}</span>
+                  )}
+                  <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadItemImage(idx, f); e.currentTarget.value = ""; }} />
+                </label>
+                <div className="flex-1 flex flex-col gap-2">
+                  <div className="flex gap-2 items-center">
+                    <Input className="flex-1" placeholder="Nome (ex: Catupiry)" value={r.name} onChange={(e) => updateRow(idx, { name: e.target.value })} />
+                    <Input className="w-24" type="number" step="0.01" min="0" placeholder="0,00" value={r.extra_price} onChange={(e) => updateRow(idx, { extra_price: e.target.value })} />
+                    <Button size="icon" variant="ghost" onClick={() => removeRow(idx)}><X className="w-4 h-4" /></Button>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Select
+                      value={r.stock_group_id ?? "__none__"}
+                      onValueChange={(v) => updateRow(idx, { stock_group_id: v === "__none__" ? null : v })}
+                    >
+                      <SelectTrigger className="flex-1 h-8 text-xs">
+                        <SelectValue placeholder="Grupo de estoque (opcional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">Sem vínculo de estoque</SelectItem>
+                        {stockGroups.map((sg) => (
+                          <SelectItem key={sg.id} value={sg.id}>{sg.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      className="w-20 h-8 text-xs"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="qtd"
+                      title="Quantidade consumida do estoque por unidade deste item"
+                      value={r.stock_quantity_per_unit ?? "1"}
+                      onChange={(e) => updateRow(idx, { stock_quantity_per_unit: e.target.value })}
+                      disabled={!r.stock_group_id}
+                    />
+                  </div>
+                  {r.image_url && (
+                    <button type="button" className="self-start text-xs text-muted-foreground hover:text-destructive" onClick={() => updateRow(idx, { image_url: null })}>Remover foto</button>
+                  )}
+                </div>
               </div>
             ))}
             <Button size="sm" variant="outline" onClick={addRow}><Plus className="w-3.5 h-3.5 mr-1" />Adicionar item</Button>
@@ -388,7 +489,7 @@ function GroupDialog({
 }
 
 function SortableGroupsList({
-  groups, items, restaurantId, onEdit, onRemove, onToggle, onLink,
+  groups, items, restaurantId, onEdit, onRemove, onToggle, onLink, canEdit = true,
 }: {
   groups: OptionGroup[];
   items: OptionItem[];
@@ -397,6 +498,7 @@ function SortableGroupsList({
   onRemove: (g: OptionGroup) => void;
   onToggle: (g: OptionGroup) => void;
   onLink: (g: OptionGroup) => void;
+  canEdit?: boolean;
 }) {
   const qc = useQueryClient();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -415,7 +517,7 @@ function SortableGroupsList({
   };
 
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+    <DndContext sensors={canEdit ? sensors : []} collisionDetection={closestCenter} onDragEnd={canEdit ? handleDragEnd : undefined}>
       <SortableContext items={ids} strategy={verticalListSortingStrategy}>
         <div className="space-y-3">
           {groups.map((g) => (
@@ -428,6 +530,7 @@ function SortableGroupsList({
               onRemove={onRemove}
               onToggle={onToggle}
               onLink={onLink}
+              canEdit={canEdit}
             />
           ))}
         </div>
@@ -437,7 +540,7 @@ function SortableGroupsList({
 }
 
 function SortableGroupCard({
-  group: g, items: groupItems, restaurantId, onEdit, onRemove, onToggle, onLink,
+  group: g, items: groupItems, restaurantId, onEdit, onRemove, onToggle, onLink, canEdit = true,
 }: {
   group: OptionGroup;
   items: OptionItem[];
@@ -446,6 +549,7 @@ function SortableGroupCard({
   onRemove: (g: OptionGroup) => void;
   onToggle: (g: OptionGroup) => void;
   onLink: (g: OptionGroup) => void;
+  canEdit?: boolean;
 }) {
   const qc = useQueryClient();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: g.id });
@@ -474,7 +578,7 @@ function SortableGroupCard({
     <Card ref={setNodeRef} style={style} className={!g.is_active ? "opacity-60" : ""}>
       <CardContent className="p-3 space-y-2">
         <div className="flex items-center gap-2">
-          <button
+          {canEdit && <button
             type="button"
             className="touch-none cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-1"
             {...attributes}
@@ -482,24 +586,24 @@ function SortableGroupCard({
             aria-label="Arrastar grupo"
           >
             <GripVertical className="w-5 h-5" />
-          </button>
+          </button>}
           <div className="flex-1 min-w-0">
             <div className="font-medium">{g.name}</div>
             <div className="text-xs text-muted-foreground">
               Mín {g.min_select} · Máx {g.max_select} · {groupItems.length} {groupItems.length === 1 ? "item" : "itens"}
             </div>
           </div>
-          <Switch checked={g.is_active} onCheckedChange={() => onToggle(g)} />
-          <Button size="icon" variant="ghost" title="Vincular produtos" onClick={() => onLink(g)}><Link2 className="w-4 h-4" /></Button>
-          <Button size="icon" variant="ghost" onClick={() => onEdit(g)}><Pencil className="w-4 h-4" /></Button>
-          <Button size="icon" variant="ghost" onClick={() => onRemove(g)}><Trash2 className="w-4 h-4" /></Button>
+          {canEdit && <Switch checked={g.is_active} onCheckedChange={() => onToggle(g)} />}
+          {canEdit && <Button size="icon" variant="ghost" title="Vincular produtos" onClick={() => onLink(g)}><Link2 className="w-4 h-4" /></Button>}
+          {canEdit && <Button size="icon" variant="ghost" onClick={() => onEdit(g)}><Pencil className="w-4 h-4" /></Button>}
+          {canEdit && <Button size="icon" variant="ghost" onClick={() => onRemove(g)}><Trash2 className="w-4 h-4" /></Button>}
         </div>
         {groupItems.length > 0 && (
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleItemsDragEnd}>
+          <DndContext sensors={canEdit ? sensors : []} collisionDetection={closestCenter} onDragEnd={canEdit ? handleItemsDragEnd : undefined}>
             <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
               <div className="flex flex-col gap-1 pt-1 pl-7">
                 {groupItems.map((i) => (
-                  <SortableItemRow key={i.id} item={i} />
+                  <SortableItemRow key={i.id} item={i} canEdit={canEdit} />
                 ))}
               </div>
             </SortableContext>
@@ -510,12 +614,12 @@ function SortableGroupCard({
   );
 }
 
-function SortableItemRow({ item }: { item: OptionItem }) {
+function SortableItemRow({ item, canEdit = true }: { item: OptionItem; canEdit?: boolean }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
   return (
     <div ref={setNodeRef} style={style} className="flex items-center gap-2 text-xs px-2 py-1 bg-muted rounded">
-      <button
+      {canEdit && <button
         type="button"
         className="touch-none cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
         {...attributes}
@@ -523,7 +627,7 @@ function SortableItemRow({ item }: { item: OptionItem }) {
         aria-label="Arrastar item"
       >
         <GripVertical className="w-3.5 h-3.5" />
-      </button>
+      </button>}
       <span className="flex-1">{item.name}</span>
       {Number(item.extra_price) > 0 && <span className="text-muted-foreground">+{brl(Number(item.extra_price))}</span>}
     </div>

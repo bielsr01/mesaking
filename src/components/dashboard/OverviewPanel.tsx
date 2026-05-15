@@ -49,7 +49,7 @@ import type { DateRange } from "react-day-picker";
 
 const sb = supabase as any;
 
-type SourceFilter = "all" | "web" | "pdv" | "ifood";
+type SourceFilter = "all" | "web" | "pdv" | "ifood" | "quero";
 type Preset = "today" | "yesterday" | "7d" | "30d" | "month" | "lastmonth" | "custom";
 
 const presets: { id: Preset; label: string }[] = [
@@ -78,6 +78,8 @@ function rangeFor(preset: Preset, custom?: DateRange): { from: Date; to: Date } 
 }
 
 function classifySource(o: any): SourceFilter {
+  if (o.external_source === "ifood") return "ifood";
+  if (o.external_source === "quero") return "quero";
   if (o.payment_method === "card_on_delivery" && o.order_type === "pdv") return "pdv";
   if (o.order_type === "pdv") return "pdv";
   return "web";
@@ -92,13 +94,7 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
   const [custom, setCustom] = useState<DateRange | undefined>();
   const [source, setSource] = useState<SourceFilter>("all");
 
-  const ifoodAllowedPresets: Preset[] = ["lastmonth", "month", "custom"];
-  const handleSourceChange = (v: SourceFilter) => {
-    setSource(v);
-    if (v === "ifood" && !ifoodAllowedPresets.includes(preset)) {
-      setPreset("lastmonth");
-    }
-  };
+  const handleSourceChange = (v: SourceFilter) => setSource(v);
 
   const range = useMemo(() => rangeFor(preset, custom), [preset, custom]);
   const prevRange = useMemo(() => {
@@ -112,7 +108,7 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
     queryFn: async () => {
       const { data } = await sb
         .from("orders")
-        .select("id, created_at, total, subtotal, discount, delivery_fee, service_fee, coupon_code, status, order_type, payment_method, external_source, customer_phone, customer_name")
+        .select("id, restaurant_id, created_at, total, subtotal, discount, delivery_fee, service_fee, coupon_code, status, order_type, payment_method, external_source, customer_phone, customer_name, ifood_subsidy, merchant_subsidy")
         .in("restaurant_id", ids)
         .gte("created_at", prevRange.from.toISOString())
         .lte("created_at", range.to.toISOString())
@@ -148,17 +144,28 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
     staleTime: 60_000,
   });
 
-  const ifoodQ = useQuery({
-    queryKey: ["overview-ifood-all", idsKey],
+  const feesQ = useQuery({
+    queryKey: ["overview-ifood-fees", idsKey],
     enabled: ids.length > 0,
     queryFn: async () => {
-      const { data } = await sb
-        .from("ifood_sales")
-        .select("date_from, date_to, orders_count, gross_revenue, net_revenue, fees")
-        .in("restaurant_id", ids);
-      return (data ?? []) as any[];
+      const { data } = await sb.from("ifood_fee_settings").select("*").in("restaurant_id", ids);
+      const map = new Map<string, any>();
+      (data ?? []).forEach((r: any) => map.set(r.restaurant_id, r));
+      return map;
     },
-    staleTime: 30_000,
+    staleTime: 60_000,
+  });
+
+  const queroFeesQ = useQuery({
+    queryKey: ["overview-quero-fees", idsKey],
+    enabled: ids.length > 0,
+    queryFn: async () => {
+      const { data } = await sb.from("quero_fee_settings").select("*").in("restaurant_id", ids);
+      const map = new Map<string, any>();
+      (data ?? []).forEach((r: any) => map.set(r.restaurant_id, r));
+      return map;
+    },
+    staleTime: 60_000,
   });
 
   // Separate query covering month-to-date + previous month for the Compare cards,
@@ -174,7 +181,7 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
     queryFn: async () => {
       const { data } = await sb
         .from("orders")
-        .select("id, created_at, total, order_type, payment_method, external_source")
+        .select("id, restaurant_id, created_at, total, subtotal, delivery_fee, service_fee, order_type, payment_method, external_source, ifood_subsidy, merchant_subsidy")
         .in("restaurant_id", ids)
         .gte("created_at", compareWindow.from.toISOString())
         .lte("created_at", compareWindow.to.toISOString())
@@ -184,54 +191,100 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
     staleTime: 30_000,
   });
 
-  // Aggregate iFood entries overlapping a date range
-  const sumIfood = (from: Date, to: Date) => {
-    const fromS = format(from, "yyyy-MM-dd");
-    const toS = format(to, "yyyy-MM-dd");
-    const rows = (ifoodQ.data ?? []).filter((r) => r.date_from <= toS && r.date_to >= fromS);
-    return rows.reduce(
-      (a, r) => ({
-        orders: a.orders + Number(r.orders_count || 0),
-        gross: a.gross + Number(r.gross_revenue || 0),
-        net: a.net + Number(r.net_revenue || 0),
-        fees: a.fees + Number(r.fees || 0),
-      }),
-      { orders: 0, gross: 0, net: 0, fees: 0 }
-    );
+  // Calcula taxa iFood por pedido conforme regras (ver src/lib/ifoodFees.ts)
+  const ifoodFeeForOrder = (o: any): number => {
+    if (o.external_source !== "ifood") return 0;
+    const s = feesQ.data?.get(o.restaurant_id);
+    if (!s) return 0;
+    if (s.enabled === false) return 0;
+    const base = Math.max(0, Number(o.subtotal || 0) + Number(o.delivery_fee || 0) - Number(o.merchant_subsidy || 0));
+    const isOnline = (o.payment_method ?? "").toLowerCase() === "online";
+    let pct = 0;
+    if (s.commission_enabled) pct += Number(s.commission_pct || 0);
+    if (s.card_enabled && isOnline) pct += Number(s.card_pct || 0);
+    if (s.anticipation_enabled) pct += Number(s.anticipation_pct || 0);
+    return (base * pct) / 100;
   };
-  const ifoodCur = sumIfood(range.from, range.to);
-  const ifoodPrev = sumIfood(prevRange.from, prevRange.to);
-  const includeIfood = source === "all" || source === "ifood";
 
   const all = ordersQ.data ?? [];
-  const filteredAll = source === "all" ? all : source === "ifood" ? [] : all.filter((o) => classifySource(o) === source);
-  const inRange = (o: any) => {
-    const d = new Date(o.created_at);
-    return d >= range.from && d <= range.to;
-  };
-  const inPrev = (o: any) => {
-    const d = new Date(o.created_at);
-    return d >= prevRange.from && d <= prevRange.to;
-  };
+  const filteredAll = source === "all" ? all : all.filter((o) => classifySource(o) === source);
+  const inRange = (o: any) => { const d = new Date(o.created_at); return d >= range.from && d <= range.to; };
+  const inPrev = (o: any) => { const d = new Date(o.created_at); return d >= prevRange.from && d <= prevRange.to; };
   const cur = filteredAll.filter(inRange);
   const prev = filteredAll.filter(inPrev);
 
   const sum = (arr: any[], k: string) => arr.reduce((s, o) => s + Number(o[k] || 0), 0);
-  const baseGrossCur = sum(cur, "total");
-  const baseGrossPrev = sum(prev, "total");
-  const baseOrdersCur = cur.length;
-  const baseOrdersPrev = prev.length;
 
-  const grossCur = baseGrossCur + (includeIfood ? ifoodCur.gross : 0);
-  const grossPrev = baseGrossPrev + (includeIfood ? ifoodPrev.gross : 0);
-  const ordersCountCur = baseOrdersCur + (includeIfood ? ifoodCur.orders : 0);
-  const ordersCountPrev = baseOrdersPrev + (includeIfood ? ifoodPrev.orders : 0);
+  // Métricas por pedido:
+  // - vendas: valor total do pedido + taxa de entrega (subtotal + delivery_fee).
+  //   Para iFood, o service_fee (R$0,99~2,00) é cobrado do cliente pelo iFood
+  //   e nunca entra no repasse, então é ignorado.
+  // - delivery: taxa de entrega cobrada (unificada: iFood + demais canais).
+  // - fees: taxas cobradas pelo iFood (comissão + cartão + antecipação).
+  // - net: faturamento líquido / repasse final.
+  //   iFood → base (subtotal + delivery − cupom_loja) − fees.
+  //   Demais → vendas − desconto.
+  const orderMetrics = (o: any) => {
+    const items = Number(o.subtotal || 0);
+    const delivery = Number(o.delivery_fee || 0);
+    const discount = Number(o.discount || 0);
+    const vendas = items + delivery;
+    if (o.external_source === "ifood") {
+      const s = feesQ.data?.get(o.restaurant_id);
+      if (s && s.enabled === false) {
+        return { vendas, delivery, fees: 0, net: vendas };
+      }
+      const merchSub = Number(o.merchant_subsidy || 0);
+      const base = Math.max(0, items + delivery - merchSub);
+      const fees = ifoodFeeForOrder(o);
+      return { vendas, delivery, fees, net: base - fees };
+    }
+    if (o.external_source === "quero") {
+      const s = queroFeesQ.data?.get(o.restaurant_id);
+      if (s && s.enabled === false) {
+        return { vendas, delivery, fees: 0, net: vendas };
+      }
+      const merchSub = Number(o.merchant_subsidy || 0);
+      const queroSub = Number(o.ifood_subsidy || 0);
+      const gross = Math.max(0, items + delivery);
+      const base = Math.max(0, gross - queroSub);
+      const isOnline = (o.payment_method ?? "").toLowerCase() === "online";
+      let pct = 0;
+      if (s) {
+        if (s.commission_enabled) pct += Number(s.commission_pct || 0);
+        if (s.online_payment_enabled && isOnline) pct += Number(s.online_payment_pct || 0);
+      } else {
+        pct = 8 + (isOnline ? 4.99 : 0);
+      }
+      const fees = (base * pct) / 100;
+      return { vendas, delivery, fees, net: gross - fees - merchSub };
+    }
+    return { vendas, delivery, fees: 0, net: vendas - discount };
+  };
+  const aggregate = (arr: any[]) => arr.reduce(
+    (acc, o) => {
+      const m = orderMetrics(o);
+      acc.vendas += m.vendas;
+      acc.delivery += m.delivery;
+      acc.fees += m.fees;
+      acc.net += m.net;
+      return acc;
+    },
+    { vendas: 0, delivery: 0, fees: 0, net: 0 },
+  );
+  const aggCur = aggregate(cur);
+  const aggPrev = aggregate(prev);
 
-  const subtotalCur = sum(cur, "subtotal");
+  const ordersCountCur = cur.length;
+  const ordersCountPrev = prev.length;
+  const grossCur = aggCur.vendas;
+  const grossPrev = aggPrev.vendas;
+
   const discountCur = sum(cur, "discount");
-  const deliveryFeeCur = sum(cur, "delivery_fee");
-  const serviceFeeCur = sum(cur, "service_fee") + (includeIfood ? ifoodCur.fees : 0);
-  const netCur = grossCur - discountCur - (includeIfood ? ifoodCur.fees : 0);
+  const deliveryFeeCur = aggCur.delivery;
+  const ifoodFeesCur = aggCur.fees;
+  const serviceFeeCur = ifoodFeesCur; // somente taxas iFood; service_fee R$0,99 não entra
+  const netCur = aggCur.net;
   const ticketCur = ordersCountCur ? grossCur / ordersCountCur : 0;
   const ticketPrev = ordersCountPrev ? grossPrev / ordersCountPrev : 0;
 
@@ -339,24 +392,20 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
   const compareAll = compareOrdersQ.data ?? [];
   const compareFiltered = source === "all"
     ? compareAll
-    : source === "ifood"
-      ? []
-      : compareAll.filter((o) => classifySource(o) === source);
+    : compareAll.filter((o) => classifySource(o) === source);
   const today = startOfDay(new Date());
   const yesterday = startOfDay(subDays(new Date(), 1));
   const lastWeekSame = startOfDay(subDays(new Date(), 7));
   const dayOrders = (d: Date) => compareFiltered.filter((o) => format(new Date(o.created_at), "yyyy-MM-dd") === format(d, "yyyy-MM-dd"));
-  const sumDayIfood = (d: Date) => includeIfood ? sumIfood(startOfDay(d), endOfDay(d)).gross : 0;
-  const todayRev = sum(dayOrders(today), "total") + sumDayIfood(today);
-  const yRev = sum(dayOrders(yesterday), "total") + sumDayIfood(yesterday);
-  const lwRev = sum(dayOrders(lastWeekSame), "total") + sumDayIfood(lastWeekSame);
+  const sumDayGross = (arr: any[]) => arr.reduce((s, o) => s + Number(o.subtotal || 0) + Number(o.delivery_fee || 0), 0);
+  const todayRev = sumDayGross(dayOrders(today));
+  const yRev = sumDayGross(dayOrders(yesterday));
+  const lwRev = sumDayGross(dayOrders(lastWeekSame));
   const monthStart = startOfMonth(new Date());
-  const monthCur = sum(compareFiltered.filter((o) => new Date(o.created_at) >= monthStart), "total")
-    + (includeIfood ? sumIfood(monthStart, endOfDay(new Date())).gross : 0);
+  const monthCur = sumDayGross(compareFiltered.filter((o) => new Date(o.created_at) >= monthStart));
   const monthPrevStart = startOfMonth(subDays(monthStart, 1));
   const monthPrevEnd = endOfMonth(monthPrevStart);
-  const monthPrev = sum(compareFiltered.filter((o) => { const d = new Date(o.created_at); return d >= monthPrevStart && d <= monthPrevEnd; }), "total")
-    + (includeIfood ? sumIfood(monthPrevStart, monthPrevEnd).gross : 0);
+  const monthPrev = sumDayGross(compareFiltered.filter((o) => { const d = new Date(o.created_at); return d >= monthPrevStart && d <= monthPrevEnd; }));
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -365,21 +414,16 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
         <CardContent className="p-4 flex flex-wrap items-center gap-3">
           <CalendarIcon className="w-4 h-4 text-muted-foreground" />
           <div className="flex flex-wrap gap-1">
-            {presets.map((p) => {
-              const disabled = source === "ifood" && !ifoodAllowedPresets.includes(p.id);
-              return (
-                <Button
-                  key={p.id}
-                  size="sm"
-                  variant={preset === p.id ? "default" : "outline"}
-                  onClick={() => setPreset(p.id)}
-                  disabled={disabled}
-                  className={disabled ? "opacity-40" : ""}
-                >
-                  {p.label}
-                </Button>
-              );
-            })}
+            {presets.map((p) => (
+              <Button
+                key={p.id}
+                size="sm"
+                variant={preset === p.id ? "default" : "outline"}
+                onClick={() => setPreset(p.id)}
+              >
+                {p.label}
+              </Button>
+            ))}
           </div>
           {preset === "custom" && (
             <Popover>
@@ -401,29 +445,26 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
 
       {/* Source filter */}
       <Tabs value={source} onValueChange={(v) => handleSourceChange(v as SourceFilter)}>
-        <TabsList className="grid grid-cols-4 w-full max-w-3xl">
+        <TabsList className="grid grid-cols-5 w-full max-w-3xl">
           <TabsTrigger value="all">Todos</TabsTrigger>
           <TabsTrigger value="pdv">PDV</TabsTrigger>
           <TabsTrigger value="web">Web</TabsTrigger>
           <TabsTrigger value="ifood">iFood</TabsTrigger>
+          <TabsTrigger value="quero">Quero</TabsTrigger>
         </TabsList>
       </Tabs>
 
       {/* KPI grid */}
-      {source === "ifood" && (
-        <div className="text-xs text-muted-foreground -mb-1">
-          iFood é registrado manualmente: somente valores financeiros estão disponíveis. Demais métricas aparecem desabilitadas.
-        </div>
-      )}
       <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-        <Kpi icon={DollarSign} label="Valor das vendas" value={brl(source === "ifood" ? ifoodCur.gross : grossCur)} delta={source === "ifood" ? undefined : revenueGrowth} />
-        <Kpi icon={Receipt} label="Total faturamento" value={brl(source === "ifood" ? ifoodCur.net : netCur)} sub={source === "ifood" ? undefined : `Descontos ${brl(discountCur)}`} />
-        <Kpi icon={Truck} label="Taxas, serviços e ajustes" value={`- ${brl(source === "ifood" ? ifoodCur.fees : serviceFeeCur)}`} negative />
-        <Kpi icon={ShoppingBag} label="Pedidos" value={ordersCountCur.toString()} delta={ordersGrowth} disabled={source === "ifood"} />
-        <Kpi icon={TrendingUp} label="Ticket médio" value={brl(ticketCur)} delta={ticketGrowth} disabled={source === "ifood"} />
-        <Kpi icon={Tag} label="Cupons aplicados" value={`${couponOrders.length}`} sub={`Impacto ${couponImpactPct.toFixed(1)}%`} disabled={source === "ifood"} />
-        <Kpi icon={Users} label="Novos clientes" value={newCustomers.toString()} sub={`${recurringPct.toFixed(0)}% recorrentes`} disabled={source === "ifood"} />
-        <Kpi icon={RefreshCw} label="Taxa de recompra" value={`${repurchaseRate.toFixed(1)}%`} sub={`Freq. ${purchaseFreq.toFixed(1)} ped./cliente`} disabled={source === "ifood"} />
+        <Kpi icon={DollarSign} label="Valor das vendas" value={brl(grossCur)} delta={revenueGrowth} sub="Pedido + entrega" />
+        <Kpi icon={Receipt} label="Faturamento líquido" value={brl(netCur)} sub={`Repasse final${discountCur ? ` • Desc. ${brl(discountCur)}` : ""}`} />
+        <Kpi icon={Truck} label="Taxas, serviços e ajustes" value={`- ${brl(serviceFeeCur)}`} negative sub="Taxas iFood cobradas" />
+        <Kpi icon={Truck} label="Taxas de entrega" value={brl(deliveryFeeCur)} sub="Todos os canais" />
+        <Kpi icon={ShoppingBag} label="Pedidos" value={ordersCountCur.toString()} delta={ordersGrowth} />
+        <Kpi icon={TrendingUp} label="Ticket médio" value={brl(ticketCur)} delta={ticketGrowth} />
+        <Kpi icon={Tag} label="Cupons aplicados" value={`${couponOrders.length}`} sub={`Impacto ${couponImpactPct.toFixed(1)}%`} />
+        <Kpi icon={Users} label="Novos clientes" value={newCustomers.toString()} sub={`${recurringPct.toFixed(0)}% recorrentes`} />
+        <Kpi icon={RefreshCw} label="Taxa de recompra" value={`${repurchaseRate.toFixed(1)}%`} sub={`Freq. ${purchaseFreq.toFixed(1)} ped./cliente`} />
       </div>
 
       {/* Comparativos automáticos */}
@@ -434,7 +475,7 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
       </div>
 
       {/* Service breakdown */}
-      <div className={`grid gap-3 lg:grid-cols-3 ${source === "ifood" ? "opacity-40 pointer-events-none" : ""}`}>
+      <div className="grid gap-3 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader><CardTitle className="text-base">Análise de pedidos por tipo</CardTitle></CardHeader>
           <CardContent>
@@ -477,44 +518,6 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
       </div>
 
       {/* Progress chart */}
-      {source === "ifood" ? (
-        <Card>
-          <CardHeader><CardTitle className="text-base">Faturamento iFood por mês</CardTitle></CardHeader>
-          <CardContent style={{ height: 280 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={(ifoodQ.data ?? [])
-                .slice()
-                .sort((a, b) => a.date_from.localeCompare(b.date_from))
-                .map((r) => ({
-                  mes: format(new Date(r.date_from + "T00:00"), "MMM/yy", { locale: ptBR }),
-                  vendas: Number(r.gross_revenue || 0),
-                  faturamento: Number(r.net_revenue || 0),
-                  taxas: Number(r.fees || 0),
-                }))}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="mes" />
-                <YAxis />
-                <RTooltip
-                  formatter={(v: any, name: any) => [brl(Number(v)), name]}
-                  content={({ active, payload, label }: any) => {
-                    if (!active || !payload?.length) return null;
-                    const d = payload[0].payload;
-                    return (
-                      <div className="rounded-md border bg-background px-3 py-2 text-xs shadow-md space-y-1">
-                        <div className="font-medium">{label}</div>
-                        <div className="flex justify-between gap-4"><span className="text-muted-foreground">Vendas</span><span>{brl(d.vendas)}</span></div>
-                        <div className="flex justify-between gap-4"><span className="text-muted-foreground">Faturamento</span><span className="text-emerald-600">{brl(d.faturamento)}</span></div>
-                        <div className="flex justify-between gap-4"><span className="text-muted-foreground">Taxas/Ajustes</span><span className="text-red-600">- {brl(d.taxas)}</span></div>
-                      </div>
-                    );
-                  }}
-                />
-                <Line type="monotone" dataKey="faturamento" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} name="Faturamento" />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      ) : (
       <div>
       <Card>
         <CardHeader><CardTitle className="text-base">Progresso dos pedidos</CardTitle></CardHeader>
@@ -675,7 +678,6 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
         </Card>
       </div>
       </div>
-      )}
     </div>
   );
 }

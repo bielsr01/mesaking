@@ -10,7 +10,6 @@ const corsHeaders = {
 };
 
 const MAX_RUN_MS = 50_000; // stay under edge function limit
-const startedAt = Date.now();
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function normalizePhone(p: string) {
@@ -36,6 +35,7 @@ async function evoFetch(apiUrl: string, path: string, apiKey: string, body: any)
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  const startedAt = Date.now();
   const log: any[] = [];
   let processed = 0;
 
@@ -67,8 +67,12 @@ Deno.serve(async (req) => {
 
       // Throttle by configured interval
       const interval = Math.max(1, Number(c.interval_seconds ?? 8)) * 1000;
-      if (c.last_run_at && Date.now() - new Date(c.last_run_at).getTime() < interval) {
-        continue;
+      if (c.last_run_at) {
+        const waitMs = interval - (Date.now() - new Date(c.last_run_at).getTime());
+        if (waitMs > 0) {
+          await sleep(Math.min(waitMs, 2000));
+          continue;
+        }
       }
 
       // Integration

@@ -71,6 +71,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = async () => {
+    try {
+      const { cleanupIfoodWidgetDom } = await import("@/components/dashboard/IfoodWidgetMount");
+      cleanupIfoodWidgetDom();
+    } catch {}
     await supabase.auth.signOut();
     setRoles([]);
   };

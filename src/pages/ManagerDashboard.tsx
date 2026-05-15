@@ -24,12 +24,19 @@ import { AppSidebar, DashboardView } from "@/components/dashboard/AppSidebar";
 import { NotificationsBell } from "@/components/dashboard/NotificationsBell";
 import { LazyView } from "@/components/dashboard/LazyView";
 import { useNewOrderNotifications } from "@/hooks/useNewOrderNotifications";
+import { usePendingOrdersCount } from "@/hooks/usePendingCounts";
 import { SupplyOrderPanel } from "@/components/dashboard/SupplyOrderPanel";
 import { ExpensesPanel } from "@/components/dashboard/ExpensesPanel";
+import { FinancePanel } from "@/components/dashboard/FinancePanel";
 import { OverviewPanel } from "@/components/dashboard/OverviewPanel";
-import { IfoodPanel } from "@/components/dashboard/IfoodPanel";
+import { StockPanel } from "@/components/dashboard/StockPanel";
+import { AccessManagementPanel } from "@/components/dashboard/AccessManagementPanel";
+import { usePermissions } from "@/hooks/usePermissions";
+import { IfoodWidgetMount } from "@/components/dashboard/IfoodWidgetMount";
+
 import { BulkCampaignsPanel } from "@/components/dashboard/BulkCampaignsPanel";
 import { ManualOverride, OpeningHours } from "@/lib/hours";
+import { BrasiliaClock } from "@/components/BrasiliaClock";
 
 interface Restaurant {
   id: string;
@@ -68,7 +75,7 @@ async function fetchTodayStats(restaurantId: string) {
 export default function ManagerDashboard() {
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const { user, signOut, isMasterAdmin } = useAuth();
+  const { user, signOut, isMasterAdmin, rolesLoading } = useAuth();
   const [view, setView] = useState<DashboardView>("orders");
 
   const { data: restaurant, isLoading: loadingRest } = useQuery({
@@ -83,6 +90,36 @@ export default function ManagerDashboard() {
     queryFn: () => fetchTodayStats(restaurant!.id),
     enabled: !!restaurant?.id,
     staleTime: 15_000,
+  });
+
+  const { data: userInfo } = useQuery({
+    queryKey: ["managerUserInfo", user?.id, restaurant?.id, isMasterAdmin],
+    queryFn: async () => {
+      if (!user?.id || !restaurant?.id) return null;
+      const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
+      let groupName = "";
+      const { data: member } = await supabase
+        .from("restaurant_members")
+        .select("access_group_id")
+        .eq("restaurant_id", restaurant.id)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (member?.access_group_id) {
+        const { data: group } = await supabase.from("access_groups").select("name").eq("id", member.access_group_id).maybeSingle();
+        groupName = group?.name ?? "";
+      }
+      if (!groupName) {
+        if (isMasterAdmin) {
+          groupName = "Administrador Master";
+        } else {
+          const { data: rest } = await supabase.from("restaurants").select("owner_id").eq("id", restaurant.id).maybeSingle();
+          if (rest?.owner_id === user.id) groupName = "Proprietário";
+        }
+      }
+      return { fullName: profile?.full_name ?? user.email ?? "Usuário", groupName };
+    },
+    enabled: !!user?.id && !!restaurant?.id,
+    staleTime: 60_000,
   });
 
   useEffect(() => {
@@ -106,10 +143,39 @@ export default function ManagerDashboard() {
     restaurant?.id,
     view === "orders"
   );
+  const pendingOrdersCount = usePendingOrdersCount(restaurant?.id);
+  const { permissions, isFullAccess, loading: permissionsLoading } = usePermissions(restaurant?.id);
+
+  // Redirect view if user lacks permission for the current view
+  useEffect(() => {
+    if (permissionsLoading || isFullAccess) return;
+    const allowed: Record<DashboardView, boolean> = {
+      overview: !!permissions.overview.view,
+      orders: !!permissions.orders.view,
+      menu: !!permissions.menu.view,
+      customers: !!permissions.customers.view,
+      "marketing:coupons": !!permissions.marketing.coupons.view,
+      "marketing:bulk": !!permissions.marketing.bulk.view,
+      "marketing:loyalty": !!permissions.loyalty.view,
+      "settings:order-config": !!permissions.settings.view,
+      "settings:business": !!permissions.settings.view,
+      "settings:printers": !!permissions.settings.view,
+      "settings:integrations": !!permissions.settings.view,
+      "settings:access": !!permissions.access_management.view,
+      "supply-orders": !!permissions.supply_orders.view,
+      stock: !!permissions.stock.view,
+      expenses: !!permissions.expenses.view,
+      finance: !!permissions.finance.view,
+    };
+    if (!allowed[view]) {
+      const fallback = (Object.keys(allowed) as DashboardView[]).find((k) => allowed[k]);
+      if (fallback) setView(fallback);
+    }
+  }, [isFullAccess, permissions, permissionsLoading, view]);
 
   const refetchRestaurant = () => qc.invalidateQueries({ queryKey: ["managerRestaurant", user?.id] });
 
-  if (loadingRest) {
+  if (loadingRest || rolesLoading || permissionsLoading) {
     return (
       <div className="min-h-screen grid place-items-center">
         <Skeleton className="h-10 w-40" />
@@ -134,7 +200,6 @@ export default function ManagerDashboard() {
   const titleByView: Record<DashboardView, string> = {
     overview: "Visão geral",
     orders: "Pedidos",
-    ifood: "iFood",
     menu: "Cardápio",
     customers: "Clientes",
     "marketing:coupons": "Cupons de desconto",
@@ -144,18 +209,24 @@ export default function ManagerDashboard() {
     "settings:business": "Informações do negócio",
     "settings:printers": "Impressões",
     "settings:integrations": "Integrações",
+    "settings:access": "Gestão de Acessos",
     "supply-orders": "Pedido de Insumos",
+    stock: "Estoque",
     expenses: "Cadastro de despesas",
+    finance: "Receitas - Despesas",
   };
 
   return (
     <SidebarProvider>
+      {!isMasterAdmin && <IfoodWidgetMount restaurantId={restaurant?.id} />}
       <div className="min-h-screen flex w-full bg-muted/30">
         <AppSidebar
           active={view}
           onChange={setView}
-          ordersBadge={view === "orders" ? 0 : unreadCount}
-          ordersBlinking={view !== "orders" && unreadCount > 0}
+          ordersBadge={pendingOrdersCount}
+          ordersBlinking={pendingOrdersCount > 0}
+          permissions={permissions}
+          isFullAccess={isFullAccess}
         />
 
         <div className="flex-1 flex flex-col min-w-0">
@@ -164,11 +235,17 @@ export default function ManagerDashboard() {
               <div className="flex items-center gap-2 min-w-0">
                 <SidebarTrigger />
                 <div className="min-w-0">
+                  {userInfo && (
+                    <div className="text-xs text-muted-foreground truncate">
+                      Bem-vindo {userInfo.fullName}{userInfo.groupName ? ` - ${userInfo.groupName}` : ""}
+                    </div>
+                  )}
                   <div className="font-semibold truncate">{titleByView[view]}</div>
                   <div className="text-xs text-muted-foreground truncate">{restaurant.name}</div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                <BrasiliaClock />
                 <Button
                   variant="ghost"
                   size="icon"
@@ -217,11 +294,6 @@ export default function ManagerDashboard() {
                 <OrdersPanel restaurantId={restaurant.id} />
               </LazyView>
             )}
-            {view === "ifood" && (
-              <LazyView viewKey={view} variant="list">
-                <IfoodPanel restaurantId={restaurant.id} />
-              </LazyView>
-            )}
             {view === "menu" && (
               <LazyView viewKey={view} variant="list">
                 <MenuManager restaurantId={restaurant.id} />
@@ -252,14 +324,29 @@ export default function ManagerDashboard() {
                 <IntegrationsPanel restaurantId={restaurant.id} />
               </LazyView>
             )}
+            {view === "settings:access" && (
+              <LazyView viewKey={view} variant="form">
+                <AccessManagementPanel restaurantId={restaurant.id} />
+              </LazyView>
+            )}
             {view === "supply-orders" && (
               <LazyView viewKey={view} variant="list">
                 <SupplyOrderPanel restaurantId={restaurant.id} />
               </LazyView>
             )}
+            {view === "stock" && (
+              <LazyView viewKey={view} variant="list">
+                <StockPanel restaurantId={restaurant.id} />
+              </LazyView>
+            )}
             {view === "expenses" && (
               <LazyView viewKey={view} variant="list">
                 <ExpensesPanel restaurantId={restaurant.id} />
+              </LazyView>
+            )}
+            {view === "finance" && (
+              <LazyView viewKey={view} variant="stats">
+                <FinancePanel restaurantIds={[restaurant.id]} />
               </LazyView>
             )}
           </main>

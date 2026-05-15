@@ -1,6 +1,73 @@
 export const brl = (v: number | string) =>
   Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+/** Fuso horário oficial do sistema (Brasília, GMT-3). */
+export const APP_TIMEZONE = "America/Sao_Paulo";
+
+/** Formata uma data no fuso horário de Brasília (GMT-3). */
+export const formatDateBR = (
+  v: string | number | Date | null | undefined,
+  opts: Intl.DateTimeFormatOptions = { day: "2-digit", month: "2-digit", year: "numeric" },
+) => {
+  if (!v) return "";
+  const d = v instanceof Date ? v : new Date(v);
+  if (isNaN(d.getTime())) return "";
+  return d.toLocaleString("pt-BR", { timeZone: APP_TIMEZONE, ...opts });
+};
+
+/** Formata data + hora no fuso de Brasília. */
+export const formatDateTimeBR = (v: string | number | Date | null | undefined) =>
+  formatDateBR(v, {
+    day: "2-digit", month: "2-digit", year: "numeric",
+    hour: "2-digit", minute: "2-digit",
+  });
+
+/** Formata apenas a hora no fuso de Brasília. */
+export const formatTimeBR = (v: string | number | Date | null | undefined) =>
+  formatDateBR(v, { hour: "2-digit", minute: "2-digit" });
+
+/** Retorna YYYY-MM-DD da data informada (ou hoje) considerando o fuso de Brasília. */
+export const isoDateBR = (v: Date = new Date()): string => {
+  // en-CA produz no formato YYYY-MM-DD
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: APP_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(v);
+};
+
+/** Hoje no fuso de Brasília (YYYY-MM-DD). */
+export const todayISOBR = (): string => isoDateBR(new Date());
+
+/** Componentes ano/mês/dia (1-based) da data no fuso de Brasília. */
+export const ymdBR = (v: Date = new Date()): { y: number; m: number; d: number } => {
+  const [y, m, d] = isoDateBR(v).split("-").map(Number);
+  return { y, m, d };
+};
+
+/** Primeiro dia do mês de `v` (default: hoje), em Brasília, como YYYY-MM-DD. */
+export const monthStartISOBR = (v: Date = new Date()): string => {
+  const { y, m } = ymdBR(v);
+  return `${y}-${String(m).padStart(2, "0")}-01`;
+};
+
+/** Último dia do mês de `v`, em Brasília, como YYYY-MM-DD. */
+export const monthEndISOBR = (v: Date = new Date()): string => {
+  const { y, m } = ymdBR(v);
+  // Dia 0 do mês seguinte = último dia do mês atual (cálculo local, mas só usamos Y/M/D resultantes)
+  const last = new Date(y, m, 0).getDate();
+  return `${y}-${String(m).padStart(2, "0")}-${String(last).padStart(2, "0")}`;
+};
+
+/** Adiciona N dias a uma data ISO (YYYY-MM-DD), retornando outra ISO. */
+export const addDaysISO = (iso: string, days: number): string => {
+  const [y, m, d] = iso.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() + days);
+  return dt.toISOString().slice(0, 10);
+};
+
 export const orderStatusLabel: Record<string, string> = {
   pending: "Aguardando aceitação",
   accepted: "Aceito",
@@ -66,7 +133,17 @@ export const paymentLabel: Record<string, string> = {
   cash: "Dinheiro",
   pix: "Pix",
   card_on_delivery: "Cartão na entrega",
+  online: "Pago online",
 };
+
+export function paymentLabelFor(method: string, externalSource?: string | null): string {
+  if (method === "online") {
+    if (externalSource === "ifood") return "Pago via iFood (online)";
+    if (externalSource === "quero") return "Pago via Quero Delivery (online)";
+    return "Pago online";
+  }
+  return paymentLabel[method] ?? method;
+}
 
 export const slugify = (s: string) =>
   s
@@ -94,3 +171,16 @@ export const formatPhone = (input: string | null | undefined): string => {
 /** Remove a máscara, devolvendo apenas dígitos. */
 export const unmaskPhone = (input: string | null | undefined): string =>
   String(input ?? "").replace(/\D/g, "");
+
+/** Formata telefone iFood (proxy 0800) com código localizador entre parênteses. */
+export const formatIfoodPhone = (input: string | null | undefined): string => {
+  const raw = String(input ?? "");
+  const digits = raw.replace(/\D/g, "");
+  const locMatch = raw.match(/(?:cód[^\w]*|localizador[^\w]*)([A-Za-z0-9]+)/i);
+  const loc = locMatch?.[1] ?? digits.slice(11);
+  const base = digits.slice(0, 11) || digits;
+  const masked = base.length >= 10
+    ? `${base.slice(0, 4)} ${base.slice(4, 7)} ${base.slice(7, 11)}`
+    : base;
+  return loc ? `${masked} (cód: ${loc})` : masked;
+};

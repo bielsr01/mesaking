@@ -1,4 +1,7 @@
-import { ChefHat, LayoutDashboard, ShoppingBag, UtensilsCrossed, Settings, Store, Printer, Plug, ChevronDown, Users, Megaphone, Ticket, Award, Send, ClipboardList, Package, Receipt, Bike } from "lucide-react";
+import { ChefHat, LayoutDashboard, ShoppingBag, UtensilsCrossed, Settings, Store, Printer, Plug, ChevronDown, ChevronRight, Users, Megaphone, Ticket, Award, Send, ClipboardList, Package, Receipt, Boxes, LineChart, ShieldCheck } from "lucide-react";
+import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
+import { cn } from "@/lib/utils";
+import { Permissions } from "@/lib/permissions";
 import { useState } from "react";
 import {
   Sidebar,
@@ -20,7 +23,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 export type DashboardView =
   | "overview"
   | "orders"
-  | "ifood"
   | "menu"
   | "customers"
   | "marketing:coupons"
@@ -30,13 +32,15 @@ export type DashboardView =
   | "settings:business"
   | "settings:printers"
   | "settings:integrations"
+  | "settings:access"
   | "supply-orders"
-  | "expenses";
+  | "stock"
+  | "expenses"
+  | "finance";
 
 const mainItems: { id: DashboardView; title: string; icon: any }[] = [
   { id: "overview", title: "Visão geral", icon: LayoutDashboard },
   { id: "orders", title: "Pedidos", icon: ShoppingBag },
-  { id: "ifood", title: "iFood", icon: Bike },
   { id: "menu", title: "Cardápio", icon: UtensilsCrossed },
   { id: "customers", title: "Clientes", icon: Users },
 ];
@@ -57,6 +61,7 @@ const settingsItems: { id: DashboardView; title: string; icon: any }[] = [
   { id: "settings:business", title: "Informações do negócio", icon: Store },
   { id: "settings:printers", title: "Impressões", icon: Printer },
   { id: "settings:integrations", title: "Integrações", icon: Plug },
+  { id: "settings:access", title: "Gestão de Acessos", icon: ShieldCheck },
 ];
 
 export function AppSidebar({
@@ -64,12 +69,43 @@ export function AppSidebar({
   onChange,
   ordersBadge = 0,
   ordersBlinking = false,
+  permissions,
+  isFullAccess = true,
 }: {
   active: DashboardView;
   onChange: (v: DashboardView) => void;
   ordersBadge?: number;
   ordersBlinking?: boolean;
+  permissions?: Permissions;
+  isFullAccess?: boolean;
 }) {
+  const can = (path: string): any => {
+    if (isFullAccess || !permissions) return true;
+    return path.split(".").reduce((o: any, k) => (o ? o[k] : undefined), permissions);
+  };
+  const visibleMain = mainItems.filter((it) => {
+    if (it.id === "overview") return !!can("overview.view");
+    if (it.id === "orders") return !!can("orders.view");
+    if (it.id === "menu") return !!can("menu.view");
+    if (it.id === "customers") return !!can("customers.view");
+    return true;
+  });
+  const visibleMarketing = marketingItems.filter((it) => {
+    if (it.id === "marketing:coupons") return !!can("marketing.coupons.view");
+    if (it.id === "marketing:bulk") return !!can("marketing.bulk.view");
+    return true;
+  });
+  const visibleSettings = settingsItems.filter((it) => {
+    if (it.id === "settings:access") return !!can("access_management.view");
+    return !!can("settings.view");
+  });
+  const showLoyalty = !!can("loyalty.view");
+  const showSupply = !!can("supply_orders.view");
+  const showStock = !!can("stock.view");
+  const showExpenses = !!can("expenses.view");
+  const showFinance = !!can("finance.view");
+  const showSettings = !!can("settings.view") || !!can("access_management.view");
+  const showMarketing = visibleMarketing.length > 0;
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const marketingActive = active.startsWith("marketing:") && active !== "marketing:loyalty";
@@ -80,9 +116,9 @@ export function AppSidebar({
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b">
-        <div className="flex items-center gap-2 px-2 py-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center shrink-0">
-            <ChefHat className="w-4 h-4 text-primary-foreground" />
+        <div className={cn("flex items-center h-12", collapsed ? "justify-center px-0" : "gap-2 px-2") }>
+          <div className="rounded-lg bg-gradient-primary flex items-center justify-center shrink-0 w-8 h-8">
+            <ChefHat className="text-primary-foreground w-4 h-4" />
           </div>
           {!collapsed && <span className="font-bold">MesaPro</span>}
         </div>
@@ -92,7 +128,7 @@ export function AppSidebar({
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {mainItems.map((item) => {
+              {visibleMain.map((item) => {
                 const isOrders = item.id === "orders";
                 const showBlink = isOrders && ordersBlinking;
                 return (
@@ -115,101 +151,162 @@ export function AppSidebar({
                 );
               })}
 
-              {/* Marketing */}
-              <Collapsible open={marketingOpen || collapsed} onOpenChange={setMarketingOpen} asChild>
+              {showMarketing && (collapsed ? (
                 <SidebarMenuItem>
-                  <CollapsibleTrigger asChild>
-                    <SidebarMenuButton isActive={marketingActive} tooltip="Marketing">
-                      <Megaphone className="h-4 w-4" />
-                      <span>Marketing</span>
-                      <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
-                    </SidebarMenuButton>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <SidebarMenuSub>
-                      {marketingItems.map((item) => (
-                        <SidebarMenuSubItem key={item.id}>
-                          <SidebarMenuSubButton asChild isActive={active === item.id}>
-                            <button
-                              type="button"
-                              onClick={() => onChange(item.id)}
-                              className="w-full text-left flex items-center gap-2"
-                            >
-                              <item.icon className="h-4 w-4" />
-                              <span>{item.title}</span>
-                            </button>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
+                  <HoverCard openDelay={80} closeDelay={120}>
+                    <HoverCardTrigger asChild>
+                      <SidebarMenuButton isActive={marketingActive}>
+                        <Megaphone className="h-4 w-4" />
+                        <span>Marketing</span>
+                        <ChevronRight className="ml-auto h-3 w-3 opacity-60" />
+                      </SidebarMenuButton>
+                    </HoverCardTrigger>
+                    <HoverCardContent side="right" align="start" sideOffset={8} className="w-56 p-1">
+                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Marketing</div>
+                      {visibleMarketing.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => onChange(item.id)}
+                          className={cn("w-full flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground", active === item.id && "bg-accent text-accent-foreground")}
+                        >
+                          <item.icon className="h-4 w-4" />
+                          <span>{item.title}</span>
+                        </button>
                       ))}
-                    </SidebarMenuSub>
-                  </CollapsibleContent>
+                    </HoverCardContent>
+                  </HoverCard>
                 </SidebarMenuItem>
-              </Collapsible>
+              ) : (
+                <Collapsible open={marketingOpen} onOpenChange={setMarketingOpen} asChild>
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton isActive={marketingActive} tooltip="Marketing">
+                        <Megaphone className="h-4 w-4" />
+                        <span>Marketing</span>
+                        <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {visibleMarketing.map((item) => (
+                          <SidebarMenuSubItem key={item.id}>
+                            <SidebarMenuSubButton asChild isActive={active === item.id}>
+                              <button type="button" onClick={() => onChange(item.id)} className="w-full text-left flex items-center gap-2">
+                                <item.icon className="h-4 w-4" />
+                                <span>{item.title}</span>
+                              </button>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
+              ))}
 
-              {/* Programa de fidelidade (item raiz, abaixo de Marketing) */}
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  isActive={active === loyaltyItem.id}
-                  onClick={() => onChange(loyaltyItem.id)}
-                  tooltip={loyaltyItem.title}
-                >
-                  <loyaltyItem.icon className="h-4 w-4" />
-                  <span>{loyaltyItem.title}</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-              {/* Configurações */}
-              <Collapsible open={settingsOpen || collapsed} onOpenChange={setSettingsOpen} asChild>
+              {showLoyalty && (
                 <SidebarMenuItem>
-                  <CollapsibleTrigger asChild>
-                    <SidebarMenuButton isActive={settingsActive} tooltip="Configurações">
-                      <Settings className="h-4 w-4" />
-                      <span>Configurações</span>
-                      <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
-                    </SidebarMenuButton>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <SidebarMenuSub>
-                      {settingsItems.map((item) => (
-                        <SidebarMenuSubItem key={item.id}>
-                          <SidebarMenuSubButton asChild isActive={active === item.id}>
-                            <button
-                              type="button"
-                              onClick={() => onChange(item.id)}
-                              className="w-full text-left flex items-center gap-2"
-                            >
-                              <item.icon className="h-4 w-4" />
-                              <span>{item.title}</span>
-                            </button>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      ))}
-                    </SidebarMenuSub>
-                  </CollapsibleContent>
+                  <SidebarMenuButton
+                    isActive={active === loyaltyItem.id}
+                    onClick={() => onChange(loyaltyItem.id)}
+                    tooltip={loyaltyItem.title}
+                  >
+                    <loyaltyItem.icon className="h-4 w-4" />
+                    <span>{loyaltyItem.title}</span>
+                  </SidebarMenuButton>
                 </SidebarMenuItem>
-              </Collapsible>
+              )}
 
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  isActive={active === "supply-orders"}
-                  onClick={() => onChange("supply-orders")}
-                  tooltip="Pedido de Insumos"
-                >
-                  <Package className="h-4 w-4" />
-                  <span>Pedido de Insumos</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {showSettings && visibleSettings.length > 0 && (collapsed ? (
+                <SidebarMenuItem>
+                  <HoverCard openDelay={80} closeDelay={120}>
+                    <HoverCardTrigger asChild>
+                      <SidebarMenuButton isActive={settingsActive}>
+                        <Settings className="h-4 w-4" />
+                        <span>Configurações</span>
+                        <ChevronRight className="ml-auto h-3 w-3 opacity-60" />
+                      </SidebarMenuButton>
+                    </HoverCardTrigger>
+                    <HoverCardContent side="right" align="start" sideOffset={8} className="w-60 p-1">
+                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Configurações</div>
+                      {visibleSettings.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => onChange(item.id)}
+                          className={cn("w-full flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground", active === item.id && "bg-accent text-accent-foreground")}
+                        >
+                          <item.icon className="h-4 w-4" />
+                          <span>{item.title}</span>
+                        </button>
+                      ))}
+                    </HoverCardContent>
+                  </HoverCard>
+                </SidebarMenuItem>
+              ) : (
+                <Collapsible open={settingsOpen} onOpenChange={setSettingsOpen} asChild>
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton isActive={settingsActive} tooltip="Configurações">
+                        <Settings className="h-4 w-4" />
+                        <span>Configurações</span>
+                        <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {visibleSettings.map((item) => (
+                          <SidebarMenuSubItem key={item.id}>
+                            <SidebarMenuSubButton asChild isActive={active === item.id}>
+                              <button type="button" onClick={() => onChange(item.id)} className="w-full text-left flex items-center gap-2">
+                                <item.icon className="h-4 w-4" />
+                                <span>{item.title}</span>
+                              </button>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
+              ))}
 
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  isActive={active === "expenses"}
-                  onClick={() => onChange("expenses")}
-                  tooltip="Cadastro de despesas"
-                >
-                  <Receipt className="h-4 w-4" />
-                  <span>Cadastro de despesas</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {showSupply && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton isActive={active === "supply-orders"} onClick={() => onChange("supply-orders")} tooltip="Pedido de Insumos">
+                    <Package className="h-4 w-4" />
+                    <span>Pedido de Insumos</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+
+              {showStock && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton isActive={active === "stock"} onClick={() => onChange("stock")} tooltip="Estoque">
+                    <Boxes className="h-4 w-4" />
+                    <span>Estoque</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+
+              {showExpenses && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton isActive={active === "expenses"} onClick={() => onChange("expenses")} tooltip="Cadastro de despesas">
+                    <Receipt className="h-4 w-4" />
+                    <span>Cadastro de despesas</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+
+              {showFinance && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton isActive={active === "finance"} onClick={() => onChange("finance")} tooltip="Receitas - Despesas">
+                    <LineChart className="h-4 w-4" />
+                    <span>Receitas - Despesas</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

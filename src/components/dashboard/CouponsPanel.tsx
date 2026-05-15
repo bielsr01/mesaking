@@ -20,6 +20,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { brl } from "@/lib/format";
+import { usePermissions } from "@/hooks/usePermissions";
 
 type Coupon = {
   id: string;
@@ -77,6 +78,9 @@ const fromLocalInput = (v: string) => {
 };
 
 export function CouponsPanel({ restaurantId }: { restaurantId: string }) {
+  const { can } = usePermissions(restaurantId);
+  const canEdit = can("marketing.coupons.edit");
+  const canMetrics = can("marketing.coupons.metrics");
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Partial<Coupon> | null>(null);
@@ -104,6 +108,7 @@ export function CouponsPanel({ restaurantId }: { restaurantId: string }) {
   const openEdit = (c: Coupon) => { setEditing({ ...c }); setOpen(true); };
 
   const save = async () => {
+    if (!canEdit) return toast.error("Sem permissão para salvar cupom");
     if (!editing) return;
     const e = editing;
     if (!e.code?.trim()) return toast.error("Informe o código do cupom");
@@ -146,6 +151,7 @@ export function CouponsPanel({ restaurantId }: { restaurantId: string }) {
   };
 
   const confirmDelete = async () => {
+    if (!canEdit) return toast.error("Sem permissão para excluir cupom");
     if (!toDelete) return;
     const { error } = await supabase.from("coupons" as any).delete().eq("id", toDelete.id);
     if (error) return toast.error(error.message);
@@ -156,7 +162,7 @@ export function CouponsPanel({ restaurantId }: { restaurantId: string }) {
 
   const formatDiscount = (c: Coupon) => c.discount_type === "percent" ? `${Number(c.discount_value)}%` : brl(Number(c.discount_value));
 
-  if (showMetrics) {
+  if (showMetrics && canMetrics) {
     return <CouponMetrics restaurantId={restaurantId} onBack={() => setShowMetrics(false)} />;
   }
 
@@ -169,8 +175,8 @@ export function CouponsPanel({ restaurantId }: { restaurantId: string }) {
             <CardDescription>Crie cupons para o pedido todo ou para itens específicos.</CardDescription>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setShowMetrics(true)} className="gap-2"><BarChart3 className="w-4 h-4" /> Métricas</Button>
-            <Button onClick={openNew} className="gap-2"><Plus className="w-4 h-4" /> Novo cupom</Button>
+            {canMetrics && <Button variant="outline" onClick={() => setShowMetrics(true)} className="gap-2"><BarChart3 className="w-4 h-4" /> Métricas</Button>}
+            {canEdit && <Button onClick={openNew} className="gap-2"><Plus className="w-4 h-4" /> Novo cupom</Button>}
           </div>
         </CardHeader>
         <CardContent>
@@ -206,8 +212,8 @@ export function CouponsPanel({ restaurantId }: { restaurantId: string }) {
                         {c.is_active ? <Badge className="bg-success text-success-foreground">Ativo</Badge> : <Badge variant="secondary">Inativo</Badge>}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(c)}><Pencil className="w-4 h-4" /></Button>
-                        <Button variant="ghost" size="icon" onClick={() => setToDelete(c)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                        {canEdit && <Button variant="ghost" size="icon" onClick={() => openEdit(c)}><Pencil className="w-4 h-4" /></Button>}
+                        {canEdit && <Button variant="ghost" size="icon" onClick={() => setToDelete(c)}><Trash2 className="w-4 h-4 text-destructive" /></Button>}
                       </TableCell>
                     </TableRow>
                   ))}

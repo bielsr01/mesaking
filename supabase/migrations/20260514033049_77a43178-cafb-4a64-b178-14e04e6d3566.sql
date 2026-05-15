@@ -1,0 +1,1 @@
+ALTER TABLE public.option_groups ADD COLUMN IF NOT EXISTS allow_repeat boolean NOT NULL DEFAULT false;

@@ -13,13 +13,13 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
 );
 
-function normalizeIhubBaseUrl(domain: string | null | undefined) {
-  const cleanDomain = (domain || "ihub.arcn.com.br")
+const IHUB_BASE = "https://ihub.arcn.com.br/api";
+
+function normalizeDomain(domain: string | null | undefined) {
+  return (domain || "")
     .trim()
     .replace(/^https?:\/\//i, "")
-    .replace(/\/api\/?$/i, "")
     .replace(/\/+$/, "");
-  return `https://${cleanDomain}/api`;
 }
 
 Deno.serve(async (req) => {
@@ -35,7 +35,6 @@ Deno.serve(async (req) => {
   const { data: claimsRes, error: userErr } = await supabase.auth.getClaims(token0);
   const userId = claimsRes?.claims?.sub;
   if (userErr || !userId) {
-    console.error("auth getClaims error:", userErr);
     return new Response(JSON.stringify({ error: "Unauthorized", details: userErr?.message }), {
       status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -48,7 +47,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  const { action, restaurantId, authorizationCode, authorizationCodeVerifier } = body;
+  const { action, restaurantId, authorizationCode, authorizationCodeVerifier, merchantId: manualMerchantId, orderId, externalOrderId, code } = body;
   if (!action || !restaurantId) {
     return new Response(JSON.stringify({ error: "Missing action or restaurantId" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -67,26 +66,34 @@ Deno.serve(async (req) => {
     });
   }
 
-  const base = normalizeIhubBaseUrl(integration.domain);
+  const domain = normalizeDomain(integration.domain);
+  if (!domain) {
+    return new Response(JSON.stringify({
+      error: "Domínio não configurado",
+      details: "Cadastre o domínio do seu sistema (ex.: app.meudelivery.com.br) — deve ser EXATAMENTE o mesmo domínio cadastrado no painel do iHub para este token.",
+    }), {
+      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   const token = integration.secret_token;
+  const authHdr = { "Authorization": `Bearer ${token}`, "Accept": "application/json" };
 
   try {
     if (action === "generate-user-code") {
-      const r = await fetch(`${base}/auth/generate-user-code`, {
+      // Per docs: generate-user-code does NOT require a body — token identifies the client.
+      const r = await fetch(`${IHUB_BASE}/auth/generate-user-code`, {
         method: "POST",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Accept": "application/json",
-        },
+        headers: authHdr,
       });
       const text = await r.text();
-      let data: any;
-      try { data = JSON.parse(text); } catch { data = { raw: text }; }
-      if (!r.ok) {
-        return new Response(JSON.stringify({ error: "iHub error", status: r.status, data }), {
-          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+      let data: any; try { data = JSON.parse(text); } catch { data = { raw: text }; }
+       if (!r.ok) {
+        console.error("ihub generate-user-code failed", { status: r.status, domain, data });
+         return new Response(JSON.stringify({ ok: false, error: "iHub error", status: r.status, data, domain }), {
+           status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+         });
+       }
       return new Response(JSON.stringify({ ok: true, ...data }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -98,29 +105,45 @@ Deno.serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const r = await fetch(`${base}/auth/link-merchant`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Accept": "application/json",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          domain: integration.domain || "ihub.arcn.com.br",
-          authorizationCode,
-          authorizationCodeVerifier,
-        }),
-      });
-      const text = await r.text();
-      let data: any;
-      try { data = JSON.parse(text); } catch { data = { raw: text }; }
-      if (!r.ok) {
-        return new Response(JSON.stringify({ error: "iHub error", status: r.status, data }), {
+      if (!manualMerchantId) {
+        return new Response(JSON.stringify({ error: "merchantId é obrigatório" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      // Auto-save merchant_id
-      const merchantId = data?.merchant?.merchant_id ?? data?.ifood_details?.id ?? null;
+      const r = await fetch(`${IHUB_BASE}/auth/link-merchant`, {
+        method: "POST",
+        headers: { ...authHdr, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          domain,
+          authorizationCode,
+          authorizationCodeVerifier,
+          merchantId: manualMerchantId,
+        }),
+      });
+      const text = await r.text();
+      let data: any; try { data = JSON.parse(text); } catch { data = { raw: text }; }
+      if (!r.ok) {
+        console.error("ihub link-merchant failed", {
+          status: r.status,
+          domain,
+          authorizationCodeLength: String(authorizationCode).trim().length,
+          authorizationCodeVerifierLength: String(authorizationCodeVerifier).trim().length,
+          data,
+        });
+        const message = data?.error === "No merchants found for this token on iFood API"
+          ? "O iFood autorizou o código, mas a conta usada no portal não retornou nenhuma loja/merchant para a API. Confirme se o login no portal do iFood é o dono/gestor da loja e se essa loja está liberada para integrações/API."
+          : data?.message ?? data?.error ?? "Erro ao vincular merchant no iHub";
+        return new Response(JSON.stringify({
+          ok: false,
+          error: message,
+          status: r.status,
+          data,
+          debug: { domain },
+        }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const merchantId = data?.merchant?.merchant_id ?? data?.ifood_details?.id ?? manualMerchantId ?? null;
       const merchantName = data?.ifood_details?.name ?? null;
       if (merchantId) {
         await supabase
@@ -129,6 +152,81 @@ Deno.serve(async (req) => {
           .eq("id", integration.id);
       }
       return new Response(JSON.stringify({ ok: true, merchantId, merchantName, ...data }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "verify-delivery-code") {
+      if (!externalOrderId || !code) {
+        return new Response(JSON.stringify({ ok: false, error: "externalOrderId e code são obrigatórios" }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (!integration.merchant_id) {
+        return new Response(JSON.stringify({ ok: false, error: "Loja iFood não vinculada a este restaurante" }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Idempotência: se o webhook do iFood já marcou como entregue, não chama de novo.
+      const { data: existing } = await supabase
+        .from("orders")
+        .select("status")
+        .eq("id", orderId)
+        .eq("restaurant_id", restaurantId)
+        .maybeSingle();
+      if (existing?.status === "delivered") {
+        return new Response(JSON.stringify({ ok: true, alreadyDelivered: true }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const r = await fetch(`${IHUB_BASE}/orders/verify-delivery-code`, {
+        method: "POST",
+        headers: { ...authHdr, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          domain,
+          merchantId: integration.merchant_id,
+          orderId: externalOrderId,
+          code: String(code).trim(),
+        }),
+      });
+      const text = await r.text();
+      let data: any; try { data = JSON.parse(text); } catch { data = { raw: text }; }
+      if (!r.ok || data?.success === false) {
+        console.error("ihub verify-delivery-code failed", { status: r.status, data });
+        // O iHub às vezes retorna 500 mesmo quando o iFood processa com sucesso e dispara o
+        // webhook CONCLUDED. Aguarda o webhook chegar (até ~3s) e checa o status do pedido.
+        for (let i = 0; i < 6; i++) {
+          await new Promise((res) => setTimeout(res, 500));
+          const { data: recheck } = await supabase
+            .from("orders")
+            .select("status")
+            .eq("id", orderId)
+            .eq("restaurant_id", restaurantId)
+            .maybeSingle();
+          if (recheck?.status === "delivered") {
+            return new Response(JSON.stringify({ ok: true, viaWebhook: true }), {
+              status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        }
+        return new Response(JSON.stringify({
+          ok: false,
+          error: data?.message ?? data?.error ?? "Código de entrega inválido",
+          status: r.status,
+          data,
+        }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      // Marca pedido como entregue
+      await supabase
+        .from("orders")
+        .update({ status: "delivered" })
+        .eq("id", orderId)
+        .eq("restaurant_id", restaurantId);
+      return new Response(JSON.stringify({ ok: true, ...data }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

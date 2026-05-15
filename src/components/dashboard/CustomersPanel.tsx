@@ -19,6 +19,7 @@ import { formatPhone, unmaskPhone } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
+import { usePermissions } from "@/hooks/usePermissions";
 
 type ClientType = "elite" | "best" | "frequent" | "new" | "none";
 type ClientStatus = "active" | "inactive" | "sleeping" | "risk";
@@ -95,6 +96,10 @@ const empty = {
 };
 
 export function CustomersPanel({ restaurantId }: { restaurantId: string }) {
+  const { can } = usePermissions(restaurantId);
+  const canCreate = can("customers.create");
+  const canEdit = can("customers.edit");
+  const canDelete = can("customers.delete");
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
@@ -161,6 +166,7 @@ export function CustomersPanel({ restaurantId }: { restaurantId: string }) {
   };
 
   const save = async () => {
+    if (editing ? !canEdit : !canCreate) return toast.error(editing ? "Sem permissão para editar cliente" : "Sem permissão para cadastrar cliente");
     if (form.name.trim().length < 2) return toast.error("Informe o nome");
     if (unmaskPhone(form.phone).length < 10) return toast.error("Telefone inválido");
     setBusy(true);
@@ -195,6 +201,7 @@ export function CustomersPanel({ restaurantId }: { restaurantId: string }) {
   };
 
   const confirmDelete = async () => {
+    if (!canDelete) return toast.error("Sem permissão para excluir cliente");
     if (!deleteId) return;
     const { error } = await supabase.from("customers" as any).delete().eq("id", deleteId);
     if (error) return toast.error(error.message);
@@ -213,7 +220,7 @@ export function CustomersPanel({ restaurantId }: { restaurantId: string }) {
               Cadastre, edite e gerencie seus clientes. Quem faz pedido pelo delivery é salvo automaticamente.
             </CardDescription>
           </div>
-          <Button onClick={openNew}><Plus className="w-4 h-4 mr-1" /> Novo cliente</Button>
+          {canCreate && <Button onClick={openNew}><Plus className="w-4 h-4 mr-1" /> Novo cliente</Button>}
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -314,8 +321,8 @@ export function CustomersPanel({ restaurantId }: { restaurantId: string }) {
                       <TableCell>{c.last_order_at ? new Date(c.last_order_at).toLocaleDateString("pt-BR") : "—"}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => openEdit(c)}><Pencil className="w-4 h-4" /></Button>
-                          <Button variant="ghost" size="icon" onClick={() => setDeleteId(c.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                          {canEdit && <Button variant="ghost" size="icon" onClick={() => openEdit(c)}><Pencil className="w-4 h-4" /></Button>}
+                          {canDelete && <Button variant="ghost" size="icon" onClick={() => setDeleteId(c.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>}
                         </div>
                       </TableCell>
                     </TableRow>

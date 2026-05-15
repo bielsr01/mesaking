@@ -9,7 +9,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Plus, Pencil, Trash2, Package, ShoppingBag, Truck, CheckCircle2, X, Store } from "lucide-react";
 import { toast } from "sonner";
 import { brl } from "@/lib/format";
@@ -19,8 +21,15 @@ type SupplyProduct = {
   id: string; name: string; description: string | null; unit: string;
   price: number; image_url: string | null; is_active: boolean; sort_order: number;
   variant_group_name: string | null; total_quantity: number | null; quantity_step: number;
+  stock_group_id: string | null;
+  expense_category_id: string | null;
+  admin_stock_group_id: string | null;
 };
-type SupplyOption = { id: string; product_id: string; name: string; sort_order: number; is_active: boolean };
+type StockGroup = { id: string; name: string };
+type ExpenseCategory = { id: string; name: string };
+type AdminStockGroup = { id: string; name: string };
+type AdminStockSubgroup = { id: string; group_id: string; name: string };
+type SupplyOption = { id: string; product_id: string; name: string; sort_order: number; is_active: boolean; admin_stock_subgroup_id: string | null };
 type Restaurant = { id: string; name: string; slug: string };
 type SupplyOrder = {
   id: string; restaurant_id: string; status: "pending"|"accepted"|"shipped"|"delivered";
@@ -99,6 +108,13 @@ export function SupplyOrdersTab() {
     const { error } = await supabase.from("supply_orders").update({ status, ...stamps }).eq("id", o.id);
     if (error) return toast.error(error.message);
     toast.success("Status atualizado");
+    qc.invalidateQueries({ queryKey: ["admin_supply_orders"] });
+  };
+
+  const deleteOrder = async (o: SupplyOrder) => {
+    const { error } = await supabase.from("supply_orders").delete().eq("id", o.id);
+    if (error) return toast.error(error.message);
+    toast.success("Pedido excluído");
     qc.invalidateQueries({ queryKey: ["admin_supply_orders"] });
   };
 
@@ -239,6 +255,29 @@ export function SupplyOrdersTab() {
                     <CheckCircle2 className="w-5 h-5" /> Pedido finalizado
                   </div>
                 )}
+                <div className="border-t bg-muted/10 px-4 py-2 flex justify-end">
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                        <Trash2 className="w-4 h-4 mr-1" /> Excluir pedido
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Excluir este pedido?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          O pedido de {r?.name ?? "restaurante removido"} no valor de {brl(Number(o.total))} será removido permanentemente, junto com seus itens. Esta ação não pode ser desfeita.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => deleteOrder(o)} className="bg-destructive hover:bg-destructive/90">
+                          Excluir
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
               </Card>
             );
           })}
@@ -265,8 +304,46 @@ export function SupplyCatalogTab() {
   const [groupName, setGroupName] = useState("");
   const [totalQty, setTotalQty] = useState<number | "">("");
   const [step, setStep] = useState<number>(50);
-  const [options, setOptions] = useState<{ id?: string; name: string }[]>([]);
+  const [options, setOptions] = useState<{ id?: string; name: string; admin_stock_subgroup_id: string | null }[]>([]);
   const [newOpt, setNewOpt] = useState("");
+  const [stockGroupId, setStockGroupId] = useState<string>("");
+  const [expenseCategoryId, setExpenseCategoryId] = useState<string>("");
+  const [adminStockGroupId, setAdminStockGroupId] = useState<string>("");
+  const [saving, setSaving] = useState(false);
+  const [imgUrl, setImgUrl] = useState<string>("");
+  const [uploadingImg, setUploadingImg] = useState(false);
+
+  const { data: stockGroups = [] } = useQuery({
+    queryKey: ["stock_groups_admin"],
+    queryFn: async () => {
+      const { data } = await supabase.from("stock_groups").select("id,name").eq("is_active", true).order("sort_order");
+      return (data ?? []) as StockGroup[];
+    },
+  });
+
+  const { data: expenseCategories = [] } = useQuery({
+    queryKey: ["expense_categories_restaurant_admin"],
+    queryFn: async () => {
+      const { data } = await supabase.from("expense_categories")
+        .select("id,name").eq("scope", "restaurant").eq("is_active", true).order("name");
+      return (data ?? []) as ExpenseCategory[];
+    },
+  });
+
+  const { data: adminGroups = [] } = useQuery({
+    queryKey: ["admin_stock_groups_active"],
+    queryFn: async () => {
+      const { data } = await supabase.from("admin_stock_groups").select("id,name").eq("is_active", true).order("sort_order").order("name");
+      return (data ?? []) as AdminStockGroup[];
+    },
+  });
+  const { data: adminSubgroups = [] } = useQuery({
+    queryKey: ["admin_stock_subgroups_active"],
+    queryFn: async () => {
+      const { data } = await supabase.from("admin_stock_subgroups").select("id,group_id,name").eq("is_active", true).order("sort_order").order("name");
+      return (data ?? []) as AdminStockSubgroup[];
+    },
+  });
 
   const { data: products = [] } = useQuery({
     queryKey: ["admin_supply_products"],
@@ -290,6 +367,10 @@ export function SupplyCatalogTab() {
   const openNew = () => {
     setEditing(null);
     setHasVariants(false); setGroupName(""); setTotalQty(""); setStep(50); setOptions([]); setNewOpt("");
+    setStockGroupId("");
+    setExpenseCategoryId("");
+    setAdminStockGroupId("");
+    setImgUrl("");
     setOpen(true);
   };
   const openEdit = (p: SupplyProduct) => {
@@ -299,13 +380,36 @@ export function SupplyCatalogTab() {
     setGroupName(p.variant_group_name ?? "");
     setTotalQty(p.total_quantity ?? "");
     setStep(p.quantity_step ?? 50);
-    setOptions((optsByProduct[p.id] ?? []).map(o => ({ id: o.id, name: o.name })));
+    setOptions((optsByProduct[p.id] ?? []).map(o => ({ id: o.id, name: o.name, admin_stock_subgroup_id: o.admin_stock_subgroup_id ?? null })));
     setNewOpt("");
+    setStockGroupId(p.stock_group_id ?? "");
+    setExpenseCategoryId(p.expense_category_id ?? "");
+    setAdminStockGroupId(p.admin_stock_group_id ?? "");
+    setImgUrl(p.image_url ?? "");
     setOpen(true);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return toast.error("Selecione uma imagem");
+    setUploadingImg(true);
+    try {
+      const path = `supply/${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
+      const { error: upErr } = await supabase.storage.from("menu-images").upload(path, file, { upsert: true });
+      if (upErr) { toast.error(upErr.message); return; }
+      const { data: pub } = supabase.storage.from("menu-images").getPublicUrl(path);
+      setImgUrl(pub.publicUrl);
+      toast.success("Imagem enviada");
+    } finally {
+      setUploadingImg(false);
+      e.target.value = "";
+    }
   };
 
   const save = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (saving) return;
     const fd = new FormData(e.currentTarget);
     const payload = {
       name: String(fd.get("name") || "").trim(),
@@ -317,6 +421,9 @@ export function SupplyCatalogTab() {
       variant_group_name: hasVariants ? (groupName.trim() || null) : null,
       total_quantity: hasVariants && totalQty !== "" ? Number(totalQty) : null,
       quantity_step: hasVariants ? Math.max(1, Number(step) || 50) : 50,
+      stock_group_id: stockGroupId || null,
+      expense_category_id: expenseCategoryId || null,
+      admin_stock_group_id: adminStockGroupId || null,
     };
     if (!payload.name) return toast.error("Nome obrigatório");
     if (hasVariants) {
@@ -325,34 +432,41 @@ export function SupplyCatalogTab() {
       if (options.filter(o => o.name.trim()).length === 0) return toast.error("Cadastre ao menos uma opção");
     }
 
-    let productId = editing?.id;
-    if (editing) {
-      const { error } = await supabase.from("supply_products").update(payload).eq("id", editing.id);
-      if (error) return toast.error(error.message);
-    } else {
-      const { data, error } = await supabase.from("supply_products").insert(payload).select().single();
-      if (error || !data) return toast.error(error?.message ?? "Erro");
-      productId = data.id;
-    }
+    setSaving(true);
+    try {
+      let productId = editing?.id;
+      if (editing) {
+        const { error } = await supabase.from("supply_products").update(payload).eq("id", editing.id);
+        if (error) { toast.error(error.message); return; }
+      } else {
+        const { data, error } = await supabase.from("supply_products").insert(payload).select().single();
+        if (error || !data) { toast.error(error?.message ?? "Erro"); return; }
+        productId = data.id;
+      }
 
-    if (productId) {
-      // Replace options
-      await supabase.from("supply_product_options").delete().eq("product_id", productId);
-      if (hasVariants && options.length) {
-        const rows = options.filter(o => o.name.trim()).map((o, i) => ({
-          product_id: productId!, name: o.name.trim(), sort_order: i, is_active: true,
-        }));
-        if (rows.length) {
-          const { error } = await supabase.from("supply_product_options").insert(rows);
-          if (error) return toast.error(error.message);
+      if (productId) {
+        await supabase.from("supply_product_options").delete().eq("product_id", productId);
+        if (hasVariants && options.length) {
+          const rows = options.filter(o => o.name.trim()).map((o, i) => ({
+            product_id: productId!, name: o.name.trim(), sort_order: i, is_active: true,
+            admin_stock_subgroup_id: o.admin_stock_subgroup_id || null,
+          }));
+          if (rows.length) {
+            const { error } = await supabase.from("supply_product_options").insert(rows);
+            if (error) { toast.error(error.message); return; }
+          }
         }
       }
-    }
 
-    toast.success("Salvo");
-    setOpen(false); setEditing(null);
-    qc.invalidateQueries({ queryKey: ["admin_supply_products"] });
-    qc.invalidateQueries({ queryKey: ["admin_supply_options"] });
+      toast.success("Salvo");
+      setOpen(false); setEditing(null);
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["admin_supply_products"] }),
+        qc.invalidateQueries({ queryKey: ["admin_supply_options"] }),
+      ]);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const remove = async (id: string) => {
@@ -370,16 +484,16 @@ export function SupplyCatalogTab() {
   const addOption = () => {
     const v = newOpt.trim();
     if (!v) return;
-    setOptions(o => [...o, { name: v }]);
+    setOptions(o => [...o, { name: v, admin_stock_subgroup_id: null }]);
     setNewOpt("");
   };
 
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }}>
+        <Dialog open={open} onOpenChange={(v) => { if (saving) return; setOpen(v); if (!v) setEditing(null); }}>
           <DialogTrigger asChild><Button onClick={openNew}><Plus className="w-4 h-4 mr-2" />Novo insumo</Button></DialogTrigger>
-          <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-h-[90vh] overflow-y-auto" onPointerDownOutside={(e) => { if (saving) e.preventDefault(); }} onEscapeKeyDown={(e) => { if (saving) e.preventDefault(); }}>
             <DialogHeader><DialogTitle>{editing ? "Editar" : "Novo"} insumo</DialogTitle></DialogHeader>
             <form onSubmit={save} className="space-y-3">
               <div><Label>Nome</Label><Input name="name" defaultValue={editing?.name} required maxLength={120} /></div>
@@ -388,7 +502,60 @@ export function SupplyCatalogTab() {
                 <div><Label>Preço</Label><Input name="price" type="number" step="0.01" min="0" defaultValue={editing?.price ?? 0} required /></div>
                 <div><Label>Unidade</Label><Input name="unit" defaultValue={editing?.unit ?? "un"} placeholder="un, kg, cx..." /></div>
               </div>
-              <div><Label>URL da imagem (opcional)</Label><Input name="image_url" defaultValue={editing?.image_url ?? ""} /></div>
+              <div className="space-y-2">
+                <Label>Imagem do insumo (opcional)</Label>
+                <div className="flex items-center gap-2">
+                  <Input name="image_url" value={imgUrl} onChange={(e) => setImgUrl(e.target.value)} placeholder="Cole a URL da imagem..." />
+                  <label className="shrink-0">
+                    <input type="file" accept="image/*" className="sr-only" onChange={handleImageUpload} disabled={uploadingImg} />
+                    <Button type="button" variant="outline" size="sm" asChild disabled={uploadingImg}>
+                      <span>{uploadingImg ? "Enviando..." : "Upload"}</span>
+                    </Button>
+                  </label>
+                </div>
+                {imgUrl && (
+                  <div className="flex items-center gap-2">
+                    <img src={imgUrl} alt="Preview" className="w-16 h-16 rounded object-cover border" />
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setImgUrl("")}>Remover</Button>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <Label>Grupo de estoque</Label>
+                <Select value={stockGroupId || "none"} onValueChange={(v) => setStockGroupId(v === "none" ? "" : v)}>
+                  <SelectTrigger><SelectValue placeholder="Não vincular ao estoque" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Não vincular ao estoque</SelectItem>
+                    {stockGroups.map(g => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">Quando o pedido for marcado como entregue, a quantidade entra automaticamente neste grupo no estoque do restaurante.</p>
+              </div>
+
+              <div>
+                <Label>Grupo do estoque admin (fábrica)</Label>
+                <Select value={adminStockGroupId || "none"} onValueChange={(v) => setAdminStockGroupId(v === "none" ? "" : v)}>
+                  <SelectTrigger><SelectValue placeholder="Não vincular ao estoque admin" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Não vincular ao estoque admin</SelectItem>
+                    {adminGroups.map(g => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">Quando o pedido for entregue, cada opção (sabor) descontará a quantidade pedida do subgrupo correspondente no estoque admin.</p>
+              </div>
+
+              <div>
+                <Label>Vincular à categoria de despesa</Label>
+                <Select value={expenseCategoryId || "none"} onValueChange={(v) => setExpenseCategoryId(v === "none" ? "" : v)}>
+                  <SelectTrigger><SelectValue placeholder="Não vincular a despesa" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Não vincular a despesa</SelectItem>
+                    {expenseCategories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">Se vinculado, ao marcar o pedido como entregue será criada automaticamente uma despesa para o restaurante com a descrição igual ao nome deste insumo.</p>
+              </div>
 
               <div className="rounded-lg border p-3 space-y-3 bg-muted/30">
                 <div className="flex items-center justify-between">
@@ -424,14 +591,35 @@ export function SupplyCatalogTab() {
                         <Button type="button" variant="outline" onClick={addOption}>Adicionar</Button>
                       </div>
                       {options.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {options.map((o, i) => (
-                            <Badge key={i} variant="secondary" className="gap-1 pr-1">
-                              {o.name}
-                              <button type="button" onClick={() => setOptions(arr => arr.filter((_, idx) => idx !== i))}
-                                className="hover:bg-destructive/20 rounded p-0.5"><X className="w-3 h-3" /></button>
-                            </Badge>
-                          ))}
+                        <div className="space-y-2 mt-2">
+                          {options.map((o, i) => {
+                            const availSubs = adminSubgroups.filter(s => !adminStockGroupId || s.group_id === adminStockGroupId);
+                            return (
+                              <div key={i} className="flex items-center gap-2 rounded-md border bg-background p-2">
+                                <span className="font-medium text-sm flex-1 truncate">{o.name}</span>
+                                <div className="flex-1">
+                                  <Select
+                                    value={o.admin_stock_subgroup_id ?? "none"}
+                                    onValueChange={(val) => {
+                                      const v = val === "none" ? null : val;
+                                      setOptions(arr => arr.map((x, idx) => idx === i ? { ...x, admin_stock_subgroup_id: v } : x));
+                                    }}
+                                    disabled={!adminStockGroupId}
+                                  >
+                                    <SelectTrigger className="h-8 text-xs">
+                                      <SelectValue placeholder={adminStockGroupId ? "Sem vínculo" : "Selecione o grupo admin"} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="none">{adminStockGroupId ? "Sem vínculo" : "Selecione o grupo admin"}</SelectItem>
+                                      {availSubs.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <button type="button" onClick={() => setOptions(arr => arr.filter((_, idx) => idx !== i))}
+                                  className="hover:bg-destructive/20 rounded p-1"><X className="w-3 h-3" /></button>
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
                     </div>
@@ -439,8 +627,16 @@ export function SupplyCatalogTab() {
                 )}
               </div>
 
-              <DialogFooter><Button type="submit">Salvar</Button></DialogFooter>
+              <DialogFooter><Button type="submit" disabled={saving}>{saving ? "Salvando..." : "Salvar"}</Button></DialogFooter>
             </form>
+            {saving && (
+              <div className="absolute inset-0 z-50 flex items-center justify-center rounded-lg bg-background/70 backdrop-blur-sm cursor-wait">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  Salvando...
+                </div>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
       </div>

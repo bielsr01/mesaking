@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { usePermissions } from "@/hooks/usePermissions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -62,6 +63,8 @@ export function BulkCampaignsPanel({
   scope, restaurantId,
 }: { scope: "restaurant" | "admin"; restaurantId?: string }) {
   const qc = useQueryClient();
+  const { can } = usePermissions(scope === "restaurant" ? restaurantId : undefined);
+  const canEdit = scope === "admin" ? true : can("marketing.bulk.edit");
   const restaurantsQ = useRestaurants();
   const allRest = restaurantsQ.data ?? [];
   const [adminFilter, setAdminFilter] = useState<string[]>([]);
@@ -73,12 +76,18 @@ export function BulkCampaignsPanel({
 
   const { data: campaigns, isLoading } = useQuery({
     queryKey: ["bulk-campaigns", scope, filterKey],
-    enabled: scope === "restaurant" ? !!restaurantId : adminFilter.length > 0,
+    enabled: scope === "restaurant" ? !!restaurantId : true,
     refetchInterval: 5000,
     queryFn: async () => {
       let q = sb.from("bulk_campaigns").select("*").order("created_at", { ascending: false }).limit(200);
-      if (scope === "restaurant") q = q.eq("restaurant_id", restaurantId);
-      else q = q.in("restaurant_id", adminFilter);
+      if (scope === "restaurant") {
+        q = q.eq("restaurant_id", restaurantId);
+      } else if (adminFilter.length > 0) {
+        const ids = adminFilter.map((id) => `"${id}"`).join(",");
+        q = q.or(`is_admin.eq.true,restaurant_id.in.(${ids})`);
+      } else {
+        q = q.eq("is_admin", true);
+      }
       const { data } = await q;
       return data ?? [];
     },
@@ -87,6 +96,7 @@ export function BulkCampaignsPanel({
   const restNameById = useMemo(() => { const m = new Map<string,string>(); allRest.forEach(r=>m.set(r.id,r.name)); return m; }, [allRest]);
 
   const setStatus = async (id: string, status: "running" | "paused") => {
+    if (!canEdit) return toast.error("Sem permissão para alterar campanha");
     const patch: any = { status };
     if (status === "running") patch.started_at = new Date().toISOString();
     const { error } = await sb.from("bulk_campaigns").update(patch).eq("id", id);
@@ -99,6 +109,7 @@ export function BulkCampaignsPanel({
   };
 
   const clearAutoPause = async (id: string) => {
+    if (!canEdit) return toast.error("Sem permissão para alterar campanha");
     const { error } = await sb.from("bulk_campaigns").update({ paused_until: null, sent_in_block: 0 }).eq("id", id);
     if (error) return toast.error(error.message);
     supabase.functions.invoke("bulk-campaign-worker", { body: {} }).catch(() => {});
@@ -107,6 +118,7 @@ export function BulkCampaignsPanel({
   };
 
   const remove = async (id: string) => {
+    if (!canEdit) return toast.error("Sem permissão para excluir campanha");
     const { error } = await sb.from("bulk_campaigns").delete().eq("id", id);
     if (error) return toast.error(error.message);
     toast.success("Removida");
@@ -114,6 +126,7 @@ export function BulkCampaignsPanel({
   };
 
   const handleEdit = async (c: any) => {
+    if (!canEdit) return toast.error("Sem permissão para editar campanha");
     if (c.status === "running") {
       if (!confirm("A campanha está em execução. Ela será pausada para edição. Continuar?")) return;
       const { error } = await sb.from("bulk_campaigns").update({ status: "paused" }).eq("id", c.id);
@@ -139,17 +152,21 @@ export function BulkCampaignsPanel({
             <CardTitle className="flex items-center gap-2"><Send className="w-5 h-5" /> Campanhas</CardTitle>
             <CardDescription>Crie campanhas, selecione contatos e envie via Evolution API.</CardDescription>
           </div>
+          {canEdit && (
           <Button onClick={() => setCreateOpen(true)} disabled={scope === "admin" && adminFilter.length === 0}>
             <Plus className="w-4 h-4 mr-1" /> Nova campanha
           </Button>
+          )}
         </CardHeader>
         <CardContent>
-          {scope === "admin" && adminFilter.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">Selecione ao menos um restaurante.</div>
-          ) : isLoading ? (
+          {isLoading ? (
             <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
           ) : (campaigns ?? []).length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">Nenhuma campanha ainda.</div>
+            <div className="text-center py-12 text-muted-foreground">
+              {scope === "admin" && adminFilter.length === 0
+                ? "Nenhuma campanha. Selecione restaurantes para criar uma nova ou ver campanhas das lojas."
+                : "Nenhuma campanha ainda."}
+            </div>
           ) : (
             <div className="border rounded-lg overflow-x-auto">
               <Table>
@@ -169,7 +186,7 @@ export function BulkCampaignsPanel({
                     return (
                       <TableRow key={c.id}>
                         <TableCell className="font-medium">{c.name}</TableCell>
-                        {scope === "admin" && <TableCell><Badge variant="outline">{restNameById.get(c.restaurant_id) ?? "—"}</Badge></TableCell>}
+                        {scope === "admin" && <TableCell>{c.is_admin ? <Badge>Admin</Badge> : <Badge variant="outline">{restNameById.get(c.restaurant_id) ?? "—"}</Badge>}</TableCell>}
                         <TableCell>
                           <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_BADGE[c.status]}`}>{STATUS_LABEL[c.status]}</span>
                           {c.status === "running" && isAutoPaused && (
@@ -184,29 +201,31 @@ export function BulkCampaignsPanel({
                         <TableCell>{new Date(c.created_at).toLocaleString("pt-BR")}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
-                            {isAutoPaused && (
+                            {canEdit && isAutoPaused && (
                               <Button size="sm" variant="outline" onClick={() => clearAutoPause(c.id)} title="Retomar agora (limpar pausa automática)">
                                 <RotateCcw className="w-3.5 h-3.5 mr-1" /> Retomar agora
                               </Button>
                             )}
-                            {(c.status === "draft" || c.status === "paused") && (
+                            {canEdit && (c.status === "draft" || c.status === "paused") && (
                               <Button size="sm" variant="outline" onClick={() => setStatus(c.id, "running")}>
                                 <Play className="w-3.5 h-3.5 mr-1" /> Play
                               </Button>
                             )}
-                            {c.status === "running" && (
+                            {canEdit && c.status === "running" && (
                               <Button size="sm" variant="outline" onClick={() => setStatus(c.id, "paused")}>
                                 <Pause className="w-3.5 h-3.5 mr-1" /> Pausar
                               </Button>
                             )}
-                            {c.status !== "completed" && (
+                            {canEdit && c.status !== "completed" && (
                               <Button size="sm" variant="outline" onClick={() => handleEdit(c)} title="Editar">
                                 <Pencil className="w-3.5 h-3.5" />
                               </Button>
                             )}
+                            {canEdit && (
                             <Button size="sm" variant="outline" className="text-destructive" onClick={() => remove(c.id)}>
                               <Trash2 className="w-3.5 h-3.5" />
                             </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -261,10 +280,20 @@ function CampaignDialog({
   const [pauseAfter, setPauseAfter] = useState(campaign?.pause_after_messages ?? 0);
   const [pauseMinutes, setPauseMinutes] = useState(campaign?.pause_duration_minutes ?? 0);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(t);
+  }, [search]);
   const [typeFilters, setTypeFilters] = useState<Set<ClientType>>(new Set());
   const [statusFilters, setStatusFilters] = useState<Set<ClientStatus>>(new Set());
+  const [restaurantFilters, setRestaurantFilters] = useState<Set<string>>(new Set());
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [removedRecipientIds, setRemovedRecipientIds] = useState<Set<string>>(new Set());
+  // Sender mode in admin scope: "admin" uses admin's own integration; "restaurant" uses a specific store's integration
+  const [senderMode, setSenderMode] = useState<"admin" | "restaurant">(
+    campaign?.is_admin ? "admin" : "restaurant"
+  );
   const [targetRestaurant, setTargetRestaurant] = useState<string>(
     campaign?.restaurant_id ?? (scope === "restaurant" ? restaurantIds[0] : "")
   );
@@ -273,13 +302,22 @@ function CampaignDialog({
 
   const idsKey = restaurantIds.slice().sort().join(",");
   const { data: customers, isLoading } = useQuery({
-    queryKey: ["bulk-pick-customers", idsKey],
+    queryKey: ["bulk-pick-customers", idsKey, debouncedSearch],
     enabled: open && restaurantIds.length > 0,
     queryFn: async () => {
-      const { data } = await sb.from("customers")
+      let q = sb.from("customers")
         .select("id, restaurant_id, name, phone, orders_count, last_order_at")
-        .in("restaurant_id", restaurantIds)
-        .order("created_at", { ascending: false }).limit(2000);
+        .in("restaurant_id", restaurantIds);
+      const term = debouncedSearch;
+      if (term.length >= 2) {
+        const safe = term.replace(/[%,()]/g, " ").trim();
+        const digits = term.replace(/\D/g, "");
+        const phonePattern = digits.length >= 2 ? "%" + digits.split("").join("%") + "%" : null;
+        const orParts = [`name.ilike.%${safe}%`];
+        if (phonePattern) orParts.push(`phone.ilike.${phonePattern}`);
+        q = q.or(orParts.join(","));
+      }
+      const { data } = await q.order("created_at", { ascending: false }).limit(2000);
       return data ?? [];
     },
   });
@@ -310,6 +348,7 @@ function CampaignDialog({
 
   const filtered = (customers ?? []).filter((c: any) => {
     if (existingCustomerIds.has(c.id)) return false;
+    if (restaurantFilters.size > 0 && !restaurantFilters.has(c.restaurant_id)) return false;
     if (search.trim()) {
       const q = search.toLowerCase();
       if (!(c.name?.toLowerCase().includes(q) || unmaskPhone(c.phone || "").includes(unmaskPhone(search)))) return false;
@@ -324,6 +363,7 @@ function CampaignDialog({
   const clearAll = () => setPicked(new Set());
   const toggleType = (t: ClientType) => { const n = new Set(typeFilters); n.has(t) ? n.delete(t) : n.add(t); setTypeFilters(n); };
   const toggleStatus = (s: ClientStatus) => { const n = new Set(statusFilters); n.has(s) ? n.delete(s) : n.add(s); setStatusFilters(n); };
+  const toggleRestaurant = (id: string) => { const n = new Set(restaurantFilters); n.has(id) ? n.delete(id) : n.add(id); setRestaurantFilters(n); };
 
   const toggleRemoveRecipient = (rid: string) => {
     const n = new Set(removedRecipientIds);
@@ -341,7 +381,7 @@ function CampaignDialog({
 
     if (!isEdit && newChosen.length === 0) return toast.error("Selecione ao menos 1 contato");
     if (isEdit && newTotal === 0) return toast.error("A campanha precisa ter ao menos 1 contato");
-    if (!isEdit && scope === "admin" && !targetRestaurant) return toast.error("Selecione o restaurante para a campanha");
+    if (!isEdit && scope === "admin" && senderMode === "restaurant" && !targetRestaurant) return toast.error("Selecione o restaurante para a campanha");
 
     setSaving(true);
     try {
@@ -376,9 +416,10 @@ function CampaignDialog({
         }
         toast.success("Campanha atualizada");
       } else {
+        const useAdmin = scope === "admin" && senderMode === "admin";
         const { data: camp, error } = await sb.from("bulk_campaigns").insert({
-          restaurant_id: scope === "admin" ? targetRestaurant : restaurantIds[0],
-          is_admin: false,
+          restaurant_id: useAdmin ? null : (scope === "admin" ? targetRestaurant : restaurantIds[0]),
+          is_admin: useAdmin,
           name, message_text: text, media_url: mediaUrl || null,
           interval_seconds: interval,
           pause_after_messages: pauseAfter,
@@ -421,17 +462,31 @@ function CampaignDialog({
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Promoção de quarta" />
             </div>
             {!isEdit && scope === "admin" && (
-              <div className="space-y-2 col-span-2">
-                <Label>Restaurante (envio será feito pela instância dele)</Label>
-                <RSelect value={targetRestaurant} onValueChange={setTargetRestaurant}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>
-                    {restaurantIds.map((id) => (
-                      <SelectItem key={id} value={id}>{restNameById.get(id) ?? id}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </RSelect>
-              </div>
+              <>
+                <div className="space-y-2 col-span-2">
+                  <Label>Enviar usando a integração de</Label>
+                  <RSelect value={senderMode} onValueChange={(v) => setSenderMode(v as "admin" | "restaurant")}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">Minha integração (Admin)</SelectItem>
+                      <SelectItem value="restaurant">Integração de um restaurante</SelectItem>
+                    </SelectContent>
+                  </RSelect>
+                </div>
+                {senderMode === "restaurant" && (
+                  <div className="space-y-2 col-span-2">
+                    <Label>Restaurante (envio será feito pela instância dele)</Label>
+                    <RSelect value={targetRestaurant} onValueChange={setTargetRestaurant}>
+                      <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                      <SelectContent>
+                        {restaurantIds.map((id) => (
+                          <SelectItem key={id} value={id}>{restNameById.get(id) ?? id}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </RSelect>
+                  </div>
+                )}
+              </>
             )}
             <div className="space-y-2 col-span-2">
               <Label>Mensagem</Label>
@@ -550,7 +605,7 @@ function CampaignDialog({
                 <PopoverTrigger asChild>
                   <Button variant="outline" size="sm">
                     <Filter className="w-4 h-4 mr-1" /> Filtros
-                    {(typeFilters.size + statusFilters.size) > 0 && <Badge variant="secondary" className="ml-2">{typeFilters.size + statusFilters.size}</Badge>}
+                    {(typeFilters.size + statusFilters.size + restaurantFilters.size) > 0 && <Badge variant="secondary" className="ml-2">{typeFilters.size + statusFilters.size + restaurantFilters.size}</Badge>}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-72" align="start">
@@ -573,8 +628,21 @@ function CampaignDialog({
                         </label>
                       ))}
                     </div>
-                    {(typeFilters.size + statusFilters.size > 0) && (
-                      <Button variant="ghost" size="sm" className="w-full" onClick={() => { setTypeFilters(new Set()); setStatusFilters(new Set()); }}>
+                    {scope === "admin" && restaurantIds.length > 1 && (
+                      <div>
+                        <div className="text-xs font-semibold uppercase text-muted-foreground mb-2">Restaurante</div>
+                        <div className="max-h-40 overflow-y-auto space-y-1">
+                          {restaurantIds.map((id) => (
+                            <label key={id} className="flex items-center gap-2 text-sm cursor-pointer">
+                              <Checkbox checked={restaurantFilters.has(id)} onCheckedChange={() => toggleRestaurant(id)} />
+                              <span className="truncate">{restNameById.get(id) ?? id}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {(typeFilters.size + statusFilters.size + restaurantFilters.size > 0) && (
+                      <Button variant="ghost" size="sm" className="w-full" onClick={() => { setTypeFilters(new Set()); setStatusFilters(new Set()); setRestaurantFilters(new Set()); }}>
                         <X className="w-4 h-4 mr-1" /> Limpar filtros
                       </Button>
                     )}

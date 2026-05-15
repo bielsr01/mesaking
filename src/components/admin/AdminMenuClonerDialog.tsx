@@ -23,6 +23,7 @@ interface Prod { id: string; category_id: string | null; name: string; descripti
 interface Grp { id: string; name: string; min_select: number; max_select: number; sort_order: number; is_active: boolean }
 interface Item { id: string; group_id: string; name: string; extra_price: number; sort_order: number; is_active: boolean }
 interface POG { product_id: string; group_id: string; sort_order: number }
+interface PSC { product_id: string; group_id: string; quantity_per_unit: number }
 
 export function AdminMenuClonerDialog({ destRestaurantId, open, onOpenChange }: { destRestaurantId: string; open: boolean; onOpenChange: (v: boolean) => void }) {
   const qc = useQueryClient();
@@ -39,6 +40,7 @@ export function AdminMenuClonerDialog({ destRestaurantId, open, onOpenChange }: 
   const [grps, setGrps] = useState<Grp[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [pogs, setPogs] = useState<POG[]>([]);
+  const [pscs, setPscs] = useState<PSC[]>([]);
 
   const [selCats, setSelCats] = useState<Set<string>>(new Set());
   const [selProds, setSelProds] = useState<Set<string>>(new Set());
@@ -47,7 +49,7 @@ export function AdminMenuClonerDialog({ destRestaurantId, open, onOpenChange }: 
   useEffect(() => {
     if (!open) return;
     setSourceId("");
-    setCats([]); setProds([]); setGrps([]); setItems([]); setPogs([]);
+    setCats([]); setProds([]); setGrps([]); setItems([]); setPogs([]); setPscs([]);
     setSelCats(new Set()); setSelProds(new Set()); setSelGrps(new Set());
     setMode("all");
   }, [open]);
@@ -64,12 +66,15 @@ export function AdminMenuClonerDialog({ destRestaurantId, open, onOpenChange }: 
       const groups = (gR.data ?? []) as Grp[];
       const groupIds = groups.map((g) => g.id);
       const productIds = ((pR.data ?? []) as Prod[]).map((p) => p.id);
-      const [iR, poR] = await Promise.all([
+      const [iR, poR, pscR] = await Promise.all([
         groupIds.length
           ? sb.from("option_items").select("*").in("group_id", groupIds).order("sort_order")
           : Promise.resolve({ data: [] }),
         productIds.length
           ? sb.from("product_option_groups").select("*").in("product_id", productIds)
+          : Promise.resolve({ data: [] }),
+        productIds.length
+          ? sb.from("product_stock_consumption").select("product_id,group_id,quantity_per_unit").in("product_id", productIds)
           : Promise.resolve({ data: [] }),
       ]);
       setCats((cR.data ?? []) as Cat[]);
@@ -77,6 +82,7 @@ export function AdminMenuClonerDialog({ destRestaurantId, open, onOpenChange }: 
       setGrps(groups);
       setItems((iR.data ?? []) as Item[]);
       setPogs((poR.data ?? []) as POG[]);
+      setPscs((pscR.data ?? []) as PSC[]);
       setLoading(false);
     })();
   }, [sourceId]);
@@ -198,6 +204,14 @@ export function AdminMenuClonerDialog({ destRestaurantId, open, onOpenChange }: 
         if (linkRows.length) {
           const { error: pe } = await sb.from("product_option_groups").insert(linkRows);
           if (pe) throw pe;
+        }
+
+        const consumption = pscs.filter((c) => c.product_id === p.id);
+        if (consumption.length) {
+          const { error: ce } = await sb.from("product_stock_consumption").insert(
+            consumption.map((c) => ({ product_id: data.id, group_id: c.group_id, quantity_per_unit: c.quantity_per_unit }))
+          );
+          if (ce) throw ce;
         }
       }
 
