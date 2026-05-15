@@ -9,6 +9,7 @@ const SCRIPT_SRC = "https://widgets.ifood.com.br/widget.js";
 declare global {
   interface Window {
     iFoodWidget?: { init: (opts: { widgetId: string; merchantIds: string[] }) => void };
+    __ifoodWidgetInitedFor?: string | null;
   }
 }
 
@@ -45,13 +46,19 @@ export function IfoodWidgetMount({ restaurantId }: { restaurantId?: string }) {
   useEffect(() => {
     let cancelled = false;
     if (!enabled || !merchantId) return;
+    // Sessão do widget é mantida pela própria iFood (cookies/localStorage do
+    // domínio widgets.ifood.com.br). Para não derrubar a sessão a cada
+    // remount/login, só chamamos init() uma vez por merchantId no ciclo da página.
+    if (window.__ifoodWidgetInitedFor === merchantId) return;
     (async () => {
       await ensureScript();
       if (cancelled) return;
       const tryInit = (attempts = 0) => {
+        if (window.__ifoodWidgetInitedFor === merchantId) return;
         if (window.iFoodWidget?.init) {
           try {
             window.iFoodWidget.init({ widgetId: WIDGET_ID, merchantIds: [merchantId] });
+            window.__ifoodWidgetInitedFor = merchantId;
           } catch (e) {
             console.warn("iFood widget init error", e);
           }
