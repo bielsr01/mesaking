@@ -164,6 +164,7 @@ export function PdvDialog({
         setServiceFeeType(d.serviceFeeType ?? "percent");
         setServiceFeeValue(Number(d.serviceFeeValue) || 0);
         setPayment(d.payment ?? null);
+        setChangeForInput(d.changeForInput ?? "");
       }
     } catch { /* noop */ }
   }, [open, restaurantId]);
