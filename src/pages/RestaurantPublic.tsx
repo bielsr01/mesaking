@@ -78,7 +78,8 @@ export default function RestaurantPublic() {
       (linkOrder[l.product_id] ??= {})[g.id] = l.sort_order ?? 0;
     });
     Object.keys(idx).forEach((pid) => idx[pid].sort((a, b) => (linkOrder[pid]?.[a.id] ?? 0) - (linkOrder[pid]?.[b.id] ?? 0)));
-    return { cats, prods, idx };
+    const suggestionIds = ((suggRes.data ?? []) as any[]).map((r) => r.product_id as string);
+    return { cats, prods, idx, suggestionIds };
   };
 
   useEffect(() => {
