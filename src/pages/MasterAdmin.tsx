@@ -32,7 +32,7 @@ import { AdminFinanceAdminPanel } from "@/components/admin/AdminFinanceAdminPane
 import { AdminIfoodFeesPanel } from "@/components/admin/AdminIfoodFeesPanel";
 import { AdminQueroFeesPanel } from "@/components/admin/AdminQueroFeesPanel";
 import { BulkCampaignsPanel } from "@/components/dashboard/BulkCampaignsPanel";
-import { EvolutionIntegrationCard } from "@/components/dashboard/EvolutionIntegrationCard";
+import { AdminConnectionsPanel } from "@/components/admin/AdminConnectionsPanel";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePendingSupplyOrdersCount } from "@/hooks/usePendingCounts";
 import { BrasiliaClock } from "@/components/BrasiliaClock";
@@ -354,11 +354,7 @@ export default function MasterAdmin() {
             {view === "marketing:coupons" && <AdminCouponsPanel />}
             {view === "marketing:bulk" && <BulkCampaignsPanel scope="admin" />}
             {view === "loyalty" && <AdminLoyaltyPanel />}
-            {view === "settings:integrations" && (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <EvolutionIntegrationCard scope="admin" />
-              </div>
-            )}
+            {view === "settings:integrations" && <AdminConnectionsPanel />}
             {view === "settings:ifood-fees" && <AdminIfoodFeesPanel />}
             {view === "settings:quero-fees" && <AdminQueroFeesPanel />}
             {view === "supply:catalog" && <SupplyCatalogTab />}
