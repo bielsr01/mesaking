@@ -46,7 +46,7 @@ const SECTIONS: Array<{ key: keyof Permissions; label: string; rows: Row[] }> = 
     { path: "orders.channels.pickup", label: "Ver pedidos Retirada" },
     { path: "orders.channels.ifood", label: "Ver pedidos iFood", statusChannel: "ifood" },
     { path: "orders.change_status", label: "Mudar Status" },
-    { path: "orders.edit", label: "Pode editar/excluir pedido" },
+    { path: "orders.edit", label: "Pode editar/excluir pedido (exclusão apenas antes do aceite)" },
     { path: "orders.create_pdv_order", label: "Pode fazer um novo pedido PDV" },
   ]},
   { key: "menu", label: "Cardápio", rows: [
