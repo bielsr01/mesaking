@@ -132,6 +132,7 @@ export function PdvDialog({
 
   const [payment, setPayment] = useState<PaymentMethod | null>(null);
   const [paymentShake, setPaymentShake] = useState(false);
+  const [changeForInput, setChangeForInput] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [activeCat, setActiveCat] = useState<string | null>(null);
   const productsScrollRef = useRef<HTMLDivElement | null>(null);
