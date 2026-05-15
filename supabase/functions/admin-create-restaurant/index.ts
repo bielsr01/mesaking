@@ -86,14 +86,22 @@ Deno.serve(async (req) => {
       const evoKey = Deno.env.get("EVOLUTION_API_KEY") || "";
       if (evoUrl && evoKey) {
         const base = evoUrl.replace(/\/+$/, "").replace(/\/manager$/i, "");
-        const short = rest.id.replace(/-/g, "").slice(0, 8);
-        const rand = Math.random().toString(36).slice(2, 8);
-        const instanceName = `mk_${short}_${rand}`;
-        const r = await fetch(`${base}/instance/create`, {
+        const slugSan = String(slug).normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+          .toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 40);
+        let instanceName = slugSan ? `mk_${slugSan}` : `mk_${rest.id.replace(/-/g, "").slice(0, 6)}`;
+        let r = await fetch(`${base}/instance/create`, {
           method: "POST",
           headers: { "Content-Type": "application/json", apikey: evoKey },
           body: JSON.stringify({ instanceName, integration: "WHATSAPP-BAILEYS", qrcode: true }),
         });
+        if (!r.ok && (r.status === 403 || r.status === 409)) {
+          instanceName = `${instanceName}_${Math.random().toString(36).slice(2, 6)}`;
+          r = await fetch(`${base}/instance/create`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", apikey: evoKey },
+            body: JSON.stringify({ instanceName, integration: "WHATSAPP-BAILEYS", qrcode: true }),
+          });
+        }
         const txt = await r.text();
         let json: any = null;
         try { json = txt ? JSON.parse(txt) : null; } catch { /* ignore */ }
