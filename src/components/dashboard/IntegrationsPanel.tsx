@@ -7,21 +7,6 @@ import { WhatsAppConnectionCard } from "./WhatsAppConnectionCard";
 const sb = supabase as any;
 
 export function IntegrationsPanel({ restaurantId }: { restaurantId: string }) {
-  // Evolution
-  const evolution = useQuery({
-    queryKey: ["evolution-integration", "restaurant", restaurantId],
-    queryFn: async () => {
-      const { data } = await sb.from("evolution_integrations").select("id,enabled,api_url,api_key,instance_name,last_status").eq("restaurant_id", restaurantId).maybeSingle();
-      return data ?? null;
-    },
-  });
-  const evoStatus: IntegrationStatus = evolution.isLoading
-    ? "loading"
-    : !evolution.data || !evolution.data.api_url || !evolution.data.api_key || !evolution.data.instance_name
-    ? "not_configured"
-    : evolution.data.enabled ? "connected" : "disabled";
-  const evoLabel = evoStatus === "connected" ? `Conectado · ${evolution.data?.last_status ?? "ok"}` : undefined;
-
   // iHub
   const ihub = useQuery({
     queryKey: ["ihub-integration", restaurantId],
@@ -53,32 +38,10 @@ export function IntegrationsPanel({ restaurantId }: { restaurantId: string }) {
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        As configurações destas integrações são feitas pelo administrador. Aqui você pode verificar se a conexão está funcionando.
+        Conecte aqui o WhatsApp da sua loja e veja o status das integrações com iFood e Quero Delivery.
       </p>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <IntegrationStatusCard
-          title="Evolution API (WhatsApp)"
-          description="Envio de mensagens em massa"
-          icon={<MessageCircle className="w-6 h-6 text-green-600" />}
-          iconBgClassName="bg-green-500/10"
-          status={evoStatus}
-          statusLabel={evoLabel}
-          dialogClassName="max-w-3xl max-h-[90vh] overflow-y-auto"
-          extraContent={evoStatus !== "not_configured" ? <EvolutionMessagesPanel restaurantId={restaurantId} /> : null}
-          onVerify={async () => {
-            if (!evolution.data?.id) return { ok: false, message: "Não configurado" };
-            const { data, error } = await supabase.functions.invoke("evolution-send", {
-              body: { action: "verify", integrationId: evolution.data.id },
-            });
-            if (error) return { ok: false, message: error.message };
-            if ((data as any)?.ok) {
-              const state = (data as any)?.data?.instance?.state ?? "ok";
-              evolution.refetch();
-              return { ok: true, message: `Conectado — estado: ${state}` };
-            }
-            return { ok: false, message: `Falha (${(data as any)?.status ?? "?"})` };
-          }}
-        />
+        <WhatsAppConnectionCard restaurantId={restaurantId} />
 
         <IntegrationStatusCard
           title="iHub (iFood)"
