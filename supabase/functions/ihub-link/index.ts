@@ -156,7 +156,51 @@ Deno.serve(async (req) => {
       });
     }
 
-    return new Response(JSON.stringify({ error: "Unknown action" }), {
+    if (action === "verify-delivery-code") {
+      if (!orderId || !code) {
+        return new Response(JSON.stringify({ ok: false, error: "orderId e code são obrigatórios" }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (!integration.merchant_id) {
+        return new Response(JSON.stringify({ ok: false, error: "Loja iFood não vinculada a este restaurante" }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const r = await fetch(`${IHUB_BASE}/orders/verify-delivery-code`, {
+        method: "POST",
+        headers: { ...authHdr, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          domain,
+          merchantId: integration.merchant_id,
+          orderId,
+          code: String(code).trim(),
+        }),
+      });
+      const text = await r.text();
+      let data: any; try { data = JSON.parse(text); } catch { data = { raw: text }; }
+      if (!r.ok || data?.success === false) {
+        console.error("ihub verify-delivery-code failed", { status: r.status, data });
+        return new Response(JSON.stringify({
+          ok: false,
+          error: data?.message ?? data?.error ?? "Código de entrega inválido",
+          status: r.status,
+          data,
+        }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      // Marca pedido como entregue
+      await supabase
+        .from("orders")
+        .update({ status: "delivered" })
+        .eq("id", orderId)
+        .eq("restaurant_id", restaurantId);
+      return new Response(JSON.stringify({ ok: true, ...data }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {
