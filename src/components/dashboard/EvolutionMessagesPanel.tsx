@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { MessageCircle, Save, History } from "lucide-react";
+import { MessageCircle, Save, History, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -29,6 +29,9 @@ const EVENTS: { key: string; title: string; defaultTemplate: string }[] = [
 
 type Template = { id?: string; restaurant_id: string; event_key: string; enabled: boolean; template: string; delay_minutes: number };
 
+const DEFAULT_POPUP_TEXT = "Obrigado pelo seu pedido! Que tal mandar um oi pra gente no WhatsApp? 💚";
+const DEFAULT_POPUP_MSG = "Olá! Acabei de fazer o pedido #{{pedido}} no valor de {{total}}. Meu nome é {{nome}}.";
+
 export function EvolutionMessagesPanel({ restaurantId }: { restaurantId: string }) {
   const qc = useQueryClient();
   const { data: rows } = useQuery({
@@ -40,7 +43,22 @@ export function EvolutionMessagesPanel({ restaurantId }: { restaurantId: string 
     },
   });
 
+  const { data: popup } = useQuery({
+    queryKey: ["evolution-popup", restaurantId],
+    queryFn: async () => {
+      const { data } = await sb.from("evolution_integrations")
+        .select("id, popup_enabled, popup_text, popup_whatsapp_message")
+        .eq("restaurant_id", restaurantId)
+        .maybeSingle();
+      return data ?? null;
+    },
+  });
+
   const [drafts, setDrafts] = useState<Record<string, Template>>({});
+  const [popupEnabled, setPopupEnabled] = useState(false);
+  const [popupText, setPopupText] = useState(DEFAULT_POPUP_TEXT);
+  const [popupMsg, setPopupMsg] = useState(DEFAULT_POPUP_MSG);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const map: Record<string, Template> = {};
@@ -57,28 +75,52 @@ export function EvolutionMessagesPanel({ restaurantId }: { restaurantId: string 
     setDrafts(map);
   }, [rows, restaurantId]);
 
+  useEffect(() => {
+    setPopupEnabled(!!popup?.popup_enabled);
+    setPopupText(popup?.popup_text ?? DEFAULT_POPUP_TEXT);
+    setPopupMsg(popup?.popup_whatsapp_message ?? DEFAULT_POPUP_MSG);
+  }, [popup]);
+
   const update = (key: string, patch: Partial<Template>) =>
     setDrafts((d) => ({ ...d, [key]: { ...d[key], ...patch } }));
 
-  const save = async (key: string) => {
-    const row = drafts[key];
-    if (!row) return;
-    const payload = {
-      restaurant_id: restaurantId,
-      event_key: row.event_key,
-      enabled: row.enabled,
-      template: row.template,
-      delay_minutes: Math.max(0, Number(row.delay_minutes) || 0),
-    };
-    const { error } = await sb
-      .from("evolution_message_templates")
-      .upsert(payload, { onConflict: "restaurant_id,event_key" });
-    if (error) {
-      toast.error("Erro ao salvar: " + error.message);
-      return;
+  const saveAll = async () => {
+    setSaving(true);
+    try {
+      // Save all templates
+      const payloads = EVENTS.map((ev) => {
+        const row = drafts[ev.key];
+        return {
+          restaurant_id: restaurantId,
+          event_key: ev.key,
+          enabled: !!row?.enabled,
+          template: row?.template ?? ev.defaultTemplate,
+          delay_minutes: Math.max(0, Number(row?.delay_minutes) || 0),
+        };
+      });
+      const { error: tplErr } = await sb
+        .from("evolution_message_templates")
+        .upsert(payloads, { onConflict: "restaurant_id,event_key" });
+      if (tplErr) throw tplErr;
+
+      // Save popup (only if integration row exists)
+      if (popup?.id) {
+        const { error: popErr } = await sb.from("evolution_integrations")
+          .update({ popup_enabled: popupEnabled, popup_text: popupText, popup_whatsapp_message: popupMsg })
+          .eq("id", popup.id);
+        if (popErr) throw popErr;
+      } else if (popupEnabled) {
+        toast.warning("Configure a integração WhatsApp antes de ativar o popup.");
+      }
+
+      toast.success("Configurações salvas");
+      qc.invalidateQueries({ queryKey: ["evolution-templates", restaurantId] });
+      qc.invalidateQueries({ queryKey: ["evolution-popup", restaurantId] });
+    } catch (e: any) {
+      toast.error("Erro ao salvar: " + (e.message || e));
+    } finally {
+      setSaving(false);
     }
-    toast.success("Mensagem salva");
-    qc.invalidateQueries({ queryKey: ["evolution-templates", restaurantId] });
   };
 
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -107,7 +149,45 @@ export function EvolutionMessagesPanel({ restaurantId }: { restaurantId: string 
         <code className="text-xs bg-muted px-1 rounded">{"{{total}}"}</code>
       </p>
 
-      <PopupConfigSection restaurantId={restaurantId} />
+      <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="font-medium">Popup pós-pedido (cardápio)</div>
+            <div className="text-xs text-muted-foreground">
+              Ao finalizar o pedido, exibe um popup convidando o cliente a abrir o WhatsApp da loja com mensagem pronta.
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Label className="text-sm">Ativo</Label>
+            <Switch checked={popupEnabled} onCheckedChange={setPopupEnabled} />
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-sm">Texto do popup</Label>
+          <Textarea
+            rows={2}
+            value={popupText}
+            onChange={(e) => setPopupText(e.target.value)}
+            disabled={!popupEnabled}
+            placeholder="Mensagem mostrada na tela do cliente"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-sm">Mensagem pré-preenchida no WhatsApp</Label>
+          <Textarea
+            rows={3}
+            value={popupMsg}
+            onChange={(e) => setPopupMsg(e.target.value)}
+            disabled={!popupEnabled}
+            placeholder="Texto que abrirá no WhatsApp ao clicar no botão"
+          />
+          <p className="text-[11px] text-muted-foreground">
+            Variáveis: <code className="bg-background px-1 rounded">{"{{nome}}"}</code>{" "}
+            <code className="bg-background px-1 rounded">{"{{pedido}}"}</code>{" "}
+            <code className="bg-background px-1 rounded">{"{{total}}"}</code>. O número usado é o telefone cadastrado da loja.
+          </p>
+        </div>
+      </div>
 
       <div className="space-y-3">
         {EVENTS.map((ev) => {
@@ -146,13 +226,17 @@ export function EvolutionMessagesPanel({ restaurantId }: { restaurantId: string 
                     disabled={!d.enabled}
                   />
                 </div>
-                <Button size="sm" onClick={() => save(ev.key)} className="ml-auto">
-                  <Save className="w-4 h-4 mr-1" /> Salvar
-                </Button>
               </div>
             </div>
           );
         })}
+      </div>
+
+      <div className="sticky bottom-0 -mx-5 -mb-5 px-5 py-3 bg-background/95 backdrop-blur border-t flex justify-end">
+        <Button onClick={saveAll} disabled={saving} className="bg-green-600 hover:bg-green-700">
+          {saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}
+          Salvar todas as configurações
+        </Button>
       </div>
     </Card>
   );
@@ -238,101 +322,5 @@ function DispatchHistoryDialog({
         </div>
       </DialogContent>
     </Dialog>
-  );
-}
-
-function PopupConfigSection({ restaurantId }: { restaurantId: string }) {
-  const qc = useQueryClient();
-  const { data } = useQuery({
-    queryKey: ["evolution-popup", restaurantId],
-    queryFn: async () => {
-      const { data } = await sb.from("evolution_integrations")
-        .select("id, popup_enabled, popup_text, popup_whatsapp_message")
-        .eq("restaurant_id", restaurantId)
-        .maybeSingle();
-      return data ?? null;
-    },
-  });
-
-  const DEFAULT_TEXT = "Obrigado pelo seu pedido! Que tal mandar um oi pra gente no WhatsApp? 💚";
-  const DEFAULT_MSG = "Olá! Acabei de fazer o pedido #{{pedido}} no valor de {{total}}. Meu nome é {{nome}}.";
-
-  const [enabled, setEnabled] = useState(false);
-  const [text, setText] = useState(DEFAULT_TEXT);
-  const [msg, setMsg] = useState(DEFAULT_MSG);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    setEnabled(!!data?.popup_enabled);
-    setText(data?.popup_text ?? DEFAULT_TEXT);
-    setMsg(data?.popup_whatsapp_message ?? DEFAULT_MSG);
-  }, [data]);
-
-  const save = async () => {
-    setSaving(true);
-    try {
-      if (data?.id) {
-        const { error } = await sb.from("evolution_integrations")
-          .update({ popup_enabled: enabled, popup_text: text, popup_whatsapp_message: msg })
-          .eq("id", data.id);
-        if (error) throw error;
-      } else {
-        toast.error("Configure a integração WhatsApp antes de ativar o popup.");
-        return;
-      }
-      toast.success("Popup salvo");
-      qc.invalidateQueries({ queryKey: ["evolution-popup", restaurantId] });
-    } catch (e: any) {
-      toast.error(e.message || "Erro ao salvar");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <div className="font-medium">Popup pós-pedido (cardápio)</div>
-          <div className="text-xs text-muted-foreground">
-            Ao finalizar o pedido, exibe um popup convidando o cliente a abrir o WhatsApp da loja com mensagem pronta.
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Label className="text-sm">Ativo</Label>
-          <Switch checked={enabled} onCheckedChange={setEnabled} />
-        </div>
-      </div>
-      <div className="space-y-1.5">
-        <Label className="text-sm">Texto do popup</Label>
-        <Textarea
-          rows={2}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          disabled={!enabled}
-          placeholder="Mensagem mostrada na tela do cliente"
-        />
-      </div>
-      <div className="space-y-1.5">
-        <Label className="text-sm">Mensagem pré-preenchida no WhatsApp</Label>
-        <Textarea
-          rows={3}
-          value={msg}
-          onChange={(e) => setMsg(e.target.value)}
-          disabled={!enabled}
-          placeholder="Texto que abrirá no WhatsApp ao clicar no botão"
-        />
-        <p className="text-[11px] text-muted-foreground">
-          Variáveis: <code className="bg-background px-1 rounded">{"{{nome}}"}</code>{" "}
-          <code className="bg-background px-1 rounded">{"{{pedido}}"}</code>{" "}
-          <code className="bg-background px-1 rounded">{"{{total}}"}</code>. O número usado é o telefone cadastrado da loja.
-        </p>
-      </div>
-      <div className="flex justify-end">
-        <Button size="sm" onClick={save} disabled={saving}>
-          <Save className="w-4 h-4 mr-1" /> Salvar popup
-        </Button>
-      </div>
-    </div>
   );
 }
