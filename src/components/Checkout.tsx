@@ -54,6 +54,8 @@ type RestaurantInfo = {
   address_state?: string | null;
   service_delivery?: boolean | null;
   service_pickup?: boolean | null;
+  phone?: string | null;
+  whatsapp_url?: string | null;
 };
 
 type Step = 1 | 2 | 3;
