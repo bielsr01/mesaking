@@ -107,6 +107,8 @@ export function EvolutionMessagesPanel({ restaurantId }: { restaurantId: string 
         <code className="text-xs bg-muted px-1 rounded">{"{{total}}"}</code>
       </p>
 
+      <PopupConfigSection restaurantId={restaurantId} />
+
       <div className="space-y-3">
         {EVENTS.map((ev) => {
           const d = drafts[ev.key];
@@ -236,5 +238,101 @@ function DispatchHistoryDialog({
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function PopupConfigSection({ restaurantId }: { restaurantId: string }) {
+  const qc = useQueryClient();
+  const { data } = useQuery({
+    queryKey: ["evolution-popup", restaurantId],
+    queryFn: async () => {
+      const { data } = await sb.from("evolution_integrations")
+        .select("id, popup_enabled, popup_text, popup_whatsapp_message")
+        .eq("restaurant_id", restaurantId)
+        .maybeSingle();
+      return data ?? null;
+    },
+  });
+
+  const DEFAULT_TEXT = "Obrigado pelo seu pedido! Que tal mandar um oi pra gente no WhatsApp? 💚";
+  const DEFAULT_MSG = "Olá! Acabei de fazer o pedido #{{pedido}} no valor de {{total}}. Meu nome é {{nome}}.";
+
+  const [enabled, setEnabled] = useState(false);
+  const [text, setText] = useState(DEFAULT_TEXT);
+  const [msg, setMsg] = useState(DEFAULT_MSG);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setEnabled(!!data?.popup_enabled);
+    setText(data?.popup_text ?? DEFAULT_TEXT);
+    setMsg(data?.popup_whatsapp_message ?? DEFAULT_MSG);
+  }, [data]);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      if (data?.id) {
+        const { error } = await sb.from("evolution_integrations")
+          .update({ popup_enabled: enabled, popup_text: text, popup_whatsapp_message: msg })
+          .eq("id", data.id);
+        if (error) throw error;
+      } else {
+        toast.error("Configure a integração WhatsApp antes de ativar o popup.");
+        return;
+      }
+      toast.success("Popup salvo");
+      qc.invalidateQueries({ queryKey: ["evolution-popup", restaurantId] });
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao salvar");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <div className="font-medium">Popup pós-pedido (cardápio)</div>
+          <div className="text-xs text-muted-foreground">
+            Ao finalizar o pedido, exibe um popup convidando o cliente a abrir o WhatsApp da loja com mensagem pronta.
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Label className="text-sm">Ativo</Label>
+          <Switch checked={enabled} onCheckedChange={setEnabled} />
+        </div>
+      </div>
+      <div className="space-y-1.5">
+        <Label className="text-sm">Texto do popup</Label>
+        <Textarea
+          rows={2}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          disabled={!enabled}
+          placeholder="Mensagem mostrada na tela do cliente"
+        />
+      </div>
+      <div className="space-y-1.5">
+        <Label className="text-sm">Mensagem pré-preenchida no WhatsApp</Label>
+        <Textarea
+          rows={3}
+          value={msg}
+          onChange={(e) => setMsg(e.target.value)}
+          disabled={!enabled}
+          placeholder="Texto que abrirá no WhatsApp ao clicar no botão"
+        />
+        <p className="text-[11px] text-muted-foreground">
+          Variáveis: <code className="bg-background px-1 rounded">{"{{nome}}"}</code>{" "}
+          <code className="bg-background px-1 rounded">{"{{pedido}}"}</code>{" "}
+          <code className="bg-background px-1 rounded">{"{{total}}"}</code>. O número usado é o telefone cadastrado da loja.
+        </p>
+      </div>
+      <div className="flex justify-end">
+        <Button size="sm" onClick={save} disabled={saving}>
+          <Save className="w-4 h-4 mr-1" /> Salvar popup
+        </Button>
+      </div>
+    </div>
   );
 }

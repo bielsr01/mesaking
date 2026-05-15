@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, RefreshCw, CheckCircle2, XCircle, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -88,9 +87,6 @@ function EvolutionDialog({
   const [apiKey, setApiKey] = useState(existing?.api_key ?? "");
   const [instance, setInstance] = useState(existing?.instance_name ?? "");
   const [enabled, setEnabled] = useState(existing?.enabled ?? true);
-  const [popupEnabled, setPopupEnabled] = useState<boolean>(existing?.popup_enabled ?? false);
-  const [popupText, setPopupText] = useState<string>(existing?.popup_text ?? "Obrigado pelo seu pedido! Que tal mandar um oi pra gente no WhatsApp? 💚");
-  const [popupMsg, setPopupMsg] = useState<string>(existing?.popup_whatsapp_message ?? "Olá! Acabei de fazer o pedido #{{pedido}} no valor de {{total}}. Meu nome é {{nome}}.");
   const [verifying, setVerifying] = useState(false);
   const [saving, setSaving] = useState(false);
   const [verifyResult, setVerifyResult] = useState<{ ok: boolean; msg: string } | null>(null);
@@ -100,9 +96,6 @@ function EvolutionDialog({
     setApiKey(existing?.api_key ?? "");
     setInstance(existing?.instance_name ?? "");
     setEnabled(existing?.enabled ?? true);
-    setPopupEnabled(existing?.popup_enabled ?? false);
-    setPopupText(existing?.popup_text ?? "Obrigado pelo seu pedido! Que tal mandar um oi pra gente no WhatsApp? 💚");
-    setPopupMsg(existing?.popup_whatsapp_message ?? "Olá! Acabei de fazer o pedido #{{pedido}} no valor de {{total}}. Meu nome é {{nome}}.");
   }, [existing, open]);
 
   const handleVerify = async () => {
@@ -129,11 +122,6 @@ function EvolutionDialog({
         is_admin: scope === "admin",
         restaurant_id: scope === "admin" ? null : restaurantId,
       };
-      if (scope === "restaurant") {
-        payload.popup_enabled = popupEnabled;
-        payload.popup_text = popupText;
-        payload.popup_whatsapp_message = popupMsg;
-      }
       if (existing?.id) {
         const { error } = await sb.from("evolution_integrations").update(payload).eq("id", existing.id);
         if (error) throw error;
@@ -191,47 +179,6 @@ function EvolutionDialog({
             <p className="text-xs text-muted-foreground">Última verificação: {new Date(existing.last_check_at).toLocaleString("pt-BR")}</p>
           )}
 
-          {scope === "restaurant" && (
-            <div className="space-y-3 rounded-lg border p-4 bg-muted/30">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <Label className="cursor-pointer text-sm font-semibold">Popup pós-pedido (cardápio)</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Ao finalizar o pedido, exibe um popup convidando o cliente a abrir o WhatsApp da loja.
-                  </p>
-                </div>
-                <Switch checked={popupEnabled} onCheckedChange={setPopupEnabled} />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs">Texto do popup</Label>
-                <Textarea
-                  rows={2}
-                  value={popupText}
-                  onChange={(e) => setPopupText(e.target.value)}
-                  disabled={!popupEnabled}
-                  placeholder="Mensagem exibida ao cliente na tela"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs">Mensagem pré-preenchida no WhatsApp</Label>
-                <Textarea
-                  rows={3}
-                  value={popupMsg}
-                  onChange={(e) => setPopupMsg(e.target.value)}
-                  disabled={!popupEnabled}
-                  placeholder="Texto que será aberto no WhatsApp ao clicar no botão"
-                />
-                <p className="text-[11px] text-muted-foreground">
-                  Variáveis: <code className="bg-background px-1 rounded">{"{{nome}}"}</code>{" "}
-                  <code className="bg-background px-1 rounded">{"{{pedido}}"}</code>{" "}
-                  <code className="bg-background px-1 rounded">{"{{total}}"}</code>
-                </p>
-                <p className="text-[11px] text-muted-foreground">
-                  O número usado é o telefone cadastrado da loja.
-                </p>
-              </div>
-            </div>
-          )}
         </div>
 
         <DialogFooter className="flex-col sm:flex-row gap-2">
