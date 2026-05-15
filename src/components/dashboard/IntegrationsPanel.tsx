@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { MessageCircle, Utensils, Truck } from "lucide-react";
+import { Utensils, Truck } from "lucide-react";
 import { IntegrationStatusCard, IntegrationStatus } from "./IntegrationStatusCard";
-import { EvolutionMessagesPanel } from "./EvolutionMessagesPanel";
+import { WhatsAppConnectionCard } from "./WhatsAppConnectionCard";
 
 const sb = supabase as any;
 
