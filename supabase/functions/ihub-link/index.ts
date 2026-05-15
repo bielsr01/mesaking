@@ -167,6 +167,20 @@ Deno.serve(async (req) => {
           status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+
+      // Idempotência: se o webhook do iFood já marcou como entregue, não chama de novo.
+      const { data: existing } = await supabase
+        .from("orders")
+        .select("status")
+        .eq("id", orderId)
+        .eq("restaurant_id", restaurantId)
+        .maybeSingle();
+      if (existing?.status === "delivered") {
+        return new Response(JSON.stringify({ ok: true, alreadyDelivered: true }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       const r = await fetch(`${IHUB_BASE}/orders/verify-delivery-code`, {
         method: "POST",
         headers: { ...authHdr, "Content-Type": "application/json" },
@@ -181,6 +195,22 @@ Deno.serve(async (req) => {
       let data: any; try { data = JSON.parse(text); } catch { data = { raw: text }; }
       if (!r.ok || data?.success === false) {
         console.error("ihub verify-delivery-code failed", { status: r.status, data });
+        // O iHub às vezes retorna 500 mesmo quando o iFood processa com sucesso e dispara o
+        // webhook CONCLUDED. Aguarda o webhook chegar (até ~3s) e checa o status do pedido.
+        for (let i = 0; i < 6; i++) {
+          await new Promise((res) => setTimeout(res, 500));
+          const { data: recheck } = await supabase
+            .from("orders")
+            .select("status")
+            .eq("id", orderId)
+            .eq("restaurant_id", restaurantId)
+            .maybeSingle();
+          if (recheck?.status === "delivered") {
+            return new Response(JSON.stringify({ ok: true, viaWebhook: true }), {
+              status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        }
         return new Response(JSON.stringify({
           ok: false,
           error: data?.message ?? data?.error ?? "Código de entrega inválido",
