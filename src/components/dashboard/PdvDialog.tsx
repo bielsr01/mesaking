@@ -327,6 +327,17 @@ export function PdvDialog({
       toast.error("Selecione uma forma de pagamento");
       return;
     }
+    let changeForValue: number | null = null;
+    if (payment === "cash" && changeForInput.trim() !== "") {
+      const parsed = Number(changeForInput.replace(",", "."));
+      if (!isNaN(parsed) && parsed > 0) {
+        if (parsed < total) {
+          toast.error("O valor para troco deve ser maior ou igual ao total");
+          return;
+        }
+        changeForValue = parsed;
+      }
+    }
     setSubmitting(true);
     const phoneDigits = unmaskPhone(customerPhone);
     const trimmedName = customerName.trim() || "Cliente Balcão";
@@ -337,6 +348,7 @@ export function PdvDialog({
       customer_name: trimmedName,
       customer_phone: phoneDigits || "0000000000",
       payment_method: payment,
+      change_for: changeForValue,
       subtotal,
       discount: discountApplied,
       service_fee: serviceFeeApplied,
