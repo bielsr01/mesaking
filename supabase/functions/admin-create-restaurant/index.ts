@@ -145,7 +145,7 @@ Deno.serve(async (req) => {
         try { json = txt ? JSON.parse(txt) : null; } catch { /* ignore */ }
         if (r.ok && json) {
           const instanceToken = json?.hash || json?.instance?.hash || json?.token || null;
-          const qr = json?.qrcode?.base64 || json?.qrcode || null;
+          const qr = await buildPureQrImage(json);
           await admin.from("evolution_integrations").insert({
             restaurant_id: rest.id,
             api_url: base,
