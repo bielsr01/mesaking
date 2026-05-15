@@ -63,6 +63,8 @@ export function IntegrationsPanel({ restaurantId }: { restaurantId: string }) {
           iconBgClassName="bg-green-500/10"
           status={evoStatus}
           statusLabel={evoLabel}
+          dialogClassName="max-w-3xl max-h-[90vh] overflow-y-auto"
+          extraContent={evoStatus !== "not_configured" ? <EvolutionMessagesPanel restaurantId={restaurantId} /> : null}
           onVerify={async () => {
             if (!evolution.data?.id) return { ok: false, message: "Não configurado" };
             const { data, error } = await supabase.functions.invoke("evolution-send", {
@@ -109,10 +111,6 @@ export function IntegrationsPanel({ restaurantId }: { restaurantId: string }) {
           }}
         />
       </div>
-
-      {evoStatus !== "not_configured" && (
-        <EvolutionMessagesPanel restaurantId={restaurantId} />
-      )}
     </div>
   );
 }

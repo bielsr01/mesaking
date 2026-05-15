@@ -15,6 +15,8 @@ export function IntegrationStatusCard({
   status,
   statusLabel,
   onVerify,
+  extraContent,
+  dialogClassName,
 }: {
   title: string;
   description: string;
@@ -23,6 +25,8 @@ export function IntegrationStatusCard({
   status: IntegrationStatus;
   statusLabel?: string;
   onVerify: () => Promise<{ ok: boolean; message: string }>;
+  extraContent?: ReactNode;
+  dialogClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [verifying, setVerifying] = useState(false);
@@ -66,7 +70,7 @@ export function IntegrationStatusCard({
       </Card>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className={dialogClassName ?? "max-w-md"}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">{icon}{title}</DialogTitle>
             <DialogDescription>{description}</DialogDescription>
@@ -89,6 +93,8 @@ export function IntegrationStatusCard({
                 <span className="break-all">{result.message}</span>
               </div>
             )}
+
+            {extraContent && <div className="pt-2">{extraContent}</div>}
           </div>
 
           <DialogFooter className="gap-2">
