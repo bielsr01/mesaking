@@ -14,12 +14,55 @@ const supabase = createClient(
 );
 
 const IHUB_BASE = "https://ihub.arcn.com.br/api";
+const DELIVERY_CONFIRMED_CODES = ["CONCLUDED", "DELIVERY_DROP_CODE_VALIDATION_SUCCESS"];
+const VERIFY_DELIVERY_WAIT_MS = 15_000;
+const VERIFY_DELIVERY_POLL_MS = 500;
 
 function normalizeDomain(domain: string | null | undefined) {
   return (domain || "")
     .trim()
     .replace(/^https?:\/\//i, "")
     .replace(/\/+$/, "");
+}
+
+async function checkDeliveryConfirmed(params: {
+  restaurantId: string;
+  orderId?: string | null;
+  externalOrderId: string;
+}) {
+  let orderQuery = supabase
+    .from("orders")
+    .select("id,status")
+    .eq("restaurant_id", params.restaurantId)
+    .eq("external_source", "ifood");
+
+  orderQuery = params.orderId
+    ? orderQuery.eq("id", params.orderId)
+    : orderQuery.eq("external_order_id", params.externalOrderId);
+
+  const { data: order } = await orderQuery.maybeSingle();
+  if (order?.status === "delivered") return { confirmed: true, source: "order" };
+
+  const { data: event } = await supabase
+    .from("ihub_events")
+    .select("full_code,code,created_at")
+    .eq("restaurant_id", params.restaurantId)
+    .eq("order_id", params.externalOrderId)
+    .in("full_code", DELIVERY_CONFIRMED_CODES)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (event && order?.id) {
+    await supabase
+      .from("orders")
+      .update({ status: "delivered", updated_at: new Date().toISOString() })
+      .eq("id", order.id)
+      .eq("restaurant_id", params.restaurantId);
+    return { confirmed: true, source: "event", eventCode: event.full_code ?? event.code };
+  }
+
+  return { confirmed: false };
 }
 
 Deno.serve(async (req) => {
