@@ -414,15 +414,22 @@ export function PdvDialog({
         if (loyaltyOptIn && loyaltySettings?.enabled && phoneDigits.length >= 10) {
           try {
             const sb = supabase as any;
-            const phoneFmt = formatPhone(customerPhone);
+            const { normalizeBrPhone } = await import("@/lib/format");
+            const phoneFmt = normalizeBrPhone(customerPhone);
             const { data: existing } = await sb.from("loyalty_members").select("id")
               .eq("restaurant_id", restaurantId).eq("phone", phoneFmt).maybeSingle();
             let memberId = existing?.id as string | undefined;
             if (!memberId) {
-              const { data: created } = await sb.from("loyalty_members")
+              const { data: created, error: insErr } = await sb.from("loyalty_members")
                 .insert({ restaurant_id: restaurantId, name: trimmedName, phone: phoneFmt, points: 0 })
                 .select("id").single();
-              memberId = created?.id;
+              if (insErr && (insErr.code === "23505" || /duplicate/i.test(insErr.message ?? ""))) {
+                const { data: again } = await sb.from("loyalty_members").select("id")
+                  .eq("restaurant_id", restaurantId).eq("phone", phoneFmt).maybeSingle();
+                memberId = again?.id;
+              } else {
+                memberId = created?.id;
+              }
             }
             const earned = Math.floor(subtotal * Number(loyaltySettings.points_per_real || 0));
             if (memberId && earned > 0) {
