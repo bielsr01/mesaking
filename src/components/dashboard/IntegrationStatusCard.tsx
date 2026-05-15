@@ -15,6 +15,8 @@ export function IntegrationStatusCard({
   status,
   statusLabel,
   onVerify,
+  extraContent,
+  dialogClassName,
 }: {
   title: string;
   description: string;
@@ -23,6 +25,8 @@ export function IntegrationStatusCard({
   status: IntegrationStatus;
   statusLabel?: string;
   onVerify: () => Promise<{ ok: boolean; message: string }>;
+  extraContent?: ReactNode;
+  dialogClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [verifying, setVerifying] = useState(false);
