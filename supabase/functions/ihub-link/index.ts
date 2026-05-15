@@ -14,12 +14,55 @@ const supabase = createClient(
 );
 
 const IHUB_BASE = "https://ihub.arcn.com.br/api";
+const DELIVERY_CONFIRMED_CODES = ["CONCLUDED", "DELIVERY_DROP_CODE_VALIDATION_SUCCESS"];
+const VERIFY_DELIVERY_WAIT_MS = 15_000;
+const VERIFY_DELIVERY_POLL_MS = 500;
 
 function normalizeDomain(domain: string | null | undefined) {
   return (domain || "")
     .trim()
     .replace(/^https?:\/\//i, "")
     .replace(/\/+$/, "");
+}
+
+async function checkDeliveryConfirmed(params: {
+  restaurantId: string;
+  orderId?: string | null;
+  externalOrderId: string;
+}) {
+  let orderQuery = supabase
+    .from("orders")
+    .select("id,status")
+    .eq("restaurant_id", params.restaurantId)
+    .eq("external_source", "ifood");
+
+  orderQuery = params.orderId
+    ? orderQuery.eq("id", params.orderId)
+    : orderQuery.eq("external_order_id", params.externalOrderId);
+
+  const { data: order } = await orderQuery.maybeSingle();
+  if (order?.status === "delivered") return { confirmed: true, source: "order" };
+
+  const { data: event } = await supabase
+    .from("ihub_events")
+    .select("full_code,code,created_at")
+    .eq("restaurant_id", params.restaurantId)
+    .eq("order_id", params.externalOrderId)
+    .in("full_code", DELIVERY_CONFIRMED_CODES)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (event && order?.id) {
+    await supabase
+      .from("orders")
+      .update({ status: "delivered", updated_at: new Date().toISOString() })
+      .eq("id", order.id)
+      .eq("restaurant_id", params.restaurantId);
+    return { confirmed: true, source: "event", eventCode: event.full_code ?? event.code };
+  }
+
+  return { confirmed: false };
 }
 
 Deno.serve(async (req) => {
@@ -168,15 +211,10 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Idempotência: se o webhook do iFood já marcou como entregue, não chama de novo.
-      const { data: existing } = await supabase
-        .from("orders")
-        .select("status")
-        .eq("id", orderId)
-        .eq("restaurant_id", restaurantId)
-        .maybeSingle();
-      if (existing?.status === "delivered") {
-        return new Response(JSON.stringify({ ok: true, alreadyDelivered: true }), {
+      // Idempotência: se o pedido ou webhook já confirmou a entrega, não chama a API de novo.
+      const alreadyConfirmed = await checkDeliveryConfirmed({ restaurantId, orderId, externalOrderId });
+      if (alreadyConfirmed.confirmed) {
+        return new Response(JSON.stringify({ ok: true, alreadyDelivered: true, confirmation: alreadyConfirmed }), {
           status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -195,18 +233,14 @@ Deno.serve(async (req) => {
       let data: any; try { data = JSON.parse(text); } catch { data = { raw: text }; }
       if (!r.ok || data?.success === false) {
         console.error("ihub verify-delivery-code failed", { status: r.status, data });
-        // O iHub às vezes retorna 500 mesmo quando o iFood processa com sucesso e dispara o
-        // webhook CONCLUDED. Aguarda o webhook chegar (até ~3s) e checa o status do pedido.
-        for (let i = 0; i < 6; i++) {
-          await new Promise((res) => setTimeout(res, 500));
-          const { data: recheck } = await supabase
-            .from("orders")
-            .select("status")
-            .eq("id", orderId)
-            .eq("restaurant_id", restaurantId)
-            .maybeSingle();
-          if (recheck?.status === "delivered") {
-            return new Response(JSON.stringify({ ok: true, viaWebhook: true }), {
+        // O iHub pode retornar 500 "Failed to verify delivery code" mesmo depois do iFood
+        // aceitar o código e enviar DDCS/CONCLUDED. Nesse caso, o webhook é a fonte de verdade.
+        const deadline = Date.now() + VERIFY_DELIVERY_WAIT_MS;
+        while (Date.now() < deadline) {
+          await new Promise((res) => setTimeout(res, VERIFY_DELIVERY_POLL_MS));
+          const confirmed = await checkDeliveryConfirmed({ restaurantId, orderId, externalOrderId });
+          if (confirmed.confirmed) {
+            return new Response(JSON.stringify({ ok: true, viaWebhook: true, confirmation: confirmed, ihub_status: r.status }), {
               status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
             });
           }
