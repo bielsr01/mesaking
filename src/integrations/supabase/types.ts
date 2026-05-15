@@ -1257,6 +1257,30 @@ export type Database = {
         }
         Relationships: []
       }
+      order_suggestions: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string
+          restaurant_id: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id: string
+          restaurant_id: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string
+          restaurant_id?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           address_cep: string | null
