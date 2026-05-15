@@ -93,6 +93,8 @@ export function IntegrationStatusCard({
                 <span className="break-all">{result.message}</span>
               </div>
             )}
+
+            {extraContent && <div className="pt-2">{extraContent}</div>}
           </div>
 
           <DialogFooter className="gap-2">
