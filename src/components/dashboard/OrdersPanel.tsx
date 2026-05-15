@@ -13,7 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { brl, orderStatusLabel, getNextStatus, paymentLabel, paymentLabelFor, formatPhone, orderTypeLabel } from "@/lib/format";
 import { toast } from "sonner";
 import { Bike, ChefHat, Clock, History, MapPin, MessageCircle, Phone, Plus, Printer, Store, Trash2, User, X, Utensils } from "lucide-react";
-import { IfoodEventsTab } from "./IfoodEventsTab";
+
 import { usePermissions } from "@/hooks/usePermissions";
 import { OrderDetailsDialog } from "./OrderDetailsDialog";
 import { OrderHistoryDialog } from "./OrderHistoryDialog";
@@ -85,16 +85,6 @@ interface OptionGroupRow { id: string; name: string; sort_order: number | null; 
 interface OptionItemRow { id: string; group_id: string; name: string; sort_order: number | null; }
 interface ProductOptionGroupRow { product_id: string; group_id: string; sort_order: number | null; }
 
-const FILTERS = [
-  { value: "pending", label: "Novos" },
-  { value: "preparing", label: "Em preparo" },
-  { value: "out_for_delivery", label: "Em entrega" },
-  { value: "awaiting_pickup", label: "Aguardando retirada" },
-  { value: "delivered", label: "Entregues" },
-  { value: "cancelled", label: "Cancelados" },
-  { value: "active", label: "Ativos" },
-  { value: "all", label: "Todos" },
-];
 
 export const ordersKey = (rid: string) => ["orders", rid] as const;
 
@@ -126,16 +116,10 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const canEditOrders = can("orders.edit");
   const canViewFeeBreakdown = can("finance.view_fee_breakdown");
   const canCreatePdv = can("orders.create_pdv_order");
-  type Channel = "delivery" | "pdv" | "ifood" | "quero";
-  const initialChannel: Channel = canPdv ? "pdv" : canDelivery ? "delivery" : canIfood ? "ifood" : canQuero ? "quero" : "pdv";
+  type Channel = "all" | "delivery" | "pdv" | "ifood" | "quero";
+  const initialChannel: Channel = "all";
   const [channel, setChannel] = useState<Channel>(initialChannel);
-  const statusKey = (ch: Channel, s: string) => `orders.statuses.${ch}.${s}`;
-  const firstAllowedStatus = (ch: Channel, preferred: string[]) => {
-    for (const p of preferred) if (can(statusKey(ch, p))) return p;
-    const list = ch === "pdv" ? ["preparing", "delivered", "cancelled", "all"] : ["pending", "preparing", "out_for_delivery", "awaiting_pickup", "delivered", "cancelled", "active", "all"];
-    return list.find((s) => can(statusKey(ch, s))) ?? (ch === "pdv" ? "preparing" : "pending");
-  };
-  const [filter, setFilter] = useState(() => firstAllowedStatus(initialChannel, initialChannel === "pdv" ? ["preparing"] : ["pending"]));
+  const statusKey = (ch: Channel, s: string) => `orders.statuses.${ch === "all" ? "delivery" : ch}.${s}`;
   const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
   const [queroCancelInfoOpen, setQueroCancelInfoOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
@@ -146,7 +130,6 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const [pdvOpen, setPdvOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [deliveryBlink, setDeliveryBlink] = useState(false);
-  const [ifoodView, setIfoodView] = useState<"orders" | "events">("orders");
   const [pendingAction, setPendingAction] = useState<Record<string, boolean>>({});
   const [ifoodCodeTarget, setIfoodCodeTarget] = useState<Order | null>(null);
   const [ifoodCodeValue, setIfoodCodeValue] = useState("");
@@ -318,22 +301,13 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
       .channel(`orders-${restaurantId}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` }, (payload) => {
         const row = payload.new as Order;
-        if (row?.order_type === "pdv") {
-          setChannel("pdv");
-          setFilter("preparing");
-        } else if (row?.external_source === "ifood") {
-          setChannel("ifood");
-          setIfoodView("orders");
-          setFilter("pending");
-        } else if (row?.external_source === "quero") {
-          setChannel("quero");
-          setFilter("pending");
-        } else {
+        if (row?.external_source === "ifood") {
+          // não troca canal automaticamente — usuário pode estar no "Todos"
+        } else if (row?.order_type !== "pdv" && row?.external_source !== "quero") {
           setChannel((cur) => {
-            if (cur !== "delivery") setDeliveryBlink(true);
+            if (cur !== "delivery" && cur !== "all") setDeliveryBlink(true);
             return cur;
           });
-          setFilter("pending");
         }
         qc.invalidateQueries({ queryKey: ordersKey(restaurantId) });
       })
@@ -447,11 +421,6 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
       toast.error(error.message);
     } else {
       toast.success(`Pedido #${o.order_number} → "${orderStatusLabel[next]}"`);
-      // Acompanha o card para a nova aba (evita a sensação de "sumiu" quando
-      // o usuário está num filtro específico, ex.: "Em preparo" → "Em entrega").
-      if (filter !== "all" && filter !== "active" && can(statusKey(channel, next))) {
-        setFilter(next);
-      }
     }
     setPending(o.id, false);
   };
@@ -522,17 +491,12 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   };
 
   const channelOrders = orders.filter((o) => {
+    if (channel === "all") return true;
     if (channel === "pdv") return o.order_type === "pdv";
     if (channel === "ifood") return o.external_source === "ifood";
     if (channel === "quero") return o.external_source === "quero";
     // delivery: tudo que não é pdv e não é ifood/quero
     return o.order_type !== "pdv" && o.external_source !== "ifood" && o.external_source !== "quero";
-  });
-
-  const filtered = channelOrders.filter((o) => {
-    if (filter === "all") return true;
-    if (filter === "active") return !["delivered", "cancelled"].includes(o.status);
-    return o.status === filter;
   });
 
   const statusColor = (s: string) => {
@@ -542,17 +506,6 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     return "bg-primary text-primary-foreground";
   };
 
-  const counts: Record<string, number> = {
-    pending: channelOrders.filter((o) => o.status === "pending").length,
-    preparing: channelOrders.filter((o) => o.status === "preparing").length,
-    out_for_delivery: channelOrders.filter((o) => o.status === "out_for_delivery").length,
-    awaiting_pickup: channelOrders.filter((o) => o.status === "awaiting_pickup").length,
-    delivered: channelOrders.filter((o) => o.status === "delivered").length,
-    cancelled: channelOrders.filter((o) => o.status === "cancelled").length,
-    active: channelOrders.filter((o) => !["delivered", "cancelled"].includes(o.status)).length,
-    all: channelOrders.length,
-  };
-
   const deliveryCount = orders.filter((o) => o.order_type !== "pdv" && o.external_source !== "ifood" && o.external_source !== "quero").length;
   const deliveryPendingCount = orders.filter((o) => o.order_type !== "pdv" && o.external_source !== "ifood" && o.external_source !== "quero" && o.status === "pending").length;
   const pdvCount = orders.filter((o) => o.order_type === "pdv").length;
@@ -560,40 +513,189 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const ifoodPendingCount = orders.filter((o) => o.external_source === "ifood" && o.status === "pending").length;
   const queroCount = orders.filter((o) => o.external_source === "quero").length;
   const queroPendingCount = orders.filter((o) => o.external_source === "quero" && o.status === "pending").length;
+  const allPendingCount = deliveryPendingCount + ifoodPendingCount + queroPendingCount;
 
-  // Filtra abas de status conforme permissão por canal
-  const baseFilters = channel === "pdv"
-    ? FILTERS.filter((f) => ["preparing", "delivered", "cancelled", "all"].includes(f.value))
-    : FILTERS;
-  const visibleFilters = baseFilters.filter((f) => can(statusKey(channel, f.value)));
+  const pendingOrders = channelOrders.filter((o) => o.status === "pending");
+  const preparingOrders = channelOrders.filter((o) => o.status === "preparing");
+  const readyOrders = channelOrders.filter((o) => o.status === "awaiting_pickup");
+  const outForDeliveryOrders = channelOrders.filter((o) => o.status === "out_for_delivery");
+  const finalizedOrders = channelOrders.filter((o) => o.status === "delivered" || o.status === "cancelled");
 
-  useEffect(() => {
-    if (visibleFilters.length > 0 && !visibleFilters.find((f) => f.value === filter)) {
-      setFilter(visibleFilters[0].value);
-    }
-  }, [channel, filter, visibleFilters]);
+  const renderCard = (o: Order) => {
+    const isPickup = o.order_type === "pickup";
+    const isPdv = o.order_type === "pdv";
+    const next = getNextStatus(o.status, o.order_type);
+    return (
+      <Card key={o.id} className="shadow-soft cursor-pointer hover:bg-accent/30 transition-colors" onClick={() => setDetailsTarget(o)}>
+        <CardContent className="p-2.5 space-y-2" onClick={(e) => {
+          const t = e.target as HTMLElement;
+          if (t.closest('button,a,[role="button"]')) e.stopPropagation();
+        }}>
+          <div className={`px-2 py-1 rounded-md flex items-center gap-1.5 text-[11px] font-semibold ${isPdv ? "bg-success/15 text-success border border-success/30" : isPickup ? "bg-accent/20 text-accent-foreground border border-accent/40" : o.external_source === "ifood" ? "bg-orange-100 text-orange-700 border border-orange-200" : o.external_source === "quero" ? "bg-blue-100 text-blue-700 border border-blue-200" : "bg-primary/10 text-primary border border-primary/20"}`}>
+            {isPdv ? <Store className="w-3 h-3" /> : isPickup ? <Store className="w-3 h-3" /> : <Bike className="w-3 h-3" />}
+            <span className="truncate">{o.external_source === "ifood" ? "iFood" : o.external_source === "quero" ? "Quero" : (orderTypeLabel[o.order_type] ?? "Delivery")}</span>
+          </div>
+
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <div className="font-semibold text-sm flex items-center gap-1.5 flex-wrap">
+                <User className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">{o.customer_name}</span>
+                <Badge variant="outline" className="font-mono text-[10px] px-1 py-0">#{o.order_number}</Badge>
+              </div>
+              <div className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                <Clock className="w-3 h-3" />
+                {new Date(o.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                {o.external_source !== "ifood" && waLink(o.customer_phone) && (
+                  <a
+                    href={waLink(o.customer_phone)!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    title="Abrir WhatsApp"
+                    className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-success text-success-foreground hover:opacity-90 transition-opacity ml-1"
+                  >
+                    <MessageCircle className="w-2.5 h-2.5" />
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {!isPdv && !isPickup && (
+            <div className="text-[11px] flex gap-1 text-muted-foreground">
+              <MapPin className="w-3 h-3 mt-0.5 shrink-0" />
+              <div className="min-w-0 leading-tight">
+                {o.address_street}, {o.address_number}{o.address_complement ? ` - ${o.address_complement}` : ""}
+                <div>{o.address_neighborhood}</div>
+              </div>
+            </div>
+          )}
+
+          <div className="border-t pt-2 space-y-0.5 text-[11px]">
+            {(items[o.id] ?? []).slice(0, 3).map((it) => (
+              <div key={it.id} className="flex justify-between gap-2">
+                <span className="truncate"><span className="font-medium">{it.quantity}×</span> {it.product_name}</span>
+              </div>
+            ))}
+            {(items[o.id]?.length ?? 0) > 3 && (
+              <div className="text-muted-foreground italic">+{(items[o.id]!.length - 3)} item(ns)…</div>
+            )}
+          </div>
+
+          <div className="border-t pt-2 flex justify-between items-center gap-2">
+            <div className="text-[10px] text-muted-foreground truncate">
+              {paymentLabelFor(o.payment_method, o.external_source)}
+            </div>
+            <div className="text-base font-bold">{brl(o.total)}</div>
+          </div>
+
+          <div className="flex gap-1 pt-0.5">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 px-2"
+              onClick={() => setPrintTarget(o)}
+              aria-label="Imprimir ticket"
+              title="Imprimir ticket"
+            >
+              <Printer className="w-3.5 h-3.5" />
+            </Button>
+            {!["delivered", "cancelled"].includes(o.status) && canChangeStatus && (
+              <>
+                {next && !(o.external_source === "ifood" && next === "delivered") ? (
+                  <Button size="sm" className="flex-1 h-8 text-xs" onClick={() => advance(o)} disabled={!!pendingAction[o.id]}>
+                    {pendingAction[o.id]
+                      ? "…"
+                      : o.status === "pending"
+                        ? "✓ Aceitar"
+                        : o.external_source === "ifood" && next === "out_for_delivery"
+                          ? "🛵 Enviar"
+                          : `→ ${orderStatusLabel[next]}`}
+                  </Button>
+                ) : o.external_source === "ifood" && o.status === "out_for_delivery" && o.order_type !== "pickup" && o.external_order_id ? (
+                  <Button
+                    size="sm"
+                    className="flex-1 h-8 text-xs"
+                    onClick={() => { setIfoodCodeTarget(o); setIfoodCodeValue(""); }}
+                  >
+                    📦 Confirmar
+                  </Button>
+                ) : null}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 px-2"
+                  onClick={() => {
+                    if (o.external_source === "quero") {
+                      setQueroCancelInfoOpen(true);
+                    } else {
+                      setCancelTarget(o);
+                    }
+                  }}
+                  disabled={!!pendingAction[o.id]}
+                  aria-label="Cancelar pedido"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </Button>
+              </>
+            )}
+            {canEditOrders && o.status !== "delivered" && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 px-2"
+                onClick={() => setDeleteTarget(o)}
+                aria-label="Excluir pedido permanentemente"
+                title="Excluir permanentemente"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-destructive" />
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  const Column = ({ title, count, accent, children }: { title: string; count: number; accent?: string; children: React.ReactNode }) => (
+    <div className="flex flex-col min-w-0 bg-muted/30 rounded-lg border">
+      <div className={`px-3 py-2 border-b flex items-center justify-between rounded-t-lg ${accent ?? "bg-background"}`}>
+        <span className="text-sm font-semibold">{title}</span>
+        <Badge variant="secondary" className="h-5 min-w-5 px-1.5 text-xs">{count}</Badge>
+      </div>
+      <div className="p-2 space-y-2 flex-1 overflow-y-auto max-h-[calc(100vh-260px)]">
+        {count === 0 ? (
+          <div className="text-xs text-muted-foreground text-center py-6">—</div>
+        ) : children}
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Tabs value={channel} onValueChange={(v) => {
-          const nv = v as "delivery" | "pdv" | "ifood" | "quero";
+          const nv = v as Channel;
           setChannel(nv);
-          if (nv === "pdv") setFilter(firstAllowedStatus(nv, ["preparing"]));
-          else if (nv === "delivery") { setFilter(firstAllowedStatus(nv, ["pending"])); setDeliveryBlink(false); }
-          else if (nv === "ifood") { setFilter(firstAllowedStatus(nv, ["pending"])); setIfoodView("orders"); }
-          else if (nv === "quero") { setFilter(firstAllowedStatus(nv, ["pending"])); }
+          if (nv === "delivery" || nv === "all") setDeliveryBlink(false);
         }}>
           <TabsList>
+            <TabsTrigger value="all" className={`gap-2 ${allPendingCount > 0 ? "animate-pulse" : ""}`}>
+              Todos
+              <Badge variant={allPendingCount > 0 ? "destructive" : "secondary"} className="h-5 min-w-5 px-1.5 text-xs">
+                {allPendingCount > 0 ? allPendingCount : orders.length}
+              </Badge>
+            </TabsTrigger>
             {canPdv && (
               <TabsTrigger value="pdv" className="gap-2">
-                <Store className="w-4 h-4" /> PDV (Balcão)
+                <Store className="w-4 h-4" /> PDV
                 <Badge variant="secondary" className="h-5 min-w-5 px-1.5 text-xs">{pdvCount}</Badge>
               </TabsTrigger>
             )}
             {canDelivery && (
               <TabsTrigger value="delivery" className={`gap-2 ${deliveryPendingCount > 0 ? "animate-pulse text-destructive ring-2 ring-destructive" : ""}`}>
-                <Bike className="w-4 h-4" /> Delivery / Retirada
+                <Bike className="w-4 h-4" /> Delivery
                 <Badge variant={deliveryPendingCount > 0 ? "destructive" : "secondary"} className="h-5 min-w-5 px-1.5 text-xs">{deliveryPendingCount > 0 ? deliveryPendingCount : deliveryCount}</Badge>
               </TabsTrigger>
             )}
@@ -605,7 +707,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
             )}
             {canQuero && (
               <TabsTrigger value="quero" className={`gap-2 ${queroPendingCount > 0 ? "animate-pulse text-destructive ring-2 ring-destructive" : ""}`}>
-                <Bike className="w-4 h-4" /> Quero Delivery
+                <Bike className="w-4 h-4" /> Quero
                 <Badge variant={queroPendingCount > 0 ? "destructive" : "secondary"} className="h-5 min-w-5 px-1.5 text-xs">{queroPendingCount > 0 ? queroPendingCount : queroCount}</Badge>
               </TabsTrigger>
             )}
@@ -624,236 +726,35 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
         </div>
       </div>
 
-      {channel === "ifood" && (
-        <Tabs value={ifoodView} onValueChange={(v) => setIfoodView(v as "orders" | "events")}>
-          <TabsList>
-            <TabsTrigger value="orders">Pedidos iFood</TabsTrigger>
-            <TabsTrigger value="events">Histórico de webhooks</TabsTrigger>
-          </TabsList>
-        </Tabs>
-      )}
-
-      {channel === "ifood" && ifoodView === "events" ? (
-        <IfoodEventsTab restaurantId={restaurantId} />
-      ) : (
-      <>
-
-      <Tabs value={filter} onValueChange={setFilter}>
-        <TabsList className="flex-wrap h-auto">
-          {visibleFilters.map((f) => (
-            <TabsTrigger key={f.value} value={f.value} className="gap-2">
-              {f.label}
-              <Badge
-                variant={f.value === "pending" && counts[f.value] > 0 ? "destructive" : "secondary"}
-                className="h-5 min-w-5 px-1.5 text-xs"
-              >
-                {counts[f.value] ?? 0}
-              </Badge>
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
-
       {isLoading && orders.length === 0 ? (
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+          <Skeleton className="h-56 w-full" />
+          <Skeleton className="h-56 w-full" />
           <Skeleton className="h-56 w-full" />
           <Skeleton className="h-56 w-full" />
         </div>
-      ) : filtered.length === 0 ? (
-        <Card><CardContent className="py-12 text-center text-muted-foreground">Nenhum pedido nesta categoria.</CardContent></Card>
       ) : (
-        <div className={channel === "pdv" ? "flex flex-col gap-3" : "grid gap-4 lg:grid-cols-2"}>
-          {filtered.map((o) => {
-            const isPickup = o.order_type === "pickup";
-            const isPdv = o.order_type === "pdv";
-            const next = getNextStatus(o.status, o.order_type);
-            return (
-            <Card key={o.id} className="shadow-soft cursor-pointer hover:bg-accent/30 transition-colors" onClick={() => setDetailsTarget(o)}>
-              <CardContent className="pt-0 space-y-3" onClick={(e) => {
-                const t = e.target as HTMLElement;
-                if (t.closest('button,a,[role="button"]')) e.stopPropagation();
-              }}>
-                <div className="pt-3" />
-                {/* Tipo do pedido — destaque no topo */}
-                <div className={`-mt-2 -mx-1 px-3 py-1.5 rounded-md flex items-center gap-2 text-xs font-semibold ${isPdv ? "bg-success/15 text-success border border-success/30" : isPickup ? "bg-accent/20 text-accent-foreground border border-accent/40" : "bg-primary/10 text-primary border border-primary/20"}`}>
-                  {isPdv ? <Store className="w-3.5 h-3.5" /> : isPickup ? <Store className="w-3.5 h-3.5" /> : <Bike className="w-3.5 h-3.5" />}
-                  {orderTypeLabel[o.order_type] ?? "Delivery"}
-                </div>
-
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <div className="font-semibold flex items-center gap-2 flex-wrap">
-                      <User className="w-4 h-4" />{o.customer_name}
-                      <Badge variant="outline" className="font-mono text-xs">#{o.order_number}</Badge>
-                    </div>
-                    <div className="text-xs text-muted-foreground flex items-center gap-2 mt-1 flex-wrap">
-                      <Clock className="w-3 h-3" />
-                      {new Date(o.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" })}
-                      {" às "}
-                      {new Date(o.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                      <Phone className="w-3 h-3 ml-2" />
-                      {o.external_source === "ifood"
-                        ? (() => {
-                            const raw = String(o.customer_phone ?? "");
-                            const digits = raw.replace(/\D/g, "");
-                            const locMatch = raw.match(/(?:cód[^\w]*|localizador[^\w]*)([A-Za-z0-9]+)/i);
-                            const loc = locMatch?.[1] ?? digits.slice(11);
-                            const base = digits.slice(0, 11) || digits;
-                            const masked = base.length >= 10
-                              ? `${base.slice(0, 4)} ${base.slice(4, 7)} ${base.slice(7, 11)}`
-                              : base;
-                            return loc ? `${masked} (cód: ${loc})` : masked;
-                          })()
-                        : formatPhone(o.customer_phone)}
-                      {o.external_source !== "ifood" && waLink(o.customer_phone) && (
-                        <a
-                          href={waLink(o.customer_phone)!}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          title="Abrir WhatsApp"
-                          className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-success text-success-foreground hover:opacity-90 transition-opacity"
-                        >
-                          <MessageCircle className="w-3 h-3" />
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                  <Badge className={statusColor(o.status)}>
-                    {orderStatusLabel[o.status]}{isPdv && (o.status === "preparing" || o.status === "delivered") ? " Balcão" : ""}
-                  </Badge>
-                </div>
-
-                {isPdv ? (
-                  <div className="text-sm flex gap-2 bg-success/10 rounded-md p-2">
-                    <Store className="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground" />
-                    <div className="text-muted-foreground italic">Venda PDV — atendimento no balcão.</div>
-                  </div>
-                ) : isPickup ? (
-                  <div className="text-sm flex gap-2 bg-accent/10 rounded-md p-2">
-                    <Store className="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground" />
-                    <div className="text-muted-foreground italic">Retirada na loja — cliente irá buscar.</div>
-                  </div>
-                ) : (
-                  <div className="text-sm flex gap-2">
-                    <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground" />
-                    <div className="min-w-0">
-                      {o.address_street}, {o.address_number} {o.address_complement && `- ${o.address_complement}`}<br />
-                      <span className="text-muted-foreground">{o.address_neighborhood} • {o.address_city}</span>
-                      {o.address_notes && <div className="text-xs italic text-muted-foreground mt-0.5">"{o.address_notes}"</div>}
-                      {o.external_source !== "quero" && o.delivery_latitude != null && o.delivery_longitude != null && (
-                        <a
-                          href={`https://www.google.com/maps?q=${o.delivery_latitude},${o.delivery_longitude}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-xs text-primary hover:underline mt-1 inline-flex items-center gap-1 tabular-nums"
-                        >
-                          <MapPin className="w-3 h-3" />
-                          {o.delivery_latitude.toFixed(6)}, {o.delivery_longitude.toFixed(6)} — abrir no mapa
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                <div className="border-t pt-3 space-y-1 text-sm">
-                  {(items[o.id] ?? []).map((it) => (
-                    <div key={it.id} className="flex justify-between gap-2">
-                      <span><span className="font-medium">{it.quantity}×</span> {it.product_name}{it.notes && <em className="text-xs text-muted-foreground"> ({it.notes})</em>}</span>
-                      <span>{brl(it.unit_price * it.quantity)}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="border-t pt-3 flex justify-between items-start gap-2">
-                  <div className="text-xs text-muted-foreground">
-                    {paymentLabelFor(o.payment_method, o.external_source)}
-                    {o.change_for ? ` • troco p/ ${brl(o.change_for)}` : ""}
-                  </div>
-                  <div className="text-right">
-                    <div className="text-lg font-bold">{brl(o.total)}</div>
-                    {o.external_source !== "ifood" && o.external_source !== "quero" && (Number(o.delivery_fee) > 0 || Number(o.service_fee ?? 0) > 0) && (
-                      <div className="text-[11px] text-destructive leading-tight mt-0.5 space-y-0.5">
-                        {Number(o.delivery_fee) > 0 && (
-                          <div>Taxa de entrega: {brl(Number(o.delivery_fee))}</div>
-                        )}
-                        {Number(o.service_fee ?? 0) > 0 && (
-                          <div>Taxas da plataforma: {brl(Number(o.service_fee))}</div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex gap-2 pt-1">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setPrintTarget(o)}
-                    aria-label="Imprimir ticket"
-                    title="Imprimir ticket"
-                  >
-                    <Printer className="w-4 h-4" />
-                  </Button>
-                  {!["delivered", "cancelled"].includes(o.status) && canChangeStatus && (
-                    <>
-                      {next && !(o.external_source === "ifood" && next === "delivered") ? (
-                        <Button size="sm" className="flex-1" onClick={() => advance(o)} disabled={!!pendingAction[o.id]}>
-                          {pendingAction[o.id]
-                            ? "Enviando…"
-                            : o.status === "pending"
-                              ? "✓ Aceitar pedido"
-                              : o.external_source === "ifood" && next === "out_for_delivery"
-                                ? "🛵 Enviar para entrega"
-                                : `→ ${orderStatusLabel[next]}`}
-                        </Button>
-                      ) : o.external_source === "ifood" && o.status === "out_for_delivery" && o.order_type !== "pickup" && o.external_order_id ? (
-                        <Button
-                          size="sm"
-                          className="flex-1"
-                          onClick={() => { setIfoodCodeTarget(o); setIfoodCodeValue(""); }}
-                        >
-                          📦 Confirmar entrega
-                        </Button>
-                      ) : null}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          if (o.external_source === "quero") {
-                            setQueroCancelInfoOpen(true);
-                          } else {
-                            setCancelTarget(o);
-                          }
-                        }}
-                        disabled={!!pendingAction[o.id]}
-                        aria-label="Cancelar pedido"
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </>
-                  )}
-                  {canEditOrders && filter !== "delivered" && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setDeleteTarget(o)}
-                      disabled={o.status === "delivered"}
-                      aria-label="Excluir pedido permanentemente"
-                      title={o.status === "delivered" ? "Pedido entregue não pode ser excluído" : "Excluir permanentemente"}
-                      className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-            );
-          })}
+        <div className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-4 items-start">
+          <div className="flex flex-col gap-3 min-w-0">
+            {pendingOrders.length > 0 && (
+              <Column title="Aguardando aceitação" count={pendingOrders.length} accent="bg-destructive/15 text-destructive">
+                {pendingOrders.map(renderCard)}
+              </Column>
+            )}
+            <Column title="Em preparo" count={preparingOrders.length}>
+              {preparingOrders.map(renderCard)}
+            </Column>
+          </div>
+          <Column title="Pronto" count={readyOrders.length}>
+            {readyOrders.map(renderCard)}
+          </Column>
+          <Column title="Em entrega" count={outForDeliveryOrders.length}>
+            {outForDeliveryOrders.map(renderCard)}
+          </Column>
+          <Column title="Finalizados" count={finalizedOrders.length}>
+            {finalizedOrders.map(renderCard)}
+          </Column>
         </div>
-      )}
-      </>
       )}
 
       <AlertDialog
