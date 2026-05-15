@@ -497,6 +497,9 @@ export type Database = {
           is_admin: boolean
           last_check_at: string | null
           last_status: string | null
+          popup_enabled: boolean
+          popup_text: string | null
+          popup_whatsapp_message: string | null
           restaurant_id: string | null
           updated_at: string
         }
@@ -510,6 +513,9 @@ export type Database = {
           is_admin?: boolean
           last_check_at?: string | null
           last_status?: string | null
+          popup_enabled?: boolean
+          popup_text?: string | null
+          popup_whatsapp_message?: string | null
           restaurant_id?: string | null
           updated_at?: string
         }
@@ -523,6 +529,9 @@ export type Database = {
           is_admin?: boolean
           last_check_at?: string | null
           last_status?: string | null
+          popup_enabled?: boolean
+          popup_text?: string | null
+          popup_whatsapp_message?: string | null
           restaurant_id?: string | null
           updated_at?: string
         }
