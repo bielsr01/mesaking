@@ -36,6 +36,7 @@ export default function RestaurantPublic() {
   const [selectedOpts, setSelectedOpts] = useState<Record<string, string[]>>({}); // groupId -> itemIds
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
+  const [suggestionIds, setSuggestionIds] = useState<string[]>([]);
   const cart = useCart();
 
   const [loading, setLoading] = useState(true);
