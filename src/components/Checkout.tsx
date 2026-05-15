@@ -749,6 +749,7 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
   const stepIndex = isPickup ? (step === 1 ? 1 : 2) : step;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-full sm:max-w-2xl w-screen h-[100dvh] sm:h-[100dvh] max-h-[100dvh] sm:rounded-none p-0 gap-0 flex flex-col overflow-hidden" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader className="px-6 pt-6 pb-3 border-b shrink-0 text-left">
