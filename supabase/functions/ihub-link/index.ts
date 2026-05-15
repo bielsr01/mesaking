@@ -157,8 +157,8 @@ Deno.serve(async (req) => {
     }
 
     if (action === "verify-delivery-code") {
-      if (!orderId || !code) {
-        return new Response(JSON.stringify({ ok: false, error: "orderId e code são obrigatórios" }), {
+      if (!externalOrderId || !code) {
+        return new Response(JSON.stringify({ ok: false, error: "externalOrderId e code são obrigatórios" }), {
           status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
