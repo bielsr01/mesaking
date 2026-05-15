@@ -26,9 +26,18 @@ export interface TicketOrder {
   change_for?: number | null;
   subtotal?: number;
   delivery_fee?: number;
+  discount?: number | null;
+  service_fee?: number | null;
   total: number;
   created_at: string;
 }
+
+export interface TicketOrderOption {
+  group_name: string | null;
+  item_name: string | null;
+  extra_price: number;
+}
+export type TicketOrderOptions = Record<string, TicketOrderOption[]>;
 
 export interface TicketItem {
   id: string;
