@@ -704,6 +704,25 @@ export function PdvDialog({
                       </Button>
                     ))}
                   </div>
+                  {payment === "cash" && (
+                    <div className="mt-2 space-y-1">
+                      <Label className="text-xs">Troco para (opcional)</Label>
+                      <Input
+                        type="number"
+                        inputMode="decimal"
+                        min={0}
+                        step="0.01"
+                        placeholder={`Valor pago (total: ${brl(total)})`}
+                        value={changeForInput}
+                        onChange={(e) => setChangeForInput(e.target.value)}
+                      />
+                      {changeForInput.trim() !== "" && Number(changeForInput.replace(",", ".")) >= total && (
+                        <p className="text-xs text-muted-foreground">
+                          Troco: <strong>{brl(Number(changeForInput.replace(",", ".")) - total)}</strong>
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <Separator />
