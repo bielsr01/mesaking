@@ -25,6 +25,27 @@ function ensureScript(): Promise<void> {
   });
 }
 
+// Remove TUDO que o widget da iFood injeta na página. O widget cria iframes
+// e contêineres flutuantes em <body>; varremos qualquer elemento que
+// referencie "ifood" no id/class/src ou data-attrs.
+export function cleanupIfoodWidgetDom() {
+  try {
+    const matches = new Set<Element>();
+    const sels = [
+      'iframe[src*="ifood"]',
+      '[id*="ifood" i]',
+      '[class*="ifood" i]',
+      '[data-ifood]',
+      '[data-ifood-widget]',
+    ];
+    sels.forEach((s) => {
+      try { document.querySelectorAll(s).forEach((el) => matches.add(el)); } catch {}
+    });
+    matches.forEach((el) => el.remove());
+    window.__ifoodWidgetInitedFor = null;
+  } catch {}
+}
+
 export function IfoodWidgetMount({ restaurantId }: { restaurantId?: string }) {
   const { data } = useQuery({
     queryKey: ["ifood-widget-cfg", restaurantId],
@@ -43,29 +64,12 @@ export function IfoodWidgetMount({ restaurantId }: { restaurantId?: string }) {
   const enabled = !!data?.widget_enabled;
   const merchantId = (data?.widget_merchant_id ?? "").trim();
 
-  // Remove qualquer DOM injetado pelo widget da iFood (botão flutuante + iframe).
-  // A sessão fica nos cookies/localStorage de widgets.ifood.com.br, então
-  // remover do DOM não desloga — apenas oculta enquanto a condição não é atendida.
-  const cleanupWidgetDom = () => {
-    const selectors = [
-      'iframe[src*="widgets.ifood.com.br"]',
-      'iframe[src*="ifood-widget"]',
-      '[id^="ifood-widget"]',
-      '[class*="ifood-widget"]',
-      '[data-ifood-widget]',
-    ];
-    document.querySelectorAll(selectors.join(",")).forEach((el) => el.remove());
-    window.__ifoodWidgetInitedFor = null;
-  };
-
   useEffect(() => {
     let cancelled = false;
     if (!enabled || !merchantId) {
-      cleanupWidgetDom();
+      cleanupIfoodWidgetDom();
       return;
     }
-    // Só chamamos init() uma vez por merchantId no ciclo da página para
-    // evitar que cada remount/login force uma reinicialização.
     if (window.__ifoodWidgetInitedFor === merchantId) return;
     (async () => {
       await ensureScript();
@@ -87,8 +91,7 @@ export function IfoodWidgetMount({ restaurantId }: { restaurantId?: string }) {
     })();
     return () => {
       cancelled = true;
-      // Ao desmontar (logout, troca de rota etc.) remove o widget da tela.
-      cleanupWidgetDom();
+      cleanupIfoodWidgetDom();
     };
   }, [enabled, merchantId]);
 
