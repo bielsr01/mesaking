@@ -14,6 +14,195 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_groups: {
+        Row: {
+          created_at: string
+          id: string
+          is_default: boolean
+          name: string
+          permissions: Json
+          restaurant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name: string
+          permissions?: Json
+          restaurant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          permissions?: Json
+          restaurant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      admin_expenses: {
+        Row: {
+          amount: number
+          category: string | null
+          category_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string
+          expense_date: string
+          id: string
+          notes: string | null
+          receipt_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          category?: string | null
+          category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description: string
+          expense_date?: string
+          id?: string
+          notes?: string | null
+          receipt_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category?: string | null
+          category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          expense_date?: string
+          id?: string
+          notes?: string | null
+          receipt_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_expenses_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "expense_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admin_stock_groups: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      admin_stock_movements: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          quantity: number
+          reference_id: string | null
+          subgroup_id: string
+          type: Database["public"]["Enums"]["admin_stock_movement_type"]
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          quantity: number
+          reference_id?: string | null
+          subgroup_id: string
+          type: Database["public"]["Enums"]["admin_stock_movement_type"]
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          quantity?: number
+          reference_id?: string | null
+          subgroup_id?: string
+          type?: Database["public"]["Enums"]["admin_stock_movement_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_stock_movements_subgroup_id_fkey"
+            columns: ["subgroup_id"]
+            isOneToOne: false
+            referencedRelation: "admin_stock_subgroups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admin_stock_subgroups: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          is_active: boolean
+          name: string
+          quantity: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          is_active?: boolean
+          name: string
+          quantity?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          quantity?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_stock_subgroups_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "admin_stock_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bulk_campaign_recipients: {
         Row: {
           campaign_id: string
@@ -299,42 +488,171 @@ export type Database = {
       }
       evolution_integrations: {
         Row: {
-          api_key: string
-          api_url: string
+          api_key: string | null
+          api_url: string | null
           created_at: string
           enabled: boolean
           id: string
-          instance_name: string
+          instance_name: string | null
+          instance_token: string | null
           is_admin: boolean
           last_check_at: string | null
           last_status: string | null
+          phone_number: string | null
+          popup_enabled: boolean
+          popup_text: string | null
+          popup_whatsapp_message: string | null
+          qrcode: string | null
           restaurant_id: string | null
           updated_at: string
         }
         Insert: {
-          api_key: string
-          api_url: string
+          api_key?: string | null
+          api_url?: string | null
           created_at?: string
           enabled?: boolean
           id?: string
-          instance_name: string
+          instance_name?: string | null
+          instance_token?: string | null
           is_admin?: boolean
           last_check_at?: string | null
           last_status?: string | null
+          phone_number?: string | null
+          popup_enabled?: boolean
+          popup_text?: string | null
+          popup_whatsapp_message?: string | null
+          qrcode?: string | null
           restaurant_id?: string | null
           updated_at?: string
         }
         Update: {
-          api_key?: string
-          api_url?: string
+          api_key?: string | null
+          api_url?: string | null
           created_at?: string
           enabled?: boolean
           id?: string
-          instance_name?: string
+          instance_name?: string | null
+          instance_token?: string | null
           is_admin?: boolean
           last_check_at?: string | null
           last_status?: string | null
+          phone_number?: string | null
+          popup_enabled?: boolean
+          popup_text?: string | null
+          popup_whatsapp_message?: string | null
+          qrcode?: string | null
           restaurant_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      evolution_message_queue: {
+        Row: {
+          attempts: number
+          created_at: string
+          error: string | null
+          event_key: string
+          id: string
+          message: string
+          order_id: string | null
+          phone: string
+          restaurant_id: string
+          scheduled_at: string
+          sent_at: string | null
+          status: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          error?: string | null
+          event_key: string
+          id?: string
+          message: string
+          order_id?: string | null
+          phone: string
+          restaurant_id: string
+          scheduled_at?: string
+          sent_at?: string | null
+          status?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          error?: string | null
+          event_key?: string
+          id?: string
+          message?: string
+          order_id?: string | null
+          phone?: string
+          restaurant_id?: string
+          scheduled_at?: string
+          sent_at?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
+      evolution_message_templates: {
+        Row: {
+          created_at: string
+          delay_minutes: number
+          enabled: boolean
+          event_key: string
+          id: string
+          restaurant_id: string
+          template: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          delay_minutes?: number
+          enabled?: boolean
+          event_key: string
+          id?: string
+          restaurant_id: string
+          template?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          delay_minutes?: number
+          enabled?: boolean
+          event_key?: string
+          id?: string
+          restaurant_id?: string
+          template?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      expense_categories: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          requires_description: boolean
+          scope: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          requires_description?: boolean
+          scope?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          requires_description?: boolean
+          scope?: string
+          sort_order?: number
           updated_at?: string
         }
         Relationships: []
@@ -343,38 +661,97 @@ export type Database = {
         Row: {
           amount: number
           category: string | null
+          category_id: string | null
           created_at: string
           created_by: string | null
           description: string
           expense_date: string
           id: string
           notes: string | null
+          receipt_url: string | null
           restaurant_id: string
           updated_at: string
         }
         Insert: {
           amount?: number
           category?: string | null
+          category_id?: string | null
           created_at?: string
           created_by?: string | null
           description: string
           expense_date?: string
           id?: string
           notes?: string | null
+          receipt_url?: string | null
           restaurant_id: string
           updated_at?: string
         }
         Update: {
           amount?: number
           category?: string | null
+          category_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string
           expense_date?: string
           id?: string
           notes?: string | null
+          receipt_url?: string | null
           restaurant_id?: string
           updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "expense_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ifood_fee_settings: {
+        Row: {
+          anticipation_enabled: boolean
+          anticipation_pct: number
+          card_enabled: boolean
+          card_pct: number
+          commission_enabled: boolean
+          commission_pct: number
+          created_at: string
+          enabled: boolean
+          restaurant_id: string
+          updated_at: string
+          widget_enabled: boolean
+          widget_merchant_id: string | null
+        }
+        Insert: {
+          anticipation_enabled?: boolean
+          anticipation_pct?: number
+          card_enabled?: boolean
+          card_pct?: number
+          commission_enabled?: boolean
+          commission_pct?: number
+          created_at?: string
+          enabled?: boolean
+          restaurant_id: string
+          updated_at?: string
+          widget_enabled?: boolean
+          widget_merchant_id?: string | null
+        }
+        Update: {
+          anticipation_enabled?: boolean
+          anticipation_pct?: number
+          card_enabled?: boolean
+          card_pct?: number
+          commission_enabled?: boolean
+          commission_pct?: number
+          created_at?: string
+          enabled?: boolean
+          restaurant_id?: string
+          updated_at?: string
+          widget_enabled?: boolean
+          widget_merchant_id?: string | null
         }
         Relationships: []
       }
@@ -669,8 +1046,10 @@ export type Database = {
       }
       option_groups: {
         Row: {
+          allow_repeat: boolean
           created_at: string
           id: string
+          image_url: string | null
           is_active: boolean
           max_select: number
           min_select: number
@@ -680,8 +1059,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          allow_repeat?: boolean
           created_at?: string
           id?: string
+          image_url?: string | null
           is_active?: boolean
           max_select?: number
           min_select?: number
@@ -691,8 +1072,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          allow_repeat?: boolean
           created_at?: string
           id?: string
+          image_url?: string | null
           is_active?: boolean
           max_select?: number
           min_select?: number
@@ -709,27 +1092,36 @@ export type Database = {
           extra_price: number
           group_id: string
           id: string
+          image_url: string | null
           is_active: boolean
           name: string
           sort_order: number
+          stock_group_id: string | null
+          stock_quantity_per_unit: number
         }
         Insert: {
           created_at?: string
           extra_price?: number
           group_id: string
           id?: string
+          image_url?: string | null
           is_active?: boolean
           name: string
           sort_order?: number
+          stock_group_id?: string | null
+          stock_quantity_per_unit?: number
         }
         Update: {
           created_at?: string
           extra_price?: number
           group_id?: string
           id?: string
+          image_url?: string | null
           is_active?: boolean
           name?: string
           sort_order?: number
+          stock_group_id?: string | null
+          stock_quantity_per_unit?: number
         }
         Relationships: [
           {
@@ -737,6 +1129,58 @@ export type Database = {
             columns: ["group_id"]
             isOneToOne: false
             referencedRelation: "option_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "option_items_stock_group_id_fkey"
+            columns: ["stock_group_id"]
+            isOneToOne: false
+            referencedRelation: "stock_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_item_options: {
+        Row: {
+          created_at: string
+          extra_price: number
+          group_name: string | null
+          id: string
+          item_name: string | null
+          option_item_id: string | null
+          order_item_id: string
+        }
+        Insert: {
+          created_at?: string
+          extra_price?: number
+          group_name?: string | null
+          id?: string
+          item_name?: string | null
+          option_item_id?: string | null
+          order_item_id: string
+        }
+        Update: {
+          created_at?: string
+          extra_price?: number
+          group_name?: string | null
+          id?: string
+          item_name?: string | null
+          option_item_id?: string | null
+          order_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_item_options_option_item_id_fkey"
+            columns: ["option_item_id"]
+            isOneToOne: false
+            referencedRelation: "option_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_item_options_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "order_items"
             referencedColumns: ["id"]
           },
         ]
@@ -789,6 +1233,30 @@ export type Database = {
           },
         ]
       }
+      order_status_history: {
+        Row: {
+          changed_at: string
+          id: string
+          order_id: string
+          source: string | null
+          status: Database["public"]["Enums"]["order_status"]
+        }
+        Insert: {
+          changed_at?: string
+          id?: string
+          order_id: string
+          source?: string | null
+          status: Database["public"]["Enums"]["order_status"]
+        }
+        Update: {
+          changed_at?: string
+          id?: string
+          order_id?: string
+          source?: string | null
+          status?: Database["public"]["Enums"]["order_status"]
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           address_cep: string | null
@@ -809,10 +1277,13 @@ export type Database = {
           delivery_latitude: number | null
           delivery_longitude: number | null
           discount: number
+          external_display_id: string | null
           external_order_id: string | null
           external_source: string | null
           id: string
+          ifood_subsidy: number
           loyalty_opt_in: boolean
+          merchant_subsidy: number
           order_number: number
           order_type: Database["public"]["Enums"]["order_type"]
           payment_method: Database["public"]["Enums"]["payment_method"]
@@ -843,10 +1314,13 @@ export type Database = {
           delivery_latitude?: number | null
           delivery_longitude?: number | null
           discount?: number
+          external_display_id?: string | null
           external_order_id?: string | null
           external_source?: string | null
           id?: string
+          ifood_subsidy?: number
           loyalty_opt_in?: boolean
+          merchant_subsidy?: number
           order_number: number
           order_type?: Database["public"]["Enums"]["order_type"]
           payment_method: Database["public"]["Enums"]["payment_method"]
@@ -877,10 +1351,13 @@ export type Database = {
           delivery_latitude?: number | null
           delivery_longitude?: number | null
           discount?: number
+          external_display_id?: string | null
           external_order_id?: string | null
           external_source?: string | null
           id?: string
+          ifood_subsidy?: number
           loyalty_opt_in?: boolean
+          merchant_subsidy?: number
           order_number?: number
           order_type?: Database["public"]["Enums"]["order_type"]
           payment_method?: Database["public"]["Enums"]["payment_method"]
@@ -928,6 +1405,45 @@ export type Database = {
           },
           {
             foreignKeyName: "product_option_groups_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_stock_consumption: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          product_id: string
+          quantity_per_unit: number
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          product_id: string
+          quantity_per_unit?: number
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          product_id?: string
+          quantity_per_unit?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_stock_consumption_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "stock_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_stock_consumption_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
@@ -1016,20 +1532,137 @@ export type Database = {
         }
         Relationships: []
       }
+      quero_events: {
+        Row: {
+          created_at: string
+          error: string | null
+          id: string
+          integration_id: string | null
+          order_code: string | null
+          order_id: string | null
+          payload: Json
+          processed: boolean
+          restaurant_id: string | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          integration_id?: string | null
+          order_code?: string | null
+          order_id?: string | null
+          payload: Json
+          processed?: boolean
+          restaurant_id?: string | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          integration_id?: string | null
+          order_code?: string | null
+          order_id?: string | null
+          payload?: Json
+          processed?: boolean
+          restaurant_id?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
+      quero_fee_settings: {
+        Row: {
+          commission_enabled: boolean
+          commission_pct: number
+          created_at: string
+          enabled: boolean
+          online_payment_enabled: boolean
+          online_payment_pct: number
+          restaurant_id: string
+          updated_at: string
+        }
+        Insert: {
+          commission_enabled?: boolean
+          commission_pct?: number
+          created_at?: string
+          enabled?: boolean
+          online_payment_enabled?: boolean
+          online_payment_pct?: number
+          restaurant_id: string
+          updated_at?: string
+        }
+        Update: {
+          commission_enabled?: boolean
+          commission_pct?: number
+          created_at?: string
+          enabled?: boolean
+          online_payment_enabled?: boolean
+          online_payment_pct?: number
+          restaurant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      quero_integrations: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          last_event_at: string | null
+          last_event_code: string | null
+          last_poll_at: string | null
+          last_status: string | null
+          place_id: string
+          restaurant_id: string
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          last_event_at?: string | null
+          last_event_code?: string | null
+          last_poll_at?: string | null
+          last_status?: string | null
+          place_id: string
+          restaurant_id: string
+          token: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          last_event_at?: string | null
+          last_event_code?: string | null
+          last_poll_at?: string | null
+          last_status?: string | null
+          place_id?: string
+          restaurant_id?: string
+          token?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       restaurant_members: {
         Row: {
+          access_group_id: string | null
           created_at: string
           id: string
           restaurant_id: string
           user_id: string
         }
         Insert: {
+          access_group_id?: string | null
           created_at?: string
           id?: string
           restaurant_id: string
           user_id: string
         }
         Update: {
+          access_group_id?: string | null
           created_at?: string
           id?: string
           restaurant_id?: string
@@ -1037,10 +1670,52 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "restaurant_members_access_group_id_fkey"
+            columns: ["access_group_id"]
+            isOneToOne: false
+            referencedRelation: "access_groups"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "restaurant_members_restaurant_id_fkey"
             columns: ["restaurant_id"]
             isOneToOne: false
             referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restaurant_stock: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          quantity: number
+          restaurant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          quantity?: number
+          restaurant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          quantity?: number
+          restaurant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_stock_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "stock_groups"
             referencedColumns: ["id"]
           },
         ]
@@ -1162,6 +1837,86 @@ export type Database = {
         }
         Relationships: []
       }
+      stock_groups: {
+        Row: {
+          allow_add: boolean
+          allow_set: boolean
+          allow_subtract: boolean
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          allow_add?: boolean
+          allow_set?: boolean
+          allow_subtract?: boolean
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          allow_add?: boolean
+          allow_set?: boolean
+          allow_subtract?: boolean
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      stock_movements: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          group_id: string
+          id: string
+          notes: string | null
+          quantity: number
+          reference_id: string | null
+          restaurant_id: string
+          type: Database["public"]["Enums"]["stock_movement_type"]
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          group_id: string
+          id?: string
+          notes?: string | null
+          quantity: number
+          reference_id?: string | null
+          restaurant_id: string
+          type: Database["public"]["Enums"]["stock_movement_type"]
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          group_id?: string
+          id?: string
+          notes?: string | null
+          quantity?: number
+          reference_id?: string | null
+          restaurant_id?: string
+          type?: Database["public"]["Enums"]["stock_movement_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "stock_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supply_order_item_options: {
         Row: {
           created_at: string
@@ -1279,6 +2034,7 @@ export type Database = {
       }
       supply_product_options: {
         Row: {
+          admin_stock_subgroup_id: string | null
           created_at: string
           id: string
           is_active: boolean
@@ -1287,6 +2043,7 @@ export type Database = {
           sort_order: number
         }
         Insert: {
+          admin_stock_subgroup_id?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
@@ -1295,6 +2052,7 @@ export type Database = {
           sort_order?: number
         }
         Update: {
+          admin_stock_subgroup_id?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
@@ -1303,6 +2061,13 @@ export type Database = {
           sort_order?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "supply_product_options_admin_stock_subgroup_id_fkey"
+            columns: ["admin_stock_subgroup_id"]
+            isOneToOne: false
+            referencedRelation: "admin_stock_subgroups"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "supply_product_options_product_id_fkey"
             columns: ["product_id"]
@@ -1314,8 +2079,10 @@ export type Database = {
       }
       supply_products: {
         Row: {
+          admin_stock_group_id: string | null
           created_at: string
           description: string | null
+          expense_category_id: string | null
           id: string
           image_url: string | null
           is_active: boolean
@@ -1323,14 +2090,17 @@ export type Database = {
           price: number
           quantity_step: number
           sort_order: number
+          stock_group_id: string | null
           total_quantity: number | null
           unit: string
           updated_at: string
           variant_group_name: string | null
         }
         Insert: {
+          admin_stock_group_id?: string | null
           created_at?: string
           description?: string | null
+          expense_category_id?: string | null
           id?: string
           image_url?: string | null
           is_active?: boolean
@@ -1338,14 +2108,17 @@ export type Database = {
           price?: number
           quantity_step?: number
           sort_order?: number
+          stock_group_id?: string | null
           total_quantity?: number | null
           unit?: string
           updated_at?: string
           variant_group_name?: string | null
         }
         Update: {
+          admin_stock_group_id?: string | null
           created_at?: string
           description?: string | null
+          expense_category_id?: string | null
           id?: string
           image_url?: string | null
           is_active?: boolean
@@ -1353,12 +2126,35 @@ export type Database = {
           price?: number
           quantity_step?: number
           sort_order?: number
+          stock_group_id?: string | null
           total_quantity?: number | null
           unit?: string
           updated_at?: string
           variant_group_name?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "supply_products_admin_stock_group_id_fkey"
+            columns: ["admin_stock_group_id"]
+            isOneToOne: false
+            referencedRelation: "admin_stock_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supply_products_expense_category_id_fkey"
+            columns: ["expense_category_id"]
+            isOneToOne: false
+            referencedRelation: "expense_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supply_products_stock_group_id_fkey"
+            columns: ["stock_group_id"]
+            isOneToOne: false
+            referencedRelation: "stock_groups"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -1386,7 +2182,36 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_admin_stock_delta: {
+        Args: {
+          _delta: number
+          _notes: string
+          _reference: string
+          _subgroup_id: string
+          _type: Database["public"]["Enums"]["admin_stock_movement_type"]
+        }
+        Returns: undefined
+      }
+      apply_stock_delta: {
+        Args: {
+          _delta: number
+          _group_id: string
+          _notes: string
+          _reference: string
+          _restaurant_id: string
+          _type: Database["public"]["Enums"]["stock_movement_type"]
+        }
+        Returns: undefined
+      }
       credit_loyalty_points: { Args: { _tx_id: string }; Returns: undefined }
+      get_restaurant_popup_config: {
+        Args: { _restaurant_id: string }
+        Returns: {
+          popup_enabled: boolean
+          popup_text: string
+          popup_whatsapp_message: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1398,6 +2223,7 @@ export type Database = {
         Args: { _restaurant_id: string; _user_id: string }
         Returns: boolean
       }
+      recompute_order_stock: { Args: { _order_id: string }; Returns: undefined }
       redeem_loyalty_points: {
         Args: { _member_id: string; _restaurant_id: string; _reward_id: string }
         Returns: string
@@ -1419,6 +2245,11 @@ export type Database = {
       }
     }
     Enums: {
+      admin_stock_movement_type:
+        | "manual_set"
+        | "manual_add"
+        | "manual_subtract"
+        | "supply_delivery"
       app_role: "master_admin" | "manager" | "customer"
       bulk_campaign_status:
         | "draft"
@@ -1436,7 +2267,12 @@ export type Database = {
         | "cancelled"
         | "awaiting_pickup"
       order_type: "delivery" | "pickup" | "pdv"
-      payment_method: "cash" | "pix" | "card_on_delivery"
+      payment_method: "cash" | "pix" | "card_on_delivery" | "online"
+      stock_movement_type:
+        | "supply_delivery"
+        | "order_consumption"
+        | "order_revert"
+        | "manual_adjust"
       supply_order_status: "pending" | "accepted" | "shipped" | "delivered"
     }
     CompositeTypes: {
@@ -1565,6 +2401,12 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      admin_stock_movement_type: [
+        "manual_set",
+        "manual_add",
+        "manual_subtract",
+        "supply_delivery",
+      ],
       app_role: ["master_admin", "manager", "customer"],
       bulk_campaign_status: [
         "draft",
@@ -1584,7 +2426,13 @@ export const Constants = {
         "awaiting_pickup",
       ],
       order_type: ["delivery", "pickup", "pdv"],
-      payment_method: ["cash", "pix", "card_on_delivery"],
+      payment_method: ["cash", "pix", "card_on_delivery", "online"],
+      stock_movement_type: [
+        "supply_delivery",
+        "order_consumption",
+        "order_revert",
+        "manual_adjust",
+      ],
       supply_order_status: ["pending", "accepted", "shipped", "delivered"],
     },
   },
