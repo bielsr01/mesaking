@@ -437,6 +437,9 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
                   />
                 );
               })()}
+              <div className="border-t pt-6">
+                <OrderSuggestionsPanel restaurantId={restaurantId} canEdit={canEdit} />
+              </div>
             </>
           )}
         </div>
