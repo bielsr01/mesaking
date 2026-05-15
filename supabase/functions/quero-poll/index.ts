@@ -168,7 +168,8 @@ async function ingestOrder(integration: any, ev: any) {
   const methods = od?.payments?.methods ?? [];
   const m0 = Array.isArray(methods) && methods.length ? methods[0] : null;
 
-  const phoneNumber = customer?.phone?.number ?? "";
+  const rawPhone = customer?.phone?.number ?? "";
+  const phoneNumber = formatBrPhone(rawPhone);
 
   const { data: inserted, error } = await supabase.from("orders").insert({
     restaurant_id: integration.restaurant_id,
