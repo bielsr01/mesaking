@@ -1,9 +1,47 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
+import QRCode from "https://esm.sh/qrcode@1.5.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+function isDataImage(value: string) {
+  return /^data:image\/[a-z0-9+.-]+;base64,/i.test(value.trim());
+}
+
+function isRawPngBase64(value: string) {
+  return value.trim().startsWith("iVBORw0KGgo");
+}
+
+function normalizeBase64Image(value: unknown) {
+  if (typeof value !== "string") return null;
+  const cleaned = value.trim().replace(/\s/g, "");
+  if (!cleaned) return null;
+  if (isDataImage(cleaned)) return cleaned;
+  if (isRawPngBase64(cleaned)) return `data:image/png;base64,${cleaned}`;
+  return null;
+}
+
+function extractQrCode(data: any) {
+  const qrcode = data?.qrcode;
+  const value = typeof qrcode === "string" ? qrcode.trim() : null;
+  const code = data?.code || qrcode?.code || (value && !isDataImage(value) && !isRawPngBase64(value) ? value : null);
+  return typeof code === "string" && code.trim() ? code.trim() : null;
+}
+
+async function buildPureQrImage(data: any) {
+  const code = extractQrCode(data);
+  if (code) {
+    return await QRCode.toDataURL(code, {
+      type: "image/png",
+      width: 304,
+      margin: 1,
+      color: { dark: "#000000", light: "#FFFFFF" },
+    });
+  }
+  return normalizeBase64Image(data?.qrcode?.base64 || data?.base64 || data?.qrcode);
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -107,7 +145,7 @@ Deno.serve(async (req) => {
         try { json = txt ? JSON.parse(txt) : null; } catch { /* ignore */ }
         if (r.ok && json) {
           const instanceToken = json?.hash || json?.instance?.hash || json?.token || null;
-          const qr = json?.qrcode?.base64 || json?.qrcode || null;
+          const qr = await buildPureQrImage(json);
           await admin.from("evolution_integrations").insert({
             restaurant_id: rest.id,
             api_url: base,
