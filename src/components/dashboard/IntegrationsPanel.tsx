@@ -53,7 +53,13 @@ export function IntegrationsPanel({ restaurantId }: { restaurantId: string }) {
             if (!ihub.data?.secret_token) return { ok: false, message: "Token não configurado" };
             if (!ihub.data?.merchant_id) return { ok: false, message: "Loja iFood não vinculada" };
             if (!ihub.data?.enabled) return { ok: false, message: "Integração desativada" };
-            return { ok: true, message: `Configuração OK. Loja: ${ihub.data.merchant_name ?? ihub.data.merchant_id}` };
+            const { data, error } = await supabase.functions.invoke("ihub-link", {
+              body: { action: "test-connection", restaurantId },
+            });
+            if (error) return { ok: false, message: error.message };
+            const r = data as any;
+            if (!r?.ok) return { ok: false, message: r?.error ?? "Falha na verificação" };
+            return { ok: true, message: `Conexão OK · Loja: ${r.merchantName ?? r.merchantId}` };
           }}
         />
 

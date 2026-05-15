@@ -231,6 +231,49 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === "test-connection") {
+      if (!integration.merchant_id) {
+        return new Response(JSON.stringify({ ok: false, error: "Loja iFood não vinculada" }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      // Tenta endpoints comuns no iHub para validar token+domain+merchant.
+      const candidates = [
+        `${IHUB_BASE}/merchants/${integration.merchant_id}`,
+        `${IHUB_BASE}/merchants?domain=${encodeURIComponent(domain)}`,
+        `${IHUB_BASE}/merchants`,
+      ];
+      let lastStatus = 0;
+      let lastBody: any = null;
+      for (const url of candidates) {
+        try {
+          const r = await fetch(url, { method: "GET", headers: authHdr });
+          const text = await r.text();
+          let data: any; try { data = JSON.parse(text); } catch { data = { raw: text }; }
+          lastStatus = r.status;
+          lastBody = data;
+          if (r.ok) {
+            return new Response(JSON.stringify({
+              ok: true,
+              status: r.status,
+              merchantId: integration.merchant_id,
+              merchantName: integration.merchant_name,
+              endpoint: url,
+            }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+          }
+          if (r.status === 401 || r.status === 403) break; // token inválido — não adianta tentar mais
+        } catch (e) {
+          lastBody = { error: (e as any)?.message ?? String(e) };
+        }
+      }
+      const message = lastStatus === 401 || lastStatus === 403
+        ? "Token iHub inválido ou sem permissão"
+        : lastBody?.message ?? lastBody?.error ?? `Falha ao conectar ao iHub (HTTP ${lastStatus || "?"})`;
+      return new Response(JSON.stringify({ ok: false, error: message, status: lastStatus, data: lastBody }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Unknown action" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
