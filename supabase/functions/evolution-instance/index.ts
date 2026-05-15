@@ -103,12 +103,23 @@ Deno.serve(async (req) => {
       let instanceToken = existing?.instance_token as string | undefined;
 
       if (!instanceName) {
-        instanceName = genInstanceName(restaurantId);
-        const r = await evoFetch(URL_ENV, "/instance/create", KEY_ENV, {
+        // Buscar nome/slug do restaurante para nomear a instância
+        const { data: rest } = await admin.from("restaurants")
+          .select("slug, name").eq("id", restaurantId).maybeSingle();
+        const base = rest?.slug || rest?.name || "";
+        instanceName = genInstanceName(restaurantId, base, false);
+        let r = await evoFetch(URL_ENV, "/instance/create", KEY_ENV, {
           instanceName,
           integration: "WHATSAPP-BAILEYS",
           qrcode: true,
         });
+        // Se nome já existir, tenta com sufixo aleatório
+        if (!r.ok && (r.status === 403 || r.status === 409 || /exist|already|conflict/i.test(JSON.stringify(r.data)))) {
+          instanceName = genInstanceName(restaurantId, base, true);
+          r = await evoFetch(URL_ENV, "/instance/create", KEY_ENV, {
+            instanceName, integration: "WHATSAPP-BAILEYS", qrcode: true,
+          });
+        }
         if (!r.ok) throw new Error(`Falha ao criar instância (${r.status}): ${JSON.stringify(r.data).slice(0, 300)}`);
         instanceToken = r.data?.hash || r.data?.instance?.hash || r.data?.token || null;
         const qr = r.data?.qrcode?.base64 || r.data?.qrcode || null;
