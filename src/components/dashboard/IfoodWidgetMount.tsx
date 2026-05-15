@@ -84,6 +84,11 @@ export function IfoodWidgetMount({ restaurantId }: { restaurantId?: string }) {
       cleanupIfoodWidgetDom();
       return;
     }
+    if (window.__ifoodWidgetInitedFor && window.__ifoodWidgetInitedFor !== merchantId) {
+      cleanupIfoodWidgetDom();
+      window.location.reload();
+      return;
+    }
     if (window.__ifoodWidgetInitedFor === merchantId) {
       try { window.iFoodWidget?.show?.(); } catch {}
       return () => cleanupIfoodWidgetDom();
