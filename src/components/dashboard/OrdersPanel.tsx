@@ -116,16 +116,10 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const canEditOrders = can("orders.edit");
   const canViewFeeBreakdown = can("finance.view_fee_breakdown");
   const canCreatePdv = can("orders.create_pdv_order");
-  type Channel = "delivery" | "pdv" | "ifood" | "quero";
-  const initialChannel: Channel = canPdv ? "pdv" : canDelivery ? "delivery" : canIfood ? "ifood" : canQuero ? "quero" : "pdv";
+  type Channel = "all" | "delivery" | "pdv" | "ifood" | "quero";
+  const initialChannel: Channel = "all";
   const [channel, setChannel] = useState<Channel>(initialChannel);
-  const statusKey = (ch: Channel, s: string) => `orders.statuses.${ch}.${s}`;
-  const firstAllowedStatus = (ch: Channel, preferred: string[]) => {
-    for (const p of preferred) if (can(statusKey(ch, p))) return p;
-    const list = ch === "pdv" ? ["preparing", "delivered", "cancelled", "all"] : ["pending", "preparing", "out_for_delivery", "awaiting_pickup", "delivered", "cancelled", "active", "all"];
-    return list.find((s) => can(statusKey(ch, s))) ?? (ch === "pdv" ? "preparing" : "pending");
-  };
-  const [filter, setFilter] = useState(() => firstAllowedStatus(initialChannel, initialChannel === "pdv" ? ["preparing"] : ["pending"]));
+  const statusKey = (ch: Channel, s: string) => `orders.statuses.${ch === "all" ? "delivery" : ch}.${s}`;
   const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
   const [queroCancelInfoOpen, setQueroCancelInfoOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
