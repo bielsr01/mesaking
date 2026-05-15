@@ -85,16 +85,6 @@ interface OptionGroupRow { id: string; name: string; sort_order: number | null; 
 interface OptionItemRow { id: string; group_id: string; name: string; sort_order: number | null; }
 interface ProductOptionGroupRow { product_id: string; group_id: string; sort_order: number | null; }
 
-const FILTERS = [
-  { value: "pending", label: "Novos" },
-  { value: "preparing", label: "Em preparo" },
-  { value: "out_for_delivery", label: "Em entrega" },
-  { value: "awaiting_pickup", label: "Aguardando retirada" },
-  { value: "delivered", label: "Entregues" },
-  { value: "cancelled", label: "Cancelados" },
-  { value: "active", label: "Ativos" },
-  { value: "all", label: "Todos" },
-];
 
 export const ordersKey = (rid: string) => ["orders", rid] as const;
 
