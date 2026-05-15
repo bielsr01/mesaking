@@ -790,17 +790,11 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                         </Button>
                       ) : o.external_source === "ifood" && o.status === "out_for_delivery" && o.order_type !== "pickup" && o.external_order_id ? (
                         <Button
-                          asChild
                           size="sm"
                           className="flex-1"
+                          onClick={() => { setIfoodCodeTarget(o); setIfoodCodeValue(""); }}
                         >
-                          <a
-                            href={`https://confirmacao-entrega-propria.ifood.com.br/pedido/${o.external_order_id}/codigo-cliente`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            📦 Confirmar entrega no iFood
-                          </a>
+                          📦 Confirmar entrega
                         </Button>
                       ) : null}
                       <Button
