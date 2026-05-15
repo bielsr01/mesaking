@@ -233,45 +233,70 @@ Deno.serve(async (req) => {
 
     if (action === "test-connection") {
       if (!integration.merchant_id) {
-        return new Response(JSON.stringify({ ok: false, error: "Loja iFood não vinculada" }), {
+        return new Response(JSON.stringify({ ok: false, error: "Loja iFood não vinculada — gere o User Code e conclua a vinculação no portal do iFood." }), {
           status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      // Tenta endpoints comuns no iHub para validar token+domain+merchant.
-      const candidates = [
-        `${IHUB_BASE}/merchants/${integration.merchant_id}`,
-        `${IHUB_BASE}/merchants?domain=${encodeURIComponent(domain)}`,
-        `${IHUB_BASE}/merchants`,
-      ];
-      let lastStatus = 0;
-      let lastBody: any = null;
-      for (const url of candidates) {
-        try {
-          const r = await fetch(url, { method: "GET", headers: authHdr });
-          const text = await r.text();
-          let data: any; try { data = JSON.parse(text); } catch { data = { raw: text }; }
-          lastStatus = r.status;
-          lastBody = data;
-          if (r.ok) {
-            return new Response(JSON.stringify({
-              ok: true,
-              status: r.status,
-              merchantId: integration.merchant_id,
-              merchantName: integration.merchant_name,
-              endpoint: url,
-            }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-          }
-          if (r.status === 401 || r.status === 403) break; // token inválido — não adianta tentar mais
-        } catch (e) {
-          lastBody = { error: (e as any)?.message ?? String(e) };
-        }
+
+      // 1) Confirma que o vínculo deste restaurante está completo.
+      const linkOk = !!(integration.secret_token && integration.domain && integration.merchant_id);
+
+      // 2) Verifica se o iHub está ENVIANDO eventos para ESTE merchant (sinal real de conexão).
+      const sinceIso = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const { data: recentEvents, count: recentCount } = await supabase
+        .from("ihub_events")
+        .select("id, code, created_at", { count: "exact" })
+        .eq("restaurant_id", restaurantId)
+        .eq("merchant_id", integration.merchant_id)
+        .gte("created_at", sinceIso)
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      const { data: lastEverArr } = await supabase
+        .from("ihub_events")
+        .select("created_at")
+        .eq("restaurant_id", restaurantId)
+        .eq("merchant_id", integration.merchant_id)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      const lastEverAt = lastEverArr?.[0]?.created_at ?? null;
+
+      if (linkOk && (recentCount ?? 0) > 0) {
+        return new Response(JSON.stringify({
+          ok: true,
+          merchantId: integration.merchant_id,
+          merchantName: integration.merchant_name,
+          domain,
+          recentEvents7d: recentCount,
+          lastEventAt: recentEvents?.[0]?.created_at ?? lastEverAt,
+        }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
-      const message = lastStatus === 401 || lastStatus === 403
-        ? "Token iHub inválido ou sem permissão"
-        : lastBody?.message ?? lastBody?.error ?? `Falha ao conectar ao iHub (HTTP ${lastStatus || "?"})`;
-      return new Response(JSON.stringify({ ok: false, error: message, status: lastStatus, data: lastBody }), {
-        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+
+      if (linkOk && lastEverAt) {
+        return new Response(JSON.stringify({
+          ok: true,
+          warning: "Vinculado, mas sem eventos nos últimos 7 dias.",
+          merchantId: integration.merchant_id,
+          merchantName: integration.merchant_name,
+          domain,
+          lastEventAt: lastEverAt,
+        }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      if (linkOk) {
+        return new Response(JSON.stringify({
+          ok: true,
+          warning: "Restaurante vinculado, aguardando o primeiro evento do iFood (faça um pedido teste).",
+          merchantId: integration.merchant_id,
+          merchantName: integration.merchant_name,
+          domain,
+        }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      return new Response(JSON.stringify({
+        ok: false,
+        error: "Configuração incompleta (token, domínio ou merchant ausente).",
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     return new Response(JSON.stringify({ error: "Unknown action" }), {
