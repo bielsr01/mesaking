@@ -802,25 +802,25 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
           <Skeleton className="h-56 w-full" />
         </div>
       ) : (
-        <div className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-4 items-start">
-          <div className="flex flex-col gap-3 min-w-0">
+        <div className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-4 items-stretch flex-1 min-h-0">
+          <div className="flex flex-col gap-3 min-w-0 min-h-0">
             {pendingOrders.length > 0 && (
-              <Column title="Aguardando aceitação" count={pendingOrders.length} accent="bg-destructive/15 text-destructive">
-                {pendingOrders.map(renderCard)}
+              <Column title="Aguardando aceitação" count={pendingOrders.length} accent="bg-destructive/15 text-destructive" className="max-h-[40%] shrink-0">
+                {pendingOrders.map((o) => renderCard(o, true))}
               </Column>
             )}
-            <Column title="Em preparo" count={preparingOrders.length}>
-              {preparingOrders.map(renderCard)}
+            <Column title="Em preparo" count={preparingOrders.length} className="flex-1 min-h-0">
+              {preparingOrders.map((o) => renderCard(o))}
             </Column>
           </div>
           <Column title="Pronto" count={readyOrders.length}>
-            {readyOrders.map(renderCard)}
+            {readyOrders.map((o) => renderCard(o))}
           </Column>
           <Column title="Em entrega" count={outForDeliveryOrders.length}>
-            {outForDeliveryOrders.map(renderCard)}
+            {outForDeliveryOrders.map((o) => renderCard(o))}
           </Column>
           <Column title="Finalizados" count={finalizedOrders.length}>
-            {finalizedOrders.map(renderCard)}
+            {finalizedOrders.map((o) => renderCard(o))}
           </Column>
         </div>
       )}
