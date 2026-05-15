@@ -360,7 +360,7 @@ export function PdvDialog({
     try {
       const { data: order, error } = await supabase
         .from("orders").insert(orderPayload)
-        .select("id, order_number, customer_name, customer_phone, payment_method, subtotal, total, created_at, status, order_type")
+        .select("id, order_number, customer_name, customer_phone, payment_method, change_for, subtotal, total, created_at, status, order_type")
         .single();
       if (error || !order) throw error || new Error("Falha ao criar pedido");
 
