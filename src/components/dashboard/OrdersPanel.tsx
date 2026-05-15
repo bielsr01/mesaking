@@ -764,6 +764,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                       </div>
                     )}
                   </div>
+                </div>
 
                 <div className="flex gap-2 pt-1">
                   <Button
