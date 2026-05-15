@@ -1,6 +1,7 @@
 // Manage Evolution API instances per restaurant using GLOBAL credentials from env.
 // Actions: env_status, create, connect, state, logout, delete
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import QRCode from "npm:qrcode@1.5.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -38,6 +39,43 @@ function genInstanceName(restaurantId: string, base?: string | null, withSuffix 
   if (!withSuffix) return core;
   const rand = Math.random().toString(36).slice(2, 6);
   return `${core}_${rand}`;
+}
+
+function isDataImage(value: string) {
+  return /^data:image\/[a-z0-9+.-]+;base64,/i.test(value.trim());
+}
+
+function isRawPngBase64(value: string) {
+  return value.trim().startsWith("iVBORw0KGgo");
+}
+
+function normalizeBase64Image(value: unknown) {
+  if (typeof value !== "string") return null;
+  const cleaned = value.trim().replace(/\s/g, "");
+  if (!cleaned) return null;
+  if (isDataImage(cleaned)) return cleaned;
+  if (isRawPngBase64(cleaned)) return `data:image/png;base64,${cleaned}`;
+  return null;
+}
+
+function extractQrCode(data: any) {
+  const qrcode = data?.qrcode;
+  const value = typeof qrcode === "string" ? qrcode.trim() : null;
+  const code = data?.code || qrcode?.code || (value && !isDataImage(value) && !isRawPngBase64(value) ? value : null);
+  return typeof code === "string" && code.trim() ? code.trim() : null;
+}
+
+async function buildPureQrImage(data: any) {
+  const code = extractQrCode(data);
+  if (code) {
+    return await QRCode.toDataURL(code, {
+      type: "image/png",
+      width: 304,
+      margin: 1,
+      color: { dark: "#000000", light: "#FFFFFF" },
+    });
+  }
+  return normalizeBase64Image(data?.qrcode?.base64 || data?.base64 || data?.qrcode);
 }
 
 Deno.serve(async (req) => {
