@@ -10,7 +10,6 @@ const corsHeaders = {
 };
 
 const MAX_RUN_MS = 50_000; // stay under edge function limit
-const startedAt = Date.now();
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function normalizePhone(p: string) {
