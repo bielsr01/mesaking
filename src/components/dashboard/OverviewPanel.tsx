@@ -652,7 +652,7 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
         </Card>
         <Card>
           <CardHeader><CardTitle className="text-base">Produtos mais vendidos</CardTitle></CardHeader>
-          <CardContent>
+          <CardContent className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
