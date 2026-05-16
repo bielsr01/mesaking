@@ -827,12 +827,12 @@ function RedeemHistoryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><History className="w-5 h-5" />Histórico de resgates</DialogTitle>
           <DialogDescription>{list.length} resgate(s) — {totalPoints} pontos resgatados no total</DialogDescription>
         </DialogHeader>
-        <div className="border rounded-lg">
+        <div className="hidden md:block border rounded-lg overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -847,7 +847,7 @@ function RedeemHistoryDialog({
             <TableBody>
               {list.map((t: any) => (
                 <TableRow key={t.id}>
-                  <TableCell className="text-xs">{new Date(t.created_at).toLocaleString("pt-BR")}</TableCell>
+                  <TableCell className="text-xs whitespace-nowrap">{new Date(t.created_at).toLocaleString("pt-BR")}</TableCell>
                   <TableCell>
                     <div className="font-medium">{t.loyalty_members?.name ?? "—"}</div>
                     <div className="text-xs text-muted-foreground">{t.loyalty_members?.phone ?? ""}</div>
@@ -855,7 +855,7 @@ function RedeemHistoryDialog({
                   <TableCell className="font-mono">{t.order?.order_number ? `#${t.order.order_number}` : "—"}</TableCell>
                   <TableCell><Badge variant="outline">{modeLabel(t.order?.order_type)}</Badge></TableCell>
                   <TableCell className="text-right font-bold text-destructive">{t.points}</TableCell>
-                  <TableCell className="text-right">{t.order?.delivery_fee ? brl(Number(t.order.delivery_fee)) : "—"}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{t.order?.delivery_fee ? brl(Number(t.order.delivery_fee)) : "—"}</TableCell>
                 </TableRow>
               ))}
               {list.length === 0 && (
@@ -863,6 +863,27 @@ function RedeemHistoryDialog({
               )}
             </TableBody>
           </Table>
+        </div>
+        <div className="md:hidden space-y-2">
+          {list.length === 0 ? (
+            <div className="text-center text-muted-foreground py-8 text-sm">Nenhum resgate realizado ainda</div>
+          ) : list.map((t: any) => (
+            <div key={t.id} className="border rounded-lg p-3 space-y-1 bg-card">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium truncate">{t.loyalty_members?.name ?? "—"}</div>
+                  <div className="text-xs text-muted-foreground">{t.loyalty_members?.phone ?? ""}</div>
+                </div>
+                <Badge variant="outline" className="shrink-0">{modeLabel(t.order?.order_type)}</Badge>
+              </div>
+              <div className="text-[11px] text-muted-foreground">{new Date(t.created_at).toLocaleString("pt-BR")}</div>
+              <div className="grid grid-cols-3 gap-2 text-center text-xs border-t pt-2">
+                <div><div className="font-mono">{t.order?.order_number ? `#${t.order.order_number}` : "—"}</div><div className="text-muted-foreground text-[10px]">Pedido</div></div>
+                <div><div className="font-bold text-destructive">{t.points}</div><div className="text-muted-foreground text-[10px]">Pontos</div></div>
+                <div><div>{t.order?.delivery_fee ? brl(Number(t.order.delivery_fee)) : "—"}</div><div className="text-muted-foreground text-[10px]">Taxa</div></div>
+              </div>
+            </div>
+          ))}
         </div>
       </DialogContent>
     </Dialog>
