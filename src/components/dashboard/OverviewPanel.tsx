@@ -478,7 +478,7 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
       <div className="grid gap-3 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader><CardTitle className="text-base">Análise de pedidos por tipo</CardTitle></CardHeader>
-          <CardContent>
+          <CardContent className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -491,10 +491,10 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
               <TableBody>
                 {typeRows.map((t) => (
                   <TableRow key={t.key}>
-                    <TableCell className="flex items-center gap-2"><t.icon className="w-4 h-4" style={{ color: t.color }} />{t.label}</TableCell>
+                    <TableCell className="flex items-center gap-2 whitespace-nowrap"><t.icon className="w-4 h-4" style={{ color: t.color }} />{t.label}</TableCell>
                     <TableCell className="text-right font-medium">{t.count}</TableCell>
-                    <TableCell className="text-right">{brl(t.revenue)}</TableCell>
-                    <TableCell className="text-right">{brl(t.avg)}</TableCell>
+                    <TableCell className="text-right whitespace-nowrap">{brl(t.revenue)}</TableCell>
+                    <TableCell className="text-right whitespace-nowrap">{brl(t.avg)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
