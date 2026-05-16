@@ -256,7 +256,7 @@ export function SupplyReportsDialog() {
               );
             })}
           </div>
-          <Button size="sm" variant="outline" onClick={exportCSV} className="gap-2">
+          <Button size="sm" variant="outline" onClick={exportCSV} className="gap-2 w-full sm:w-auto">
             <Download className="w-4 h-4" /> Exportar CSV
           </Button>
         </div>
