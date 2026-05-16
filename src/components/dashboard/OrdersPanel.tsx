@@ -84,6 +84,7 @@ interface Item {
 interface OptionGroupRow { id: string; name: string; sort_order: number | null; }
 interface OptionItemRow { id: string; group_id: string; name: string; sort_order: number | null; }
 interface ProductOptionGroupRow { product_id: string; group_id: string; sort_order: number | null; }
+
 export const ordersKey = (rid: string) => ["orders", rid] as const;
 
 export async function fetchOrders(restaurantId: string): Promise<{ orders: Order[]; items: Record<string, Item[]> }> {
