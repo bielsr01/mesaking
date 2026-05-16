@@ -187,6 +187,7 @@ export function AdminStockReportsDialog({
                               <div className="text-sm font-medium">{sd.name}</div>
                               <div className="text-sm">Subtotal: <strong className="text-green-600 tabular-nums">+{sd.total}</strong></div>
                             </div>
+                            <div className="overflow-x-auto">
                             <table className="w-full text-xs">
                               <thead className="text-left text-muted-foreground">
                                 <tr>
@@ -207,6 +208,7 @@ export function AdminStockReportsDialog({
                                 ))}
                               </tbody>
                             </table>
+                            </div>
                           </div>
                         ))}
                       </div>
