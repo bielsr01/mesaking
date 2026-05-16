@@ -478,8 +478,22 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
       <div className="grid gap-3 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader><CardTitle className="text-base">Análise de pedidos por tipo</CardTitle></CardHeader>
-          <CardContent className="overflow-x-auto">
-            <Table>
+          <CardContent>
+            {/* Mobile: stacked cards */}
+            <div className="space-y-2 md:hidden">
+              {typeRows.map((t) => (
+                <div key={t.key} className="rounded-md border p-3 space-y-1">
+                  <div className="flex items-center gap-2 font-medium"><t.icon className="w-4 h-4" style={{ color: t.color }} />{t.label}</div>
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    <div><div className="text-muted-foreground">Pedidos</div><div className="font-medium text-sm">{t.count}</div></div>
+                    <div><div className="text-muted-foreground">Vendas</div><div className="font-medium text-sm">{brl(t.revenue)}</div></div>
+                    <div><div className="text-muted-foreground">Ticket</div><div className="font-medium text-sm">{brl(t.avg)}</div></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Desktop: table */}
+            <Table className="hidden md:table">
               <TableHeader>
                 <TableRow>
                   <TableHead>Tipo</TableHead>
@@ -618,8 +632,26 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
       <div className="grid gap-3 lg:grid-cols-2">
         <Card>
           <CardHeader><CardTitle className="text-base flex items-center gap-2"><Trophy className="w-4 h-4 text-yellow-500" />Top clientes</CardTitle></CardHeader>
-          <CardContent className="overflow-x-auto">
-            <Table>
+          <CardContent>
+            {/* Mobile */}
+            <div className="space-y-2 md:hidden">
+              {topCustomers.map((c, i) => (
+                <div key={c.phone} className="flex items-center gap-3 rounded-md border p-3">
+                  <div className="font-bold text-lg w-6 shrink-0">{i + 1}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium truncate">{c.name}</div>
+                    <div className="text-xs text-muted-foreground truncate">{c.phone}</div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="font-medium text-sm">{brl(c.total)}</div>
+                    <div className="text-xs text-muted-foreground">{c.count} ped.</div>
+                  </div>
+                </div>
+              ))}
+              {topCustomers.length === 0 && <div className="text-center py-8 text-muted-foreground text-sm">Sem dados</div>}
+            </div>
+            {/* Desktop */}
+            <Table className="hidden md:table">
               <TableHeader>
                 <TableRow>
                   <TableHead>#</TableHead>
@@ -652,8 +684,23 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
         </Card>
         <Card>
           <CardHeader><CardTitle className="text-base">Produtos mais vendidos</CardTitle></CardHeader>
-          <CardContent className="overflow-x-auto">
-            <Table>
+          <CardContent>
+            {/* Mobile */}
+            <div className="space-y-2 md:hidden">
+              {topProducts.map((p, i) => (
+                <div key={p.name} className="flex items-center gap-3 rounded-md border p-3">
+                  <div className="font-bold text-lg w-6 shrink-0">{i + 1}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium truncate">{p.name}</div>
+                    <div className="text-xs text-muted-foreground">{p.qty} un.</div>
+                  </div>
+                  <div className="text-right shrink-0 font-medium text-sm">{brl(p.revenue)}</div>
+                </div>
+              ))}
+              {topProducts.length === 0 && <div className="text-center py-8 text-muted-foreground text-sm">Sem dados</div>}
+            </div>
+            {/* Desktop */}
+            <Table className="hidden md:table">
               <TableHeader>
                 <TableRow>
                   <TableHead>#</TableHead>
