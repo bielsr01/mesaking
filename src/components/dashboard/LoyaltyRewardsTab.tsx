@@ -156,50 +156,79 @@ export function LoyaltyRewardsTab({ restaurantId, isAdmin = false }: { restauran
     <div className="space-y-4 pt-4">
       <div className="flex justify-between items-center gap-2 flex-wrap">
         <div className="text-sm text-muted-foreground">Cadastre produtos do cardápio que podem ser resgatados com pontos</div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setHistoryOpen(true)}><History className="w-4 h-4 mr-1" />Histórico de resgate</Button>
-          {canRewardsEdit && <Button onClick={openCreate}><Plus className="w-4 h-4 mr-1" />Nova recompensa</Button>}
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Button variant="outline" onClick={() => setHistoryOpen(true)} className="flex-1 sm:flex-none"><History className="w-4 h-4 mr-1" />Histórico</Button>
+          {canRewardsEdit && <Button onClick={openCreate} className="flex-1 sm:flex-none"><Plus className="w-4 h-4 mr-1" />Nova recompensa</Button>}
         </div>
       </div>
 
-      <div className="border rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Recompensa</TableHead>
-              <TableHead>Produto vinculado</TableHead>
-              <TableHead className="text-right">Pontos</TableHead>
-              <TableHead className="text-right">Estoque</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right w-56">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+      {(rewardsQ.data ?? []).length === 0 ? (
+        <div className="border rounded-lg py-8 text-center text-muted-foreground">Nenhuma recompensa cadastrada</div>
+      ) : (
+        <>
+          <div className="hidden md:block border rounded-lg">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Recompensa</TableHead>
+                  <TableHead>Produto vinculado</TableHead>
+                  <TableHead className="text-right">Pontos</TableHead>
+                  <TableHead className="text-right">Estoque</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right w-56">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(rewardsQ.data ?? []).map((r) => {
+                  const prod = productsQ.data?.find((p) => p.id === r.product_id);
+                  return (
+                    <TableRow key={r.id}>
+                      <TableCell className="font-medium">{r.name}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{prod?.name ?? "—"}</TableCell>
+                      <TableCell className="text-right font-bold">{r.points_cost}</TableCell>
+                      <TableCell className="text-right">{r.stock == null ? "∞" : r.stock}</TableCell>
+                      <TableCell><Badge variant={r.is_active ? "default" : "secondary"}>{r.is_active ? "Ativa" : "Inativa"}</Badge></TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          {canRedeem && <Button size="sm" onClick={() => setRedeemReward(r)} disabled={!r.is_active}><Gift className="w-4 h-4 mr-1" />Resgatar</Button>}
+                          {canRewardsEdit && <Button variant="ghost" size="icon" onClick={() => openEdit(r)}><Pencil className="w-4 h-4" /></Button>}
+                          {canRewardsDelete && <Button variant="ghost" size="icon" onClick={() => remove(r.id)}><Trash2 className="w-4 h-4" /></Button>}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+
+          <div className="md:hidden space-y-2">
             {(rewardsQ.data ?? []).map((r) => {
               const prod = productsQ.data?.find((p) => p.id === r.product_id);
               return (
-                <TableRow key={r.id}>
-                  <TableCell className="font-medium">{r.name}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{prod?.name ?? "—"}</TableCell>
-                  <TableCell className="text-right font-bold">{r.points_cost}</TableCell>
-                  <TableCell className="text-right">{r.stock == null ? "∞" : r.stock}</TableCell>
-                  <TableCell><Badge variant={r.is_active ? "default" : "secondary"}>{r.is_active ? "Ativa" : "Inativa"}</Badge></TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      {canRedeem && <Button size="sm" onClick={() => setRedeemReward(r)} disabled={!r.is_active}><Gift className="w-4 h-4 mr-1" />Resgatar</Button>}
-                      {canRewardsEdit && <Button variant="ghost" size="icon" onClick={() => openEdit(r)}><Pencil className="w-4 h-4" /></Button>}
-                      {canRewardsDelete && <Button variant="ghost" size="icon" onClick={() => remove(r.id)}><Trash2 className="w-4 h-4" /></Button>}
+                <div key={r.id} className="border rounded-lg p-3 space-y-2 bg-card">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium truncate">{r.name}</div>
+                      {prod && <div className="text-xs text-muted-foreground truncate">{prod.name}</div>}
                     </div>
-                  </TableCell>
-                </TableRow>
+                    <Badge variant={r.is_active ? "default" : "secondary"} className="shrink-0">{r.is_active ? "Ativa" : "Inativa"}</Badge>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold">{r.points_cost} pts</span>
+                    <span className="text-muted-foreground">Estoque: {r.stock == null ? "∞" : r.stock}</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1 border-t pt-2">
+                    {canRedeem && <Button size="sm" className="flex-1" onClick={() => setRedeemReward(r)} disabled={!r.is_active}><Gift className="w-4 h-4 mr-1" />Resgatar</Button>}
+                    {canRewardsEdit && <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => openEdit(r)}><Pencil className="w-4 h-4" /></Button>}
+                    {canRewardsDelete && <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => remove(r.id)}><Trash2 className="w-4 h-4" /></Button>}
+                  </div>
+                </div>
               );
             })}
-            {(rewardsQ.data ?? []).length === 0 && (
-              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhuma recompensa cadastrada</TableCell></TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+          </div>
+        </>
+      )}
 
       {/* Create/edit reward */}
       <Dialog open={dlg} onOpenChange={setDlg}>

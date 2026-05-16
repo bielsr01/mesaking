@@ -250,15 +250,16 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-2">
+      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <CardTitle className="flex items-center gap-2"><Award className="w-5 h-5" />Programa de fidelidade</CardTitle>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setMetricsOpen(true)}>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Button variant="outline" size="sm" onClick={() => setMetricsOpen(true)} className="flex-1 sm:flex-none">
             <BarChart3 className="w-4 h-4 mr-1" />Métricas
           </Button>
           <Button
             variant="outline"
             size="sm"
+            className="flex-1 sm:flex-none"
             onClick={() => {
               qc.invalidateQueries({ queryKey: ["loyalty-settings", restaurantId] });
               qc.invalidateQueries({ queryKey: ["loyalty-members", restaurantId] });
@@ -272,11 +273,11 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="settings">
-          <TabsList>
-            <TabsTrigger value="settings">Configurações</TabsTrigger>
-            <TabsTrigger value="members">Cadastro</TabsTrigger>
-            {canCredit && <TabsTrigger value="credit">Creditar Pontos</TabsTrigger>}
-            {canRewardsView && <TabsTrigger value="rewards">Resgatar Pontos</TabsTrigger>}
+          <TabsList className="flex w-full overflow-x-auto h-auto justify-start sm:justify-center">
+            <TabsTrigger value="settings" className="text-xs sm:text-sm">Configurações</TabsTrigger>
+            <TabsTrigger value="members" className="text-xs sm:text-sm">Cadastro</TabsTrigger>
+            {canCredit && <TabsTrigger value="credit" className="text-xs sm:text-sm">Creditar</TabsTrigger>}
+            {canRewardsView && <TabsTrigger value="rewards" className="text-xs sm:text-sm">Resgatar</TabsTrigger>}
           </TabsList>
 
           {canRewardsView && (
@@ -326,100 +327,150 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
                 {canMemberCreate && <Button onClick={openCreate}><Plus className="w-4 h-4 mr-1" />Novo cadastro</Button>}
               </div>
             </div>
-            <div className="border rounded-lg">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Telefone</TableHead>
-                    <TableHead className="text-right">Pontos disponíveis</TableHead>
-                    <TableHead className="w-40 text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(() => {
-                    const q = search.trim().toLowerCase();
-                    const digits = q.replace(/\D/g, "");
-                    const list = (membersQ.data ?? []).filter((m) => {
-                      if (!q) return true;
-                      const phoneDigits = (m.phone || "").replace(/\D/g, "");
-                      return m.name.toLowerCase().includes(q) || (digits && phoneDigits.includes(digits));
-                    });
-                    if (list.length === 0) {
-                      return (
-                        <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Nenhum cliente encontrado</TableCell></TableRow>
-                      );
-                    }
-                    return list.map((m) => (
-                      <TableRow key={m.id}>
-                        <TableCell className="font-medium">{m.name}</TableCell>
-                        <TableCell>{m.phone}</TableCell>
-                        <TableCell className="text-right">
-                          <Badge variant="secondary" className="font-bold">{m.points}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-1">
-                            <Button variant="ghost" size="icon" title="Histórico" onClick={() => setHistoryMember(m)}><History className="w-4 h-4" /></Button>
-                            {(canMemberCreate || canManualAdjust) && <Button variant="ghost" size="icon" title="Editar" onClick={() => openEdit(m)}><Pencil className="w-4 h-4" /></Button>}
-                            {canMemberDelete && <Button variant="ghost" size="icon" title="Excluir" onClick={() => deleteMember(m.id)}><Trash2 className="w-4 h-4" /></Button>}
+            {(() => {
+              const q = search.trim().toLowerCase();
+              const digits = q.replace(/\D/g, "");
+              const list = (membersQ.data ?? []).filter((m) => {
+                if (!q) return true;
+                const phoneDigits = (m.phone || "").replace(/\D/g, "");
+                return m.name.toLowerCase().includes(q) || (digits && phoneDigits.includes(digits));
+              });
+              if (list.length === 0) {
+                return <div className="border rounded-lg py-8 text-center text-muted-foreground">Nenhum cliente encontrado</div>;
+              }
+              return (
+                <>
+                  <div className="hidden md:block border rounded-lg">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Nome</TableHead>
+                          <TableHead>Telefone</TableHead>
+                          <TableHead className="text-right">Pontos disponíveis</TableHead>
+                          <TableHead className="w-40 text-right">Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {list.map((m) => (
+                          <TableRow key={m.id}>
+                            <TableCell className="font-medium">{m.name}</TableCell>
+                            <TableCell>{m.phone}</TableCell>
+                            <TableCell className="text-right"><Badge variant="secondary" className="font-bold">{m.points}</Badge></TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-1">
+                                <Button variant="ghost" size="icon" title="Histórico" onClick={() => setHistoryMember(m)}><History className="w-4 h-4" /></Button>
+                                {(canMemberCreate || canManualAdjust) && <Button variant="ghost" size="icon" title="Editar" onClick={() => openEdit(m)}><Pencil className="w-4 h-4" /></Button>}
+                                {canMemberDelete && <Button variant="ghost" size="icon" title="Excluir" onClick={() => deleteMember(m.id)}><Trash2 className="w-4 h-4" /></Button>}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  <div className="md:hidden space-y-2">
+                    {list.map((m) => (
+                      <div key={m.id} className="border rounded-lg p-3 space-y-2 bg-card">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="font-medium truncate">{m.name}</div>
+                            <div className="text-xs text-muted-foreground">{m.phone}</div>
                           </div>
-                        </TableCell>
-                      </TableRow>
-                    ));
-                  })()}
-                </TableBody>
-              </Table>
-            </div>
+                          <Badge variant="secondary" className="font-bold shrink-0">{m.points} pts</Badge>
+                        </div>
+                        <div className="flex justify-end gap-1 border-t pt-2">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Histórico" onClick={() => setHistoryMember(m)}><History className="w-4 h-4" /></Button>
+                          {(canMemberCreate || canManualAdjust) && <Button variant="ghost" size="icon" className="h-8 w-8" title="Editar" onClick={() => openEdit(m)}><Pencil className="w-4 h-4" /></Button>}
+                          {canMemberDelete && <Button variant="ghost" size="icon" className="h-8 w-8" title="Excluir" onClick={() => deleteMember(m.id)}><Trash2 className="w-4 h-4" /></Button>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              );
+            })()}
           </TabsContent>
 
           {/* Credit */}
           {canCredit && (
           <TabsContent value="credit" className="space-y-4 pt-4">
             <div className="text-sm text-muted-foreground">Pedidos com pontos pendentes de crédito</div>
-            <div className="border rounded-lg">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Pedido</TableHead>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                    <TableHead className="text-right">Pontos</TableHead>
-                    <TableHead className="text-right w-40">Ação</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+            {(txQ.data ?? []).length === 0 ? (
+              <div className="border rounded-lg py-8 text-center text-muted-foreground">Nenhum registro pendente</div>
+            ) : (
+              <>
+                <div className="hidden md:block border rounded-lg">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Pedido</TableHead>
+                        <TableHead>Cliente</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
+                        <TableHead className="text-right">Pontos</TableHead>
+                        <TableHead className="text-right w-40">Ação</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(txQ.data ?? []).map((t) => (
+                        <TableRow key={t.id}>
+                          <TableCell className="font-mono">#{t.orders?.order_number ?? "—"}</TableCell>
+                          <TableCell>
+                            <div className="font-medium">{t.loyalty_members?.name}</div>
+                            <div className="text-xs text-muted-foreground">{t.loyalty_members?.phone}</div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={t.orders?.status === "delivered" || t.orders?.status === "completed" ? "default" : "secondary"}>
+                              {t.orders?.status ? statusLabelFor(t.orders.status, (t.orders as any).order_type) : "—"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">{t.orders ? brl(Number(t.orders.total)) : "—"}</TableCell>
+                          <TableCell className="text-right font-bold">{t.points}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-1">
+                              <Button size="sm" onClick={() => creditTx(t.id)} disabled={creditingIds.has(t.id)}>
+                                {creditingIds.has(t.id) ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Check className="w-4 h-4 mr-1" />}
+                                {creditingIds.has(t.id) ? "Processando..." : "Creditar"}
+                              </Button>
+                              {canDeleteCreditTx && <Button size="sm" variant="ghost" onClick={() => deleteTx(t.id)}><Trash2 className="w-4 h-4" /></Button>}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                <div className="md:hidden space-y-2">
                   {(txQ.data ?? []).map((t) => (
-                    <TableRow key={t.id}>
-                      <TableCell className="font-mono">#{t.orders?.order_number ?? "—"}</TableCell>
-                      <TableCell>
-                        <div className="font-medium">{t.loyalty_members?.name}</div>
-                        <div className="text-xs text-muted-foreground">{t.loyalty_members?.phone}</div>
-                      </TableCell>
-                      <TableCell>
+                    <div key={t.id} className="border rounded-lg p-3 space-y-2 bg-card">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="font-mono text-xs text-muted-foreground">#{t.orders?.order_number ?? "—"}</div>
+                          <div className="font-medium truncate">{t.loyalty_members?.name}</div>
+                          <div className="text-xs text-muted-foreground">{t.loyalty_members?.phone}</div>
+                        </div>
+                        <Badge variant="secondary" className="font-bold shrink-0">{t.points} pts</Badge>
+                      </div>
+                      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
                         <Badge variant={t.orders?.status === "delivered" || t.orders?.status === "completed" ? "default" : "secondary"}>
                           {t.orders?.status ? statusLabelFor(t.orders.status, (t.orders as any).order_type) : "—"}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">{t.orders ? brl(Number(t.orders.total)) : "—"}</TableCell>
-                      <TableCell className="text-right font-bold">{t.points}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button size="sm" onClick={() => creditTx(t.id)} disabled={creditingIds.has(t.id)}>
-                            {creditingIds.has(t.id) ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Check className="w-4 h-4 mr-1" />}
-                            {creditingIds.has(t.id) ? "Processando..." : "Creditar"}
-                          </Button>
-                          {canDeleteCreditTx && <Button size="sm" variant="ghost" onClick={() => deleteTx(t.id)}><Trash2 className="w-4 h-4" /></Button>}
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                        <span className="font-semibold">{t.orders ? brl(Number(t.orders.total)) : "—"}</span>
+                      </div>
+                      <div className="flex gap-1 border-t pt-2">
+                        <Button size="sm" className="flex-1" onClick={() => creditTx(t.id)} disabled={creditingIds.has(t.id)}>
+                          {creditingIds.has(t.id) ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Check className="w-4 h-4 mr-1" />}
+                          {creditingIds.has(t.id) ? "Processando..." : "Creditar"}
+                        </Button>
+                        {canDeleteCreditTx && <Button size="sm" variant="ghost" onClick={() => deleteTx(t.id)}><Trash2 className="w-4 h-4" /></Button>}
+                      </div>
+                    </div>
                   ))}
-                  {(txQ.data ?? []).length === 0 && (
-                    <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhum registro pendente</TableCell></TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+                </div>
+              </>
+            )}
           </TabsContent>
           )}
         </Tabs>
