@@ -445,12 +445,12 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
 
       {/* Source filter */}
       <Tabs value={source} onValueChange={(v) => handleSourceChange(v as SourceFilter)}>
-        <TabsList className="grid grid-cols-5 w-full max-w-3xl">
-          <TabsTrigger value="all">Todos</TabsTrigger>
-          <TabsTrigger value="pdv">PDV</TabsTrigger>
-          <TabsTrigger value="web">Web</TabsTrigger>
-          <TabsTrigger value="ifood">iFood</TabsTrigger>
-          <TabsTrigger value="quero">Quero</TabsTrigger>
+        <TabsList className="grid grid-cols-5 w-full max-w-3xl h-auto">
+          <TabsTrigger value="all" className="text-[11px] sm:text-sm px-1 sm:px-3">Todos</TabsTrigger>
+          <TabsTrigger value="pdv" className="text-[11px] sm:text-sm px-1 sm:px-3">PDV</TabsTrigger>
+          <TabsTrigger value="web" className="text-[11px] sm:text-sm px-1 sm:px-3">Web</TabsTrigger>
+          <TabsTrigger value="ifood" className="text-[11px] sm:text-sm px-1 sm:px-3">iFood</TabsTrigger>
+          <TabsTrigger value="quero" className="text-[11px] sm:text-sm px-1 sm:px-3">Quero</TabsTrigger>
         </TabsList>
       </Tabs>
 
