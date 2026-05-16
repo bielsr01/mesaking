@@ -331,6 +331,7 @@ export function AdminStockReportsDialog({
                                 </tbody>
                               </table>
                               </div>
+                            </div>
                           );
                         })}
                       </div>
