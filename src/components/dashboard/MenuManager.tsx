@@ -536,7 +536,7 @@ function SortableProductCard({
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
   return (
     <Card ref={setNodeRef} style={style} className={!p.is_active ? "opacity-60" : ""}>
-      <CardContent className="p-3 flex gap-3 items-center">
+      <CardContent className="p-3 flex flex-wrap gap-3 items-center">
         {canEdit && <button
           type="button"
           className="touch-none cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-1"
@@ -546,17 +546,21 @@ function SortableProductCard({
         >
           <GripVertical className="w-5 h-5" />
         </button>}
-        <div className="w-16 h-16 rounded-lg bg-muted overflow-hidden grid place-items-center shrink-0">
+        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-lg bg-muted overflow-hidden grid place-items-center shrink-0">
           {p.image_url ? <img src={p.image_url} alt={p.name} loading="lazy" className="w-full h-full object-cover" /> : <ImageIcon className="w-6 h-6 text-muted-foreground" />}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="font-medium">{p.name}</div>
+          <div className="font-medium truncate">{p.name}</div>
           {p.description && <div className="text-xs text-muted-foreground line-clamp-1">{p.description}</div>}
           <div className="text-sm font-semibold text-primary mt-0.5">{brl(p.price)}</div>
         </div>
-        {canEdit && <Switch checked={p.is_active} onCheckedChange={() => onToggle(p)} />}
-        {canEdit && <Button size="icon" variant="ghost" disabled={loading} onClick={() => onEdit(p)}>{loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Pencil className="w-4 h-4" />}</Button>}
-        {canEdit && <Button size="icon" variant="ghost" onClick={() => onRemove(p)}><Trash2 className="w-4 h-4" /></Button>}
+        {canEdit && (
+          <div className="flex items-center gap-1 ml-auto w-full sm:w-auto justify-end border-t sm:border-0 pt-2 sm:pt-0">
+            <Switch checked={p.is_active} onCheckedChange={() => onToggle(p)} />
+            <Button size="icon" variant="ghost" disabled={loading} onClick={() => onEdit(p)}>{loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Pencil className="w-4 h-4" />}</Button>
+            <Button size="icon" variant="ghost" onClick={() => onRemove(p)}><Trash2 className="w-4 h-4" /></Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
