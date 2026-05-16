@@ -709,7 +709,7 @@ function CampaignDialog({
                 </PopoverContent>
               </Popover>
             </div>
-            <div className="border rounded-lg max-h-72 overflow-y-auto">
+            <div className="border rounded-lg max-h-72 overflow-auto">
               {isLoading ? (
                 <div className="p-4 space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}</div>
               ) : filtered.length === 0 ? (
