@@ -149,15 +149,15 @@ export function EvolutionMessagesPanel({ restaurantId }: { restaurantId: string 
         <code className="text-xs bg-muted px-1 rounded">{"{{total}}"}</code>
       </p>
 
-      <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
-        <div className="flex items-center justify-between gap-3">
-          <div>
+      <div className="border rounded-lg p-3 sm:p-4 space-y-3 bg-muted/30">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div className="min-w-0 flex-1">
             <div className="font-medium">Popup pós-pedido (cardápio)</div>
             <div className="text-xs text-muted-foreground">
               Ao finalizar o pedido, exibe um popup convidando o cliente a abrir o WhatsApp da loja com mensagem pronta.
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <Label className="text-sm">Ativo</Label>
             <Switch checked={popupEnabled} onCheckedChange={setPopupEnabled} />
           </div>
