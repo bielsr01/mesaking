@@ -148,6 +148,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [deliveryBlink, setDeliveryBlink] = useState(false);
   const [pendingAction, setPendingAction] = useState<Record<string, boolean>>({});
+  const [mobileCol, setMobileCol] = useState<"preparing" | "ready" | "out" | "done">("preparing");
   const [ifoodCodeTarget, setIfoodCodeTarget] = useState<Order | null>(null);
   const [ifoodCodeValue, setIfoodCodeValue] = useState("");
   const [ifoodCodeSubmitting, setIfoodCodeSubmitting] = useState(false);
@@ -823,27 +824,67 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
           <Skeleton className="h-56 w-full" />
         </div>
       ) : (
-        <div className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-4 items-stretch flex-1 min-h-0">
-          <div className="flex flex-col gap-3 min-w-0 min-h-0">
+        <>
+          {/* Desktop: 4 colunas */}
+          <div className="hidden md:grid gap-3 grid-cols-2 lg:grid-cols-4 items-stretch flex-1 min-h-0">
+            <div className="flex flex-col gap-3 min-w-0 min-h-0">
+              {pendingOrders.length > 0 && (
+                <Column title="Aguardando aceitação" count={pendingOrders.length} accent="bg-destructive/15 text-destructive" className="max-h-[40%] shrink-0">
+                  {pendingOrders.map((o) => renderCard(o, true))}
+                </Column>
+              )}
+              <Column title="Em preparo" count={preparingOrders.length} className="flex-1 min-h-0">
+                {preparingOrders.map((o) => renderCard(o))}
+              </Column>
+            </div>
+            <Column title="Pronto" count={readyOrders.length}>
+              {readyOrders.map((o) => renderCard(o))}
+            </Column>
+            <Column title="Em entrega" count={outForDeliveryOrders.length}>
+              {outForDeliveryOrders.map((o) => renderCard(o))}
+            </Column>
+            <Column title="Finalizados" count={finalizedOrders.length}>
+              {finalizedOrders.map((o) => renderCard(o))}
+            </Column>
+          </div>
+
+          {/* Mobile: pendentes sempre no topo + filtros + 1 coluna */}
+          <div className="flex md:hidden flex-col gap-3 flex-1 min-h-0">
             {pendingOrders.length > 0 && (
               <Column title="Aguardando aceitação" count={pendingOrders.length} accent="bg-destructive/15 text-destructive" className="max-h-[40%] shrink-0">
                 {pendingOrders.map((o) => renderCard(o, true))}
               </Column>
             )}
-            <Column title="Em preparo" count={preparingOrders.length} className="flex-1 min-h-0">
-              {preparingOrders.map((o) => renderCard(o))}
-            </Column>
+            <Tabs value={mobileCol} onValueChange={(v) => setMobileCol(v as typeof mobileCol)}>
+              <TabsList className="grid grid-cols-2 h-auto w-full gap-1 p-1">
+                <TabsTrigger value="preparing" className="text-xs gap-1">Em preparo <Badge variant="secondary" className="h-4 min-w-4 px-1 text-[10px]">{preparingOrders.length}</Badge></TabsTrigger>
+                <TabsTrigger value="ready" className="text-xs gap-1">Pronto <Badge variant="secondary" className="h-4 min-w-4 px-1 text-[10px]">{readyOrders.length}</Badge></TabsTrigger>
+                <TabsTrigger value="out" className="text-xs gap-1">Em entrega <Badge variant="secondary" className="h-4 min-w-4 px-1 text-[10px]">{outForDeliveryOrders.length}</Badge></TabsTrigger>
+                <TabsTrigger value="done" className="text-xs gap-1">Finalizados <Badge variant="secondary" className="h-4 min-w-4 px-1 text-[10px]">{finalizedOrders.length}</Badge></TabsTrigger>
+              </TabsList>
+            </Tabs>
+            {mobileCol === "preparing" && (
+              <Column title="Em preparo" count={preparingOrders.length} className="flex-1 min-h-0">
+                {preparingOrders.map((o) => renderCard(o))}
+              </Column>
+            )}
+            {mobileCol === "ready" && (
+              <Column title="Pronto" count={readyOrders.length} className="flex-1 min-h-0">
+                {readyOrders.map((o) => renderCard(o))}
+              </Column>
+            )}
+            {mobileCol === "out" && (
+              <Column title="Em entrega" count={outForDeliveryOrders.length} className="flex-1 min-h-0">
+                {outForDeliveryOrders.map((o) => renderCard(o))}
+              </Column>
+            )}
+            {mobileCol === "done" && (
+              <Column title="Finalizados" count={finalizedOrders.length} className="flex-1 min-h-0">
+                {finalizedOrders.map((o) => renderCard(o))}
+              </Column>
+            )}
           </div>
-          <Column title="Pronto" count={readyOrders.length}>
-            {readyOrders.map((o) => renderCard(o))}
-          </Column>
-          <Column title="Em entrega" count={outForDeliveryOrders.length}>
-            {outForDeliveryOrders.map((o) => renderCard(o))}
-          </Column>
-          <Column title="Finalizados" count={finalizedOrders.length}>
-            {finalizedOrders.map((o) => renderCard(o))}
-          </Column>
-        </div>
+        </>
       )}
 
       <AlertDialog
