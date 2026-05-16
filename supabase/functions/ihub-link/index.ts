@@ -199,6 +199,35 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === "cancellation-reasons") {
+      if (!externalOrderId) {
+        return new Response(JSON.stringify({ ok: false, error: "externalOrderId é obrigatório" }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (!integration.merchant_id) {
+        return new Response(JSON.stringify({ ok: false, error: "Loja iFood não vinculada a este restaurante" }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const r = await fetch(`${IHUB_BASE}/orders/${integration.merchant_id}/${externalOrderId}/cancellation-reasons`, {
+        method: "GET",
+        headers: authHdr,
+      });
+      const text = await r.text();
+      let data: any; try { data = JSON.parse(text); } catch { data = { raw: text }; }
+      if (!r.ok) {
+        console.error("ihub cancellation-reasons failed", { status: r.status, data });
+        return new Response(JSON.stringify({ ok: false, error: data?.message ?? data?.error ?? "Falha ao obter motivos de cancelamento", status: r.status, data }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const reasons = Array.isArray(data) ? data : (data?.reasons ?? data?.data ?? []);
+      return new Response(JSON.stringify({ ok: true, reasons }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (action === "verify-delivery-code") {
       if (!externalOrderId || !code) {
         return new Response(JSON.stringify({ ok: false, error: "externalOrderId e code são obrigatórios" }), {
