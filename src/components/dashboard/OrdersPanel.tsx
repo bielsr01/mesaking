@@ -148,6 +148,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [deliveryBlink, setDeliveryBlink] = useState(false);
   const [pendingAction, setPendingAction] = useState<Record<string, boolean>>({});
+  const [mobileCol, setMobileCol] = useState<"preparing" | "ready" | "out" | "done">("preparing");
   const [ifoodCodeTarget, setIfoodCodeTarget] = useState<Order | null>(null);
   const [ifoodCodeValue, setIfoodCodeValue] = useState("");
   const [ifoodCodeSubmitting, setIfoodCodeSubmitting] = useState(false);
