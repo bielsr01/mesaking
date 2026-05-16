@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -65,6 +66,7 @@ export default function MasterAdmin() {
   const { signOut } = useAuth();
   const qc = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
+  const isMobile = useIsMobile();
   const [view, setView] = useState<AdminView>("restaurants");
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [stats, setStats] = useState({ orders: 0, revenue: 0 });
@@ -219,7 +221,7 @@ export default function MasterAdmin() {
                   } finally {
                     setRefreshing(false);
                   }
-                }}><RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />{refreshing ? "Atualizando..." : "Atualizar"}</Button>
+                }}><RefreshCw className={`w-4 h-4 ${isMobile ? "" : "mr-2"} ${refreshing ? "animate-spin" : ""}`} />{!isMobile && (refreshing ? "Atualizando..." : "Atualizar")}</Button>
                 <Button variant="ghost" size="sm" onClick={signOut}><LogOut className="w-4 h-4 mr-2" />Sair</Button>
               </div>
             </div>

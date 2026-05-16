@@ -15,6 +15,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { cn } from "@/lib/utils";
 
 export type AdminView =
   | "overview"
@@ -37,8 +38,12 @@ export type AdminView =
   | "finance:restaurants";
 
 export function AdminSidebar({ active, onChange, supplyBadge = 0 }: { active: AdminView; onChange: (v: AdminView) => void; supplyBadge?: number }) {
-  const { state } = useSidebar();
+  const { state, isMobile, setOpenMobile } = useSidebar();
   const collapsed = state === "collapsed";
+  const handleChange = (v: AdminView) => {
+    onChange(v);
+    if (isMobile) setOpenMobile(false);
+  };
   const supplyActive = active.startsWith("supply:");
   const marketingActive = active.startsWith("marketing:");
   const expensesActive = active.startsWith("expenses:");
@@ -69,7 +74,7 @@ export function AdminSidebar({ active, onChange, supplyBadge = 0 }: { active: Ad
               <SidebarMenuItem>
                 <SidebarMenuButton
                   isActive={active === "overview"}
-                  onClick={() => onChange("overview")}
+                  onClick={() => handleChange("overview")}
                   tooltip="Visão geral"
                 >
                   <BarChart3 className="h-4 w-4" />
@@ -79,7 +84,7 @@ export function AdminSidebar({ active, onChange, supplyBadge = 0 }: { active: Ad
               <SidebarMenuItem>
                 <SidebarMenuButton
                   isActive={active === "restaurants"}
-                  onClick={() => onChange("restaurants")}
+                  onClick={() => handleChange("restaurants")}
                   tooltip="Restaurantes"
                 >
                   <Store className="h-4 w-4" />
@@ -90,7 +95,7 @@ export function AdminSidebar({ active, onChange, supplyBadge = 0 }: { active: Ad
               <SidebarMenuItem>
                 <SidebarMenuButton
                   isActive={active === "menu"}
-                  onClick={() => onChange("menu")}
+                  onClick={() => handleChange("menu")}
                   tooltip="Cardápio"
                 >
                   <BookOpen className="h-4 w-4" />
@@ -101,7 +106,7 @@ export function AdminSidebar({ active, onChange, supplyBadge = 0 }: { active: Ad
               <SidebarMenuItem>
                 <SidebarMenuButton
                   isActive={active === "customers"}
-                  onClick={() => onChange("customers")}
+                  onClick={() => handleChange("customers")}
                   tooltip="Clientes"
                 >
                   <Users className="h-4 w-4" />
@@ -122,7 +127,7 @@ export function AdminSidebar({ active, onChange, supplyBadge = 0 }: { active: Ad
                     <SidebarMenuSub>
                       <SidebarMenuSubItem>
                         <SidebarMenuSubButton asChild isActive={active === "marketing:coupons"}>
-                          <button type="button" onClick={() => onChange("marketing:coupons")} className="w-full text-left flex items-center gap-2">
+                          <button type="button" onClick={() => handleChange("marketing:coupons")} className="w-full text-left flex items-center gap-2">
                             <Ticket className="h-4 w-4" />
                             <span>Cupons de desconto</span>
                           </button>
@@ -130,7 +135,7 @@ export function AdminSidebar({ active, onChange, supplyBadge = 0 }: { active: Ad
                       </SidebarMenuSubItem>
                       <SidebarMenuSubItem>
                         <SidebarMenuSubButton asChild isActive={active === "marketing:bulk"}>
-                          <button type="button" onClick={() => onChange("marketing:bulk")} className="w-full text-left flex items-center gap-2">
+                          <button type="button" onClick={() => handleChange("marketing:bulk")} className="w-full text-left flex items-center gap-2">
                             <Send className="h-4 w-4" />
                             <span>Envio em massa</span>
                           </button>
@@ -144,7 +149,7 @@ export function AdminSidebar({ active, onChange, supplyBadge = 0 }: { active: Ad
               <SidebarMenuItem>
                 <SidebarMenuButton
                   isActive={active === "loyalty"}
-                  onClick={() => onChange("loyalty")}
+                  onClick={() => handleChange("loyalty")}
                   tooltip="Programa de fidelidade"
                 >
                   <Award className="h-4 w-4" />
@@ -165,7 +170,7 @@ export function AdminSidebar({ active, onChange, supplyBadge = 0 }: { active: Ad
                     <SidebarMenuSub>
                       <SidebarMenuSubItem>
                         <SidebarMenuSubButton asChild isActive={active === "settings:integrations"}>
-                          <button type="button" onClick={() => onChange("settings:integrations")} className="w-full text-left flex items-center gap-2">
+                          <button type="button" onClick={() => handleChange("settings:integrations")} className="w-full text-left flex items-center gap-2">
                             <Plug className="h-4 w-4" />
                             <span>Conexões</span>
                           </button>
@@ -173,7 +178,7 @@ export function AdminSidebar({ active, onChange, supplyBadge = 0 }: { active: Ad
                       </SidebarMenuSubItem>
                       <SidebarMenuSubItem>
                         <SidebarMenuSubButton asChild isActive={active === "settings:ifood-fees"}>
-                          <button type="button" onClick={() => onChange("settings:ifood-fees")} className="w-full text-left flex items-center gap-2">
+                          <button type="button" onClick={() => handleChange("settings:ifood-fees")} className="w-full text-left flex items-center gap-2">
                             <Bike className="h-4 w-4" />
                             <span>Configurações iFood</span>
                           </button>
@@ -181,7 +186,7 @@ export function AdminSidebar({ active, onChange, supplyBadge = 0 }: { active: Ad
                       </SidebarMenuSubItem>
                       <SidebarMenuSubItem>
                         <SidebarMenuSubButton asChild isActive={active === "settings:quero-fees"}>
-                          <button type="button" onClick={() => onChange("settings:quero-fees")} className="w-full text-left flex items-center gap-2">
+                          <button type="button" onClick={() => handleChange("settings:quero-fees")} className="w-full text-left flex items-center gap-2">
                             <Bike className="h-4 w-4" />
                             <span>Configurações Quero</span>
                           </button>
@@ -210,7 +215,7 @@ export function AdminSidebar({ active, onChange, supplyBadge = 0 }: { active: Ad
                     <SidebarMenuSub>
                       <SidebarMenuSubItem>
                         <SidebarMenuSubButton asChild isActive={active === "supply:catalog"}>
-                          <button type="button" onClick={() => onChange("supply:catalog")} className="w-full text-left flex items-center gap-2">
+                          <button type="button" onClick={() => handleChange("supply:catalog")} className="w-full text-left flex items-center gap-2">
                             <Package className="h-4 w-4" />
                             <span>Catálogo de insumos</span>
                           </button>
@@ -218,7 +223,7 @@ export function AdminSidebar({ active, onChange, supplyBadge = 0 }: { active: Ad
                       </SidebarMenuSubItem>
                       <SidebarMenuSubItem>
                         <SidebarMenuSubButton asChild isActive={active === "supply:orders"}>
-                          <button type="button" onClick={() => onChange("supply:orders")} className="w-full text-left flex items-center gap-1.5 min-w-0">
+                          <button type="button" onClick={() => handleChange("supply:orders")} className="w-full text-left flex items-center gap-1.5 min-w-0">
                             <ShoppingBag className="h-4 w-4 shrink-0" />
                             <span className="flex-1 min-w-0 truncate whitespace-nowrap">Pedidos recebidos</span>
                             {supplyBadge > 0 && (
@@ -247,7 +252,7 @@ export function AdminSidebar({ active, onChange, supplyBadge = 0 }: { active: Ad
                     <SidebarMenuSub>
                       <SidebarMenuSubItem>
                         <SidebarMenuSubButton asChild isActive={active === "stock:admin"}>
-                          <button type="button" onClick={() => onChange("stock:admin")} className="w-full text-left flex items-center gap-2">
+                          <button type="button" onClick={() => handleChange("stock:admin")} className="w-full text-left flex items-center gap-2">
                             <Boxes className="h-4 w-4" />
                             <span>Admin</span>
                           </button>
@@ -255,7 +260,7 @@ export function AdminSidebar({ active, onChange, supplyBadge = 0 }: { active: Ad
                       </SidebarMenuSubItem>
                       <SidebarMenuSubItem>
                         <SidebarMenuSubButton asChild isActive={active === "stock:restaurants"}>
-                          <button type="button" onClick={() => onChange("stock:restaurants")} className="w-full text-left flex items-center gap-2">
+                          <button type="button" onClick={() => handleChange("stock:restaurants")} className="w-full text-left flex items-center gap-2">
                             <Store className="h-4 w-4" />
                             <span>Restaurantes</span>
                           </button>
@@ -279,7 +284,7 @@ export function AdminSidebar({ active, onChange, supplyBadge = 0 }: { active: Ad
                     <SidebarMenuSub>
                       <SidebarMenuSubItem>
                         <SidebarMenuSubButton asChild isActive={active === "expenses:admin"}>
-                          <button type="button" onClick={() => onChange("expenses:admin")} className="w-full text-left flex items-center gap-2">
+                          <button type="button" onClick={() => handleChange("expenses:admin")} className="w-full text-left flex items-center gap-2">
                             <Receipt className="h-4 w-4" />
                             <span>Despesas Admin</span>
                           </button>
@@ -287,7 +292,7 @@ export function AdminSidebar({ active, onChange, supplyBadge = 0 }: { active: Ad
                       </SidebarMenuSubItem>
                       <SidebarMenuSubItem>
                         <SidebarMenuSubButton asChild isActive={active === "expenses:stores"}>
-                          <button type="button" onClick={() => onChange("expenses:stores")} className="w-full text-left flex items-center gap-2">
+                          <button type="button" onClick={() => handleChange("expenses:stores")} className="w-full text-left flex items-center gap-2">
                             <Store className="h-4 w-4" />
                             <span>Despesas das lojas</span>
                           </button>
@@ -311,7 +316,7 @@ export function AdminSidebar({ active, onChange, supplyBadge = 0 }: { active: Ad
                     <SidebarMenuSub>
                       <SidebarMenuSubItem>
                         <SidebarMenuSubButton asChild isActive={active === "finance:admin"}>
-                          <button type="button" onClick={() => onChange("finance:admin")} className="w-full text-left flex items-center gap-2">
+                          <button type="button" onClick={() => handleChange("finance:admin")} className="w-full text-left flex items-center gap-2">
                             <LineChart className="h-4 w-4" />
                             <span>Admin</span>
                           </button>
@@ -319,7 +324,7 @@ export function AdminSidebar({ active, onChange, supplyBadge = 0 }: { active: Ad
                       </SidebarMenuSubItem>
                       <SidebarMenuSubItem>
                         <SidebarMenuSubButton asChild isActive={active === "finance:restaurants"}>
-                          <button type="button" onClick={() => onChange("finance:restaurants")} className="w-full text-left flex items-center gap-2">
+                          <button type="button" onClick={() => handleChange("finance:restaurants")} className="w-full text-left flex items-center gap-2">
                             <Store className="h-4 w-4" />
                             <span>Restaurantes</span>
                           </button>
