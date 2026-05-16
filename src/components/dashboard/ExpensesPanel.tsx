@@ -223,7 +223,7 @@ export function ExpensesPanel({ restaurantId }: { restaurantId: string }) {
               </Button>
               {canEdit && <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }}>
                 <DialogTrigger asChild>
-                  <Button size="sm" onClick={openNew} disabled={cats.length === 0}>
+                  <Button size="sm" onClick={openNew} disabled={cats.length === 0} className="flex-1 sm:flex-none">
                     <Plus className="w-4 h-4 mr-1" /> Nova despesa
                   </Button>
                 </DialogTrigger>
