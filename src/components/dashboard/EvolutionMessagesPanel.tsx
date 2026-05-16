@@ -128,11 +128,11 @@ export function EvolutionMessagesPanel({ restaurantId }: { restaurantId: string 
   const eventTitle = (k: string) => EVENTS.find((e) => e.key === k)?.title ?? k;
 
   return (
-    <Card className="p-5 space-y-4">
-      <div className="flex items-center gap-2">
+    <Card className="p-4 sm:p-5 space-y-4">
+      <div className="flex items-center gap-2 flex-wrap">
         <MessageCircle className="w-5 h-5 text-green-600" />
-        <h3 className="text-lg font-semibold">Mensagens automáticas (WhatsApp)</h3>
-        <Button variant="outline" size="sm" className="ml-auto" onClick={() => setHistoryOpen(true)}>
+        <h3 className="text-base sm:text-lg font-semibold">Mensagens automáticas (WhatsApp)</h3>
+        <Button variant="outline" size="sm" className="sm:ml-auto w-full sm:w-auto" onClick={() => setHistoryOpen(true)}>
           <History className="w-4 h-4 mr-1" /> Registro de disparos
         </Button>
       </div>
