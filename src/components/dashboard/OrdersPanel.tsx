@@ -609,7 +609,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
           const t = e.target as HTMLElement;
           if (t.closest('button,a,[role="button"]')) e.stopPropagation();
         }}>
-          <div className={`px-2 py-1.5 rounded-md flex items-center justify-center gap-1.5 text-xs font-bold uppercase tracking-wide shadow-sm ${o.external_source === "ifood" ? "bg-red-600 text-white border border-red-700" : o.external_source === "quero" ? "bg-purple-600 text-white border border-purple-700" : "bg-blue-600 text-white border border-blue-700"}`}>
+          <div className={`px-2 py-1.5 rounded-md flex items-center justify-center gap-1.5 text-xs font-bold uppercase tracking-wide shadow-sm ${o.external_source === "ifood" ? "bg-red-600 text-white border border-red-700" : o.external_source === "quero" ? "bg-purple-600 text-white border border-purple-700" : "bg-[#22c55e] text-white border border-green-600"}`}>
             {isPdv ? <Store className="w-3.5 h-3.5" /> : isPickup ? <Store className="w-3.5 h-3.5" /> : <Bike className="w-3.5 h-3.5" />}
             <span className="truncate text-center">{o.external_source === "ifood" ? "iFood" : o.external_source === "quero" ? "Quero Delivery" : (orderTypeLabel[o.order_type] ?? "Delivery")}</span>
           </div>
