@@ -160,10 +160,10 @@ export function AdminStockReportsDialog({
         </div>
 
         <Tabs defaultValue="added" className="mt-2">
-          <TabsList>
-            <TabsTrigger value="added">Adicionados ({added.length})</TabsTrigger>
-            <TabsTrigger value="consumed">Consumidos ({consumed.length})</TabsTrigger>
-            <TabsTrigger value="balance">Balanço completo ({filtered.length})</TabsTrigger>
+          <TabsList className="w-full overflow-x-auto justify-start">
+            <TabsTrigger value="added" className="shrink-0">Adicionados ({added.length})</TabsTrigger>
+            <TabsTrigger value="consumed" className="shrink-0">Consumidos ({consumed.length})</TabsTrigger>
+            <TabsTrigger value="balance" className="shrink-0">Balanço completo ({filtered.length})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="added">
