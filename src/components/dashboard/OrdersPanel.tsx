@@ -897,19 +897,59 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                 />
               </div>
             </div>
+          {cancelTarget?.external_source === "ifood" && (
+            <div className="space-y-3 py-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="ifood-cancel-code">Motivo do cancelamento (iFood)</Label>
+                {ifoodReasonsLoading ? (
+                  <div className="text-xs text-muted-foreground">Carregando motivos...</div>
+                ) : ifoodReasons.length === 0 ? (
+                  <div className="text-xs text-muted-foreground">Nenhum motivo disponível para este pedido.</div>
+                ) : (
+                  <Select value={ifoodCancelCode} onValueChange={setIfoodCancelCode}>
+                    <SelectTrigger id="ifood-cancel-code"><SelectValue placeholder="Selecione um motivo" /></SelectTrigger>
+                    <SelectContent>
+                      {ifoodReasons.map((r) => (
+                        <SelectItem key={r.cancelCodeId} value={r.cancelCodeId}>{r.description}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="ifood-cancel-reason">Descrição</Label>
+                <Textarea
+                  id="ifood-cancel-reason"
+                  placeholder="Detalhe o motivo do cancelamento"
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            </div>
           )}
 
           <AlertDialogFooter>
             <AlertDialogCancel>Voltar</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={cancelTarget?.external_source === "ifood" && (ifoodReasonsLoading || !ifoodCancelCode)}
               onClick={() => {
                 if (cancelTarget) {
                   const isQuero = cancelTarget.external_source === "quero";
-                  cancel(cancelTarget, isQuero ? { cancelReason, cancelCode } : undefined);
+                  const isIfood = cancelTarget.external_source === "ifood";
+                  if (isIfood) {
+                    cancel(cancelTarget, { cancelReason, cancelCode: ifoodCancelCode });
+                  } else if (isQuero) {
+                    cancel(cancelTarget, { cancelReason, cancelCode });
+                  } else {
+                    cancel(cancelTarget);
+                  }
                   setCancelTarget(null);
                   setCancelReason("");
                   setCancelCode("INTERNAL_DIFFICULTIES_OF_THE_RESTAURANT");
+                  setIfoodCancelCode("");
+                  setIfoodReasons([]);
                 }
               }}
             >
