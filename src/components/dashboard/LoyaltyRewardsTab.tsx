@@ -564,7 +564,7 @@ function RedeemWizard({
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><Gift className="w-5 h-5" />Resgatar: {reward.name}</DialogTitle>
           <DialogDescription>
@@ -695,7 +695,7 @@ function RedeemWizard({
         {step === 4 && (
           <div className="space-y-3">
             <div className="text-sm font-semibold">4. Endereço de entrega</div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label className="text-xs">CEP</Label>
                 <Input value={cep} onChange={(e) => { setCep(e.target.value); if (e.target.value.replace(/\D/g, "").length === 8) lookupCep(e.target.value); }} placeholder="00000-000" />
@@ -712,15 +712,15 @@ function RedeemWizard({
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-[1fr_120px] gap-2">
+            <div className="grid grid-cols-[1fr_100px] sm:grid-cols-[1fr_120px] gap-2">
               <div className="space-y-1"><Label className="text-xs">Rua</Label><Input value={addr.street} onChange={(e) => setAddr((p) => ({ ...p, street: e.target.value }))} /></div>
               <div className="space-y-1"><Label className="text-xs">Número</Label><Input value={addr.number} onChange={(e) => setAddr((p) => ({ ...p, number: e.target.value }))} /></div>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div className="space-y-1"><Label className="text-xs">Complemento</Label><Input value={addr.complement} onChange={(e) => setAddr((p) => ({ ...p, complement: e.target.value }))} /></div>
               <div className="space-y-1"><Label className="text-xs">Bairro</Label><Input value={addr.neighborhood} onChange={(e) => setAddr((p) => ({ ...p, neighborhood: e.target.value }))} /></div>
             </div>
-            <div className="grid grid-cols-[1fr_80px] gap-2">
+            <div className="grid grid-cols-[1fr_70px] sm:grid-cols-[1fr_80px] gap-2">
               <div className="space-y-1"><Label className="text-xs">Cidade</Label><Input value={addr.city} onChange={(e) => setAddr((p) => ({ ...p, city: e.target.value }))} /></div>
               <div className="space-y-1"><Label className="text-xs">UF</Label><Input maxLength={2} value={addr.state} onChange={(e) => setAddr((p) => ({ ...p, state: e.target.value.toUpperCase() }))} /></div>
             </div>
@@ -772,14 +772,14 @@ function RedeemWizard({
           </div>
         )}
 
-        <DialogFooter className="gap-2 sm:justify-between">
-          <Button variant="outline" onClick={goBack} disabled={submitting}>
+        <DialogFooter className="gap-2 flex-col sm:flex-row sm:justify-between">
+          <Button variant="outline" onClick={goBack} disabled={submitting} className="w-full sm:w-auto">
             <ArrowLeft className="w-4 h-4 mr-1" />{step === 1 ? "Cancelar" : "Voltar"}
           </Button>
           {step < 5 ? (
-            <Button onClick={goNext}>Avançar<ArrowRight className="w-4 h-4 ml-1" /></Button>
+            <Button onClick={goNext} className="w-full sm:w-auto">Avançar<ArrowRight className="w-4 h-4 ml-1" /></Button>
           ) : (
-            <Button onClick={confirm} disabled={submitting || !enoughPoints}>
+            <Button onClick={confirm} disabled={submitting || !enoughPoints} className="w-full sm:w-auto">
               <Gift className="w-4 h-4 mr-1" />{submitting ? "Processando..." : "Confirmar resgate"}
             </Button>
           )}
@@ -827,12 +827,12 @@ function RedeemHistoryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><History className="w-5 h-5" />Histórico de resgates</DialogTitle>
           <DialogDescription>{list.length} resgate(s) — {totalPoints} pontos resgatados no total</DialogDescription>
         </DialogHeader>
-        <div className="border rounded-lg">
+        <div className="hidden md:block border rounded-lg overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -847,7 +847,7 @@ function RedeemHistoryDialog({
             <TableBody>
               {list.map((t: any) => (
                 <TableRow key={t.id}>
-                  <TableCell className="text-xs">{new Date(t.created_at).toLocaleString("pt-BR")}</TableCell>
+                  <TableCell className="text-xs whitespace-nowrap">{new Date(t.created_at).toLocaleString("pt-BR")}</TableCell>
                   <TableCell>
                     <div className="font-medium">{t.loyalty_members?.name ?? "—"}</div>
                     <div className="text-xs text-muted-foreground">{t.loyalty_members?.phone ?? ""}</div>
@@ -855,7 +855,7 @@ function RedeemHistoryDialog({
                   <TableCell className="font-mono">{t.order?.order_number ? `#${t.order.order_number}` : "—"}</TableCell>
                   <TableCell><Badge variant="outline">{modeLabel(t.order?.order_type)}</Badge></TableCell>
                   <TableCell className="text-right font-bold text-destructive">{t.points}</TableCell>
-                  <TableCell className="text-right">{t.order?.delivery_fee ? brl(Number(t.order.delivery_fee)) : "—"}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{t.order?.delivery_fee ? brl(Number(t.order.delivery_fee)) : "—"}</TableCell>
                 </TableRow>
               ))}
               {list.length === 0 && (
@@ -863,6 +863,27 @@ function RedeemHistoryDialog({
               )}
             </TableBody>
           </Table>
+        </div>
+        <div className="md:hidden space-y-2">
+          {list.length === 0 ? (
+            <div className="text-center text-muted-foreground py-8 text-sm">Nenhum resgate realizado ainda</div>
+          ) : list.map((t: any) => (
+            <div key={t.id} className="border rounded-lg p-3 space-y-1 bg-card">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium truncate">{t.loyalty_members?.name ?? "—"}</div>
+                  <div className="text-xs text-muted-foreground">{t.loyalty_members?.phone ?? ""}</div>
+                </div>
+                <Badge variant="outline" className="shrink-0">{modeLabel(t.order?.order_type)}</Badge>
+              </div>
+              <div className="text-[11px] text-muted-foreground">{new Date(t.created_at).toLocaleString("pt-BR")}</div>
+              <div className="grid grid-cols-3 gap-2 text-center text-xs border-t pt-2">
+                <div><div className="font-mono">{t.order?.order_number ? `#${t.order.order_number}` : "—"}</div><div className="text-muted-foreground text-[10px]">Pedido</div></div>
+                <div><div className="font-bold text-destructive">{t.points}</div><div className="text-muted-foreground text-[10px]">Pontos</div></div>
+                <div><div>{t.order?.delivery_fee ? brl(Number(t.order.delivery_fee)) : "—"}</div><div className="text-muted-foreground text-[10px]">Taxa</div></div>
+              </div>
+            </div>
+          ))}
         </div>
       </DialogContent>
     </Dialog>

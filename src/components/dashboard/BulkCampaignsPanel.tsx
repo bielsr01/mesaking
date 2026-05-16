@@ -504,7 +504,7 @@ function CampaignDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Editar campanha" : "Nova campanha"}</DialogTitle>
           <DialogDescription>
@@ -516,13 +516,13 @@ function CampaignDialog({
 
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-2 col-span-2">
+            <div className="space-y-2 sm:col-span-2">
               <Label>Nome da campanha</Label>
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Promoção de quarta" />
             </div>
             {!isEdit && scope === "admin" && (
               <>
-                <div className="space-y-2 col-span-2">
+                <div className="space-y-2 sm:col-span-2">
                   <Label>Enviar usando a integração de</Label>
                   <RSelect value={senderMode} onValueChange={(v) => setSenderMode(v as "admin" | "restaurant")}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
@@ -533,7 +533,7 @@ function CampaignDialog({
                   </RSelect>
                 </div>
                 {senderMode === "restaurant" && (
-                  <div className="space-y-2 col-span-2">
+                  <div className="space-y-2 sm:col-span-2">
                     <Label>Restaurante (envio será feito pela instância dele)</Label>
                     <RSelect value={targetRestaurant} onValueChange={setTargetRestaurant}>
                       <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
@@ -547,11 +547,11 @@ function CampaignDialog({
                 )}
               </>
             )}
-            <div className="space-y-2 col-span-2">
+            <div className="space-y-2 sm:col-span-2">
               <Label>Mensagem</Label>
               <Textarea rows={4} value={text} onChange={(e) => setText(e.target.value)} placeholder="Olá {nome}, temos uma oferta especial..." />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 sm:col-span-2">
               <Label>Imagem (opcional)</Label>
               <div className="flex gap-2">
                 <Input value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} placeholder="Cole a URL ou envie um arquivo" />
@@ -615,7 +615,7 @@ function CampaignDialog({
                 <Users className="w-4 h-4" /> Destinatários atuais ({(existingRecipients ?? []).length - removedRecipientIds.size} de {(existingRecipients ?? []).length})
               </div>
               <div className="text-xs text-muted-foreground mb-2">Apenas destinatários pendentes podem ser removidos.</div>
-              <div className="border rounded-lg max-h-60 overflow-y-auto">
+              <div className="border rounded-lg max-h-60 overflow-auto">
                 <Table>
                   <TableBody>
                     {(existingRecipients ?? []).map((r: any) => {
@@ -645,18 +645,18 @@ function CampaignDialog({
           )}
 
           <div className="border-t pt-3">
-            <div className="flex items-center justify-between mb-2">
-              <div className="font-medium flex items-center gap-2">
+            <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
+              <div className="font-medium flex items-center gap-2 text-sm">
                 <Users className="w-4 h-4" />
                 {isEdit ? "Adicionar contatos" : "Contatos"} ({picked.size} selecionados)
               </div>
               <div className="flex gap-1">
-                <Button size="sm" variant="outline" onClick={pickAllVisible}>Selecionar visíveis</Button>
-                <Button size="sm" variant="outline" onClick={clearAll}>Limpar</Button>
+                <Button size="sm" variant="outline" onClick={pickAllVisible} className="text-xs">Selecionar visíveis</Button>
+                <Button size="sm" variant="outline" onClick={clearAll} className="text-xs">Limpar</Button>
               </div>
             </div>
             <div className="flex flex-wrap gap-2 mb-2">
-              <div className="relative flex-1 min-w-[200px]">
+              <div className="relative flex-1 min-w-[160px]">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <Input className="pl-9" placeholder="Buscar nome ou telefone..." value={search} onChange={(e) => setSearch(e.target.value)} />
               </div>
@@ -709,7 +709,7 @@ function CampaignDialog({
                 </PopoverContent>
               </Popover>
             </div>
-            <div className="border rounded-lg max-h-72 overflow-y-auto">
+            <div className="border rounded-lg max-h-72 overflow-auto">
               {isLoading ? (
                 <div className="p-4 space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}</div>
               ) : filtered.length === 0 ? (

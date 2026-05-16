@@ -138,13 +138,13 @@ export function AdminStockAdmin() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center gap-3 flex-wrap">
+      <div className="flex justify-between items-start sm:items-center gap-3 flex-col sm:flex-row">
         <p className="text-sm text-muted-foreground">Estoque da fábrica organizado em grupos (ex.: Coxinhas) e subgrupos (ex.: sabores). Pedidos entregues debitam automaticamente.</p>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => setReportsOpen(true)}><FileText className="w-4 h-4 mr-2" />Relatórios</Button>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Button variant="outline" className="flex-1 sm:flex-none" onClick={() => setReportsOpen(true)}><FileText className="w-4 h-4 mr-2" />Relatórios</Button>
           <Dialog open={groupOpen} onOpenChange={(v) => { setGroupOpen(v); if (!v) setEditingGroup(null); }}>
             <DialogTrigger asChild>
-              <Button onClick={() => setEditingGroup(null)}><Plus className="w-4 h-4 mr-2" />Novo grupo</Button>
+              <Button className="flex-1 sm:flex-none" onClick={() => setEditingGroup(null)}><Plus className="w-4 h-4 mr-2" />Novo grupo</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>{editingGroup ? "Editar" : "Novo"} grupo</DialogTitle></DialogHeader>

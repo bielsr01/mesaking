@@ -190,14 +190,14 @@ export function SupplyReportsDialog() {
           <BarChart3 className="w-5 h-5" /> Relatórios
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto">
+      <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <BarChart3 className="w-5 h-5" /> Relatórios de pedidos
           </DialogTitle>
         </DialogHeader>
 
-        <div className="grid gap-3 md:grid-cols-5">
+        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
           <div>
             <Label className="text-xs">De</Label>
             <DatePickerBR value={from} onChange={handleManualFrom} />
@@ -225,7 +225,7 @@ export function SupplyReportsDialog() {
               </SelectContent>
             </Select>
           </div>
-          <div>
+          <div className="sm:col-span-2 lg:col-span-1">
             <Label className="text-xs">Buscar produto</Label>
             <Input value={productSearch} onChange={(e) => setProductSearch(e.target.value)} placeholder="ex.: coxinha" />
           </div>
@@ -256,7 +256,7 @@ export function SupplyReportsDialog() {
               );
             })}
           </div>
-          <Button size="sm" variant="outline" onClick={exportCSV} className="gap-2">
+          <Button size="sm" variant="outline" onClick={exportCSV} className="gap-2 w-full sm:w-auto">
             <Download className="w-4 h-4" /> Exportar CSV
           </Button>
         </div>
@@ -269,11 +269,11 @@ export function SupplyReportsDialog() {
         </div>
 
         <Tabs defaultValue="restaurants">
-          <TabsList>
-            <TabsTrigger value="restaurants">Por restaurante</TabsTrigger>
-            <TabsTrigger value="products">Por produto</TabsTrigger>
-            <TabsTrigger value="variants">Por variante</TabsTrigger>
-            <TabsTrigger value="orders">Pedidos ({filtered.length})</TabsTrigger>
+          <TabsList className="w-full overflow-x-auto justify-start">
+            <TabsTrigger value="restaurants" className="shrink-0">Por restaurante</TabsTrigger>
+            <TabsTrigger value="products" className="shrink-0">Por produto</TabsTrigger>
+            <TabsTrigger value="variants" className="shrink-0">Por variante</TabsTrigger>
+            <TabsTrigger value="orders" className="shrink-0">Pedidos ({filtered.length})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="restaurants">

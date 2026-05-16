@@ -131,7 +131,7 @@ export function AdminStockReportsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><FileText className="w-4 h-4" />Relatórios — Estoque admin</DialogTitle>
         </DialogHeader>
@@ -160,10 +160,10 @@ export function AdminStockReportsDialog({
         </div>
 
         <Tabs defaultValue="added" className="mt-2">
-          <TabsList>
-            <TabsTrigger value="added">Adicionados ({added.length})</TabsTrigger>
-            <TabsTrigger value="consumed">Consumidos ({consumed.length})</TabsTrigger>
-            <TabsTrigger value="balance">Balanço completo ({filtered.length})</TabsTrigger>
+          <TabsList className="w-full overflow-x-auto justify-start">
+            <TabsTrigger value="added" className="shrink-0">Adicionados ({added.length})</TabsTrigger>
+            <TabsTrigger value="consumed" className="shrink-0">Consumidos ({consumed.length})</TabsTrigger>
+            <TabsTrigger value="balance" className="shrink-0">Balanço completo ({filtered.length})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="added">
@@ -187,6 +187,7 @@ export function AdminStockReportsDialog({
                               <div className="text-sm font-medium">{sd.name}</div>
                               <div className="text-sm">Subtotal: <strong className="text-green-600 tabular-nums">+{sd.total}</strong></div>
                             </div>
+                            <div className="overflow-x-auto">
                             <table className="w-full text-xs">
                               <thead className="text-left text-muted-foreground">
                                 <tr>
@@ -207,6 +208,7 @@ export function AdminStockReportsDialog({
                                 ))}
                               </tbody>
                             </table>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -238,6 +240,7 @@ export function AdminStockReportsDialog({
                               <div className="text-sm font-medium">{sd.name}</div>
                               <div className="text-sm">Subtotal: <strong className="text-destructive tabular-nums">{sd.total}</strong></div>
                             </div>
+                            <div className="overflow-x-auto">
                             <table className="w-full text-xs">
                               <thead className="text-left text-muted-foreground">
                                 <tr>
@@ -263,6 +266,7 @@ export function AdminStockReportsDialog({
                                 })}
                               </tbody>
                             </table>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -296,6 +300,7 @@ export function AdminStockReportsDialog({
                                 <div className="text-sm font-medium">{sd.name}</div>
                                 <div className="text-sm">Balanço final: <strong className={`tabular-nums ${sd.total >= 0 ? "text-green-600" : "text-destructive"}`}>{sd.total >= 0 ? "+" : ""}{sd.total}</strong></div>
                               </div>
+                              <div className="overflow-x-auto">
                               <table className="w-full text-xs">
                                 <thead className="text-left text-muted-foreground">
                                   <tr>
@@ -325,6 +330,7 @@ export function AdminStockReportsDialog({
                                   })}
                                 </tbody>
                               </table>
+                              </div>
                             </div>
                           );
                         })}
