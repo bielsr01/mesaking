@@ -882,7 +882,7 @@ export function Checkout({ open, onOpenChange, restaurant }: { open: boolean; on
               )}
 
               <div className={`space-y-3 ${shakeKey === "payment" ? "animate-shake" : ""}`}>
-                <h3 className={`font-semibold text-sm ${shakeKey === "payment" ? "text-destructive" : ""}`}>Pagamento</h3>
+                <h3 className={`font-semibold text-sm ${shakeKey === "payment" ? "text-destructive" : ""}`}>Pagamento na Entrega</h3>
                 <Select value={payment || undefined} onValueChange={(v) => setPayment(v as any)}>
                   <SelectTrigger className={`h-14 text-base ${shakeKey === "payment" ? "border-destructive" : ""}`}>
                     <SelectValue placeholder="Selecione a forma de pagamento" />
