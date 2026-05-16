@@ -128,11 +128,11 @@ export function EvolutionMessagesPanel({ restaurantId }: { restaurantId: string 
   const eventTitle = (k: string) => EVENTS.find((e) => e.key === k)?.title ?? k;
 
   return (
-    <Card className="p-5 space-y-4">
-      <div className="flex items-center gap-2">
+    <Card className="p-4 sm:p-5 space-y-4">
+      <div className="flex items-center gap-2 flex-wrap">
         <MessageCircle className="w-5 h-5 text-green-600" />
-        <h3 className="text-lg font-semibold">Mensagens automáticas (WhatsApp)</h3>
-        <Button variant="outline" size="sm" className="ml-auto" onClick={() => setHistoryOpen(true)}>
+        <h3 className="text-base sm:text-lg font-semibold">Mensagens automáticas (WhatsApp)</h3>
+        <Button variant="outline" size="sm" className="sm:ml-auto w-full sm:w-auto" onClick={() => setHistoryOpen(true)}>
           <History className="w-4 h-4 mr-1" /> Registro de disparos
         </Button>
       </div>
@@ -149,15 +149,15 @@ export function EvolutionMessagesPanel({ restaurantId }: { restaurantId: string 
         <code className="text-xs bg-muted px-1 rounded">{"{{total}}"}</code>
       </p>
 
-      <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
-        <div className="flex items-center justify-between gap-3">
-          <div>
+      <div className="border rounded-lg p-3 sm:p-4 space-y-3 bg-muted/30">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div className="min-w-0 flex-1">
             <div className="font-medium">Popup pós-pedido (cardápio)</div>
             <div className="text-xs text-muted-foreground">
               Ao finalizar o pedido, exibe um popup convidando o cliente a abrir o WhatsApp da loja com mensagem pronta.
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <Label className="text-sm">Ativo</Label>
             <Switch checked={popupEnabled} onCheckedChange={setPopupEnabled} />
           </div>
@@ -194,13 +194,13 @@ export function EvolutionMessagesPanel({ restaurantId }: { restaurantId: string 
           const d = drafts[ev.key];
           if (!d) return null;
           return (
-            <div key={ev.key} className="border rounded-lg p-4 space-y-3">
-              <div className="flex items-center justify-between gap-3">
-                <div>
+            <div key={ev.key} className="border rounded-lg p-3 sm:p-4 space-y-3">
+              <div className="flex items-start justify-between gap-3 flex-wrap">
+                <div className="min-w-0 flex-1">
                   <div className="font-medium">{ev.title}</div>
-                  <div className="text-xs text-muted-foreground">Evento: {ev.key}</div>
+                  <div className="text-xs text-muted-foreground truncate">Evento: {ev.key}</div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                   <Label className="text-sm">Ativo</Label>
                   <Switch checked={d.enabled} onCheckedChange={(v) => update(ev.key, { enabled: v })} />
                 </div>
@@ -282,7 +282,35 @@ function DispatchHistoryDialog({
         <div className="flex justify-end">
           <Button variant="outline" size="sm" onClick={() => refetch()}>Atualizar</Button>
         </div>
-        <div className="overflow-auto border rounded-md">
+
+        {/* Mobile cards */}
+        <div className="md:hidden overflow-auto space-y-2 pr-1">
+          {isLoading && <div className="text-center text-muted-foreground text-sm py-6">Carregando...</div>}
+          {!isLoading && (data?.length ?? 0) === 0 && (
+            <div className="text-center text-muted-foreground text-sm py-6">Nenhum disparo registrado.</div>
+          )}
+          {data?.map((r) => (
+            <div key={r.id} className="border rounded-md p-3 text-xs space-y-1">
+              <div className="flex items-start justify-between gap-2">
+                <div className="font-medium text-sm truncate">{eventTitle(r.event_key)}</div>
+                {statusBadge(r.status)}
+              </div>
+              <div className="text-muted-foreground">{r.phone}</div>
+              <div className="break-words">{r.message}</div>
+              {r.error && <div className="text-destructive break-words">Erro: {r.error}</div>}
+              <div className="text-muted-foreground pt-1 border-t mt-1">
+                Agendado: {r.scheduled_at ? new Date(r.scheduled_at).toLocaleString("pt-BR") : "-"}
+              </div>
+              <div className="text-muted-foreground">
+                Enviado: {r.sent_at ? new Date(r.sent_at).toLocaleString("pt-BR") : "-"}
+              </div>
+              {r.attempts > 0 && <div className="text-muted-foreground">Tentativas: {r.attempts}</div>}
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop table */}
+        <div className="hidden md:block overflow-auto border rounded-md">
           <Table>
             <TableHeader>
               <TableRow>

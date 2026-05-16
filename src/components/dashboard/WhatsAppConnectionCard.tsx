@@ -140,7 +140,7 @@ export function WhatsAppConnectionCard({ restaurantId }: { restaurantId: string 
       </Card>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <MessageCircle className="w-5 h-5 text-green-600" />
