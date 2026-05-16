@@ -168,72 +168,131 @@ export function BulkCampaignsPanel({
                 : "Nenhuma campanha ainda."}
             </div>
           ) : (
-            <div className="border rounded-lg overflow-x-auto">
-              <Table>
-                <TableHeader><TableRow>
-                  <TableHead>Nome</TableHead>
-                  {scope === "admin" && <TableHead>Restaurante</TableHead>}
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-center">Enviados</TableHead>
-                  <TableHead className="text-center">Falhas</TableHead>
-                  <TableHead className="text-center">Total</TableHead>
-                  <TableHead>Criada</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow></TableHeader>
-                <TableBody>
-                  {(campaigns ?? []).map((c: any) => {
-                    const isAutoPaused = c.paused_until && new Date(c.paused_until).getTime() > Date.now();
-                    return (
-                      <TableRow key={c.id}>
-                        <TableCell className="font-medium">{c.name}</TableCell>
-                        {scope === "admin" && <TableCell>{c.is_admin ? <Badge>Admin</Badge> : <Badge variant="outline">{restNameById.get(c.restaurant_id) ?? "—"}</Badge>}</TableCell>}
-                        <TableCell>
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_BADGE[c.status]}`}>{STATUS_LABEL[c.status]}</span>
-                          {c.status === "running" && isAutoPaused && (
-                            <div className="text-[10px] text-yellow-700 dark:text-yellow-300 mt-0.5">
-                              Pausa auto até {new Date(c.paused_until).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+            <>
+              <div className="hidden md:block border rounded-lg overflow-x-auto">
+                <Table>
+                  <TableHeader><TableRow>
+                    <TableHead>Nome</TableHead>
+                    {scope === "admin" && <TableHead>Restaurante</TableHead>}
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-center">Enviados</TableHead>
+                    <TableHead className="text-center">Falhas</TableHead>
+                    <TableHead className="text-center">Total</TableHead>
+                    <TableHead>Criada</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow></TableHeader>
+                  <TableBody>
+                    {(campaigns ?? []).map((c: any) => {
+                      const isAutoPaused = c.paused_until && new Date(c.paused_until).getTime() > Date.now();
+                      return (
+                        <TableRow key={c.id}>
+                          <TableCell className="font-medium">{c.name}</TableCell>
+                          {scope === "admin" && <TableCell>{c.is_admin ? <Badge>Admin</Badge> : <Badge variant="outline">{restNameById.get(c.restaurant_id) ?? "—"}</Badge>}</TableCell>}
+                          <TableCell>
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_BADGE[c.status]}`}>{STATUS_LABEL[c.status]}</span>
+                            {c.status === "running" && isAutoPaused && (
+                              <div className="text-[10px] text-yellow-700 dark:text-yellow-300 mt-0.5">
+                                Pausa auto até {new Date(c.paused_until).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center">{c.sent}</TableCell>
+                          <TableCell className="text-center">{c.failed}</TableCell>
+                          <TableCell className="text-center">{c.total}</TableCell>
+                          <TableCell>{new Date(c.created_at).toLocaleString("pt-BR")}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-1">
+                              {canEdit && isAutoPaused && (
+                                <Button size="sm" variant="outline" onClick={() => clearAutoPause(c.id)} title="Retomar agora (limpar pausa automática)">
+                                  <RotateCcw className="w-3.5 h-3.5 mr-1" /> Retomar agora
+                                </Button>
+                              )}
+                              {canEdit && (c.status === "draft" || c.status === "paused") && (
+                                <Button size="sm" variant="outline" onClick={() => setStatus(c.id, "running")}>
+                                  <Play className="w-3.5 h-3.5 mr-1" /> Play
+                                </Button>
+                              )}
+                              {canEdit && c.status === "running" && (
+                                <Button size="sm" variant="outline" onClick={() => setStatus(c.id, "paused")}>
+                                  <Pause className="w-3.5 h-3.5 mr-1" /> Pausar
+                                </Button>
+                              )}
+                              {canEdit && c.status !== "completed" && (
+                                <Button size="sm" variant="outline" onClick={() => handleEdit(c)} title="Editar">
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </Button>
+                              )}
+                              {canEdit && (
+                              <Button size="sm" variant="outline" className="text-destructive" onClick={() => remove(c.id)}>
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                              )}
                             </div>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-center">{c.sent}</TableCell>
-                        <TableCell className="text-center">{c.failed}</TableCell>
-                        <TableCell className="text-center">{c.total}</TableCell>
-                        <TableCell>{new Date(c.created_at).toLocaleString("pt-BR")}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-1">
-                            {canEdit && isAutoPaused && (
-                              <Button size="sm" variant="outline" onClick={() => clearAutoPause(c.id)} title="Retomar agora (limpar pausa automática)">
-                                <RotateCcw className="w-3.5 h-3.5 mr-1" /> Retomar agora
-                              </Button>
-                            )}
-                            {canEdit && (c.status === "draft" || c.status === "paused") && (
-                              <Button size="sm" variant="outline" onClick={() => setStatus(c.id, "running")}>
-                                <Play className="w-3.5 h-3.5 mr-1" /> Play
-                              </Button>
-                            )}
-                            {canEdit && c.status === "running" && (
-                              <Button size="sm" variant="outline" onClick={() => setStatus(c.id, "paused")}>
-                                <Pause className="w-3.5 h-3.5 mr-1" /> Pausar
-                              </Button>
-                            )}
-                            {canEdit && c.status !== "completed" && (
-                              <Button size="sm" variant="outline" onClick={() => handleEdit(c)} title="Editar">
-                                <Pencil className="w-3.5 h-3.5" />
-                              </Button>
-                            )}
-                            {canEdit && (
-                            <Button size="sm" variant="outline" className="text-destructive" onClick={() => remove(c.id)}>
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <div className="md:hidden space-y-2">
+                {(campaigns ?? []).map((c: any) => {
+                  const isAutoPaused = c.paused_until && new Date(c.paused_until).getTime() > Date.now();
+                  return (
+                    <div key={c.id} className="border rounded-lg p-3 space-y-2 bg-card">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="font-medium truncate">{c.name}</div>
+                          <div className="text-[11px] text-muted-foreground">{new Date(c.created_at).toLocaleString("pt-BR")}</div>
+                        </div>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full shrink-0 ${STATUS_BADGE[c.status]}`}>{STATUS_LABEL[c.status]}</span>
+                      </div>
+                      {scope === "admin" && (
+                        <div>{c.is_admin ? <Badge>Admin</Badge> : <Badge variant="outline">{restNameById.get(c.restaurant_id) ?? "—"}</Badge>}</div>
+                      )}
+                      {c.status === "running" && isAutoPaused && (
+                        <div className="text-[10px] text-yellow-700 dark:text-yellow-300">
+                          Pausa auto até {new Date(c.paused_until).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                        </div>
+                      )}
+                      <div className="grid grid-cols-3 gap-2 text-center text-xs border-t pt-2">
+                        <div><div className="font-semibold">{c.sent}</div><div className="text-muted-foreground text-[10px]">Enviados</div></div>
+                        <div><div className="font-semibold">{c.failed}</div><div className="text-muted-foreground text-[10px]">Falhas</div></div>
+                        <div><div className="font-semibold">{c.total}</div><div className="text-muted-foreground text-[10px]">Total</div></div>
+                      </div>
+                      <div className="flex flex-wrap gap-1 border-t pt-2">
+                        {canEdit && isAutoPaused && (
+                          <Button size="sm" variant="outline" onClick={() => clearAutoPause(c.id)} className="flex-1">
+                            <RotateCcw className="w-3.5 h-3.5 mr-1" /> Retomar
+                          </Button>
+                        )}
+                        {canEdit && (c.status === "draft" || c.status === "paused") && (
+                          <Button size="sm" variant="outline" onClick={() => setStatus(c.id, "running")} className="flex-1">
+                            <Play className="w-3.5 h-3.5 mr-1" /> Play
+                          </Button>
+                        )}
+                        {canEdit && c.status === "running" && (
+                          <Button size="sm" variant="outline" onClick={() => setStatus(c.id, "paused")} className="flex-1">
+                            <Pause className="w-3.5 h-3.5 mr-1" /> Pausar
+                          </Button>
+                        )}
+                        {canEdit && c.status !== "completed" && (
+                          <Button size="sm" variant="outline" onClick={() => handleEdit(c)}>
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
+                        {canEdit && (
+                          <Button size="sm" variant="outline" className="text-destructive" onClick={() => remove(c.id)}>
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
