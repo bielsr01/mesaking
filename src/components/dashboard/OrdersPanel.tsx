@@ -640,15 +640,8 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
             ) : null}
           </div>
 
-          <div className="border-t pt-2 space-y-0.5 text-[11px] flex-1 min-h-0 overflow-hidden">
-            {(items[o.id] ?? []).slice(0, 3).map((it) => (
-              <div key={it.id} className="flex justify-between gap-2">
-                <span className="truncate"><span className="font-medium">{it.quantity}×</span> {it.product_name}</span>
-              </div>
-            ))}
-            {(items[o.id]?.length ?? 0) > 3 && (
-              <div className="text-muted-foreground italic">+{(items[o.id]!.length - 3)} item(ns)…</div>
-            )}
+          <div className="border-t pt-2 flex-1 min-h-0 overflow-hidden flex items-center justify-center">
+            <span className="text-[11px] text-muted-foreground italic text-center">Clique para ver detalhes do pedido</span>
           </div>
 
           <div className="border-t pt-2 flex justify-between items-center gap-2 shrink-0">
