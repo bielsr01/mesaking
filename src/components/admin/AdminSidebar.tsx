@@ -38,8 +38,12 @@ export type AdminView =
   | "finance:restaurants";
 
 export function AdminSidebar({ active, onChange, supplyBadge = 0 }: { active: AdminView; onChange: (v: AdminView) => void; supplyBadge?: number }) {
-  const { state } = useSidebar();
+  const { state, isMobile, setOpenMobile } = useSidebar();
   const collapsed = state === "collapsed";
+  const handleChange = (v: AdminView) => {
+    onChange(v);
+    if (isMobile) setOpenMobile(false);
+  };
   const supplyActive = active.startsWith("supply:");
   const marketingActive = active.startsWith("marketing:");
   const expensesActive = active.startsWith("expenses:");
