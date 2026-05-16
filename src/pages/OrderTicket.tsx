@@ -116,19 +116,19 @@ export default function OrderTicket() {
           width: 72mm;
           margin: 0 auto;
           padding: 8px;
-          font-family: 'Arial Black','Arial',sans-serif;
+          font-family: 'Arial',sans-serif;
           color: #000;
           font-size: 13px;
           line-height: 1.45;
-          font-weight: 700;
+          font-weight: 400;
         }
-        .ticket h1 { font-size: 16px; font-weight: 900; margin: 0; text-align: center; }
-        .ticket .muted { color: #000; font-weight: 700; }
+        .ticket h1 { font-size: 16px; font-weight: 800; margin: 0; text-align: center; }
+        .ticket .muted { color: #000; font-weight: 400; }
         .ticket .center { text-align: center; }
         .ticket .row { display: flex; justify-content: space-between; gap: 8px; }
         .ticket .sep { border-top: 1px solid #000; margin: 6px 0; }
-        .ticket .item-name { font-weight: 900; }
-        .ticket .total { font-size: 15px; font-weight: 900; }
+        .ticket .item-name { font-weight: 700; }
+        .ticket .total { font-size: 15px; font-weight: 800; }
         .ticket .logo { max-width: 50mm; max-height: 25mm; display: block; margin: 0 auto 6px; object-fit: contain; filter: contrast(1.4) brightness(0.85); }
       `}</style>
 
