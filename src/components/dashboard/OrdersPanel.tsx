@@ -651,14 +651,14 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
             )}
           </div>
 
-          <div className="border-t pt-2 flex justify-between items-center gap-2">
+          <div className="border-t pt-2 flex justify-between items-center gap-2 shrink-0">
             <div className="text-[10px] text-muted-foreground truncate">
               {paymentLabelFor(o.payment_method, o.external_source)}
             </div>
             <div className="text-base font-bold">{brl(o.total)}</div>
           </div>
 
-          <div className="flex gap-1 pt-0.5">
+          <div className="flex gap-1 pt-0.5 shrink-0">
             <Button
               size="sm"
               variant="outline"
