@@ -621,22 +621,10 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                 <span className="truncate">{o.customer_name}</span>
                 <Badge variant="outline" className="font-mono text-[10px] px-1 py-0">#{o.order_number}</Badge>
               </div>
-              <div className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
-                <Clock className="w-3 h-3" />
-                {new Date(o.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                {o.external_source !== "ifood" && waLink(o.customer_phone) && (
-                  <a
-                    href={waLink(o.customer_phone)!}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    title="Abrir WhatsApp"
-                    className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-success text-success-foreground hover:opacity-90 transition-opacity ml-1"
-                  >
-                    <MessageCircle className="w-2.5 h-2.5" />
-                  </a>
-                )}
-              </div>
+            </div>
+            <div className="text-[11px] text-muted-foreground flex items-center gap-1 shrink-0">
+              <Clock className="w-3 h-3" />
+              {new Date(o.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
             </div>
           </div>
 
