@@ -317,53 +317,93 @@ export function ExpensesPanel({ restaurantId }: { restaurantId: string }) {
           {filtered.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground">Nenhuma despesa no período selecionado.</div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Categoria</TableHead>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
-                  <TableHead className="w-24" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* Mobile: cards */}
+              <div className="md:hidden divide-y">
                 {filtered.map(e => {
                   const catName = e.category_id ? (catsById[e.category_id]?.name ?? e.category) : e.category;
-                  
                   const hasDistinctDesc = !!e.description && e.description !== catName;
                   const showNotes = e.notes && !e.notes.startsWith("supply_order");
                   return (
-                    <TableRow key={e.id}>
-                      <TableCell className="whitespace-nowrap">{new Date(e.expense_date + "T00:00:00").toLocaleDateString("pt-BR")}</TableCell>
-                      <TableCell className="font-medium">{catName ?? "—"}</TableCell>
-                      <TableCell>
-                        {hasDistinctDesc ? <div>{e.description}</div> : <span className="text-muted-foreground">—</span>}
-                        {showNotes && <div className="text-xs text-muted-foreground">{e.notes}</div>}
-                      </TableCell>
-                      <TableCell className="text-right font-semibold">{brl(Number(e.amount))}</TableCell>
-                      <TableCell>
-                        <div className="flex justify-end gap-1">
-                          {e.receipt_url && (
-                            <>
-                              <Button variant="ghost" size="icon" className="h-8 w-8" title="Visualizar comprovante" onClick={() => setPreviewUrl(e.receipt_url)}><Eye className="w-4 h-4" /></Button>
-                              <Button variant="ghost" size="icon" className="h-8 w-8" title="Baixar comprovante" asChild><a href={e.receipt_url} download target="_blank" rel="noreferrer"><Download className="w-4 h-4" /></a></Button>
-                            </>
-                          )}
-                          {canEdit && <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(e)}><Pencil className="w-4 h-4" /></Button>}
-                          {canEdit && <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(e.id)}><Trash2 className="w-4 h-4" /></Button>}
+                    <div key={e.id} className="p-3 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="font-medium truncate">{catName ?? "—"}</div>
+                          <div className="text-xs text-muted-foreground">{new Date(e.expense_date + "T00:00:00").toLocaleDateString("pt-BR")}</div>
                         </div>
-                      </TableCell>
-                    </TableRow>
+                        <div className="text-right font-semibold whitespace-nowrap">{brl(Number(e.amount))}</div>
+                      </div>
+                      {hasDistinctDesc && <div className="text-sm break-words">{e.description}</div>}
+                      {showNotes && <div className="text-xs text-muted-foreground break-words">{e.notes}</div>}
+                      <div className="flex flex-wrap gap-1 pt-1">
+                        {e.receipt_url && (
+                          <>
+                            <Button variant="outline" size="sm" className="h-8" onClick={() => setPreviewUrl(e.receipt_url)}><Eye className="w-4 h-4 mr-1" />Ver</Button>
+                            <Button variant="outline" size="sm" className="h-8" asChild><a href={e.receipt_url} download target="_blank" rel="noreferrer"><Download className="w-4 h-4 mr-1" />Baixar</a></Button>
+                          </>
+                        )}
+                        {canEdit && <Button variant="outline" size="sm" className="h-8" onClick={() => openEdit(e)}><Pencil className="w-4 h-4 mr-1" />Editar</Button>}
+                        {canEdit && <Button variant="outline" size="sm" className="h-8 text-destructive" onClick={() => remove(e.id)}><Trash2 className="w-4 h-4 mr-1" />Excluir</Button>}
+                      </div>
+                    </div>
                   );
                 })}
-                <TableRow className="bg-muted/40 font-bold">
-                  <TableCell colSpan={3} className="text-right">Total filtrado</TableCell>
-                  <TableCell className="text-right">{brl(total)}</TableCell>
-                  <TableCell />
-                </TableRow>
-              </TableBody>
-            </Table>
+                <div className="p-3 bg-muted/40 font-bold flex justify-between">
+                  <span>Total filtrado</span>
+                  <span>{brl(total)}</span>
+                </div>
+              </div>
+
+              {/* Desktop: table */}
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Categoria</TableHead>
+                      <TableHead>Descrição</TableHead>
+                      <TableHead className="text-right">Valor</TableHead>
+                      <TableHead className="w-24" />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.map(e => {
+                      const catName = e.category_id ? (catsById[e.category_id]?.name ?? e.category) : e.category;
+                      const hasDistinctDesc = !!e.description && e.description !== catName;
+                      const showNotes = e.notes && !e.notes.startsWith("supply_order");
+                      return (
+                        <TableRow key={e.id}>
+                          <TableCell className="whitespace-nowrap">{new Date(e.expense_date + "T00:00:00").toLocaleDateString("pt-BR")}</TableCell>
+                          <TableCell className="font-medium">{catName ?? "—"}</TableCell>
+                          <TableCell>
+                            {hasDistinctDesc ? <div>{e.description}</div> : <span className="text-muted-foreground">—</span>}
+                            {showNotes && <div className="text-xs text-muted-foreground">{e.notes}</div>}
+                          </TableCell>
+                          <TableCell className="text-right font-semibold">{brl(Number(e.amount))}</TableCell>
+                          <TableCell>
+                            <div className="flex justify-end gap-1">
+                              {e.receipt_url && (
+                                <>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" title="Visualizar comprovante" onClick={() => setPreviewUrl(e.receipt_url)}><Eye className="w-4 h-4" /></Button>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" title="Baixar comprovante" asChild><a href={e.receipt_url} download target="_blank" rel="noreferrer"><Download className="w-4 h-4" /></a></Button>
+                                </>
+                              )}
+                              {canEdit && <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(e)}><Pencil className="w-4 h-4" /></Button>}
+                              {canEdit && <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(e.id)}><Trash2 className="w-4 h-4" /></Button>}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                    <TableRow className="bg-muted/40 font-bold">
+                      <TableCell colSpan={3} className="text-right">Total filtrado</TableCell>
+                      <TableCell className="text-right">{brl(total)}</TableCell>
+                      <TableCell />
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
