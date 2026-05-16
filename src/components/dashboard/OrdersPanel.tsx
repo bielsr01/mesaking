@@ -601,7 +601,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
               </span>
               <span className="text-xs font-bold">{brl(o.total)}</span>
             </div>
-            <div className="flex gap-1">
+            <div className="hidden md:flex gap-1">
               {canChangeStatus && next && (
                 <Button size="sm" className="flex-1 h-7 text-[11px]" onClick={() => advance(o)} disabled={!!pendingAction[o.id]}>
                   {pendingAction[o.id] ? "…" : "✓ Aceitar"}
