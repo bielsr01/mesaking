@@ -396,50 +396,81 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
           {canCredit && (
           <TabsContent value="credit" className="space-y-4 pt-4">
             <div className="text-sm text-muted-foreground">Pedidos com pontos pendentes de crédito</div>
-            <div className="border rounded-lg">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Pedido</TableHead>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                    <TableHead className="text-right">Pontos</TableHead>
-                    <TableHead className="text-right w-40">Ação</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+            {(txQ.data ?? []).length === 0 ? (
+              <div className="border rounded-lg py-8 text-center text-muted-foreground">Nenhum registro pendente</div>
+            ) : (
+              <>
+                <div className="hidden md:block border rounded-lg">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Pedido</TableHead>
+                        <TableHead>Cliente</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
+                        <TableHead className="text-right">Pontos</TableHead>
+                        <TableHead className="text-right w-40">Ação</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(txQ.data ?? []).map((t) => (
+                        <TableRow key={t.id}>
+                          <TableCell className="font-mono">#{t.orders?.order_number ?? "—"}</TableCell>
+                          <TableCell>
+                            <div className="font-medium">{t.loyalty_members?.name}</div>
+                            <div className="text-xs text-muted-foreground">{t.loyalty_members?.phone}</div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={t.orders?.status === "delivered" || t.orders?.status === "completed" ? "default" : "secondary"}>
+                              {t.orders?.status ? statusLabelFor(t.orders.status, (t.orders as any).order_type) : "—"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">{t.orders ? brl(Number(t.orders.total)) : "—"}</TableCell>
+                          <TableCell className="text-right font-bold">{t.points}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-1">
+                              <Button size="sm" onClick={() => creditTx(t.id)} disabled={creditingIds.has(t.id)}>
+                                {creditingIds.has(t.id) ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Check className="w-4 h-4 mr-1" />}
+                                {creditingIds.has(t.id) ? "Processando..." : "Creditar"}
+                              </Button>
+                              {canDeleteCreditTx && <Button size="sm" variant="ghost" onClick={() => deleteTx(t.id)}><Trash2 className="w-4 h-4" /></Button>}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                <div className="md:hidden space-y-2">
                   {(txQ.data ?? []).map((t) => (
-                    <TableRow key={t.id}>
-                      <TableCell className="font-mono">#{t.orders?.order_number ?? "—"}</TableCell>
-                      <TableCell>
-                        <div className="font-medium">{t.loyalty_members?.name}</div>
-                        <div className="text-xs text-muted-foreground">{t.loyalty_members?.phone}</div>
-                      </TableCell>
-                      <TableCell>
+                    <div key={t.id} className="border rounded-lg p-3 space-y-2 bg-card">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="font-mono text-xs text-muted-foreground">#{t.orders?.order_number ?? "—"}</div>
+                          <div className="font-medium truncate">{t.loyalty_members?.name}</div>
+                          <div className="text-xs text-muted-foreground">{t.loyalty_members?.phone}</div>
+                        </div>
+                        <Badge variant="secondary" className="font-bold shrink-0">{t.points} pts</Badge>
+                      </div>
+                      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
                         <Badge variant={t.orders?.status === "delivered" || t.orders?.status === "completed" ? "default" : "secondary"}>
                           {t.orders?.status ? statusLabelFor(t.orders.status, (t.orders as any).order_type) : "—"}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">{t.orders ? brl(Number(t.orders.total)) : "—"}</TableCell>
-                      <TableCell className="text-right font-bold">{t.points}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button size="sm" onClick={() => creditTx(t.id)} disabled={creditingIds.has(t.id)}>
-                            {creditingIds.has(t.id) ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Check className="w-4 h-4 mr-1" />}
-                            {creditingIds.has(t.id) ? "Processando..." : "Creditar"}
-                          </Button>
-                          {canDeleteCreditTx && <Button size="sm" variant="ghost" onClick={() => deleteTx(t.id)}><Trash2 className="w-4 h-4" /></Button>}
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                        <span className="font-semibold">{t.orders ? brl(Number(t.orders.total)) : "—"}</span>
+                      </div>
+                      <div className="flex gap-1 border-t pt-2">
+                        <Button size="sm" className="flex-1" onClick={() => creditTx(t.id)} disabled={creditingIds.has(t.id)}>
+                          {creditingIds.has(t.id) ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Check className="w-4 h-4 mr-1" />}
+                          {creditingIds.has(t.id) ? "Processando..." : "Creditar"}
+                        </Button>
+                        {canDeleteCreditTx && <Button size="sm" variant="ghost" onClick={() => deleteTx(t.id)}><Trash2 className="w-4 h-4" /></Button>}
+                      </div>
+                    </div>
                   ))}
-                  {(txQ.data ?? []).length === 0 && (
-                    <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhum registro pendente</TableCell></TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+                </div>
+              </>
+            )}
           </TabsContent>
           )}
         </Tabs>
