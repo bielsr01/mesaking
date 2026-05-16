@@ -406,8 +406,8 @@ export function OrderConfigSettings({ restaurantId }: Props) {
                 </div>
               )}
               {zones.map((z, i) => (
-                <div key={i} className="flex items-end gap-3 p-3 rounded-lg border">
-                  <div className="flex-1 space-y-1">
+                <div key={i} className="flex items-end gap-2 sm:gap-3 p-3 rounded-lg border flex-wrap sm:flex-nowrap">
+                  <div className="flex-1 min-w-[120px] space-y-1">
                     <Label className="text-xs">Raio máximo (km)</Label>
                     <Input
                       type="number"
@@ -418,7 +418,7 @@ export function OrderConfigSettings({ restaurantId }: Props) {
                       onChange={(e) => updateZoneRadius(i, e.target.value)}
                     />
                   </div>
-                  <div className="flex-1 space-y-1">
+                  <div className="flex-1 min-w-[120px] space-y-1">
                     <Label className="text-xs">Taxa de entrega (R$)</Label>
                     <Input
                       type="number"
@@ -428,7 +428,7 @@ export function OrderConfigSettings({ restaurantId }: Props) {
                       onChange={(e) => updateZoneFee(i, e.target.value)}
                     />
                   </div>
-                  <Button type="button" variant="ghost" size="icon" onClick={() => removeZone(i)}>
+                  <Button type="button" variant="ghost" size="icon" onClick={() => removeZone(i)} className="shrink-0">
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
