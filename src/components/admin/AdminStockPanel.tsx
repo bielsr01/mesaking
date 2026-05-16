@@ -23,9 +23,9 @@ type StockRow = { restaurant_id: string; group_id: string; quantity: number };
 export function AdminStockPanel() {
   return (
     <Tabs defaultValue="overview" className="space-y-4">
-      <TabsList>
-        <TabsTrigger value="overview"><Boxes className="w-4 h-4 mr-2" />Estoque das lojas</TabsTrigger>
-        <TabsTrigger value="groups"><Layers className="w-4 h-4 mr-2" />Grupos de itens</TabsTrigger>
+      <TabsList className="w-full sm:w-auto overflow-x-auto justify-start no-scrollbar">
+        <TabsTrigger value="overview" className="shrink-0"><Boxes className="w-4 h-4 mr-2" />Estoque das lojas</TabsTrigger>
+        <TabsTrigger value="groups" className="shrink-0"><Layers className="w-4 h-4 mr-2" />Grupos de itens</TabsTrigger>
       </TabsList>
       <TabsContent value="overview"><AdminStockOverview /></TabsContent>
       <TabsContent value="groups"><AdminStockGroups /></TabsContent>
