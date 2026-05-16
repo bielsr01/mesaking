@@ -636,14 +636,14 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
             {/* Mobile */}
             <div className="space-y-2 md:hidden">
               {topCustomers.map((c, i) => (
-                <div key={c.phone} className="flex items-center gap-3 rounded-md border p-3">
+                <div key={c.phone} className="flex items-start gap-3 rounded-md border p-3">
                   <div className="font-bold text-lg w-6 shrink-0">{i + 1}</div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate">{c.name}</div>
-                    <div className="text-xs text-muted-foreground truncate">{c.phone}</div>
+                    <div className="font-medium break-words">{c.name}</div>
+                    <div className="text-xs text-muted-foreground break-all">{c.phone}</div>
                   </div>
                   <div className="text-right shrink-0">
-                    <div className="font-medium text-sm">{brl(c.total)}</div>
+                    <div className="font-medium text-sm whitespace-nowrap">{brl(c.total)}</div>
                     <div className="text-xs text-muted-foreground">{c.count} ped.</div>
                   </div>
                 </div>
@@ -688,13 +688,13 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
             {/* Mobile */}
             <div className="space-y-2 md:hidden">
               {topProducts.map((p, i) => (
-                <div key={p.name} className="flex items-center gap-3 rounded-md border p-3">
+                <div key={p.name} className="flex items-start gap-3 rounded-md border p-3">
                   <div className="font-bold text-lg w-6 shrink-0">{i + 1}</div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate">{p.name}</div>
+                    <div className="font-medium break-words">{p.name}</div>
                     <div className="text-xs text-muted-foreground">{p.qty} un.</div>
                   </div>
-                  <div className="text-right shrink-0 font-medium text-sm">{brl(p.revenue)}</div>
+                  <div className="text-right shrink-0 font-medium text-sm whitespace-nowrap">{brl(p.revenue)}</div>
                 </div>
               ))}
               {topProducts.length === 0 && <div className="text-center py-8 text-muted-foreground text-sm">Sem dados</div>}
