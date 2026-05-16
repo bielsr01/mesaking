@@ -215,10 +215,10 @@ export function ExpensesPanel({ restaurantId }: { restaurantId: string }) {
 
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center justify-between gap-2 flex-wrap">
+          <CardTitle className="text-base flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <span className="flex items-center gap-2"><Receipt className="w-4 h-4" /> Filtros e relatório</span>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={exportCsv} disabled={filtered.length === 0}>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" onClick={exportCsv} disabled={filtered.length === 0} className="flex-1 sm:flex-none">
                 <Download className="w-4 h-4 mr-1" /> Exportar CSV
               </Button>
               {canEdit && <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }}>
