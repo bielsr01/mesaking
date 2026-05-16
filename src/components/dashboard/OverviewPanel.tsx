@@ -643,7 +643,7 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
                 {topCustomers.length === 0 && <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">Sem dados</TableCell></TableRow>}
               </TableBody>
             </Table>
-            <div className="text-xs text-muted-foreground mt-3 flex justify-between border-t pt-3">
+            <div className="text-xs text-muted-foreground mt-3 flex flex-wrap gap-2 justify-between border-t pt-3">
               <span>Clientes cadastrados: <strong>{customersQ.data ?? 0}</strong></span>
               <span>Ativos (30d): <strong>{active30}</strong></span>
               <span>Ticket/cliente: <strong>{brl(ticketPerCustomer)}</strong></span>
