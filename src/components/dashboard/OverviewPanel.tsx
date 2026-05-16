@@ -408,7 +408,7 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
   const monthPrev = sumDayGross(compareFiltered.filter((o) => { const d = new Date(o.created_at); return d >= monthPrevStart && d <= monthPrevEnd; }));
 
   return (
-    <div className="space-y-4 animate-fade-in">
+    <div className="space-y-4 animate-fade-in w-full min-w-0 max-w-full overflow-x-hidden">
       {/* Filters bar */}
       <Card>
         <CardContent className="p-4 flex flex-wrap items-center gap-3">
