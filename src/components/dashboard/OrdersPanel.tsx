@@ -85,7 +85,6 @@ interface OptionGroupRow { id: string; name: string; sort_order: number | null; 
 interface OptionItemRow { id: string; group_id: string; name: string; sort_order: number | null; }
 interface ProductOptionGroupRow { product_id: string; group_id: string; sort_order: number | null; }
 
-
 export const ordersKey = (rid: string) => ["orders", rid] as const;
 
 export async function fetchOrders(restaurantId: string): Promise<{ orders: Order[]; items: Record<string, Item[]> }> {
@@ -139,6 +138,9 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const [queroCancelInfoOpen, setQueroCancelInfoOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelCode, setCancelCode] = useState<string>("INTERNAL_DIFFICULTIES_OF_THE_RESTAURANT");
+  const [ifoodReasons, setIfoodReasons] = useState<Array<{ cancelCodeId: string; description: string }>>([]);
+  const [ifoodReasonsLoading, setIfoodReasonsLoading] = useState(false);
+  const [ifoodCancelCode, setIfoodCancelCode] = useState<string>("");
   const [deleteTarget, setDeleteTarget] = useState<Order | null>(null);
   const [printTarget, setPrintTarget] = useState<Order | null>(null);
   const [detailsTarget, setDetailsTarget] = useState<Order | null>(null);
@@ -311,6 +313,37 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     },
   });
 
+  // Quando abrir o dialog de cancelar um pedido iFood, busca os motivos válidos no iHub.
+  useEffect(() => {
+    if (!cancelTarget || cancelTarget.external_source !== "ifood" || !cancelTarget.external_order_id) return;
+    let aborted = false;
+    setIfoodReasonsLoading(true);
+    setIfoodReasons([]);
+    setIfoodCancelCode("");
+    (async () => {
+      const { data, error } = await supabase.functions.invoke("ihub-link", {
+        body: {
+          action: "cancellation-reasons",
+          restaurantId,
+          externalOrderId: cancelTarget.external_order_id,
+        },
+      });
+      if (aborted) return;
+      if (error || !data?.ok) {
+        toast.error(`Não foi possível carregar os motivos: ${data?.error ?? error?.message ?? "erro"}`);
+      } else {
+        const list = (data.reasons ?? []).map((r: any) => ({
+          cancelCodeId: String(r.cancelCodeId ?? r.code ?? r.id ?? ""),
+          description: String(r.description ?? r.reason ?? r.cancelCodeId ?? ""),
+        })).filter((r: any) => r.cancelCodeId);
+        setIfoodReasons(list);
+        if (list.length > 0) setIfoodCancelCode(list[0].cancelCodeId);
+      }
+      setIfoodReasonsLoading(false);
+    })();
+    return () => { aborted = true; };
+  }, [cancelTarget, restaurantId]);
+
   useEffect(() => {
     const ch = supabase
       .channel(`orders-${restaurantId}`)
@@ -454,7 +487,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
       }
       console.info("[ifood-action] cancelando", { orderId: o.id, externalOrderId: o.external_order_id, customer: o.customer_name });
       const { data: fnData, error: fnErr } = await supabase.functions.invoke("ifood-action", {
-        body: { orderId: o.id, action: "cancel", cancelReason: reason },
+        body: { orderId: o.id, action: "cancel", cancelReason: reason, cancelCode: opts?.cancelCode },
       });
       if (fnErr || (fnData && fnData.ok === false)) {
         toast.error(`iFood: ${fnData?.error ?? fnErr?.message ?? "falha"}`);
@@ -866,17 +899,59 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
             </div>
           )}
 
+          {cancelTarget?.external_source === "ifood" && (
+            <div className="space-y-3 py-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="ifood-cancel-code">Motivo do cancelamento (iFood)</Label>
+                {ifoodReasonsLoading ? (
+                  <div className="text-xs text-muted-foreground">Carregando motivos...</div>
+                ) : ifoodReasons.length === 0 ? (
+                  <div className="text-xs text-muted-foreground">Nenhum motivo disponível para este pedido.</div>
+                ) : (
+                  <Select value={ifoodCancelCode} onValueChange={setIfoodCancelCode}>
+                    <SelectTrigger id="ifood-cancel-code"><SelectValue placeholder="Selecione um motivo" /></SelectTrigger>
+                    <SelectContent>
+                      {ifoodReasons.map((r) => (
+                        <SelectItem key={r.cancelCodeId} value={r.cancelCodeId}>{r.description}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="ifood-cancel-reason">Descrição</Label>
+                <Textarea
+                  id="ifood-cancel-reason"
+                  placeholder="Detalhe o motivo do cancelamento"
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            </div>
+          )}
+
           <AlertDialogFooter>
             <AlertDialogCancel>Voltar</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={cancelTarget?.external_source === "ifood" && (ifoodReasonsLoading || !ifoodCancelCode)}
               onClick={() => {
                 if (cancelTarget) {
                   const isQuero = cancelTarget.external_source === "quero";
-                  cancel(cancelTarget, isQuero ? { cancelReason, cancelCode } : undefined);
+                  const isIfood = cancelTarget.external_source === "ifood";
+                  if (isIfood) {
+                    cancel(cancelTarget, { cancelReason, cancelCode: ifoodCancelCode });
+                  } else if (isQuero) {
+                    cancel(cancelTarget, { cancelReason, cancelCode });
+                  } else {
+                    cancel(cancelTarget);
+                  }
                   setCancelTarget(null);
                   setCancelReason("");
                   setCancelCode("INTERNAL_DIFFICULTIES_OF_THE_RESTAURANT");
+                  setIfoodCancelCode("");
+                  setIfoodReasons([]);
                 }
               }}
             >
