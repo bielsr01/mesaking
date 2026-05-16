@@ -139,6 +139,9 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
   const [queroCancelInfoOpen, setQueroCancelInfoOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelCode, setCancelCode] = useState<string>("INTERNAL_DIFFICULTIES_OF_THE_RESTAURANT");
+  const [ifoodReasons, setIfoodReasons] = useState<Array<{ cancelCodeId: string; description: string }>>([]);
+  const [ifoodReasonsLoading, setIfoodReasonsLoading] = useState(false);
+  const [ifoodCancelCode, setIfoodCancelCode] = useState<string>("");
   const [deleteTarget, setDeleteTarget] = useState<Order | null>(null);
   const [printTarget, setPrintTarget] = useState<Order | null>(null);
   const [detailsTarget, setDetailsTarget] = useState<Order | null>(null);
