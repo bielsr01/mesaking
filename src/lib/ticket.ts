@@ -230,17 +230,21 @@ export function buildTicketHtml(
 <title>Ticket #${order.order_number}</title>
 <style>
   @page { size: 80mm auto; margin: 4mm; }
-  @media print { body { background:#fff !important; } .no-print { display:none !important; } }
+  @media print {
+    body { background:#fff !important; }
+    .no-print { display:none !important; }
+    .ticket, .ticket * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color:#000 !important; }
+  }
   body { margin:0; background:#f5f5f5; }
-  .ticket { width:72mm; margin:0 auto; padding:8px; font-family:'Courier New',monospace; color:#000; font-size:12px; line-height:1.35; background:#fff; }
-  .ticket h1 { font-size:14px; font-weight:700; margin:0; text-align:center; }
-  .muted { color:#333; }
+  .ticket { width:72mm; margin:0 auto; padding:8px; font-family:'Arial Black','Arial',sans-serif; color:#000; font-size:13px; line-height:1.45; font-weight:700; background:#fff; }
+  .ticket h1 { font-size:16px; font-weight:900; margin:0; text-align:center; }
+  .muted { color:#000; font-weight:700; }
   .center { text-align:center; }
   .row { display:flex; justify-content:space-between; gap:8px; }
-  .sep { border-top:1px dashed #000; margin:6px 0; }
-  .item-name { font-weight:700; }
-  .total { font-size:14px; font-weight:700; }
-  .logo { max-width:50mm; max-height:25mm; display:block; margin:0 auto 6px; object-fit:contain; }
+  .sep { border-top:1px solid #000; margin:6px 0; }
+  .item-name { font-weight:900; }
+  .total { font-size:15px; font-weight:900; }
+  .logo { max-width:50mm; max-height:25mm; display:block; margin:0 auto 6px; object-fit:contain; filter:contrast(1.4) brightness(0.85); }
   .no-print { padding:12px; text-align:center; }
   .no-print button { padding:8px 16px; border:1px solid #333; border-radius:6px; cursor:pointer; background:#fff; }
 </style></head>
