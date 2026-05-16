@@ -684,8 +684,23 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
         </Card>
         <Card>
           <CardHeader><CardTitle className="text-base">Produtos mais vendidos</CardTitle></CardHeader>
-          <CardContent className="overflow-x-auto">
-            <Table>
+          <CardContent>
+            {/* Mobile */}
+            <div className="space-y-2 md:hidden">
+              {topProducts.map((p, i) => (
+                <div key={p.name} className="flex items-center gap-3 rounded-md border p-3">
+                  <div className="font-bold text-lg w-6 shrink-0">{i + 1}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium truncate">{p.name}</div>
+                    <div className="text-xs text-muted-foreground">{p.qty} un.</div>
+                  </div>
+                  <div className="text-right shrink-0 font-medium text-sm">{brl(p.revenue)}</div>
+                </div>
+              ))}
+              {topProducts.length === 0 && <div className="text-center py-8 text-muted-foreground text-sm">Sem dados</div>}
+            </div>
+            {/* Desktop */}
+            <Table className="hidden md:table">
               <TableHeader>
                 <TableRow>
                   <TableHead>#</TableHead>
