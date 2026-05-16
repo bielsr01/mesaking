@@ -768,8 +768,8 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
           const nv = v as Channel;
           setChannel(nv);
           if (nv === "delivery" || nv === "all") setDeliveryBlink(false);
-        }}>
-          <TabsList>
+        }} className="w-full md:w-auto">
+          <TabsList className="flex flex-col md:flex-row h-auto w-full md:w-auto items-stretch md:items-center gap-1 md:gap-0">
             <TabsTrigger value="all" className={`gap-2 ${allPendingCount > 0 ? "animate-pulse" : ""}`}>
               Todos
               <Badge variant={allPendingCount > 0 ? "destructive" : "secondary"} className="h-5 min-w-5 px-1.5 text-xs">
