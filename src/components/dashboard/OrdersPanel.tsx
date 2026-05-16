@@ -685,7 +685,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
             <div className="text-base font-bold">{brl(o.total)}</div>
           </div>
 
-          <div className="flex gap-1 pt-0.5 shrink-0">
+          <div className="hidden md:flex gap-1 pt-0.5 shrink-0">
             <Button
               size="sm"
               variant="outline"
