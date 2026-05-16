@@ -645,18 +645,18 @@ function CampaignDialog({
           )}
 
           <div className="border-t pt-3">
-            <div className="flex items-center justify-between mb-2">
-              <div className="font-medium flex items-center gap-2">
+            <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
+              <div className="font-medium flex items-center gap-2 text-sm">
                 <Users className="w-4 h-4" />
                 {isEdit ? "Adicionar contatos" : "Contatos"} ({picked.size} selecionados)
               </div>
               <div className="flex gap-1">
-                <Button size="sm" variant="outline" onClick={pickAllVisible}>Selecionar visíveis</Button>
-                <Button size="sm" variant="outline" onClick={clearAll}>Limpar</Button>
+                <Button size="sm" variant="outline" onClick={pickAllVisible} className="text-xs">Selecionar visíveis</Button>
+                <Button size="sm" variant="outline" onClick={clearAll} className="text-xs">Limpar</Button>
               </div>
             </div>
             <div className="flex flex-wrap gap-2 mb-2">
-              <div className="relative flex-1 min-w-[200px]">
+              <div className="relative flex-1 min-w-[160px]">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <Input className="pl-9" placeholder="Buscar nome ou telefone..." value={search} onChange={(e) => setSearch(e.target.value)} />
               </div>
