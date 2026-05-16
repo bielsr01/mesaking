@@ -131,7 +131,7 @@ export function AdminStockReportsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><FileText className="w-4 h-4" />Relatórios — Estoque admin</DialogTitle>
         </DialogHeader>
