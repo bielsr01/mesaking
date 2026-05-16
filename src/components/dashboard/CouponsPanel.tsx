@@ -169,14 +169,14 @@ export function CouponsPanel({ restaurantId }: { restaurantId: string }) {
   return (
     <>
       <Card>
-        <CardHeader className="flex flex-row items-start justify-between gap-2">
+        <CardHeader className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
           <div>
             <CardTitle className="flex items-center gap-2"><Ticket className="w-5 h-5" /> Cupons de desconto</CardTitle>
             <CardDescription>Crie cupons para o pedido todo ou para itens específicos.</CardDescription>
           </div>
-          <div className="flex gap-2">
-            {canMetrics && <Button variant="outline" onClick={() => setShowMetrics(true)} className="gap-2"><BarChart3 className="w-4 h-4" /> Métricas</Button>}
-            {canEdit && <Button onClick={openNew} className="gap-2"><Plus className="w-4 h-4" /> Novo cupom</Button>}
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+            {canMetrics && <Button variant="outline" onClick={() => setShowMetrics(true)} className="gap-2 flex-1 sm:flex-none"><BarChart3 className="w-4 h-4" /> Métricas</Button>}
+            {canEdit && <Button onClick={openNew} className="gap-2 flex-1 sm:flex-none"><Plus className="w-4 h-4" /> Novo cupom</Button>}
           </div>
         </CardHeader>
         <CardContent>
