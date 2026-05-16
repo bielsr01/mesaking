@@ -221,7 +221,7 @@ export default function MasterAdmin() {
                   } finally {
                     setRefreshing(false);
                   }
-                }}><RefreshCw className={`w-4 h-4 sm:mr-2 ${refreshing ? "animate-spin" : ""}`} /><span className="hidden sm:inline">{refreshing ? "Atualizando..." : "Atualizar"}</span></Button>
+                }}><RefreshCw className={`w-4 h-4 ${isMobile ? "" : "mr-2"} ${refreshing ? "animate-spin" : ""}`} />{!isMobile && (refreshing ? "Atualizando..." : "Atualizar")}</Button>
                 <Button variant="ghost" size="sm" onClick={signOut}><LogOut className="w-4 h-4 mr-2" />Sair</Button>
               </div>
             </div>
