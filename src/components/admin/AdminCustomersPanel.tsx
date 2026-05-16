@@ -199,40 +199,69 @@ export function AdminCustomersPanel() {
           ) : filtered.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">Nenhum cliente encontrado.</div>
           ) : (
-            <div className="border rounded-lg overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Telefone</TableHead>
-                    <TableHead>Restaurante</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-center">Pedidos</TableHead>
-                    <TableHead>Último pedido</TableHead>
-                    <TableHead>Cadastrado</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map((c) => {
-                    const t = getClientType(c.orders_count);
-                    const s = getClientStatus(c.last_order_at);
-                    return (
-                      <TableRow key={c.id}>
-                        <TableCell className="font-medium">{c.name}</TableCell>
-                        <TableCell>{c.phone}</TableCell>
-                        <TableCell><Badge variant="outline">{nameById.get(c.restaurant_id) ?? "—"}</Badge></TableCell>
-                        <TableCell>{t ? <span className={`inline-block text-xs px-2 py-0.5 rounded-full ${TYPE_BADGE[t]}`}>{TYPE_LABELS[t]}</span> : <span className="text-muted-foreground text-xs">—</span>}</TableCell>
-                        <TableCell>{s ? <span className={`inline-block text-xs px-2 py-0.5 rounded-full ${STATUS_BADGE[s]}`}>{STATUS_LABELS[s]}</span> : <span className="text-muted-foreground text-xs">—</span>}</TableCell>
-                        <TableCell className="text-center">{c.orders_count}</TableCell>
-                        <TableCell>{c.last_order_at ? new Date(c.last_order_at).toLocaleDateString("pt-BR") : "—"}</TableCell>
-                        <TableCell>{new Date(c.created_at).toLocaleDateString("pt-BR")}</TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+            <>
+              <div className="hidden md:block border rounded-lg overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Telefone</TableHead>
+                      <TableHead>Restaurante</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-center">Pedidos</TableHead>
+                      <TableHead className="whitespace-nowrap">Último pedido</TableHead>
+                      <TableHead>Cadastrado</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.map((c) => {
+                      const t = getClientType(c.orders_count);
+                      const s = getClientStatus(c.last_order_at);
+                      return (
+                        <TableRow key={c.id}>
+                          <TableCell className="font-medium">{c.name}</TableCell>
+                          <TableCell className="whitespace-nowrap">{c.phone}</TableCell>
+                          <TableCell><Badge variant="outline">{nameById.get(c.restaurant_id) ?? "—"}</Badge></TableCell>
+                          <TableCell>{t ? <span className={`inline-block text-xs px-2 py-0.5 rounded-full ${TYPE_BADGE[t]}`}>{TYPE_LABELS[t]}</span> : <span className="text-muted-foreground text-xs">—</span>}</TableCell>
+                          <TableCell>{s ? <span className={`inline-block text-xs px-2 py-0.5 rounded-full ${STATUS_BADGE[s]}`}>{STATUS_LABELS[s]}</span> : <span className="text-muted-foreground text-xs">—</span>}</TableCell>
+                          <TableCell className="text-center">{c.orders_count}</TableCell>
+                          <TableCell className="whitespace-nowrap">{c.last_order_at ? new Date(c.last_order_at).toLocaleDateString("pt-BR") : "—"}</TableCell>
+                          <TableCell className="whitespace-nowrap">{new Date(c.created_at).toLocaleDateString("pt-BR")}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <div className="md:hidden space-y-2">
+                {filtered.map((c) => {
+                  const t = getClientType(c.orders_count);
+                  const s = getClientStatus(c.last_order_at);
+                  return (
+                    <div key={c.id} className="border rounded-lg p-3 space-y-2 bg-card">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="font-medium truncate">{c.name}</div>
+                          <div className="text-xs text-muted-foreground">{c.phone}</div>
+                        </div>
+                        <Badge variant="outline" className="shrink-0 text-[10px]">{nameById.get(c.restaurant_id) ?? "—"}</Badge>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {t && <span className={`text-[10px] px-2 py-0.5 rounded-full ${TYPE_BADGE[t]}`}>{TYPE_LABELS[t]}</span>}
+                        {s && <span className={`text-[10px] px-2 py-0.5 rounded-full ${STATUS_BADGE[s]}`}>{STATUS_LABELS[s]}</span>}
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 text-center text-xs border-t pt-2">
+                        <div><div className="font-semibold">{c.orders_count}</div><div className="text-muted-foreground text-[10px]">Pedidos</div></div>
+                        <div><div className="font-semibold text-[11px]">{c.last_order_at ? new Date(c.last_order_at).toLocaleDateString("pt-BR") : "—"}</div><div className="text-muted-foreground text-[10px]">Último</div></div>
+                        <div><div className="font-semibold text-[11px]">{new Date(c.created_at).toLocaleDateString("pt-BR")}</div><div className="text-muted-foreground text-[10px]">Cadastro</div></div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           )}
 
           <div className="text-xs text-muted-foreground">Total: <strong>{filtered.length}</strong> cliente(s)</div>

@@ -214,37 +214,66 @@ export function AdminCouponsPanel() {
           ) : !coupons || coupons.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground">Nenhum cupom cadastrado.</div>
           ) : (
-            <div className="rounded-md border overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Código</TableHead>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Restaurante</TableHead>
-                    <TableHead>Desconto</TableHead>
-                    <TableHead>Validade</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {coupons.map((c) => (
-                    <TableRow key={c.id}>
-                      <TableCell className="font-mono font-semibold">{c.code}</TableCell>
-                      <TableCell>{c.name}</TableCell>
-                      <TableCell><Badge variant="outline">{nameById.get(c.restaurant_id) ?? "—"}</Badge></TableCell>
-                      <TableCell>{formatDiscount(c)}</TableCell>
-                      <TableCell className="text-xs">{c.ends_at ? new Date(c.ends_at).toLocaleDateString() : "Sem fim"}</TableCell>
-                      <TableCell>{c.is_active ? <Badge className="bg-success text-success-foreground">Ativo</Badge> : <Badge variant="secondary">Inativo</Badge>}</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(c)}><Pencil className="w-4 h-4" /></Button>
-                        <Button variant="ghost" size="icon" onClick={() => setToDelete(c)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
-                      </TableCell>
+            <>
+              <div className="hidden md:block rounded-md border overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Código</TableHead>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Restaurante</TableHead>
+                      <TableHead>Desconto</TableHead>
+                      <TableHead>Validade</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {coupons.map((c) => (
+                      <TableRow key={c.id}>
+                        <TableCell className="font-mono font-semibold">{c.code}</TableCell>
+                        <TableCell>{c.name}</TableCell>
+                        <TableCell><Badge variant="outline">{nameById.get(c.restaurant_id) ?? "—"}</Badge></TableCell>
+                        <TableCell className="whitespace-nowrap">{formatDiscount(c)}</TableCell>
+                        <TableCell className="text-xs whitespace-nowrap">{c.ends_at ? new Date(c.ends_at).toLocaleDateString() : "Sem fim"}</TableCell>
+                        <TableCell>{c.is_active ? <Badge className="bg-success text-success-foreground">Ativo</Badge> : <Badge variant="secondary">Inativo</Badge>}</TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="icon" onClick={() => openEdit(c)}><Pencil className="w-4 h-4" /></Button>
+                          <Button variant="ghost" size="icon" onClick={() => setToDelete(c)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <div className="md:hidden space-y-2">
+                {coupons.map((c) => (
+                  <div key={c.id} className="border rounded-lg p-3 space-y-2 bg-card">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-mono font-semibold text-sm">{c.code}</div>
+                        <div className="text-xs text-muted-foreground truncate">{c.name}</div>
+                      </div>
+                      {c.is_active
+                        ? <Badge className="bg-success text-success-foreground shrink-0 text-[10px]">Ativo</Badge>
+                        : <Badge variant="secondary" className="shrink-0 text-[10px]">Inativo</Badge>}
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      <Badge variant="outline" className="text-[10px]">{nameById.get(c.restaurant_id) ?? "—"}</Badge>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs border-t pt-2">
+                      <div><div className="text-muted-foreground text-[10px]">Desconto</div><div className="font-semibold">{formatDiscount(c)}</div></div>
+                      <div><div className="text-muted-foreground text-[10px]">Validade</div><div className="font-semibold">{c.ends_at ? new Date(c.ends_at).toLocaleDateString() : "Sem fim"}</div></div>
+                    </div>
+                    <div className="flex gap-1 border-t pt-2">
+                      <Button variant="outline" size="sm" className="flex-1" onClick={() => openEdit(c)}><Pencil className="w-3.5 h-3.5 mr-1" /> Editar</Button>
+                      <Button variant="outline" size="sm" className="text-destructive" onClick={() => setToDelete(c)}><Trash2 className="w-3.5 h-3.5" /></Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
@@ -287,12 +316,12 @@ export function AdminCouponsPanel() {
                 <div className="text-sm text-muted-foreground">Loja: <strong>{nameById.get(editing.restaurant_id!) ?? "—"}</strong></div>
               )}
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-2"><Label>Código</Label><Input value={editing.code} onChange={(e) => setEditing({ ...editing, code: e.target.value.toUpperCase() })} placeholder="PROMO10" /></div>
                 <div className="space-y-2"><Label>Nome</Label><Input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} placeholder="Promoção" /></div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label>Tipo de desconto</Label>
                   <RadioGroup value={editing.discount_type} onValueChange={(v: any) => setEditing({ ...editing, discount_type: v })} className="grid grid-cols-2 gap-2">
@@ -303,12 +332,12 @@ export function AdminCouponsPanel() {
                 <div className="space-y-2"><Label>Valor</Label><Input type="number" min="0" step="0.01" value={editing.discount_value} onChange={(e) => setEditing({ ...editing, discount_value: Number(e.target.value) })} /></div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-2"><Label>Início</Label><Input type="datetime-local" value={toLocalInput(editing.starts_at)} onChange={(e) => setEditing({ ...editing, starts_at: fromLocalInput(e.target.value) })} /></div>
                 <div className="space-y-2"><Label>Fim</Label><Input type="datetime-local" value={toLocalInput(editing.ends_at)} onChange={(e) => setEditing({ ...editing, ends_at: fromLocalInput(e.target.value) })} /></div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-2"><Label>Limite total de usos</Label><Input type="number" min="0" value={editing.usage_limit_total ?? ""} onChange={(e) => setEditing({ ...editing, usage_limit_total: e.target.value === "" ? null : Number(e.target.value) })} placeholder="Ilimitado" /></div>
                 <div className="space-y-2"><Label>Valor mínimo do pedido</Label><Input type="number" min="0" step="0.01" value={editing.min_order_value} onChange={(e) => setEditing({ ...editing, min_order_value: Number(e.target.value) })} /></div>
               </div>
