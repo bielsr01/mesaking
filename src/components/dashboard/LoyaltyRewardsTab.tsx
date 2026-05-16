@@ -772,14 +772,14 @@ function RedeemWizard({
           </div>
         )}
 
-        <DialogFooter className="gap-2 sm:justify-between">
-          <Button variant="outline" onClick={goBack} disabled={submitting}>
+        <DialogFooter className="gap-2 flex-col sm:flex-row sm:justify-between">
+          <Button variant="outline" onClick={goBack} disabled={submitting} className="w-full sm:w-auto">
             <ArrowLeft className="w-4 h-4 mr-1" />{step === 1 ? "Cancelar" : "Voltar"}
           </Button>
           {step < 5 ? (
-            <Button onClick={goNext}>Avançar<ArrowRight className="w-4 h-4 ml-1" /></Button>
+            <Button onClick={goNext} className="w-full sm:w-auto">Avançar<ArrowRight className="w-4 h-4 ml-1" /></Button>
           ) : (
-            <Button onClick={confirm} disabled={submitting || !enoughPoints}>
+            <Button onClick={confirm} disabled={submitting || !enoughPoints} className="w-full sm:w-auto">
               <Gift className="w-4 h-4 mr-1" />{submitting ? "Processando..." : "Confirmar resgate"}
             </Button>
           )}
