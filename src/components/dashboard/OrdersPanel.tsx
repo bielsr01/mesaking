@@ -804,13 +804,13 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
           </TabsList>
         </Tabs>
 
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => setHistoryOpen(true)} className="gap-2">
-            <History className="w-4 h-4" /> Histórico de Pedidos
+        <div className="flex items-center gap-2 w-full md:w-auto flex-wrap">
+          <Button variant="outline" size="sm" onClick={() => setHistoryOpen(true)} className="gap-2 flex-1 md:flex-none text-xs md:text-sm">
+            <History className="w-4 h-4" /> <span className="truncate">Histórico</span>
           </Button>
           {canCreatePdv && (
-            <Button onClick={() => setPdvOpen(true)} className="gap-2">
-              <Plus className="w-4 h-4" /> Novo pedido PDV
+            <Button size="sm" onClick={() => setPdvOpen(true)} className="gap-2 flex-1 md:flex-none text-xs md:text-sm">
+              <Plus className="w-4 h-4" /> <span className="truncate">Novo PDV</span>
             </Button>
           )}
         </div>
