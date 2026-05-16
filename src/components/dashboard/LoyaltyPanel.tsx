@@ -273,11 +273,11 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="settings">
-          <TabsList className="flex w-full overflow-x-auto h-auto justify-start sm:justify-center">
-            <TabsTrigger value="settings" className="text-xs sm:text-sm">Configurações</TabsTrigger>
-            <TabsTrigger value="members" className="text-xs sm:text-sm">Cadastro</TabsTrigger>
-            {canCredit && <TabsTrigger value="credit" className="text-xs sm:text-sm">Creditar</TabsTrigger>}
-            {canRewardsView && <TabsTrigger value="rewards" className="text-xs sm:text-sm">Resgatar</TabsTrigger>}
+          <TabsList className="grid w-full grid-cols-2 sm:flex sm:w-auto h-auto gap-1">
+            <TabsTrigger value="settings" className="text-xs sm:text-sm whitespace-nowrap">Configurações</TabsTrigger>
+            <TabsTrigger value="members" className="text-xs sm:text-sm whitespace-nowrap">Cadastro</TabsTrigger>
+            {canCredit && <TabsTrigger value="credit" className="text-xs sm:text-sm whitespace-nowrap">Creditar</TabsTrigger>}
+            {canRewardsView && <TabsTrigger value="rewards" className="text-xs sm:text-sm whitespace-nowrap">Resgatar</TabsTrigger>}
           </TabsList>
 
           {canRewardsView && (
