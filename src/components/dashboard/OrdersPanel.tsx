@@ -628,17 +628,19 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
             </div>
           </div>
 
-          {!isPdv && !isPickup && (
-            <div className="text-[11px] flex gap-1 text-muted-foreground">
-              <MapPin className="w-3 h-3 mt-0.5 shrink-0" />
-              <div className="min-w-0 leading-tight">
-                {o.address_street}, {o.address_number}{o.address_complement ? ` - ${o.address_complement}` : ""}
-                <div>{o.address_neighborhood}</div>
-              </div>
-            </div>
-          )}
+          <div className="text-[11px] flex gap-1 text-muted-foreground h-[28px] overflow-hidden shrink-0">
+            {!isPdv && !isPickup ? (
+              <>
+                <MapPin className="w-3 h-3 mt-0.5 shrink-0" />
+                <div className="min-w-0 leading-tight line-clamp-2">
+                  {o.address_street}, {o.address_number}{o.address_complement ? ` - ${o.address_complement}` : ""}
+                  {o.address_neighborhood ? ` - ${o.address_neighborhood}` : ""}
+                </div>
+              </>
+            ) : null}
+          </div>
 
-          <div className="border-t pt-2 space-y-0.5 text-[11px]">
+          <div className="border-t pt-2 space-y-0.5 text-[11px] flex-1 min-h-0 overflow-hidden">
             {(items[o.id] ?? []).slice(0, 3).map((it) => (
               <div key={it.id} className="flex justify-between gap-2">
                 <span className="truncate"><span className="font-medium">{it.quantity}×</span> {it.product_name}</span>
