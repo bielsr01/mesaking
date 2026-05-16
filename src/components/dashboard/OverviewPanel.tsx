@@ -686,19 +686,19 @@ function Kpi({ icon: Icon, label, value, sub, delta, disabled, negative }: { ico
   const showDelta = typeof delta === "number" && isFinite(delta);
   const positive = (delta ?? 0) >= 0;
   return (
-    <Card className={disabled ? "opacity-40" : ""}>
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <div className="flex items-center gap-1.5"><Icon className="w-3.5 h-3.5" />{label}</div>
+    <Card className={`${disabled ? "opacity-40" : ""} min-w-0`}>
+      <CardContent className="p-3 sm:p-4 min-w-0">
+        <div className="flex items-center justify-between text-xs text-muted-foreground gap-2 min-w-0">
+          <div className="flex items-center gap-1.5 min-w-0 truncate"><Icon className="w-3.5 h-3.5 shrink-0" /><span className="truncate">{label}</span></div>
           {showDelta && !disabled && (
-            <span className={`flex items-center gap-0.5 font-medium ${positive ? "text-emerald-600" : "text-red-600"}`}>
+            <span className={`flex items-center gap-0.5 font-medium shrink-0 ${positive ? "text-emerald-600" : "text-red-600"}`}>
               {positive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
               {Math.abs(delta!).toFixed(1)}%
             </span>
           )}
         </div>
-        <div className={`text-2xl font-bold mt-1 ${negative ? "text-red-600" : ""}`}>{disabled ? "—" : value}</div>
-        {sub && !disabled && <div className="text-xs text-muted-foreground mt-0.5">{sub}</div>}
+        <div className={`text-lg sm:text-2xl font-bold mt-1 break-words ${negative ? "text-red-600" : ""}`}>{disabled ? "—" : value}</div>
+        {sub && !disabled && <div className="text-xs text-muted-foreground mt-0.5 break-words">{sub}</div>}
         {disabled && <div className="text-xs text-muted-foreground mt-0.5">Indisponível para iFood</div>}
       </CardContent>
     </Card>
