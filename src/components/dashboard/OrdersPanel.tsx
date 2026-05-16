@@ -604,8 +604,8 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
       );
     }
     return (
-      <Card key={o.id} className="shadow-soft cursor-pointer hover:bg-accent/30 transition-colors" onClick={() => setDetailsTarget(o)}>
-        <CardContent className="p-2.5 space-y-2" onClick={(e) => {
+      <Card key={o.id} className="shadow-soft cursor-pointer hover:bg-accent/30 transition-colors h-[280px] flex flex-col overflow-hidden" onClick={() => setDetailsTarget(o)}>
+        <CardContent className="p-2.5 flex flex-col gap-2 flex-1 min-h-0" onClick={(e) => {
           const t = e.target as HTMLElement;
           if (t.closest('button,a,[role="button"]')) e.stopPropagation();
         }}>
@@ -628,17 +628,19 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
             </div>
           </div>
 
-          {!isPdv && !isPickup && (
-            <div className="text-[11px] flex gap-1 text-muted-foreground">
-              <MapPin className="w-3 h-3 mt-0.5 shrink-0" />
-              <div className="min-w-0 leading-tight">
-                {o.address_street}, {o.address_number}{o.address_complement ? ` - ${o.address_complement}` : ""}
-                <div>{o.address_neighborhood}</div>
-              </div>
-            </div>
-          )}
+          <div className="text-[11px] flex gap-1 text-muted-foreground h-[28px] overflow-hidden shrink-0">
+            {!isPdv && !isPickup ? (
+              <>
+                <MapPin className="w-3 h-3 mt-0.5 shrink-0" />
+                <div className="min-w-0 leading-tight line-clamp-2">
+                  {o.address_street}, {o.address_number}{o.address_complement ? ` - ${o.address_complement}` : ""}
+                  {o.address_neighborhood ? ` - ${o.address_neighborhood}` : ""}
+                </div>
+              </>
+            ) : null}
+          </div>
 
-          <div className="border-t pt-2 space-y-0.5 text-[11px]">
+          <div className="border-t pt-2 space-y-0.5 text-[11px] flex-1 min-h-0 overflow-hidden">
             {(items[o.id] ?? []).slice(0, 3).map((it) => (
               <div key={it.id} className="flex justify-between gap-2">
                 <span className="truncate"><span className="font-medium">{it.quantity}×</span> {it.product_name}</span>
@@ -649,14 +651,14 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
             )}
           </div>
 
-          <div className="border-t pt-2 flex justify-between items-center gap-2">
+          <div className="border-t pt-2 flex justify-between items-center gap-2 shrink-0">
             <div className="text-[10px] text-muted-foreground truncate">
               {paymentLabelFor(o.payment_method, o.external_source)}
             </div>
             <div className="text-base font-bold">{brl(o.total)}</div>
           </div>
 
-          <div className="flex gap-1 pt-0.5">
+          <div className="flex gap-1 pt-0.5 shrink-0">
             <Button
               size="sm"
               variant="outline"
