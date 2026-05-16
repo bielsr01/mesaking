@@ -269,11 +269,11 @@ export function SupplyReportsDialog() {
         </div>
 
         <Tabs defaultValue="restaurants">
-          <TabsList>
-            <TabsTrigger value="restaurants">Por restaurante</TabsTrigger>
-            <TabsTrigger value="products">Por produto</TabsTrigger>
-            <TabsTrigger value="variants">Por variante</TabsTrigger>
-            <TabsTrigger value="orders">Pedidos ({filtered.length})</TabsTrigger>
+          <TabsList className="w-full overflow-x-auto justify-start">
+            <TabsTrigger value="restaurants" className="shrink-0">Por restaurante</TabsTrigger>
+            <TabsTrigger value="products" className="shrink-0">Por produto</TabsTrigger>
+            <TabsTrigger value="variants" className="shrink-0">Por variante</TabsTrigger>
+            <TabsTrigger value="orders" className="shrink-0">Pedidos ({filtered.length})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="restaurants">
