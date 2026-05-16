@@ -316,12 +316,12 @@ export function AdminCouponsPanel() {
                 <div className="text-sm text-muted-foreground">Loja: <strong>{nameById.get(editing.restaurant_id!) ?? "—"}</strong></div>
               )}
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-2"><Label>Código</Label><Input value={editing.code} onChange={(e) => setEditing({ ...editing, code: e.target.value.toUpperCase() })} placeholder="PROMO10" /></div>
                 <div className="space-y-2"><Label>Nome</Label><Input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} placeholder="Promoção" /></div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label>Tipo de desconto</Label>
                   <RadioGroup value={editing.discount_type} onValueChange={(v: any) => setEditing({ ...editing, discount_type: v })} className="grid grid-cols-2 gap-2">
@@ -332,12 +332,12 @@ export function AdminCouponsPanel() {
                 <div className="space-y-2"><Label>Valor</Label><Input type="number" min="0" step="0.01" value={editing.discount_value} onChange={(e) => setEditing({ ...editing, discount_value: Number(e.target.value) })} /></div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-2"><Label>Início</Label><Input type="datetime-local" value={toLocalInput(editing.starts_at)} onChange={(e) => setEditing({ ...editing, starts_at: fromLocalInput(e.target.value) })} /></div>
                 <div className="space-y-2"><Label>Fim</Label><Input type="datetime-local" value={toLocalInput(editing.ends_at)} onChange={(e) => setEditing({ ...editing, ends_at: fromLocalInput(e.target.value) })} /></div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-2"><Label>Limite total de usos</Label><Input type="number" min="0" value={editing.usage_limit_total ?? ""} onChange={(e) => setEditing({ ...editing, usage_limit_total: e.target.value === "" ? null : Number(e.target.value) })} placeholder="Ilimitado" /></div>
                 <div className="space-y-2"><Label>Valor mínimo do pedido</Label><Input type="number" min="0" step="0.01" value={editing.min_order_value} onChange={(e) => setEditing({ ...editing, min_order_value: Number(e.target.value) })} /></div>
               </div>
