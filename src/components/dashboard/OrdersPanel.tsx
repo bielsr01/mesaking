@@ -897,6 +897,8 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
                 />
               </div>
             </div>
+          )}
+
           {cancelTarget?.external_source === "ifood" && (
             <div className="space-y-3 py-2">
               <div className="space-y-1.5">
