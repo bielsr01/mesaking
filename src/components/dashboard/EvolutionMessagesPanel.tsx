@@ -282,7 +282,35 @@ function DispatchHistoryDialog({
         <div className="flex justify-end">
           <Button variant="outline" size="sm" onClick={() => refetch()}>Atualizar</Button>
         </div>
-        <div className="overflow-auto border rounded-md">
+
+        {/* Mobile cards */}
+        <div className="md:hidden overflow-auto space-y-2 pr-1">
+          {isLoading && <div className="text-center text-muted-foreground text-sm py-6">Carregando...</div>}
+          {!isLoading && (data?.length ?? 0) === 0 && (
+            <div className="text-center text-muted-foreground text-sm py-6">Nenhum disparo registrado.</div>
+          )}
+          {data?.map((r) => (
+            <div key={r.id} className="border rounded-md p-3 text-xs space-y-1">
+              <div className="flex items-start justify-between gap-2">
+                <div className="font-medium text-sm truncate">{eventTitle(r.event_key)}</div>
+                {statusBadge(r.status)}
+              </div>
+              <div className="text-muted-foreground">{r.phone}</div>
+              <div className="break-words">{r.message}</div>
+              {r.error && <div className="text-destructive break-words">Erro: {r.error}</div>}
+              <div className="text-muted-foreground pt-1 border-t mt-1">
+                Agendado: {r.scheduled_at ? new Date(r.scheduled_at).toLocaleString("pt-BR") : "-"}
+              </div>
+              <div className="text-muted-foreground">
+                Enviado: {r.sent_at ? new Date(r.sent_at).toLocaleString("pt-BR") : "-"}
+              </div>
+              {r.attempts > 0 && <div className="text-muted-foreground">Tentativas: {r.attempts}</div>}
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop table */}
+        <div className="hidden md:block overflow-auto border rounded-md">
           <Table>
             <TableHeader>
               <TableRow>
