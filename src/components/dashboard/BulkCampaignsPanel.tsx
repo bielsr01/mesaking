@@ -615,7 +615,7 @@ function CampaignDialog({
                 <Users className="w-4 h-4" /> Destinatários atuais ({(existingRecipients ?? []).length - removedRecipientIds.size} de {(existingRecipients ?? []).length})
               </div>
               <div className="text-xs text-muted-foreground mb-2">Apenas destinatários pendentes podem ser removidos.</div>
-              <div className="border rounded-lg max-h-60 overflow-y-auto">
+              <div className="border rounded-lg max-h-60 overflow-auto">
                 <Table>
                   <TableBody>
                     {(existingRecipients ?? []).map((r: any) => {
