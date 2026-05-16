@@ -153,7 +153,8 @@ export function FinancePanel({ restaurantIds }: { restaurantIds: string[] }) {
             <StatCard icon={CreditCard} label="Vendas no cartão" value={brl(totals.card)} accent="text-blue-600" />
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-3">
+            <StatCard icon={Wallet} label="Receita total PDV + Delivery direto" value={brl(totals.cash + totals.pix + totals.card)} accent="text-success" />
             <StatCard icon={Bike} label="Receita iFood (líquida)" value={brl(totals.ifoodNet)} accent="text-red-600" />
             <StatCard icon={Truck} label="Receita Quero Delivery (líquida)" value={brl(totals.queroNet)} accent="text-orange-600" />
           </div>
