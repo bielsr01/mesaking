@@ -632,8 +632,26 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
       <div className="grid gap-3 lg:grid-cols-2">
         <Card>
           <CardHeader><CardTitle className="text-base flex items-center gap-2"><Trophy className="w-4 h-4 text-yellow-500" />Top clientes</CardTitle></CardHeader>
-          <CardContent className="overflow-x-auto">
-            <Table>
+          <CardContent>
+            {/* Mobile */}
+            <div className="space-y-2 md:hidden">
+              {topCustomers.map((c, i) => (
+                <div key={c.phone} className="flex items-center gap-3 rounded-md border p-3">
+                  <div className="font-bold text-lg w-6 shrink-0">{i + 1}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium truncate">{c.name}</div>
+                    <div className="text-xs text-muted-foreground truncate">{c.phone}</div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="font-medium text-sm">{brl(c.total)}</div>
+                    <div className="text-xs text-muted-foreground">{c.count} ped.</div>
+                  </div>
+                </div>
+              ))}
+              {topCustomers.length === 0 && <div className="text-center py-8 text-muted-foreground text-sm">Sem dados</div>}
+            </div>
+            {/* Desktop */}
+            <Table className="hidden md:table">
               <TableHeader>
                 <TableRow>
                   <TableHead>#</TableHead>
