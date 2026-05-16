@@ -199,12 +199,12 @@ export function AdminCouponsPanel() {
       <Card><CardContent className="p-4"><RestaurantMultiSelect all={all} selected={selected} onChange={setSelected} /></CardContent></Card>
 
       <Card>
-        <CardHeader className="flex flex-row items-start justify-between gap-2">
-          <div>
+        <CardHeader className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+          <div className="min-w-0">
             <CardTitle className="flex items-center gap-2"><Ticket className="w-5 h-5" /> Cupons de desconto</CardTitle>
             <CardDescription>Gerencie cupons de todas as lojas selecionadas.</CardDescription>
           </div>
-          <Button onClick={openNew} disabled={all.length === 0} className="gap-2"><Plus className="w-4 h-4" /> Novo cupom</Button>
+          <Button onClick={openNew} disabled={all.length === 0} className="gap-2 w-full sm:w-auto"><Plus className="w-4 h-4" /> Novo cupom</Button>
         </CardHeader>
         <CardContent>
           {selected.length === 0 ? (
