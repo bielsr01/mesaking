@@ -201,14 +201,15 @@ export default function MasterAdmin() {
         <AdminSidebar active={view} onChange={setView} supplyBadge={supplyPendingCount} />
         <SidebarInset className="flex-1 flex flex-col">
           <header className="bg-background border-b sticky top-0 z-30">
-            <div className="h-16 px-4 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
+            <div className="h-16 px-2 sm:px-4 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
                 <SidebarTrigger />
-                <div className="flex items-center gap-2 font-bold">
-                  <div className="w-9 h-9 rounded-lg bg-gradient-primary flex items-center justify-center">
+                <div className="flex items-center gap-2 font-bold min-w-0">
+                  <div className="w-9 h-9 rounded-lg bg-gradient-primary flex items-center justify-center shrink-0">
                     <ChefHat className="w-5 h-5 text-primary-foreground" />
                   </div>
-                  MesaPro <Badge variant="secondary" className="ml-2">Admin</Badge>
+                  <span className="hidden sm:inline">MesaPro</span>
+                  <Badge variant="secondary" className="ml-0 sm:ml-2">Admin</Badge>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -222,14 +223,14 @@ export default function MasterAdmin() {
                     setRefreshing(false);
                   }
                 }}><RefreshCw className={`w-4 h-4 ${isMobile ? "" : "mr-2"} ${refreshing ? "animate-spin" : ""}`} />{!isMobile && (refreshing ? "Atualizando..." : "Atualizar")}</Button>
-                <Button variant="ghost" size="sm" onClick={signOut}><LogOut className="w-4 h-4 mr-2" />Sair</Button>
+                <Button variant="ghost" size="sm" onClick={signOut}><LogOut className={`w-4 h-4 ${isMobile ? "" : "mr-2"}`} />{!isMobile && "Sair"}</Button>
               </div>
             </div>
           </header>
 
-          <main className="flex-1 p-6 space-y-6">
+          <main className="flex-1 p-3 sm:p-6 space-y-4 sm:space-y-6 min-w-0 overflow-x-hidden">
             <div>
-              <h1 className="text-3xl font-bold">{titleMap[view]}</h1>
+              <h1 className="text-xl sm:text-3xl font-bold">{titleMap[view]}</h1>
               {view === "restaurants" && <p className="text-muted-foreground">Gerencie todos os restaurantes da plataforma.</p>}
             </div>
 
@@ -250,11 +251,11 @@ export default function MasterAdmin() {
                   </CardContent></Card>
                 </div>
 
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <h2 className="text-xl font-semibold">Restaurantes</h2>
                   <Dialog open={createOpen} onOpenChange={setCreateOpen}>
                     <DialogTrigger asChild>
-                      <Button><Plus className="w-4 h-4 mr-2" />Novo restaurante</Button>
+                      <Button className="w-full sm:w-auto"><Plus className="w-4 h-4 mr-2" />Novo restaurante</Button>
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>

@@ -53,9 +53,9 @@ const statusColor: Record<SupplyOrder["status"], string> = {
 export function SupplyAdminPanel() {
   return (
     <Tabs defaultValue="orders" className="space-y-4">
-      <TabsList>
-        <TabsTrigger value="orders"><ShoppingBag className="w-4 h-4 mr-2" />Pedidos recebidos</TabsTrigger>
-        <TabsTrigger value="catalog"><Package className="w-4 h-4 mr-2" />Catálogo de insumos</TabsTrigger>
+      <TabsList className="w-full sm:w-auto overflow-x-auto justify-start no-scrollbar">
+        <TabsTrigger value="orders" className="shrink-0"><ShoppingBag className="w-4 h-4 mr-2" />Pedidos recebidos</TabsTrigger>
+        <TabsTrigger value="catalog" className="shrink-0"><Package className="w-4 h-4 mr-2" />Catálogo de insumos</TabsTrigger>
       </TabsList>
       <TabsContent value="orders"><SupplyOrdersTab /></TabsContent>
       <TabsContent value="catalog"><SupplyCatalogTab /></TabsContent>

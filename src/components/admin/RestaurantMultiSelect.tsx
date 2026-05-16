@@ -56,9 +56,9 @@ export function RestaurantMultiSelect({
       <span className="text-sm font-medium">Restaurantes:</span>
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="outline" size="sm" className="min-w-[220px] justify-between">
-            {label}
-            <ChevronDown className="w-4 h-4 ml-2" />
+          <Button variant="outline" size="sm" className="w-full sm:w-auto sm:min-w-[220px] justify-between">
+            <span className="truncate">{label}</span>
+            <ChevronDown className="w-4 h-4 ml-2 shrink-0" />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-72 p-2" align="start">

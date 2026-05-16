@@ -21,10 +21,10 @@ export function AdminConnectionsPanel() {
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-end gap-3">
-        <div className="space-y-1.5">
+        <div className="space-y-1.5 w-full sm:w-auto">
           <Label className="text-xs">Visualizar integrações de</Label>
           <Select value={scope} onValueChange={setScope}>
-            <SelectTrigger className="w-[280px]">
+            <SelectTrigger className="w-full sm:w-[280px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
