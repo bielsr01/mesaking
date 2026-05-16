@@ -208,14 +208,15 @@ export function AdminExpenseStoresPanel() {
           {filtered.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground">Nenhuma despesa no filtro.</div>
           ) : (
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Data</TableHead>
+                  <TableHead className="whitespace-nowrap">Data</TableHead>
                   <TableHead>Restaurante</TableHead>
                   <TableHead>Categoria</TableHead>
                   <TableHead>Descrição</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
+                  <TableHead className="text-right whitespace-nowrap">Valor</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -230,12 +231,13 @@ export function AdminExpenseStoresPanel() {
                         <div>{e.description || "—"}</div>
                         {e.notes && <div className="text-xs text-muted-foreground">{e.notes}</div>}
                       </TableCell>
-                      <TableCell className="text-right font-semibold">{brl(Number(e.amount))}</TableCell>
+                      <TableCell className="text-right font-semibold whitespace-nowrap">{brl(Number(e.amount))}</TableCell>
                     </TableRow>
                   );
                 })}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>
