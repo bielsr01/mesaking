@@ -113,12 +113,15 @@ export function StockPanel({ restaurantId }: { restaurantId: string }) {
     return { title: movementLabel[m.type] ?? m.type, subtitle: m.notes ?? undefined };
   };
 
-  const incoming = movements.filter(m => m.quantity > 0);
-  const outgoing = movements.filter(m => m.quantity < 0);
+  const [historyFilter, setHistoryFilter] = useState<"all" | "in" | "out">("all");
+  const filteredMovements =
+    historyFilter === "in" ? movements.filter(m => m.quantity > 0)
+    : historyFilter === "out" ? movements.filter(m => m.quantity < 0)
+    : movements;
 
   return (
     <Tabs defaultValue="balance" className="space-y-4">
-      <TabsList>
+      <TabsList className="w-full sm:w-auto grid grid-cols-2 sm:flex">
         <TabsTrigger value="balance"><Package className="w-4 h-4 mr-2" />Saldo atual</TabsTrigger>
         <TabsTrigger value="history"><History className="w-4 h-4 mr-2" />Histórico</TabsTrigger>
       </TabsList>
@@ -131,8 +134,8 @@ export function StockPanel({ restaurantId }: { restaurantId: string }) {
             return (
               <Card key={g.id} className={negative ? "border-destructive/50" : ""}>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center justify-between">
-                    {g.name}
+                  <CardTitle className="text-base flex items-center justify-between gap-2 flex-wrap">
+                    <span className="truncate">{g.name}</span>
                     {negative && <Badge variant="destructive"><AlertTriangle className="w-3 h-3 mr-1" />Sem estoque</Badge>}
                   </CardTitle>
                 </CardHeader>
@@ -159,23 +162,19 @@ export function StockPanel({ restaurantId }: { restaurantId: string }) {
         )}
       </TabsContent>
 
-      <TabsContent value="history">
-        <div className="grid gap-4 md:grid-cols-2">
-          <MovementList
-            title="Entradas no estoque"
-            empty="Sem entradas ainda."
-            movements={incoming}
-            groupMap={groupMap}
-            describe={describeMovement}
-          />
-          <MovementList
-            title="Saídas / consumo"
-            empty="Sem saídas ainda."
-            movements={outgoing}
-            groupMap={groupMap}
-            describe={describeMovement}
-          />
+      <TabsContent value="history" className="space-y-3">
+        <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
+          <Button size="sm" variant={historyFilter === "all" ? "default" : "outline"} onClick={() => setHistoryFilter("all")}>Todos</Button>
+          <Button size="sm" variant={historyFilter === "in" ? "default" : "outline"} onClick={() => setHistoryFilter("in")}>Entradas</Button>
+          <Button size="sm" variant={historyFilter === "out" ? "default" : "outline"} onClick={() => setHistoryFilter("out")}>Saídas</Button>
         </div>
+        <MovementList
+          title={historyFilter === "in" ? "Entradas no estoque" : historyFilter === "out" ? "Saídas / consumo" : "Movimentações"}
+          empty="Sem movimentações."
+          movements={filteredMovements}
+          groupMap={groupMap}
+          describe={describeMovement}
+        />
       </TabsContent>
     </Tabs>
   );
