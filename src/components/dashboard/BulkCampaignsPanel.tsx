@@ -147,13 +147,13 @@ export function BulkCampaignsPanel({
       )}
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-2">
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div>
             <CardTitle className="flex items-center gap-2"><Send className="w-5 h-5" /> Campanhas</CardTitle>
             <CardDescription>Crie campanhas, selecione contatos e envie via Evolution API.</CardDescription>
           </div>
           {canEdit && (
-          <Button onClick={() => setCreateOpen(true)} disabled={scope === "admin" && adminFilter.length === 0}>
+          <Button onClick={() => setCreateOpen(true)} disabled={scope === "admin" && adminFilter.length === 0} className="w-full sm:w-auto">
             <Plus className="w-4 h-4 mr-1" /> Nova campanha
           </Button>
           )}
