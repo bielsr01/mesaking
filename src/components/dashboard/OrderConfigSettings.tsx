@@ -263,7 +263,7 @@ export function OrderConfigSettings({ restaurantId }: Props) {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex items-start sm:items-center justify-between gap-3 sm:gap-4 flex-wrap">
             <div className="flex items-center gap-2">
               <div className="w-9 h-9 rounded-lg bg-accent text-accent-foreground grid place-items-center">
                 <Bike className="w-5 h-5" />
@@ -287,7 +287,7 @@ export function OrderConfigSettings({ restaurantId }: Props) {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex items-start sm:items-center justify-between gap-3 sm:gap-4 flex-wrap">
             <div className="flex items-center gap-2">
               <div className="w-9 h-9 rounded-lg bg-accent text-accent-foreground grid place-items-center">
                 <Store className="w-5 h-5" />
