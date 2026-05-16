@@ -106,12 +106,16 @@ export function AppSidebar({
   const showFinance = !!can("finance.view");
   const showSettings = !!can("settings.view") || !!can("access_management.view");
   const showMarketing = visibleMarketing.length > 0;
-  const { state } = useSidebar();
-  const collapsed = state === "collapsed";
+  const { state, isMobile, setOpenMobile } = useSidebar();
+  const collapsed = state === "collapsed" && !isMobile;
   const marketingActive = active.startsWith("marketing:") && active !== "marketing:loyalty";
   const settingsActive = active.startsWith("settings:");
   const [marketingOpen, setMarketingOpen] = useState(marketingActive);
   const [settingsOpen, setSettingsOpen] = useState(settingsActive);
+  const handleChange = (v: DashboardView) => {
+    onChange(v);
+    if (isMobile) setOpenMobile(false);
+  };
 
   return (
     <Sidebar collapsible="icon">
@@ -135,7 +139,7 @@ export function AppSidebar({
                   <SidebarMenuItem key={item.id}>
                     <SidebarMenuButton
                       isActive={active === item.id}
-                      onClick={() => onChange(item.id)}
+                      onClick={() => handleChange(item.id)}
                       tooltip={item.title}
                       className={showBlink ? "text-destructive animate-pulse" : ""}
                     >
@@ -167,7 +171,7 @@ export function AppSidebar({
                         <button
                           key={item.id}
                           type="button"
-                          onClick={() => onChange(item.id)}
+                          onClick={() => handleChange(item.id)}
                           className={cn("w-full flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground", active === item.id && "bg-accent text-accent-foreground")}
                         >
                           <item.icon className="h-4 w-4" />
@@ -192,7 +196,7 @@ export function AppSidebar({
                         {visibleMarketing.map((item) => (
                           <SidebarMenuSubItem key={item.id}>
                             <SidebarMenuSubButton asChild isActive={active === item.id}>
-                              <button type="button" onClick={() => onChange(item.id)} className="w-full text-left flex items-center gap-2">
+                              <button type="button" onClick={() => handleChange(item.id)} className="w-full text-left flex items-center gap-2">
                                 <item.icon className="h-4 w-4" />
                                 <span>{item.title}</span>
                               </button>
@@ -209,7 +213,7 @@ export function AppSidebar({
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     isActive={active === loyaltyItem.id}
-                    onClick={() => onChange(loyaltyItem.id)}
+                    onClick={() => handleChange(loyaltyItem.id)}
                     tooltip={loyaltyItem.title}
                   >
                     <loyaltyItem.icon className="h-4 w-4" />
@@ -234,7 +238,7 @@ export function AppSidebar({
                         <button
                           key={item.id}
                           type="button"
-                          onClick={() => onChange(item.id)}
+                          onClick={() => handleChange(item.id)}
                           className={cn("w-full flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground", active === item.id && "bg-accent text-accent-foreground")}
                         >
                           <item.icon className="h-4 w-4" />
@@ -259,7 +263,7 @@ export function AppSidebar({
                         {visibleSettings.map((item) => (
                           <SidebarMenuSubItem key={item.id}>
                             <SidebarMenuSubButton asChild isActive={active === item.id}>
-                              <button type="button" onClick={() => onChange(item.id)} className="w-full text-left flex items-center gap-2">
+                              <button type="button" onClick={() => handleChange(item.id)} className="w-full text-left flex items-center gap-2">
                                 <item.icon className="h-4 w-4" />
                                 <span>{item.title}</span>
                               </button>
@@ -274,7 +278,7 @@ export function AppSidebar({
 
               {showSupply && (
                 <SidebarMenuItem>
-                  <SidebarMenuButton isActive={active === "supply-orders"} onClick={() => onChange("supply-orders")} tooltip="Pedido de Insumos">
+                  <SidebarMenuButton isActive={active === "supply-orders"} onClick={() => handleChange("supply-orders")} tooltip="Pedido de Insumos">
                     <Package className="h-4 w-4" />
                     <span>Pedido de Insumos</span>
                   </SidebarMenuButton>
@@ -283,7 +287,7 @@ export function AppSidebar({
 
               {showStock && (
                 <SidebarMenuItem>
-                  <SidebarMenuButton isActive={active === "stock"} onClick={() => onChange("stock")} tooltip="Estoque">
+                  <SidebarMenuButton isActive={active === "stock"} onClick={() => handleChange("stock")} tooltip="Estoque">
                     <Boxes className="h-4 w-4" />
                     <span>Estoque</span>
                   </SidebarMenuButton>
@@ -292,7 +296,7 @@ export function AppSidebar({
 
               {showExpenses && (
                 <SidebarMenuItem>
-                  <SidebarMenuButton isActive={active === "expenses"} onClick={() => onChange("expenses")} tooltip="Cadastro de despesas">
+                  <SidebarMenuButton isActive={active === "expenses"} onClick={() => handleChange("expenses")} tooltip="Cadastro de despesas">
                     <Receipt className="h-4 w-4" />
                     <span>Cadastro de despesas</span>
                   </SidebarMenuButton>
@@ -301,7 +305,7 @@ export function AppSidebar({
 
               {showFinance && (
                 <SidebarMenuItem>
-                  <SidebarMenuButton isActive={active === "finance"} onClick={() => onChange("finance")} tooltip="Receitas - Despesas">
+                  <SidebarMenuButton isActive={active === "finance"} onClick={() => handleChange("finance")} tooltip="Receitas - Despesas">
                     <LineChart className="h-4 w-4" />
                     <span>Receitas - Despesas</span>
                   </SidebarMenuButton>
