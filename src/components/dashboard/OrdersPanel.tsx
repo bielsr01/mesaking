@@ -313,6 +313,37 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
     },
   });
 
+  // Quando abrir o dialog de cancelar um pedido iFood, busca os motivos válidos no iHub.
+  useEffect(() => {
+    if (!cancelTarget || cancelTarget.external_source !== "ifood" || !cancelTarget.external_order_id) return;
+    let aborted = false;
+    setIfoodReasonsLoading(true);
+    setIfoodReasons([]);
+    setIfoodCancelCode("");
+    (async () => {
+      const { data, error } = await supabase.functions.invoke("ihub-link", {
+        body: {
+          action: "cancellation-reasons",
+          restaurantId,
+          externalOrderId: cancelTarget.external_order_id,
+        },
+      });
+      if (aborted) return;
+      if (error || !data?.ok) {
+        toast.error(`Não foi possível carregar os motivos: ${data?.error ?? error?.message ?? "erro"}`);
+      } else {
+        const list = (data.reasons ?? []).map((r: any) => ({
+          cancelCodeId: String(r.cancelCodeId ?? r.code ?? r.id ?? ""),
+          description: String(r.description ?? r.reason ?? r.cancelCodeId ?? ""),
+        })).filter((r: any) => r.cancelCodeId);
+        setIfoodReasons(list);
+        if (list.length > 0) setIfoodCancelCode(list[0].cancelCodeId);
+      }
+      setIfoodReasonsLoading(false);
+    })();
+    return () => { aborted = true; };
+  }, [cancelTarget, restaurantId]);
+
   useEffect(() => {
     const ch = supabase
       .channel(`orders-${restaurantId}`)
