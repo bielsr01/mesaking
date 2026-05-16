@@ -250,15 +250,16 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-2">
+      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <CardTitle className="flex items-center gap-2"><Award className="w-5 h-5" />Programa de fidelidade</CardTitle>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setMetricsOpen(true)}>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Button variant="outline" size="sm" onClick={() => setMetricsOpen(true)} className="flex-1 sm:flex-none">
             <BarChart3 className="w-4 h-4 mr-1" />Métricas
           </Button>
           <Button
             variant="outline"
             size="sm"
+            className="flex-1 sm:flex-none"
             onClick={() => {
               qc.invalidateQueries({ queryKey: ["loyalty-settings", restaurantId] });
               qc.invalidateQueries({ queryKey: ["loyalty-members", restaurantId] });
@@ -272,11 +273,11 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="settings">
-          <TabsList>
-            <TabsTrigger value="settings">Configurações</TabsTrigger>
-            <TabsTrigger value="members">Cadastro</TabsTrigger>
-            {canCredit && <TabsTrigger value="credit">Creditar Pontos</TabsTrigger>}
-            {canRewardsView && <TabsTrigger value="rewards">Resgatar Pontos</TabsTrigger>}
+          <TabsList className="flex w-full overflow-x-auto h-auto justify-start sm:justify-center">
+            <TabsTrigger value="settings" className="text-xs sm:text-sm">Configurações</TabsTrigger>
+            <TabsTrigger value="members" className="text-xs sm:text-sm">Cadastro</TabsTrigger>
+            {canCredit && <TabsTrigger value="credit" className="text-xs sm:text-sm">Creditar</TabsTrigger>}
+            {canRewardsView && <TabsTrigger value="rewards" className="text-xs sm:text-sm">Resgatar</TabsTrigger>}
           </TabsList>
 
           {canRewardsView && (
