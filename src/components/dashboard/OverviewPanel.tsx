@@ -618,7 +618,7 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
       <div className="grid gap-3 lg:grid-cols-2">
         <Card>
           <CardHeader><CardTitle className="text-base flex items-center gap-2"><Trophy className="w-4 h-4 text-yellow-500" />Top clientes</CardTitle></CardHeader>
-          <CardContent>
+          <CardContent className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
