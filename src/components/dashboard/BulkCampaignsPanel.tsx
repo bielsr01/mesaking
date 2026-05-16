@@ -533,7 +533,7 @@ function CampaignDialog({
                   </RSelect>
                 </div>
                 {senderMode === "restaurant" && (
-                  <div className="space-y-2 col-span-2">
+                  <div className="space-y-2 sm:col-span-2">
                     <Label>Restaurante (envio será feito pela instância dele)</Label>
                     <RSelect value={targetRestaurant} onValueChange={setTargetRestaurant}>
                       <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
@@ -547,11 +547,11 @@ function CampaignDialog({
                 )}
               </>
             )}
-            <div className="space-y-2 col-span-2">
+            <div className="space-y-2 sm:col-span-2">
               <Label>Mensagem</Label>
               <Textarea rows={4} value={text} onChange={(e) => setText(e.target.value)} placeholder="Olá {nome}, temos uma oferta especial..." />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 sm:col-span-2">
               <Label>Imagem (opcional)</Label>
               <div className="flex gap-2">
                 <Input value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} placeholder="Cole a URL ou envie um arquivo" />
