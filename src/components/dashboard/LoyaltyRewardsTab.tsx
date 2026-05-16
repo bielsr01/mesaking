@@ -695,7 +695,7 @@ function RedeemWizard({
         {step === 4 && (
           <div className="space-y-3">
             <div className="text-sm font-semibold">4. Endereço de entrega</div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label className="text-xs">CEP</Label>
                 <Input value={cep} onChange={(e) => { setCep(e.target.value); if (e.target.value.replace(/\D/g, "").length === 8) lookupCep(e.target.value); }} placeholder="00000-000" />
@@ -712,15 +712,15 @@ function RedeemWizard({
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-[1fr_120px] gap-2">
+            <div className="grid grid-cols-[1fr_100px] sm:grid-cols-[1fr_120px] gap-2">
               <div className="space-y-1"><Label className="text-xs">Rua</Label><Input value={addr.street} onChange={(e) => setAddr((p) => ({ ...p, street: e.target.value }))} /></div>
               <div className="space-y-1"><Label className="text-xs">Número</Label><Input value={addr.number} onChange={(e) => setAddr((p) => ({ ...p, number: e.target.value }))} /></div>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div className="space-y-1"><Label className="text-xs">Complemento</Label><Input value={addr.complement} onChange={(e) => setAddr((p) => ({ ...p, complement: e.target.value }))} /></div>
               <div className="space-y-1"><Label className="text-xs">Bairro</Label><Input value={addr.neighborhood} onChange={(e) => setAddr((p) => ({ ...p, neighborhood: e.target.value }))} /></div>
             </div>
-            <div className="grid grid-cols-[1fr_80px] gap-2">
+            <div className="grid grid-cols-[1fr_70px] sm:grid-cols-[1fr_80px] gap-2">
               <div className="space-y-1"><Label className="text-xs">Cidade</Label><Input value={addr.city} onChange={(e) => setAddr((p) => ({ ...p, city: e.target.value }))} /></div>
               <div className="space-y-1"><Label className="text-xs">UF</Label><Input maxLength={2} value={addr.state} onChange={(e) => setAddr((p) => ({ ...p, state: e.target.value.toUpperCase() }))} /></div>
             </div>
