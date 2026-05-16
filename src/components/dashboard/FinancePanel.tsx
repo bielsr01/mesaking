@@ -148,9 +148,9 @@ export function FinancePanel({ restaurantIds }: { restaurantIds: string[] }) {
       ) : (
         <>
           <div className="grid gap-4 md:grid-cols-3">
-            <StatCard icon={Banknote} label="Vendas em dinheiro" value={brl(totals.cash)} accent="text-success" />
-            <StatCard icon={QrCode} label="Vendas no Pix" value={brl(totals.pix)} accent="text-primary" />
-            <StatCard icon={CreditCard} label="Vendas no cartão" value={brl(totals.card)} accent="text-blue-600" />
+            <StatCard icon={Banknote} label="Dinheiro (PDV + Delivery direto)" value={brl(totals.cash)} accent="text-success" />
+            <StatCard icon={QrCode} label="Pix (PDV + Delivery direto)" value={brl(totals.pix)} accent="text-primary" />
+            <StatCard icon={CreditCard} label="Cartão (PDV + Delivery direto)" value={brl(totals.card)} accent="text-blue-600" />
           </div>
 
           <div className="grid gap-4 md:grid-cols-3">
