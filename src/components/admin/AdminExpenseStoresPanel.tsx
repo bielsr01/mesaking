@@ -146,6 +146,7 @@ export function AdminExpenseStoresPanel() {
           {cats.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground">Nenhuma categoria cadastrada.</div>
           ) : (
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Solicita descrição</TableHead><TableHead>Status</TableHead><TableHead className="w-24" /></TableRow></TableHeader>
               <TableBody>
@@ -164,6 +165,7 @@ export function AdminExpenseStoresPanel() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>
