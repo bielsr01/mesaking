@@ -185,41 +185,68 @@ export function CouponsPanel({ restaurantId }: { restaurantId: string }) {
           ) : !coupons || coupons.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground">Nenhum cupom cadastrado.</div>
           ) : (
-            <div className="rounded-md border overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Código</TableHead>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Desconto</TableHead>
-                    <TableHead>Aplicação</TableHead>
-                    <TableHead>Validade</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {coupons.map((c) => (
-                    <TableRow key={c.id}>
-                      <TableCell className="font-mono font-semibold">{c.code}</TableCell>
-                      <TableCell>{c.name}</TableCell>
-                      <TableCell>{formatDiscount(c)}</TableCell>
-                      <TableCell>{c.apply_to === "order" ? "Pedido todo" : `Itens (${c.product_ids?.length ?? 0})`}</TableCell>
-                      <TableCell className="text-xs">
-                        {c.ends_at ? new Date(c.ends_at).toLocaleDateString() : "Sem fim"}
-                      </TableCell>
-                      <TableCell>
-                        {c.is_active ? <Badge className="bg-success text-success-foreground">Ativo</Badge> : <Badge variant="secondary">Inativo</Badge>}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {canEdit && <Button variant="ghost" size="icon" onClick={() => openEdit(c)}><Pencil className="w-4 h-4" /></Button>}
-                        {canEdit && <Button variant="ghost" size="icon" onClick={() => setToDelete(c)}><Trash2 className="w-4 h-4 text-destructive" /></Button>}
-                      </TableCell>
+            <>
+              <div className="hidden md:block rounded-md border overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Código</TableHead>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Desconto</TableHead>
+                      <TableHead>Aplicação</TableHead>
+                      <TableHead>Validade</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {coupons.map((c) => (
+                      <TableRow key={c.id}>
+                        <TableCell className="font-mono font-semibold">{c.code}</TableCell>
+                        <TableCell>{c.name}</TableCell>
+                        <TableCell>{formatDiscount(c)}</TableCell>
+                        <TableCell>{c.apply_to === "order" ? "Pedido todo" : `Itens (${c.product_ids?.length ?? 0})`}</TableCell>
+                        <TableCell className="text-xs">
+                          {c.ends_at ? new Date(c.ends_at).toLocaleDateString() : "Sem fim"}
+                        </TableCell>
+                        <TableCell>
+                          {c.is_active ? <Badge className="bg-success text-success-foreground">Ativo</Badge> : <Badge variant="secondary">Inativo</Badge>}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {canEdit && <Button variant="ghost" size="icon" onClick={() => openEdit(c)}><Pencil className="w-4 h-4" /></Button>}
+                          {canEdit && <Button variant="ghost" size="icon" onClick={() => setToDelete(c)}><Trash2 className="w-4 h-4 text-destructive" /></Button>}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <div className="md:hidden space-y-2">
+                {coupons.map((c) => (
+                  <div key={c.id} className="border rounded-lg p-3 space-y-2 bg-card">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-mono font-semibold text-sm truncate">{c.code}</div>
+                        <div className="text-xs text-muted-foreground truncate">{c.name}</div>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        {canEdit && <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(c)}><Pencil className="w-4 h-4" /></Button>}
+                        {canEdit && <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setToDelete(c)}><Trash2 className="w-4 h-4 text-destructive" /></Button>}
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      <Badge variant="outline">{formatDiscount(c)}</Badge>
+                      <span className="text-muted-foreground">{c.apply_to === "order" ? "Pedido todo" : `Itens (${c.product_ids?.length ?? 0})`}</span>
+                      {c.is_active ? <Badge className="bg-success text-success-foreground">Ativo</Badge> : <Badge variant="secondary">Inativo</Badge>}
+                    </div>
+                    <div className="text-xs text-muted-foreground border-t pt-2">
+                      Validade: {c.ends_at ? new Date(c.ends_at).toLocaleDateString() : "Sem fim"}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
