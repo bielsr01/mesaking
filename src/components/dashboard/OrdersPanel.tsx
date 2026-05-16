@@ -604,7 +604,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
       );
     }
     return (
-      <Card key={o.id} className="shadow-soft cursor-pointer hover:bg-accent/30 transition-colors h-[280px] flex flex-col overflow-hidden" onClick={() => setDetailsTarget(o)}>
+      <Card key={o.id} className="shadow-soft cursor-pointer hover:bg-accent/30 transition-colors h-[240px] flex flex-col overflow-hidden" onClick={() => setDetailsTarget(o)}>
         <CardContent className="p-2.5 flex flex-col gap-2 flex-1 min-h-0" onClick={(e) => {
           const t = e.target as HTMLElement;
           if (t.closest('button,a,[role="button"]')) e.stopPropagation();
