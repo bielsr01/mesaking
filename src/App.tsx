@@ -13,6 +13,7 @@ import RestaurantPublic from "./pages/RestaurantPublic";
 import OrderTracking from "./pages/OrderTracking";
 import OrderTicket from "./pages/OrderTicket";
 import KitchenTicketPublic from "./pages/KitchenTicketPublic";
+import CustomerTicketPublic from "./pages/CustomerTicketPublic";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -42,6 +43,7 @@ const App = () => (
             <Route path="/pedido/:token" element={<OrderTracking />} />
             <Route path="/ticket/:orderId" element={<RequireRole role="manager"><OrderTicket /></RequireRole>} />
             <Route path="/ticket-cozinha/:orderId" element={<KitchenTicketPublic />} />
+            <Route path="/ticket-cliente/:orderId" element={<CustomerTicketPublic />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
