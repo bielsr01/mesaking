@@ -478,8 +478,22 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
       <div className="grid gap-3 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader><CardTitle className="text-base">Análise de pedidos por tipo</CardTitle></CardHeader>
-          <CardContent className="overflow-x-auto">
-            <Table>
+          <CardContent>
+            {/* Mobile: stacked cards */}
+            <div className="space-y-2 md:hidden">
+              {typeRows.map((t) => (
+                <div key={t.key} className="rounded-md border p-3 space-y-1">
+                  <div className="flex items-center gap-2 font-medium"><t.icon className="w-4 h-4" style={{ color: t.color }} />{t.label}</div>
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    <div><div className="text-muted-foreground">Pedidos</div><div className="font-medium text-sm">{t.count}</div></div>
+                    <div><div className="text-muted-foreground">Vendas</div><div className="font-medium text-sm">{brl(t.revenue)}</div></div>
+                    <div><div className="text-muted-foreground">Ticket</div><div className="font-medium text-sm">{brl(t.avg)}</div></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Desktop: table */}
+            <Table className="hidden md:table">
               <TableHeader>
                 <TableRow>
                   <TableHead>Tipo</TableHead>
