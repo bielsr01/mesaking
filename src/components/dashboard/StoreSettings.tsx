@@ -288,8 +288,8 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
       <Card>
         <CardHeader><CardTitle>Endereço do restaurante</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          <div className="grid grid-cols-3 gap-3">
-            <div className="space-y-2"><Label>CEP *</Label><Input value={full.address_cep || ""} onChange={(e) => setFull({ ...full, address_cep: e.target.value })} onBlur={(e) => lookupCep(e.target.value)} placeholder="00000-000" required /></div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="space-y-2 col-span-2 sm:col-span-1"><Label>CEP *</Label><Input value={full.address_cep || ""} onChange={(e) => setFull({ ...full, address_cep: e.target.value })} onBlur={(e) => lookupCep(e.target.value)} placeholder="00000-000" required /></div>
             <div className="space-y-2 col-span-2"><Label>Rua *</Label><Input value={full.address_street || ""} onChange={(e) => setFull({ ...full, address_street: e.target.value })} required /></div>
             <div className="space-y-2"><Label>Número *</Label><Input value={full.address_number || ""} onChange={(e) => setFull({ ...full, address_number: e.target.value })} required /></div>
             <div className="space-y-2 col-span-2"><Label>Complemento</Label><Input value={full.address_complement || ""} onChange={(e) => setFull({ ...full, address_complement: e.target.value })} /></div>
@@ -297,16 +297,16 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
             <div className="space-y-2"><Label>Cidade *</Label><Input value={full.address_city || ""} onChange={(e) => setFull({ ...full, address_city: e.target.value })} required /></div>
             <div className="space-y-2"><Label>UF *</Label><Input maxLength={2} value={full.address_state || ""} onChange={(e) => setFull({ ...full, address_state: e.target.value.toUpperCase() })} required /></div>
           </div>
-          <div className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/50">
-            <div className="text-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 rounded-lg bg-muted/50">
+            <div className="text-sm min-w-0">
               <div className="font-medium flex items-center gap-1"><MapPin className="w-4 h-4" /> Coordenadas geográficas</div>
-              <div className="text-xs text-muted-foreground">
+              <div className="text-xs text-muted-foreground break-words">
                 {full.latitude && full.longitude
                   ? `${full.latitude.toFixed(5)}, ${full.longitude.toFixed(5)}`
                   : "Não definidas — calcule para habilitar a taxa de entrega por raio."}
               </div>
             </div>
-            <Button type="button" variant="outline" onClick={geocode} disabled={geocoding}>
+            <Button type="button" variant="outline" onClick={geocode} disabled={geocoding} className="w-full sm:w-auto">
               {geocoding ? <Loader2 className="w-4 h-4 animate-spin" /> : "Localizar no mapa"}
             </Button>
           </div>
@@ -357,13 +357,15 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
           {DAY_LABELS.map((label, i) => {
             const cfg = hours[String(i)] || { open: "18:00", close: "23:00", enabled: false };
             return (
-              <div key={i} className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/40">
-                <div className="w-24 text-sm font-medium">{label}</div>
+              <div key={i} className="flex flex-wrap items-center gap-2 sm:gap-3 p-2 rounded-md hover:bg-muted/40">
+                <div className="w-20 sm:w-24 text-sm font-medium">{label}</div>
                 <Switch checked={cfg.enabled} onCheckedChange={(v) => setHours((h) => ({ ...h, [i]: { ...cfg, enabled: v } }))} />
-                <Input type="time" value={cfg.open} disabled={!cfg.enabled} onChange={(e) => setHours((h) => ({ ...h, [i]: { ...cfg, open: e.target.value } }))} className="w-32" />
-                <span className="text-muted-foreground text-sm">até</span>
-                <Input type="time" value={cfg.close} disabled={!cfg.enabled} onChange={(e) => setHours((h) => ({ ...h, [i]: { ...cfg, close: e.target.value } }))} className="w-32" />
                 {!cfg.enabled && <span className="text-xs text-muted-foreground ml-auto">Fechado</span>}
+                <div className="flex items-center gap-2 w-full sm:w-auto sm:ml-0">
+                  <Input type="time" value={cfg.open} disabled={!cfg.enabled} onChange={(e) => setHours((h) => ({ ...h, [i]: { ...cfg, open: e.target.value } }))} className="flex-1 sm:w-32 sm:flex-none min-w-0" />
+                  <span className="text-muted-foreground text-sm">até</span>
+                  <Input type="time" value={cfg.close} disabled={!cfg.enabled} onChange={(e) => setHours((h) => ({ ...h, [i]: { ...cfg, close: e.target.value } }))} className="flex-1 sm:w-32 sm:flex-none min-w-0" />
+                </div>
               </div>
             );
           })}
