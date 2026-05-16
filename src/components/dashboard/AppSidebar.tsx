@@ -106,12 +106,16 @@ export function AppSidebar({
   const showFinance = !!can("finance.view");
   const showSettings = !!can("settings.view") || !!can("access_management.view");
   const showMarketing = visibleMarketing.length > 0;
-  const { state } = useSidebar();
-  const collapsed = state === "collapsed";
+  const { state, isMobile, setOpenMobile } = useSidebar();
+  const collapsed = state === "collapsed" && !isMobile;
   const marketingActive = active.startsWith("marketing:") && active !== "marketing:loyalty";
   const settingsActive = active.startsWith("settings:");
   const [marketingOpen, setMarketingOpen] = useState(marketingActive);
   const [settingsOpen, setSettingsOpen] = useState(settingsActive);
+  const handleChange = (v: DashboardView) => {
+    onChange(v);
+    if (isMobile) setOpenMobile(false);
+  };
 
   return (
     <Sidebar collapsible="icon">
