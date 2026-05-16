@@ -201,14 +201,15 @@ export default function MasterAdmin() {
         <AdminSidebar active={view} onChange={setView} supplyBadge={supplyPendingCount} />
         <SidebarInset className="flex-1 flex flex-col">
           <header className="bg-background border-b sticky top-0 z-30">
-            <div className="h-16 px-4 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
+            <div className="h-16 px-2 sm:px-4 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
                 <SidebarTrigger />
-                <div className="flex items-center gap-2 font-bold">
-                  <div className="w-9 h-9 rounded-lg bg-gradient-primary flex items-center justify-center">
+                <div className="flex items-center gap-2 font-bold min-w-0">
+                  <div className="w-9 h-9 rounded-lg bg-gradient-primary flex items-center justify-center shrink-0">
                     <ChefHat className="w-5 h-5 text-primary-foreground" />
                   </div>
-                  MesaPro <Badge variant="secondary" className="ml-2">Admin</Badge>
+                  <span className="hidden sm:inline">MesaPro</span>
+                  <Badge variant="secondary" className="ml-0 sm:ml-2">Admin</Badge>
                 </div>
               </div>
               <div className="flex items-center gap-2">
