@@ -746,7 +746,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
             )}
             {canDelivery && (
               <TabsTrigger value="delivery" className={`gap-2 ${deliveryPendingCount > 0 ? "animate-pulse text-destructive ring-2 ring-destructive" : ""}`}>
-                <Bike className="w-4 h-4" /> Delivery
+                <Bike className="w-4 h-4" /> Delivery / Retirada da Loja
                 <Badge variant={deliveryPendingCount > 0 ? "destructive" : "secondary"} className="h-5 min-w-5 px-1.5 text-xs">{deliveryPendingCount > 0 ? deliveryPendingCount : deliveryCount}</Badge>
               </TabsTrigger>
             )}
