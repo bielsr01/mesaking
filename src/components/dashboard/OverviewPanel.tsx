@@ -408,7 +408,7 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
   const monthPrev = sumDayGross(compareFiltered.filter((o) => { const d = new Date(o.created_at); return d >= monthPrevStart && d <= monthPrevEnd; }));
 
   return (
-    <div className="space-y-4 animate-fade-in">
+    <div className="space-y-4 animate-fade-in w-full min-w-0 max-w-full overflow-x-hidden">
       {/* Filters bar */}
       <Card>
         <CardContent className="p-4 flex flex-wrap items-center gap-3">
@@ -445,12 +445,12 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
 
       {/* Source filter */}
       <Tabs value={source} onValueChange={(v) => handleSourceChange(v as SourceFilter)}>
-        <TabsList className="grid grid-cols-5 w-full max-w-3xl">
-          <TabsTrigger value="all">Todos</TabsTrigger>
-          <TabsTrigger value="pdv">PDV</TabsTrigger>
-          <TabsTrigger value="web">Web</TabsTrigger>
-          <TabsTrigger value="ifood">iFood</TabsTrigger>
-          <TabsTrigger value="quero">Quero</TabsTrigger>
+        <TabsList className="grid grid-cols-5 w-full max-w-3xl h-auto">
+          <TabsTrigger value="all" className="text-[11px] sm:text-sm px-1 sm:px-3">Todos</TabsTrigger>
+          <TabsTrigger value="pdv" className="text-[11px] sm:text-sm px-1 sm:px-3">PDV</TabsTrigger>
+          <TabsTrigger value="web" className="text-[11px] sm:text-sm px-1 sm:px-3">Web</TabsTrigger>
+          <TabsTrigger value="ifood" className="text-[11px] sm:text-sm px-1 sm:px-3">iFood</TabsTrigger>
+          <TabsTrigger value="quero" className="text-[11px] sm:text-sm px-1 sm:px-3">Quero</TabsTrigger>
         </TabsList>
       </Tabs>
 
@@ -478,7 +478,7 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
       <div className="grid gap-3 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader><CardTitle className="text-base">Análise de pedidos por tipo</CardTitle></CardHeader>
-          <CardContent>
+          <CardContent className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -491,10 +491,10 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
               <TableBody>
                 {typeRows.map((t) => (
                   <TableRow key={t.key}>
-                    <TableCell className="flex items-center gap-2"><t.icon className="w-4 h-4" style={{ color: t.color }} />{t.label}</TableCell>
+                    <TableCell className="flex items-center gap-2 whitespace-nowrap"><t.icon className="w-4 h-4" style={{ color: t.color }} />{t.label}</TableCell>
                     <TableCell className="text-right font-medium">{t.count}</TableCell>
-                    <TableCell className="text-right">{brl(t.revenue)}</TableCell>
-                    <TableCell className="text-right">{brl(t.avg)}</TableCell>
+                    <TableCell className="text-right whitespace-nowrap">{brl(t.revenue)}</TableCell>
+                    <TableCell className="text-right whitespace-nowrap">{brl(t.avg)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -618,7 +618,7 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
       <div className="grid gap-3 lg:grid-cols-2">
         <Card>
           <CardHeader><CardTitle className="text-base flex items-center gap-2"><Trophy className="w-4 h-4 text-yellow-500" />Top clientes</CardTitle></CardHeader>
-          <CardContent>
+          <CardContent className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -643,7 +643,7 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
                 {topCustomers.length === 0 && <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">Sem dados</TableCell></TableRow>}
               </TableBody>
             </Table>
-            <div className="text-xs text-muted-foreground mt-3 flex justify-between border-t pt-3">
+            <div className="text-xs text-muted-foreground mt-3 flex flex-wrap gap-2 justify-between border-t pt-3">
               <span>Clientes cadastrados: <strong>{customersQ.data ?? 0}</strong></span>
               <span>Ativos (30d): <strong>{active30}</strong></span>
               <span>Ticket/cliente: <strong>{brl(ticketPerCustomer)}</strong></span>
@@ -652,7 +652,7 @@ export function OverviewPanel({ restaurantId, restaurantIds }: { restaurantId?: 
         </Card>
         <Card>
           <CardHeader><CardTitle className="text-base">Produtos mais vendidos</CardTitle></CardHeader>
-          <CardContent>
+          <CardContent className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -686,19 +686,19 @@ function Kpi({ icon: Icon, label, value, sub, delta, disabled, negative }: { ico
   const showDelta = typeof delta === "number" && isFinite(delta);
   const positive = (delta ?? 0) >= 0;
   return (
-    <Card className={disabled ? "opacity-40" : ""}>
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <div className="flex items-center gap-1.5"><Icon className="w-3.5 h-3.5" />{label}</div>
+    <Card className={`${disabled ? "opacity-40" : ""} min-w-0`}>
+      <CardContent className="p-3 sm:p-4 min-w-0">
+        <div className="flex items-center justify-between text-xs text-muted-foreground gap-2 min-w-0">
+          <div className="flex items-center gap-1.5 min-w-0 truncate"><Icon className="w-3.5 h-3.5 shrink-0" /><span className="truncate">{label}</span></div>
           {showDelta && !disabled && (
-            <span className={`flex items-center gap-0.5 font-medium ${positive ? "text-emerald-600" : "text-red-600"}`}>
+            <span className={`flex items-center gap-0.5 font-medium shrink-0 ${positive ? "text-emerald-600" : "text-red-600"}`}>
               {positive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
               {Math.abs(delta!).toFixed(1)}%
             </span>
           )}
         </div>
-        <div className={`text-2xl font-bold mt-1 ${negative ? "text-red-600" : ""}`}>{disabled ? "—" : value}</div>
-        {sub && !disabled && <div className="text-xs text-muted-foreground mt-0.5">{sub}</div>}
+        <div className={`text-lg sm:text-2xl font-bold mt-1 break-words ${negative ? "text-red-600" : ""}`}>{disabled ? "—" : value}</div>
+        {sub && !disabled && <div className="text-xs text-muted-foreground mt-0.5 break-words">{sub}</div>}
         {disabled && <div className="text-xs text-muted-foreground mt-0.5">Indisponível para iFood</div>}
       </CardContent>
     </Card>
