@@ -227,9 +227,9 @@ export default function MasterAdmin() {
             </div>
           </header>
 
-          <main className="flex-1 p-6 space-y-6">
+          <main className="flex-1 p-3 sm:p-6 space-y-4 sm:space-y-6 min-w-0 overflow-x-hidden">
             <div>
-              <h1 className="text-3xl font-bold">{titleMap[view]}</h1>
+              <h1 className="text-xl sm:text-3xl font-bold">{titleMap[view]}</h1>
               {view === "restaurants" && <p className="text-muted-foreground">Gerencie todos os restaurantes da plataforma.</p>}
             </div>
 
