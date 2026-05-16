@@ -261,8 +261,8 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
               className="hidden"
               onChange={onCoverFileChosen}
             />
-            <div className="flex gap-2">
-              <Button type="button" variant="outline" onClick={() => coverInputRef.current?.click()}>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button type="button" variant="outline" onClick={() => coverInputRef.current?.click()} className="w-full sm:w-auto">
                 {full.cover_url || coverPreview ? "Trocar foto de capa" : "Enviar foto de capa"}
               </Button>
               {(coverPreview || full.cover_url) && (
@@ -274,6 +274,7 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
                     setCropperSrc(src);
                     setCropperOpen(true);
                   }}
+                  className="w-full sm:w-auto"
                 >
                   <Crop className="w-4 h-4 mr-1" /> Ajustar enquadramento
                 </Button>
