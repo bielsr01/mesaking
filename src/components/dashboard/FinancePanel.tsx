@@ -5,7 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { brl } from "@/lib/format";
-import { Banknote, CreditCard, QrCode, TrendingUp, TrendingDown, Receipt, Wallet } from "lucide-react";
+import { Banknote, CreditCard, QrCode, TrendingUp, TrendingDown, Receipt, Wallet, Bike, Truck } from "lucide-react";
+import { calcIfoodReceivable } from "@/lib/ifoodFees";
+import { calcQueroReceivable } from "@/lib/queroFees";
 
 const sb = supabase as any;
 
@@ -32,24 +34,25 @@ export function FinancePanel({ restaurantIds }: { restaurantIds: string[] }) {
   const periodKey = `${year}-${String(month).padStart(2, "0")}`;
 
   const enabled = restaurantIds.length > 0;
+  const idsKey = restaurantIds.slice().sort().join(",");
 
   const ordersQ = useQuery({
-    queryKey: ["finance-orders", restaurantIds.slice().sort().join(","), periodKey],
+    queryKey: ["finance-orders", idsKey, periodKey],
     queryFn: async () => {
       const { data } = await sb
         .from("orders")
-        .select("total,payment_method,status,created_at")
+        .select("restaurant_id,total,subtotal,delivery_fee,service_fee,discount,merchant_subsidy,ifood_subsidy,payment_method,external_source,status,created_at")
         .in("restaurant_id", restaurantIds)
         .gte("created_at", startISO)
         .lt("created_at", endISO)
         .neq("status", "cancelled");
-      return (data ?? []) as { total: number; payment_method: string }[];
+      return (data ?? []) as any[];
     },
     enabled,
   });
 
   const expensesQ = useQuery({
-    queryKey: ["finance-expenses", restaurantIds.slice().sort().join(","), periodKey],
+    queryKey: ["finance-expenses", idsKey, periodKey],
     queryFn: async () => {
       const { data } = await sb
         .from("expenses")
@@ -62,20 +65,54 @@ export function FinancePanel({ restaurantIds }: { restaurantIds: string[] }) {
     enabled,
   });
 
+  const ifoodFeesQ = useQuery({
+    queryKey: ["finance-ifood-fees", idsKey],
+    enabled,
+    queryFn: async () => {
+      const { data } = await sb.from("ifood_fee_settings").select("*").in("restaurant_id", restaurantIds);
+      const map = new Map<string, any>();
+      (data ?? []).forEach((r: any) => map.set(r.restaurant_id, r));
+      return map;
+    },
+    staleTime: 60_000,
+  });
+
+  const queroFeesQ = useQuery({
+    queryKey: ["finance-quero-fees", idsKey],
+    enabled,
+    queryFn: async () => {
+      const { data } = await sb.from("quero_fee_settings").select("*").in("restaurant_id", restaurantIds);
+      const map = new Map<string, any>();
+      (data ?? []).forEach((r: any) => map.set(r.restaurant_id, r));
+      return map;
+    },
+    staleTime: 60_000,
+  });
+
   const totals = useMemo(() => {
     const rows = ordersQ.data ?? [];
-    let cash = 0, pix = 0, card = 0;
+    let cash = 0, pix = 0, card = 0, ifoodNet = 0, queroNet = 0;
     for (const o of rows) {
       const v = Number(o.total) || 0;
+      if (o.external_source === "ifood") {
+        const s = ifoodFeesQ.data?.get(o.restaurant_id);
+        ifoodNet += calcIfoodReceivable(o, s).net;
+        continue;
+      }
+      if (o.external_source === "quero") {
+        const s = queroFeesQ.data?.get(o.restaurant_id);
+        queroNet += calcQueroReceivable(o, s).net;
+        continue;
+      }
       if (o.payment_method === "cash") cash += v;
       else if (o.payment_method === "pix") pix += v;
       else if (o.payment_method === "card_on_delivery") card += v;
     }
-    const revenue = cash + pix + card;
+    const revenue = cash + pix + card + ifoodNet + queroNet;
     const expenses = (expensesQ.data ?? []).reduce((s, e) => s + (Number(e.amount) || 0), 0);
     const result = revenue - expenses;
-    return { cash, pix, card, revenue, expenses, result };
-  }, [ordersQ.data, expensesQ.data]);
+    return { cash, pix, card, ifoodNet, queroNet, revenue, expenses, result };
+  }, [ordersQ.data, expensesQ.data, ifoodFeesQ.data, queroFeesQ.data]);
 
   const loading = ordersQ.isLoading || expensesQ.isLoading;
   const positive = totals.result >= 0;
@@ -114,6 +151,11 @@ export function FinancePanel({ restaurantIds }: { restaurantIds: string[] }) {
             <StatCard icon={Banknote} label="Vendas em dinheiro" value={brl(totals.cash)} accent="text-success" />
             <StatCard icon={QrCode} label="Vendas no Pix" value={brl(totals.pix)} accent="text-primary" />
             <StatCard icon={CreditCard} label="Vendas no cartão" value={brl(totals.card)} accent="text-blue-600" />
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <StatCard icon={Bike} label="Receita iFood (líquida)" value={brl(totals.ifoodNet)} accent="text-red-600" />
+            <StatCard icon={Truck} label="Receita Quero Delivery (líquida)" value={brl(totals.queroNet)} accent="text-orange-600" />
           </div>
 
           <div className="grid gap-4 md:grid-cols-3">
