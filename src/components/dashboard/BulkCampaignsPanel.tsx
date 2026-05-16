@@ -516,13 +516,13 @@ function CampaignDialog({
 
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-2 col-span-2">
+            <div className="space-y-2 sm:col-span-2">
               <Label>Nome da campanha</Label>
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Promoção de quarta" />
             </div>
             {!isEdit && scope === "admin" && (
               <>
-                <div className="space-y-2 col-span-2">
+                <div className="space-y-2 sm:col-span-2">
                   <Label>Enviar usando a integração de</Label>
                   <RSelect value={senderMode} onValueChange={(v) => setSenderMode(v as "admin" | "restaurant")}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
