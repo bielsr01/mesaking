@@ -294,43 +294,74 @@ export function CustomersPanel({ restaurantId }: { restaurantId: string }) {
             <p>Nenhum cliente {search || activeFilterCount ? "encontrado" : "cadastrado ainda"}.</p>
           </div>
         ) : (
-          <div className="border rounded-lg overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Telefone</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-center">Pedidos</TableHead>
-                  <TableHead>Último pedido</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((c) => {
-                  const t = getClientType(c.orders_count);
-                  const s = getClientStatus(c.last_order_at);
-                  return (
-                    <TableRow key={c.id}>
-                      <TableCell className="font-medium">{c.name}</TableCell>
-                      <TableCell>{c.phone}</TableCell>
-                      <TableCell>{t ? <span className={`inline-block text-xs px-2 py-0.5 rounded-full ${TYPE_BADGE[t]}`}>{TYPE_LABELS[t]}</span> : <span className="text-muted-foreground text-xs">—</span>}</TableCell>
-                      <TableCell>{s ? <span className={`inline-block text-xs px-2 py-0.5 rounded-full ${STATUS_BADGE[s]}`}>{STATUS_LABELS[s]}</span> : <span className="text-muted-foreground text-xs">—</span>}</TableCell>
-                      <TableCell className="text-center">{c.orders_count}</TableCell>
-                      <TableCell>{c.last_order_at ? new Date(c.last_order_at).toLocaleDateString("pt-BR") : "—"}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          {canEdit && <Button variant="ghost" size="icon" onClick={() => openEdit(c)}><Pencil className="w-4 h-4" /></Button>}
-                          {canDelete && <Button variant="ghost" size="icon" onClick={() => setDeleteId(c.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
+          <>
+            <div className="hidden md:block border rounded-lg overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Telefone</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-center">Pedidos</TableHead>
+                    <TableHead>Último pedido</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((c) => {
+                    const t = getClientType(c.orders_count);
+                    const s = getClientStatus(c.last_order_at);
+                    return (
+                      <TableRow key={c.id}>
+                        <TableCell className="font-medium">{c.name}</TableCell>
+                        <TableCell>{c.phone}</TableCell>
+                        <TableCell>{t ? <span className={`inline-block text-xs px-2 py-0.5 rounded-full ${TYPE_BADGE[t]}`}>{TYPE_LABELS[t]}</span> : <span className="text-muted-foreground text-xs">—</span>}</TableCell>
+                        <TableCell>{s ? <span className={`inline-block text-xs px-2 py-0.5 rounded-full ${STATUS_BADGE[s]}`}>{STATUS_LABELS[s]}</span> : <span className="text-muted-foreground text-xs">—</span>}</TableCell>
+                        <TableCell className="text-center">{c.orders_count}</TableCell>
+                        <TableCell>{c.last_order_at ? new Date(c.last_order_at).toLocaleDateString("pt-BR") : "—"}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            {canEdit && <Button variant="ghost" size="icon" onClick={() => openEdit(c)}><Pencil className="w-4 h-4" /></Button>}
+                            {canDelete && <Button variant="ghost" size="icon" onClick={() => setDeleteId(c.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+
+            <div className="md:hidden space-y-2">
+              {filtered.map((c) => {
+                const t = getClientType(c.orders_count);
+                const s = getClientStatus(c.last_order_at);
+                return (
+                  <div key={c.id} className="border rounded-lg p-3 space-y-2 bg-card">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium truncate">{c.name}</div>
+                        <div className="text-xs text-muted-foreground">{c.phone}</div>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        {canEdit && <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(c)}><Pencil className="w-4 h-4" /></Button>}
+                        {canDelete && <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteId(c.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>}
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {t && <span className={`inline-block text-[10px] px-2 py-0.5 rounded-full ${TYPE_BADGE[t]}`}>{TYPE_LABELS[t]}</span>}
+                      {s && <span className={`inline-block text-[10px] px-2 py-0.5 rounded-full ${STATUS_BADGE[s]}`}>{STATUS_LABELS[s]}</span>}
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground border-t pt-2">
+                      <span><strong className="text-foreground">{c.orders_count}</strong> pedido(s)</span>
+                      <span>Últ.: {c.last_order_at ? new Date(c.last_order_at).toLocaleDateString("pt-BR") : "—"}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </CardContent>
 
