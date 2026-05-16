@@ -664,9 +664,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
             </Button>
             {o.status === "cancelled" && (
               <div className="flex-1 flex justify-center">
-                <span className="inline-flex items-center justify-center h-8 px-3 rounded-md bg-destructive text-destructive-foreground text-[11px] font-semibold uppercase tracking-wide leading-none">
-                  Cancelado
-                </span>
+                <Badge className="bg-destructive text-destructive-foreground">Cancelado</Badge>
               </div>
             )}
             {!["delivered", "cancelled"].includes(o.status) && canChangeStatus && (
