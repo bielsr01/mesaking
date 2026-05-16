@@ -662,6 +662,13 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
             >
               <Printer className="w-3.5 h-3.5" />
             </Button>
+            {o.status === "cancelled" && (
+              <div className="flex-1 flex justify-center">
+                <span className="px-2 py-1 rounded-md bg-destructive text-destructive-foreground text-xs font-bold uppercase tracking-wide">
+                  Cancelado
+                </span>
+              </div>
+            )}
             {!["delivered", "cancelled"].includes(o.status) && canChangeStatus && (
               <>
                 {next && !(o.external_source === "ifood" && next === "delivered") ? (
