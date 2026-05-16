@@ -327,50 +327,69 @@ export function LoyaltyPanel({ restaurantId, isAdmin = false }: { restaurantId: 
                 {canMemberCreate && <Button onClick={openCreate}><Plus className="w-4 h-4 mr-1" />Novo cadastro</Button>}
               </div>
             </div>
-            <div className="border rounded-lg">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Telefone</TableHead>
-                    <TableHead className="text-right">Pontos disponíveis</TableHead>
-                    <TableHead className="w-40 text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(() => {
-                    const q = search.trim().toLowerCase();
-                    const digits = q.replace(/\D/g, "");
-                    const list = (membersQ.data ?? []).filter((m) => {
-                      if (!q) return true;
-                      const phoneDigits = (m.phone || "").replace(/\D/g, "");
-                      return m.name.toLowerCase().includes(q) || (digits && phoneDigits.includes(digits));
-                    });
-                    if (list.length === 0) {
-                      return (
-                        <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Nenhum cliente encontrado</TableCell></TableRow>
-                      );
-                    }
-                    return list.map((m) => (
-                      <TableRow key={m.id}>
-                        <TableCell className="font-medium">{m.name}</TableCell>
-                        <TableCell>{m.phone}</TableCell>
-                        <TableCell className="text-right">
-                          <Badge variant="secondary" className="font-bold">{m.points}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-1">
-                            <Button variant="ghost" size="icon" title="Histórico" onClick={() => setHistoryMember(m)}><History className="w-4 h-4" /></Button>
-                            {(canMemberCreate || canManualAdjust) && <Button variant="ghost" size="icon" title="Editar" onClick={() => openEdit(m)}><Pencil className="w-4 h-4" /></Button>}
-                            {canMemberDelete && <Button variant="ghost" size="icon" title="Excluir" onClick={() => deleteMember(m.id)}><Trash2 className="w-4 h-4" /></Button>}
+            {(() => {
+              const q = search.trim().toLowerCase();
+              const digits = q.replace(/\D/g, "");
+              const list = (membersQ.data ?? []).filter((m) => {
+                if (!q) return true;
+                const phoneDigits = (m.phone || "").replace(/\D/g, "");
+                return m.name.toLowerCase().includes(q) || (digits && phoneDigits.includes(digits));
+              });
+              if (list.length === 0) {
+                return <div className="border rounded-lg py-8 text-center text-muted-foreground">Nenhum cliente encontrado</div>;
+              }
+              return (
+                <>
+                  <div className="hidden md:block border rounded-lg">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Nome</TableHead>
+                          <TableHead>Telefone</TableHead>
+                          <TableHead className="text-right">Pontos disponíveis</TableHead>
+                          <TableHead className="w-40 text-right">Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {list.map((m) => (
+                          <TableRow key={m.id}>
+                            <TableCell className="font-medium">{m.name}</TableCell>
+                            <TableCell>{m.phone}</TableCell>
+                            <TableCell className="text-right"><Badge variant="secondary" className="font-bold">{m.points}</Badge></TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-1">
+                                <Button variant="ghost" size="icon" title="Histórico" onClick={() => setHistoryMember(m)}><History className="w-4 h-4" /></Button>
+                                {(canMemberCreate || canManualAdjust) && <Button variant="ghost" size="icon" title="Editar" onClick={() => openEdit(m)}><Pencil className="w-4 h-4" /></Button>}
+                                {canMemberDelete && <Button variant="ghost" size="icon" title="Excluir" onClick={() => deleteMember(m.id)}><Trash2 className="w-4 h-4" /></Button>}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  <div className="md:hidden space-y-2">
+                    {list.map((m) => (
+                      <div key={m.id} className="border rounded-lg p-3 space-y-2 bg-card">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="font-medium truncate">{m.name}</div>
+                            <div className="text-xs text-muted-foreground">{m.phone}</div>
                           </div>
-                        </TableCell>
-                      </TableRow>
-                    ));
-                  })()}
-                </TableBody>
-              </Table>
-            </div>
+                          <Badge variant="secondary" className="font-bold shrink-0">{m.points} pts</Badge>
+                        </div>
+                        <div className="flex justify-end gap-1 border-t pt-2">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Histórico" onClick={() => setHistoryMember(m)}><History className="w-4 h-4" /></Button>
+                          {(canMemberCreate || canManualAdjust) && <Button variant="ghost" size="icon" className="h-8 w-8" title="Editar" onClick={() => openEdit(m)}><Pencil className="w-4 h-4" /></Button>}
+                          {canMemberDelete && <Button variant="ghost" size="icon" className="h-8 w-8" title="Excluir" onClick={() => deleteMember(m.id)}><Trash2 className="w-4 h-4" /></Button>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              );
+            })()}
           </TabsContent>
 
           {/* Credit */}
