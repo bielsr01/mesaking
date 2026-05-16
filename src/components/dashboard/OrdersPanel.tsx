@@ -487,7 +487,7 @@ export function OrdersPanel({ restaurantId }: { restaurantId: string }) {
       }
       console.info("[ifood-action] cancelando", { orderId: o.id, externalOrderId: o.external_order_id, customer: o.customer_name });
       const { data: fnData, error: fnErr } = await supabase.functions.invoke("ifood-action", {
-        body: { orderId: o.id, action: "cancel", cancelReason: reason },
+        body: { orderId: o.id, action: "cancel", cancelReason: reason, cancelCode: opts?.cancelCode },
       });
       if (fnErr || (fnData && fnData.ok === false)) {
         toast.error(`iFood: ${fnData?.error ?? fnErr?.message ?? "falha"}`);
