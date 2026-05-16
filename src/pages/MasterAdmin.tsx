@@ -251,11 +251,11 @@ export default function MasterAdmin() {
                   </CardContent></Card>
                 </div>
 
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <h2 className="text-xl font-semibold">Restaurantes</h2>
                   <Dialog open={createOpen} onOpenChange={setCreateOpen}>
                     <DialogTrigger asChild>
-                      <Button><Plus className="w-4 h-4 mr-2" />Novo restaurante</Button>
+                      <Button className="w-full sm:w-auto"><Plus className="w-4 h-4 mr-2" />Novo restaurante</Button>
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
