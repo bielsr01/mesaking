@@ -19,11 +19,13 @@ export function AdminMenuPanel() {
   return (
     <div className="space-y-6">
       <Card>
-        <CardContent className="pt-6 flex flex-wrap items-center gap-3">
-          <Store className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm font-medium">Restaurante:</span>
+        <CardContent className="pt-6 flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <Store className="w-4 h-4 text-muted-foreground shrink-0" />
+            <span className="text-sm font-medium">Restaurante:</span>
+          </div>
           <Select value={selected} onValueChange={setSelected}>
-            <SelectTrigger className="w-[280px]">
+            <SelectTrigger className="w-full sm:w-[280px]">
               <SelectValue placeholder="Selecione um restaurante" />
             </SelectTrigger>
             <SelectContent>
@@ -32,8 +34,8 @@ export function AdminMenuPanel() {
               ))}
             </SelectContent>
           </Select>
-          <div className="ml-auto">
-            <Button variant="outline" onClick={() => setCloneOpen(true)} disabled={!selected || restaurants.length < 2}>
+          <div className="sm:ml-auto w-full sm:w-auto">
+            <Button variant="outline" className="w-full sm:w-auto" onClick={() => setCloneOpen(true)} disabled={!selected || restaurants.length < 2}>
               <Copy className="w-4 h-4 mr-2" /> Clonar cardápio
             </Button>
           </div>
