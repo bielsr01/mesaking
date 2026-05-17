@@ -153,6 +153,7 @@ function CashFlowContent({ restaurantId, restaurantName, canOperate, canAdmin }:
           {mode === "advanced" && <TabsTrigger value="movements">Movimentações</TabsTrigger>}
           <TabsTrigger value="withdrawals">Sangrias</TabsTrigger>
           {mode === "advanced" && <TabsTrigger value="charts">Dashboard</TabsTrigger>}
+          <TabsTrigger value="history">Histórico</TabsTrigger>
           {canAdmin && <TabsTrigger value="audit">Auditoria</TabsTrigger>}
         </TabsList>
 
