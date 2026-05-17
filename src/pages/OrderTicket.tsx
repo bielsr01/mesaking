@@ -129,8 +129,8 @@ export default function OrderTicket() {
         .ticket .center { text-align: center; }
         .ticket .row { display: flex; justify-content: space-between; gap: 8px; }
         .ticket .sep { border-top: 1px solid #000; margin: 6px 0; }
-        .ticket .item-name { font-weight: 700; }
-        .ticket .total { font-size: 15px; font-weight: 800; }
+        .ticket .item-name { font-weight: 800; }
+        .ticket .total { font-size: 15px; font-weight: 900; }
         .ticket .logo { max-width: 50mm; max-height: 25mm; display: block; margin: 0 auto 6px; object-fit: contain; filter: contrast(1.4) brightness(0.85); }
       `}</style>
 
