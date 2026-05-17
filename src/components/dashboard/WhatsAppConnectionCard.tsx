@@ -82,7 +82,7 @@ export function WhatsAppConnectionCard({
       if (Date.now() - startedAt > 180_000) { stopPoll(); return; }
       try {
         const r: any = await supabase.functions.invoke("evolution-instance", {
-          body: { action: "state", restaurantId },
+          body: adminScope ? { action: "state", adminScope: true } : { action: "state", restaurantId },
         });
         const st = r?.data?.state;
         if (st === "open") {
