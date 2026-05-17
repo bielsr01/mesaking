@@ -22,6 +22,7 @@ import { LoyaltyPanel } from "@/components/dashboard/LoyaltyPanel";
 import { StoreOpenToggle } from "@/components/dashboard/StoreOpenToggle";
 import { AppSidebar, DashboardView } from "@/components/dashboard/AppSidebar";
 import { NotificationsBell } from "@/components/dashboard/NotificationsBell";
+import { SoundPicker } from "@/components/dashboard/SoundPicker";
 import { LazyView } from "@/components/dashboard/LazyView";
 import { useNewOrderNotifications } from "@/hooks/useNewOrderNotifications";
 import { usePendingOrdersCount } from "@/hooks/usePendingCounts";
