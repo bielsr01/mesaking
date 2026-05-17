@@ -11,7 +11,13 @@ import { EvolutionMessagesPanel } from "./EvolutionMessagesPanel";
 
 const sb = supabase as any;
 
-export function WhatsAppConnectionCard({ restaurantId }: { restaurantId: string }) {
+export function WhatsAppConnectionCard({
+  restaurantId,
+  adminScope,
+}: {
+  restaurantId?: string;
+  adminScope?: boolean;
+}) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
@@ -19,15 +25,20 @@ export function WhatsAppConnectionCard({ restaurantId }: { restaurantId: string 
   const [busy, setBusy] = useState<string | null>(null);
   const pollRef = useRef<number | null>(null);
 
-  const queryKey = ["evolution-integration", "restaurant", restaurantId];
+  const queryKey = adminScope
+    ? ["evolution-integration", "admin"]
+    : ["evolution-integration", "restaurant", restaurantId];
   const { data, isLoading, refetch } = useQuery({
     queryKey,
     queryFn: async () => {
-      const { data } = await sb.from("evolution_integrations")
-        .select("id,enabled,instance_name,instance_token,last_status,qrcode,phone_number")
-        .eq("restaurant_id", restaurantId).maybeSingle();
+      const q = sb.from("evolution_integrations")
+        .select("id,enabled,instance_name,instance_token,last_status,qrcode,phone_number");
+      const { data } = adminScope
+        ? await q.eq("is_admin", true).maybeSingle()
+        : await q.eq("restaurant_id", restaurantId).maybeSingle();
       return data ?? null;
     },
+    enabled: adminScope || !!restaurantId,
   });
 
   const hasInstance = !!data?.instance_name;
@@ -48,7 +59,7 @@ export function WhatsAppConnectionCard({ restaurantId }: { restaurantId: string 
     setBusy(action);
     try {
       const { data: r, error } = await supabase.functions.invoke("evolution-instance", {
-        body: { action, restaurantId },
+        body: adminScope ? { action, adminScope: true } : { action, restaurantId },
       });
       if (error) throw error;
       if (!(r as any)?.ok) throw new Error((r as any)?.error || "Falha");
@@ -57,6 +68,7 @@ export function WhatsAppConnectionCard({ restaurantId }: { restaurantId: string 
       setBusy(null);
     }
   }
+
 
   function stopPoll() {
     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
