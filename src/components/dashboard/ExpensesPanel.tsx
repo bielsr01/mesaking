@@ -1,3 +1,4 @@
+import { uploadToR2 } from "@/lib/r2Upload";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -156,12 +157,10 @@ export function ExpensesPanel({ restaurantId }: { restaurantId: string }) {
     setSaving(true);
     try {
       if (receiptFile) {
-        const ext = receiptFile.name.split(".").pop() || "jpg";
-        const path = `restaurant/${restaurantId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-        const { error: upErr } = await supabase.storage.from("expense-receipts").upload(path, receiptFile, { upsert: false });
-        if (upErr) { toast.error("Falha ao enviar comprovante: " + upErr.message); return; }
-        const { data: pub } = supabase.storage.from("expense-receipts").getPublicUrl(path);
-        payload.receipt_url = pub.publicUrl;
+        try {
+          const ext = receiptFile.name.split(".").pop() || "jpg";
+          payload.receipt_url = await uploadToR2(receiptFile, `expense-receipts/restaurant/${restaurantId}`, `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`);
+        } catch (e: any) { toast.error("Falha ao enviar comprovante: " + (e.message || "")); return; }
       }
       const op = editing
         ? supabase.from("expenses").update(payload).eq("id", editing.id)

@@ -1,3 +1,4 @@
+import { uploadToR2 } from "@/lib/r2Upload";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -179,10 +180,9 @@ export function MenuManager({ restaurantId }: { restaurantId: string }) {
     try {
       let image_url = editingProd?.image_url ?? null;
       if (file && file.size > 0) {
-        const path = `${restaurantId}/${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
-        const { error: upErr } = await supabase.storage.from("menu-images").upload(path, file, { upsert: true });
-        if (upErr) return toast.error(upErr.message);
-        image_url = supabase.storage.from("menu-images").getPublicUrl(path).data.publicUrl;
+        try {
+          image_url = await uploadToR2(file, `menu-images/${restaurantId}`, `${Date.now()}-${file.name.replace(/\s+/g, "_")}`);
+        } catch (e: any) { return toast.error(e.message || "Falha no upload"); }
       }
 
       let productId: string;

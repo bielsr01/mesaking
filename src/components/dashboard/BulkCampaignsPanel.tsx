@@ -1,6 +1,7 @@
 // Shared bulk-campaigns panel.
 // - In dashboard mode: scope="restaurant", restaurantId required.
 // - In admin mode: scope="admin", with multi-restaurant filter.
+import { uploadToR2 } from "@/lib/r2Upload";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -568,13 +569,8 @@ function CampaignDialog({
                     setUploading(true);
                     try {
                       const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
-                      const path = `campaigns/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-                      const { error: upErr } = await supabase.storage.from("menu-images").upload(path, file, {
-                        contentType: file.type, upsert: false,
-                      });
-                      if (upErr) throw upErr;
-                      const { data } = supabase.storage.from("menu-images").getPublicUrl(path);
-                      setMediaUrl(data.publicUrl);
+                      const url = await uploadToR2(file, `menu-images/campaigns`, `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`);
+                      setMediaUrl(url);
                       toast.success("Imagem enviada");
                     } catch (err: any) {
                       toast.error(err.message || "Falha no upload");
