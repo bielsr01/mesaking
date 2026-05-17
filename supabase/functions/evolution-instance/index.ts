@@ -150,11 +150,18 @@ Deno.serve(async (req) => {
       let instanceToken = existing?.instance_token as string | undefined;
 
       if (!instanceName) {
-        // Buscar nome/slug do restaurante para nomear a instância
-        const { data: rest } = await admin.from("restaurants")
-          .select("slug, name").eq("id", restaurantId).maybeSingle();
-        const base = rest?.slug || rest?.name || "";
-        instanceName = genInstanceName(restaurantId, base, false);
+        let base = "";
+        let nameSeed = "admin";
+        if (adminScope) {
+          base = "admin";
+          nameSeed = "admin000";
+        } else {
+          const { data: rest } = await admin.from("restaurants")
+            .select("slug, name").eq("id", restaurantId).maybeSingle();
+          base = rest?.slug || rest?.name || "";
+          nameSeed = restaurantId;
+        }
+        instanceName = genInstanceName(nameSeed, base, false);
         let r = await evoFetch(URL_ENV, "/instance/create", KEY_ENV, {
           instanceName,
           integration: "WHATSAPP-BAILEYS",
@@ -162,7 +169,7 @@ Deno.serve(async (req) => {
         });
         // Se nome já existir, tenta com sufixo aleatório
         if (!r.ok && (r.status === 403 || r.status === 409 || /exist|already|conflict/i.test(JSON.stringify(r.data)))) {
-          instanceName = genInstanceName(restaurantId, base, true);
+          instanceName = genInstanceName(nameSeed, base, true);
           r = await evoFetch(URL_ENV, "/instance/create", KEY_ENV, {
             instanceName, integration: "WHATSAPP-BAILEYS", qrcode: true,
           });
