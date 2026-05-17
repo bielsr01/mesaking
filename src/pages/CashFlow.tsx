@@ -567,6 +567,109 @@ function AuditLogPanel({ restaurantId }: { restaurantId: string }) {
   );
 }
 
+/* ---------- Sessions History ---------- */
+
+function SessionsHistoryPanel({ restaurantId }: { restaurantId: string }) {
+  const { data: sessions, isLoading } = useQuery({
+    queryKey: ["cashSessionsHistory", restaurantId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("cash_register_sessions")
+        .select("*")
+        .eq("restaurant_id", restaurantId)
+        .order("opened_at", { ascending: false })
+        .limit(100);
+      return data ?? [];
+    },
+  });
+
+  const userIds = useMemo(() => {
+    const s = new Set<string>();
+    (sessions ?? []).forEach((x: any) => {
+      if (x.opened_by) s.add(x.opened_by);
+      if (x.closed_by) s.add(x.closed_by);
+    });
+    return Array.from(s);
+  }, [sessions]);
+
+  const { data: profiles } = useQuery({
+    queryKey: ["cashHistoryProfiles", userIds.join(",")],
+    enabled: userIds.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("id,full_name").in("id", userIds);
+      const map: Record<string, string> = {};
+      (data ?? []).forEach((p: any) => { map[p.id] = p.full_name || "—"; });
+      return map;
+    },
+  });
+
+  const nameOf = (id?: string | null) => (id ? (profiles?.[id] ?? id.slice(0, 6)) : "—");
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          <History className="w-4 h-4" /> Histórico de caixas
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="overflow-x-auto">
+        {isLoading ? (
+          <Skeleton className="h-32 w-full" />
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Abertura</TableHead>
+                <TableHead>Aberto por</TableHead>
+                <TableHead className="text-right">Valor inicial</TableHead>
+                <TableHead>Fechamento</TableHead>
+                <TableHead>Fechado por</TableHead>
+                <TableHead className="text-right">Esperado</TableHead>
+                <TableHead className="text-right">Contado</TableHead>
+                <TableHead className="text-right">Diferença</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {(sessions ?? []).map((s: any) => {
+                const diff = Number(s.difference ?? 0);
+                return (
+                  <TableRow key={s.id}>
+                    <TableCell>{new Date(s.opened_at).toLocaleString("pt-BR")}</TableCell>
+                    <TableCell>{nameOf(s.opened_by)}</TableCell>
+                    <TableCell className="text-right">{brl(s.opening_amount)}</TableCell>
+                    <TableCell>{s.closed_at ? new Date(s.closed_at).toLocaleString("pt-BR") : "—"}</TableCell>
+                    <TableCell>{nameOf(s.closed_by)}</TableCell>
+                    <TableCell className="text-right">{s.expected_cash != null ? brl(s.expected_cash) : "—"}</TableCell>
+                    <TableCell className="text-right">{s.counted_cash != null ? brl(s.counted_cash) : "—"}</TableCell>
+                    <TableCell className={`text-right ${Math.abs(diff) > 0.5 ? "text-destructive font-semibold" : ""}`}>
+                      {s.difference != null ? brl(diff) : "—"}
+                    </TableCell>
+                    <TableCell>
+                      {s.status === "open" ? (
+                        <Badge className="bg-emerald-600">Aberto</Badge>
+                      ) : (
+                        <Badge variant="secondary">Fechado</Badge>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+              {(!sessions || sessions.length === 0) && (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                    Nenhum caixa registrado.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 /* ---------- Dialogs ---------- */
 
 function OpenSessionDialog({ restaurantId, onClose }: { restaurantId: string; onClose: (ok: boolean) => void }) {
