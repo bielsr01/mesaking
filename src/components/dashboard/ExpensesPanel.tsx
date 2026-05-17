@@ -1,3 +1,4 @@
+import { uploadToR2 } from "@/lib/r2Upload";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";

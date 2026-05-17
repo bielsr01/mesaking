@@ -1,6 +1,7 @@
 // Shared bulk-campaigns panel.
 // - In dashboard mode: scope="restaurant", restaurantId required.
 // - In admin mode: scope="admin", with multi-restaurant filter.
+import { uploadToR2 } from "@/lib/r2Upload";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
