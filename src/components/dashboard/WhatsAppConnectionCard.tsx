@@ -192,7 +192,7 @@ export function WhatsAppConnectionCard({
               </div>
             )}
 
-            {hasInstance && (
+            {hasInstance && !adminScope && restaurantId && (
               <div className="pt-2">
                 <EvolutionMessagesPanel restaurantId={restaurantId} />
               </div>
