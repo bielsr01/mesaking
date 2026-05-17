@@ -118,12 +118,10 @@ export function AdminOwnExpensesPanel() {
     setSaving(true);
     try {
       if (receiptFile) {
-        const ext = receiptFile.name.split(".").pop() || "jpg";
-        const path = `admin/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-        const { error: upErr } = await supabase.storage.from("expense-receipts").upload(path, receiptFile, { upsert: false });
-        if (upErr) { toast.error("Falha ao enviar comprovante: " + upErr.message); return; }
-        const { data: pub } = supabase.storage.from("expense-receipts").getPublicUrl(path);
-        payload.receipt_url = pub.publicUrl;
+        try {
+          const ext = receiptFile.name.split(".").pop() || "jpg";
+          payload.receipt_url = await uploadToR2(receiptFile, `expense-receipts/admin`, `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`);
+        } catch (e: any) { toast.error("Falha ao enviar comprovante: " + (e.message || "")); return; }
       }
       const op = editing ? supabase.from("admin_expenses").update(payload).eq("id", editing.id) : supabase.from("admin_expenses").insert(payload);
       const { error } = await op;

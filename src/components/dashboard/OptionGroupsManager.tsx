@@ -317,11 +317,8 @@ function GroupDialog({
     setUploadingIdx(idx);
     try {
       const ext = file.name.split(".").pop() || "jpg";
-      const path = `${restaurantId}/option-items/${crypto.randomUUID()}.${ext}`;
-      const { error } = await supabase.storage.from("menu-images").upload(path, file, { upsert: true, contentType: file.type });
-      if (error) throw error;
-      const { data } = supabase.storage.from("menu-images").getPublicUrl(path);
-      updateRow(idx, { image_url: data.publicUrl });
+      const url = await uploadToR2(file, `menu-images/${restaurantId}/option-items`, `${crypto.randomUUID()}.${ext}`);
+      updateRow(idx, { image_url: url });
     } catch (e: any) {
       toast.error(e.message);
     } finally {

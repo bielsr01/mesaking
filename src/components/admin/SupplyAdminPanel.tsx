@@ -395,12 +395,11 @@ export function SupplyCatalogTab() {
     if (!file.type.startsWith("image/")) return toast.error("Selecione uma imagem");
     setUploadingImg(true);
     try {
-      const path = `supply/${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
-      const { error: upErr } = await supabase.storage.from("menu-images").upload(path, file, { upsert: true });
-      if (upErr) { toast.error(upErr.message); return; }
-      const { data: pub } = supabase.storage.from("menu-images").getPublicUrl(path);
-      setImgUrl(pub.publicUrl);
-      toast.success("Imagem enviada");
+      try {
+        const url = await uploadToR2(file, `menu-images/supply`, `${Date.now()}-${file.name.replace(/\s+/g, "_")}`);
+        setImgUrl(url);
+        toast.success("Imagem enviada");
+      } catch (e: any) { toast.error(e.message || "Falha no upload"); return; }
     } finally {
       setUploadingImg(false);
       e.target.value = "";

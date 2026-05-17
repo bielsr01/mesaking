@@ -153,10 +153,9 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
 
     let logo_url: string | null | undefined;
     if (logoFile && logoFile.size > 0) {
-      const path = `${restaurant.id}/logo-${Date.now()}-${logoFile.name.replace(/\s+/g, "_")}`;
-      const { error: upErr } = await supabase.storage.from("menu-images").upload(path, logoFile, { upsert: true });
-      if (upErr) { setBusy(false); return toast.error(upErr.message); }
-      logo_url = supabase.storage.from("menu-images").getPublicUrl(path).data.publicUrl;
+      try {
+        logo_url = await uploadToR2(logoFile, `menu-images/${restaurant.id}`, `logo-${Date.now()}-${logoFile.name.replace(/\s+/g, "_")}`);
+      } catch (e: any) { setBusy(false); return toast.error(e.message || "Falha no upload da logo"); }
     }
     if (!logo_url && !full.logo_url) {
       setBusy(false);
@@ -165,10 +164,9 @@ export function StoreSettings({ restaurant, onUpdated }: { restaurant: Restauran
 
     let cover_url: string | null | undefined;
     if (coverBlob) {
-      const path = `${restaurant.id}/cover-${Date.now()}.jpg`;
-      const { error: upErr } = await supabase.storage.from("menu-images").upload(path, coverBlob, { upsert: true, contentType: "image/jpeg" });
-      if (upErr) { setBusy(false); return toast.error(upErr.message); }
-      cover_url = supabase.storage.from("menu-images").getPublicUrl(path).data.publicUrl;
+      try {
+        cover_url = await uploadToR2(coverBlob, `menu-images/${restaurant.id}`, `cover-${Date.now()}.jpg`);
+      } catch (e: any) { setBusy(false); return toast.error(e.message || "Falha no upload da capa"); }
     }
     if (!cover_url && !full.cover_url) {
       setBusy(false);
