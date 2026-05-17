@@ -89,7 +89,7 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json().catch(() => ({}));
-    const { action, restaurantId } = body ?? {};
+    const { action, restaurantId, adminScope } = body ?? {};
 
     if (action === "env_status") {
       return new Response(JSON.stringify({
@@ -113,27 +113,36 @@ Deno.serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SERVICE);
 
-    if (!restaurantId) throw new Error("restaurantId obrigatório");
-
     // Permission: master_admin OR manager of restaurant
     const { data: isAdminRow } = await admin.from("user_roles").select("role").eq("user_id", uid).eq("role", "master_admin").maybeSingle();
     const isAdmin = !!isAdminRow;
-    if (!isAdmin) {
-      const { data: ok } = await admin.rpc("is_restaurant_manager", { _user_id: uid, _restaurant_id: restaurantId });
-      if (!ok) throw new Error("Sem permissão para este restaurante");
+
+    if (adminScope) {
+      if (!isAdmin) throw new Error("Apenas master_admin pode conectar o WhatsApp do admin");
+    } else {
+      if (!restaurantId) throw new Error("restaurantId obrigatório");
+      if (!isAdmin) {
+        const { data: ok } = await admin.rpc("is_restaurant_manager", { _user_id: uid, _restaurant_id: restaurantId });
+        if (!ok) throw new Error("Sem permissão para este restaurante");
+      }
     }
 
     // Load or initialize integration row
-    const { data: existing } = await admin.from("evolution_integrations")
-      .select("*").eq("restaurant_id", restaurantId).maybeSingle();
+    const baseQuery = admin.from("evolution_integrations").select("*");
+    const { data: existing } = adminScope
+      ? await baseQuery.eq("is_admin", true).maybeSingle()
+      : await baseQuery.eq("restaurant_id", restaurantId).maybeSingle();
 
     async function upsertRow(fields: Record<string, any>) {
       if (existing?.id) {
         await admin.from("evolution_integrations").update(fields).eq("id", existing.id);
+      } else if (adminScope) {
+        await admin.from("evolution_integrations").insert({ is_admin: true, restaurant_id: null, ...fields });
       } else {
         await admin.from("evolution_integrations").insert({ restaurant_id: restaurantId, ...fields });
       }
     }
+
 
     if (action === "create") {
       // If already has an instance, reuse it
