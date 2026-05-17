@@ -183,11 +183,11 @@ export function buildTicketHtml(
     const groupsHtml = groups.map((g) => {
       const itemsHtmlInner = g.items.map((opt) => {
         const extra = Number(opt.extra_price ?? 0) * it.quantity;
-        const right = ps.prices && extra > 0 ? `<span class="muted" style="font-size:12px">+ ${brl(extra)}</span>` : "";
-        return `<div class="row" style="font-size:12px;padding-left:8px"><span>${esc(opt.item_name ?? "")}</span>${right}</div>`;
+        const right = ps.prices && extra > 0 ? `<span class="muted" style="font-size:13px">+ ${brl(extra)}</span>` : "";
+        return `<div class="row" style="font-size:13px;padding-left:8px"><span>${esc(opt.item_name ?? "")}</span>${right}</div>`;
       }).join("");
       return `
-        <div style="font-size:12px;padding-left:4px;margin-top:2px">
+        <div style="font-size:13px;padding-left:4px;margin-top:2px">
           <div style="font-weight:700">${esc(g.name)}:</div>
           ${itemsHtmlInner}
         </div>`;
@@ -198,7 +198,7 @@ export function buildTicketHtml(
       .split("\n")
       .map((l) => l.trim())
       .filter((l) => l && (/^obs\s*:/i.test(l) || (l.includes(":") && !groups.some((g) => l.toLowerCase().startsWith(g.name.toLowerCase() + ":")))));
-    const notesHtml = notesLines.map((l) => `<div class="muted" style="font-size:12px;padding-left:4px">${esc(l)}</div>`).join("");
+    const notesHtml = notesLines.map((l) => `<div class="muted" style="font-size:13px;padding-left:4px">${esc(l)}</div>`).join("");
 
     const priceCell = ps.prices ? `<span>${brl(baseTotal)}</span>` : "";
     return `
@@ -214,7 +214,7 @@ export function buildTicketHtml(
       const structured = orderOptions[it.id];
       if (structured && structured.length) return renderStructuredItem(it, structured);
       const notesHtml = ticketItemDetailLines(it, optionCatalog)
-        .map((l) => `<div class="muted" style="font-size:12px">${esc(l)}</div>`)
+        .map((l) => `<div class="muted" style="font-size:13px">${esc(l)}</div>`)
         .join("");
       const priceCell = ps.prices
         ? `<span>${brl(it.unit_price * it.quantity)}</span>`
@@ -238,14 +238,14 @@ export function buildTicketHtml(
     .ticket, .ticket * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color:#000 !important; }
   }
   body { margin:0; background:#f5f5f5; }
-  .ticket { width:72mm; margin:0 auto; padding:8px; font-family:'Arial',sans-serif; color:#000; font-size:13px; line-height:1.45; font-weight:500; background:#fff; }
-  .ticket h1 { font-size:17px; font-weight:900; margin:0; text-align:center; }
+  .ticket { width:72mm; margin:0 auto; padding:8px; font-family:'Arial',sans-serif; color:#000; font-size:14px; line-height:1.45; font-weight:500; background:#fff; }
+  .ticket h1 { font-size:18px; font-weight:900; margin:0; text-align:center; }
   .muted { color:#000; font-weight:500; }
   .center { text-align:center; }
   .row { display:flex; justify-content:space-between; gap:8px; }
   .sep { border-top:1px solid #000; margin:6px 0; }
   .item-name { font-weight:800; }
-  .total { font-size:16px; font-weight:900; }
+  .total { font-size:17px; font-weight:900; }
   .logo { max-width:50mm; max-height:25mm; display:block; margin:0 auto 6px; object-fit:contain; filter:contrast(1.4) brightness(0.85); }
   .no-print { padding:12px; text-align:center; }
   .no-print button { padding:8px 16px; border:1px solid #333; border-radius:6px; cursor:pointer; background:#fff; }
@@ -292,7 +292,7 @@ export function buildTicketHtml(
     <div class="center" style="white-space:pre-wrap">${esc((ps as any).extra_message)}</div>
   ` : ""}
   <div class="sep"></div>
-  <div class="center muted" style="font-size:11px">Esse documento não tem valor fiscal.</div>
+  <div class="center muted" style="font-size:12px">Esse documento não tem valor fiscal.</div>
 </div>
 <script>
   (function(){
