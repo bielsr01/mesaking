@@ -196,6 +196,10 @@ function CashFlowContent({ restaurantId, restaurantName, canOperate, canAdmin }:
           </TabsContent>
         )}
 
+        <TabsContent value="history">
+          <SessionsHistoryPanel restaurantId={restaurantId} />
+        </TabsContent>
+
         {canAdmin && (
           <TabsContent value="audit">
             <AuditLogPanel restaurantId={restaurantId} />
