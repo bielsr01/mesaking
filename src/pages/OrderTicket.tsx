@@ -25,6 +25,8 @@ interface OrderRow {
   total: number;
   created_at: string;
   restaurant_id: string;
+  external_source: string | null;
+  external_order_id: string | null;
 }
 
 interface ItemRow {
