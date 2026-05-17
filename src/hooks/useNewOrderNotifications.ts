@@ -150,6 +150,18 @@ export function useNewOrderNotifications(restaurantId: string | undefined, isOnO
   }, [restaurantId, qc, isOnOrdersTab]);
 
   const pulse = pendingIds.size > 0;
+
+  // Repeat the notification sound while there are pending orders not yet accepted
+  useEffect(() => {
+    if (pendingIds.size === 0) return;
+    const interval = setInterval(() => {
+      try {
+        playSound();
+      } catch {}
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [pendingIds]);
+
   const unreadCount = notifications.filter((n) => !n.read).length;
   const markAllRead = () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
