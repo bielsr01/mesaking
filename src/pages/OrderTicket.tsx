@@ -170,9 +170,6 @@ export default function OrderTicket() {
         {ps.customer_phone && (
           <div>{order.external_source === "ifood" ? formatIfoodPhone(order.customer_phone) : formatPhone(order.customer_phone)}</div>
         )}
-        {order.external_source === "ifood" && order.external_order_id && (
-          <div>Pedido iFood: {order.external_order_id}</div>
-        )}
         {ps.customer_address && order.order_type === "delivery" && fullCustAddress && (
           <div style={{ marginTop: 2 }}>{fullCustAddress}{order.address_notes ? ` (${order.address_notes})` : ""}</div>
         )}
