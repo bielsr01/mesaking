@@ -268,7 +268,8 @@ export function buildTicketHtml(
     return `
     <div class="sep"></div>
     ${ps.customer_name ? `<div><strong>${esc(order.customer_name)}</strong></div>` : ""}
-    ${ps.customer_phone ? `<div>${esc(formatPhone(order.customer_phone))}</div>` : ""}
+    ${ps.customer_phone ? `<div>${esc(order.external_source === "ifood" ? formatIfoodPhone(order.customer_phone) : formatPhone(order.customer_phone))}</div>` : ""}
+    ${order.external_source === "ifood" && order.external_order_id ? `<div>Pedido iFood: ${esc(order.external_order_id)}</div>` : ""}
     ${showAddr ? `<div style="margin-top:2px">${esc(fullCustAddress)}${order.address_notes ? ` (${esc(order.address_notes)})` : ""}</div>` : ""}`;
   })()}
   ${ps.products ? `
