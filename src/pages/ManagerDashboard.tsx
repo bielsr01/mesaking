@@ -257,6 +257,7 @@ export default function ManagerDashboard() {
                 >
                   <RefreshCw className="w-5 h-5" />
                 </Button>
+                <SoundPicker />
                 <NotificationsBell
                   notifications={notifications}
                   unreadCount={unreadCount}
