@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { EvolutionIntegrationCard } from "@/components/dashboard/EvolutionIntegrationCard";
 import { IhubIntegrationCard } from "@/components/dashboard/IhubIntegrationCard";
 import { QueroIntegrationCard } from "@/components/dashboard/QueroIntegrationCard";
+import { R2MigrationCard } from "@/components/admin/R2MigrationCard";
 
 export function AdminConnectionsPanel() {
   const [scope, setScope] = useState<string>("admin");
@@ -41,8 +42,11 @@ export function AdminConnectionsPanel() {
       </div>
 
       {scope === "admin" ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <EvolutionIntegrationCard scope="admin" />
+        <div className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <EvolutionIntegrationCard scope="admin" />
+          </div>
+          <R2MigrationCard />
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
