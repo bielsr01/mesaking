@@ -1,21 +1,43 @@
 ## Objetivo
 
-Ajustar o popup **"Pedido enviado!"** que aparece para o cliente após finalizar o pedido no menu (`OrderSuccessWhatsAppDialog`).
+Nos tickets impressos (cliente e cozinha), para pedidos com `external_source === "ifood"`:
 
-## Alterações
+1. Substituir o telefone do cliente pelo **0800 formatado do iFood**, usando exatamente a mesma função já usada no `OrderDetailsDialog` (`formatIfoodPhone` em `src/lib/format.ts`) — produz `0800 200 1900 (cód: ABC123)`.
+2. Adicionar uma linha extra logo abaixo com **`Pedido iFood: <external_order_id>`**.
 
-1. **Remover o botão "Fechar"** do rodapé do popup.
-2. **Manter o botão verde "Abrir WhatsApp"** (sem alteração).
-3. **Desativar o fechamento ao clicar fora** do popup (overlay).
-4. **Manter o X** no canto superior direito como única forma de fechar (além do botão Abrir WhatsApp, que também fecha após abrir o link).
+Para pedidos não-iFood nada muda (continua `formatPhone`).
 
-## Detalhes técnicos
+## Arquivos a editar
 
-Arquivo: `src/components/OrderSuccessWhatsAppDialog.tsx`
+1. **`src/lib/ticket.ts`** (`buildTicketHtml`)
+   - Importar `formatIfoodPhone`.
+   - Estender `TicketOrder` com `external_source?: string | null` e `external_order_id?: string | null`.
+   - Onde renderiza `ps.customer_phone`: usar `formatIfoodPhone` quando `order.external_source === "ifood"`, senão `formatPhone`.
+   - Logo abaixo do bloco do telefone, quando for iFood e houver `external_order_id`, adicionar `<div>Pedido iFood: <id></div>`.
 
-- Remover o `<Button variant="ghost">Fechar</Button>` do `DialogFooter`.
-- Como sobra apenas um botão, simplificar removendo o `DialogFooter` e deixando o botão "Abrir WhatsApp" diretamente.
-- Adicionar `onInteractOutside={(e) => e.preventDefault()}` no `<DialogContent>` para impedir fechamento ao clicar fora.
-- O X já existe por padrão no componente `DialogContent` (`src/components/ui/dialog.tsx`) — nada a fazer.
+2. **`src/pages/CustomerTicketPublic.tsx`**
+   - Importar `formatIfoodPhone`.
+   - O `select("*")` já traz `external_source` e `external_order_id`.
+   - Trocar `formatPhone(order.customer_phone)` por condicional + linha extra com o ID quando iFood.
 
-Nenhuma alteração no `WhatsAppConnectionCard` (popup de conexão no dashboard) — aquele mexido anteriormente fica como está, ou posso reverter se preferir.
+3. **`src/pages/KitchenTicketPublic.tsx`**
+   - Mesma alteração da CustomerTicketPublic.
+
+4. **`src/pages/OrderTicket.tsx`**
+   - Mesma alteração (garantir que os campos `external_source` e `external_order_id` são carregados; ajustar `select` se necessário).
+
+## Comportamento final no ticket (iFood)
+
+```
+JOÃO DA SILVA
+0800 200 1900 (cód: ABC123)
+Pedido iFood: 12345abc-...
+Rua X, 100 ...
+```
+
+Não-iFood: inalterado.
+
+## Fora de escopo
+
+- Mudanças de estilo/densidade.
+- Outros campos do pedido.
