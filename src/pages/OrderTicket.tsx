@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { brl, formatPhone, orderTypeLabel, paymentLabel } from "@/lib/format";
+import { brl, formatPhone, formatIfoodPhone, orderTypeLabel, paymentLabel } from "@/lib/format";
 import { DEFAULT_PRINT_SETTINGS, PrintSettings, normalizePrintSettings } from "@/components/dashboard/PrintSettings";
 
 interface OrderRow {
@@ -25,6 +25,8 @@ interface OrderRow {
   total: number;
   created_at: string;
   restaurant_id: string;
+  external_source: string | null;
+  external_order_id: string | null;
 }
 
 interface ItemRow {
@@ -165,7 +167,12 @@ export default function OrderTicket() {
 
         {(ps.customer_name || ps.customer_phone || ps.customer_address) && <div className="sep" />}
         {ps.customer_name && <div><strong>{order.customer_name}</strong></div>}
-        {ps.customer_phone && <div>{formatPhone(order.customer_phone)}</div>}
+        {ps.customer_phone && (
+          <div>{order.external_source === "ifood" ? formatIfoodPhone(order.customer_phone) : formatPhone(order.customer_phone)}</div>
+        )}
+        {order.external_source === "ifood" && order.external_order_id && (
+          <div>Pedido iFood: {order.external_order_id}</div>
+        )}
         {ps.customer_address && order.order_type === "delivery" && fullCustAddress && (
           <div style={{ marginTop: 2 }}>{fullCustAddress}{order.address_notes ? ` (${order.address_notes})` : ""}</div>
         )}

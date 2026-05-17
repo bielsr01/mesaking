@@ -1,4 +1,4 @@
-import { brl, formatPhone, orderTypeLabel, paymentLabel } from "./format";
+import { brl, formatPhone, formatIfoodPhone, orderTypeLabel, paymentLabel } from "./format";
 import {
   DEFAULT_KITCHEN_PRINT_SETTINGS,
   DEFAULT_PRINT_SETTINGS,
@@ -30,6 +30,8 @@ export interface TicketOrder {
   service_fee?: number | null;
   total: number;
   created_at: string;
+  external_source?: string | null;
+  external_order_id?: string | null;
 }
 
 export interface TicketOrderOption {
