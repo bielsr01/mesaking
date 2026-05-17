@@ -107,13 +107,13 @@ export default function KitchenTicketPublic() {
         )}
 
         <div className="sep" />
-        <div className="center" style={{ fontWeight: 700 }}>COZINHA</div>
+        <div className="center" style={{ fontWeight: 800 }}>COZINHA</div>
 
         {ps.order_type_date && (
           <>
             <div className="sep" />
             <div className="center">{dateStr}</div>
-            <div className="center" style={{ fontWeight: 700, marginTop: 2 }}>
+            <div className="center" style={{ fontWeight: 800, marginTop: 2 }}>
               {orderTypeLabel[order.order_type as "delivery" | "pickup"]} #{order.order_number}
             </div>
           </>
