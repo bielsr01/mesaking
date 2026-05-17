@@ -159,7 +159,7 @@ export default function OrderTicket() {
           <>
             <div className="sep" />
             <div className="center">{dateStr}</div>
-            <div className="center" style={{ fontWeight: 700, marginTop: 2 }}>
+            <div className="center" style={{ fontWeight: 800, marginTop: 2 }}>
               {orderTypeLabel[order.order_type]} #{order.order_number}
             </div>
           </>
