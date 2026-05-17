@@ -45,6 +45,7 @@ export type Permissions = {
   stock: { view: boolean; edit: boolean };
   expenses: { view: boolean; edit: boolean };
   finance: { view: boolean; view_fee_breakdown: boolean };
+  cash_flow: { view: boolean; operate: boolean; admin: boolean };
   access_management: { view: boolean };
 };
 
@@ -85,6 +86,7 @@ export const FULL_PERMISSIONS: Permissions = {
   stock: { view: true, edit: true },
   expenses: { view: true, edit: true },
   finance: { view: true, view_fee_breakdown: true },
+  cash_flow: { view: true, operate: true, admin: true },
   access_management: { view: true },
 };
 
@@ -122,6 +124,7 @@ export const EMPTY_PERMISSIONS: Permissions = {
   stock: { view: false, edit: false },
   expenses: { view: false, edit: false },
   finance: { view: false, view_fee_breakdown: false },
+  cash_flow: { view: false, operate: false, admin: false },
   access_management: { view: false },
 };
 
@@ -159,6 +162,8 @@ const PERMISSION_DEPENDENCIES: Record<string, string> = {
   "stock.edit": "stock.view",
   "expenses.edit": "expenses.view",
   "finance.view_fee_breakdown": "finance.view",
+  "cash_flow.operate": "cash_flow.view",
+  "cash_flow.admin": "cash_flow.view",
 };
 
 // Chaves adicionadas após o primeiro release. Se o grupo não tiver o campo

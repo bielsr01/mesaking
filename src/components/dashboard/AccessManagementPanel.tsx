@@ -93,6 +93,11 @@ const SECTIONS: Array<{ key: keyof Permissions; label: string; rows: Row[] }> = 
     { path: "finance.view", label: "Visualizar" },
     { path: "finance.view_fee_breakdown", label: "Ver detalhamento do faturamento (taxas)" },
   ] },
+  { key: "cash_flow", label: "Fluxo de Caixa", rows: [
+    { path: "cash_flow.view", label: "Visualizar" },
+    { path: "cash_flow.operate", label: "Operador (abrir, sangria, fechar)" },
+    { path: "cash_flow.admin", label: "Admin (ajustes, auditoria, conciliação)" },
+  ] },
   { key: "access_management", label: "Gestão de Acessos", rows: [{ path: "access_management.view", label: "Visualizar e gerenciar usuários" }] },
 ];
 
@@ -138,6 +143,8 @@ const PERMISSION_DEPENDENCIES: Record<string, string> = {
   "supply_orders.edit": "supply_orders.view",
   "stock.edit": "stock.view",
   "expenses.edit": "expenses.view",
+  "cash_flow.operate": "cash_flow.view",
+  "cash_flow.admin": "cash_flow.view",
   ...Object.fromEntries(PDV_STATUSES.map((s) => [`orders.statuses.pdv.${s}`, "orders.channels.pdv"])),
   ...Object.fromEntries(DELIVERY_STATUSES.map((s) => [`orders.statuses.delivery.${s}`, "orders.channels.delivery"])),
   ...Object.fromEntries(IFOOD_STATUSES.map((s) => [`orders.statuses.ifood.${s}`, "orders.channels.ifood"])),
