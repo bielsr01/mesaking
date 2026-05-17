@@ -124,8 +124,8 @@ export default function OrderTicket() {
           line-height: 1.45;
           font-weight: 500;
         }
-        .ticket h1 { font-size: 16px; font-weight: 800; margin: 0; text-align: center; }
-        .ticket .muted { color: #000; font-weight: 400; }
+        .ticket h1 { font-size: 16px; font-weight: 900; margin: 0; text-align: center; }
+        .ticket .muted { color: #000; font-weight: 500; }
         .ticket .center { text-align: center; }
         .ticket .row { display: flex; justify-content: space-between; gap: 8px; }
         .ticket .sep { border-top: 1px solid #000; margin: 6px 0; }
