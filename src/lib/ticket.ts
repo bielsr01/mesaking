@@ -259,7 +259,7 @@ export function buildTicketHtml(
   ${ps.order_type_date ? `
     <div class="sep"></div>
     <div class="center">${dateStr}</div>
-    <div class="center" style="font-weight:700;margin-top:2px">${orderTypeLabel[order.order_type]} #${order.order_number}</div>
+    <div class="center" style="font-weight:800;margin-top:2px">${orderTypeLabel[order.order_type]} #${order.order_number}</div>
   ` : ""}
   ${(() => {
     const showAddr = ps.customer_address && order.order_type === "delivery" && !!fullCustAddress;
