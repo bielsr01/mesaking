@@ -17,11 +17,10 @@ export function EvolutionIntegrationCard({
   scope: "restaurant" | "admin";
   restaurantId?: string;
 }) {
-  // For restaurant scope, just delegate to the new connection card
   if (scope === "restaurant" && restaurantId) {
     return <WhatsAppConnectionCard restaurantId={restaurantId} />;
   }
-  return <AdminEnvCard />;
+  return <WhatsAppConnectionCard adminScope />;
 }
 
 function AdminEnvCard() {
