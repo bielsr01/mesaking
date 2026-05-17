@@ -122,7 +122,7 @@ export default function OrderTicket() {
           color: #000;
           font-size: 13px;
           line-height: 1.45;
-          font-weight: 400;
+          font-weight: 500;
         }
         .ticket h1 { font-size: 16px; font-weight: 800; margin: 0; text-align: center; }
         .ticket .muted { color: #000; font-weight: 400; }
