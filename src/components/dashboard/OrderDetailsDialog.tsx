@@ -277,7 +277,7 @@ export function OrderDetailsDialog({
                       <MapPin className="w-4 h-4" /> Abrir no mapa
                     </a>
                   </Button>
-                  {coordsMapUrl && (
+                  {coordsMapUrl && !isQuero && (
                     <Button asChild size="sm" variant="outline">
                       <a href={coordsMapUrl} target="_blank" rel="noreferrer" className="gap-1">
                         <Navigation className="w-4 h-4" /> Abrir coordenadas
