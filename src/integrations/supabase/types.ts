@@ -319,148 +319,6 @@ export type Database = {
         }
         Relationships: []
       }
-      cash_movements: {
-        Row: {
-          amount: number
-          created_at: string
-          created_by: string | null
-          description: string | null
-          id: string
-          order_id: string | null
-          restaurant_id: string
-          session_id: string | null
-          type: Database["public"]["Enums"]["cash_movement_type"]
-        }
-        Insert: {
-          amount: number
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          id?: string
-          order_id?: string | null
-          restaurant_id: string
-          session_id?: string | null
-          type: Database["public"]["Enums"]["cash_movement_type"]
-        }
-        Update: {
-          amount?: number
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          id?: string
-          order_id?: string | null
-          restaurant_id?: string
-          session_id?: string | null
-          type?: Database["public"]["Enums"]["cash_movement_type"]
-        }
-        Relationships: [
-          {
-            foreignKeyName: "cash_movements_session_id_fkey"
-            columns: ["session_id"]
-            isOneToOne: false
-            referencedRelation: "cash_register_sessions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      cash_register_sessions: {
-        Row: {
-          closed_at: string | null
-          closed_by: string | null
-          closing_cash_bills: number | null
-          closing_cash_coins: number | null
-          closing_notes: string | null
-          counted_cash: number | null
-          created_at: string
-          difference: number | null
-          expected_cash: number | null
-          id: string
-          opened_at: string
-          opened_by: string
-          opening_amount: number
-          opening_notes: string | null
-          restaurant_id: string
-          status: Database["public"]["Enums"]["cash_session_status"]
-          updated_at: string
-        }
-        Insert: {
-          closed_at?: string | null
-          closed_by?: string | null
-          closing_cash_bills?: number | null
-          closing_cash_coins?: number | null
-          closing_notes?: string | null
-          counted_cash?: number | null
-          created_at?: string
-          difference?: number | null
-          expected_cash?: number | null
-          id?: string
-          opened_at?: string
-          opened_by: string
-          opening_amount?: number
-          opening_notes?: string | null
-          restaurant_id: string
-          status?: Database["public"]["Enums"]["cash_session_status"]
-          updated_at?: string
-        }
-        Update: {
-          closed_at?: string | null
-          closed_by?: string | null
-          closing_cash_bills?: number | null
-          closing_cash_coins?: number | null
-          closing_notes?: string | null
-          counted_cash?: number | null
-          created_at?: string
-          difference?: number | null
-          expected_cash?: number | null
-          id?: string
-          opened_at?: string
-          opened_by?: string
-          opening_amount?: number
-          opening_notes?: string | null
-          restaurant_id?: string
-          status?: Database["public"]["Enums"]["cash_session_status"]
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      cash_withdrawals: {
-        Row: {
-          amount: number
-          created_at: string
-          created_by: string | null
-          id: string
-          reason: string | null
-          restaurant_id: string
-          session_id: string
-        }
-        Insert: {
-          amount: number
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          reason?: string | null
-          restaurant_id: string
-          session_id: string
-        }
-        Update: {
-          amount?: number
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          reason?: string | null
-          restaurant_id?: string
-          session_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "cash_withdrawals_session_id_fkey"
-            columns: ["session_id"]
-            isOneToOne: false
-            referencedRelation: "cash_register_sessions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       categories: {
         Row: {
           created_at: string
@@ -1186,42 +1044,6 @@ export type Database = {
           },
         ]
       }
-      operator_logs: {
-        Row: {
-          action: string
-          actor_id: string | null
-          created_at: string
-          details: Json
-          entity: string | null
-          entity_id: string | null
-          id: string
-          restaurant_id: string
-          session_id: string | null
-        }
-        Insert: {
-          action: string
-          actor_id?: string | null
-          created_at?: string
-          details?: Json
-          entity?: string | null
-          entity_id?: string | null
-          id?: string
-          restaurant_id: string
-          session_id?: string | null
-        }
-        Update: {
-          action?: string
-          actor_id?: string | null
-          created_at?: string
-          details?: Json
-          entity?: string | null
-          entity_id?: string | null
-          id?: string
-          restaurant_id?: string
-          session_id?: string | null
-        }
-        Relationships: []
-      }
       option_groups: {
         Row: {
           allow_repeat: boolean
@@ -1577,53 +1399,6 @@ export type Database = {
             columns: ["restaurant_id"]
             isOneToOne: false
             referencedRelation: "restaurants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      payment_reconciliation: {
-        Row: {
-          created_at: string
-          fees: number
-          gross: number
-          id: string
-          method: string
-          net: number
-          orders_count: number
-          platform: string
-          restaurant_id: string
-          session_id: string
-        }
-        Insert: {
-          created_at?: string
-          fees?: number
-          gross?: number
-          id?: string
-          method: string
-          net?: number
-          orders_count?: number
-          platform: string
-          restaurant_id: string
-          session_id: string
-        }
-        Update: {
-          created_at?: string
-          fees?: number
-          gross?: number
-          id?: string
-          method?: string
-          net?: number
-          orders_count?: number
-          platform?: string
-          restaurant_id?: string
-          session_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "payment_reconciliation_session_id_fkey"
-            columns: ["session_id"]
-            isOneToOne: false
-            referencedRelation: "cash_register_sessions"
             referencedColumns: ["id"]
           },
         ]
@@ -2452,33 +2227,6 @@ export type Database = {
         }
         Returns: undefined
       }
-      cash_add_supply: {
-        Args: { _amount: number; _description: string; _session_id: string }
-        Returns: string
-      }
-      cash_add_withdrawal: {
-        Args: { _amount: number; _reason: string; _session_id: string }
-        Returns: string
-      }
-      cash_session_close: {
-        Args: {
-          _bills: number
-          _coins: number
-          _counted_cash: number
-          _expected: number
-          _notes: string
-          _session_id: string
-        }
-        Returns: undefined
-      }
-      cash_session_open: {
-        Args: {
-          _notes: string
-          _opening_amount: number
-          _restaurant_id: string
-        }
-        Returns: string
-      }
       credit_loyalty_points: { Args: { _tx_id: string }; Returns: undefined }
       get_restaurant_popup_config: {
         Args: { _restaurant_id: string }
@@ -2535,14 +2283,6 @@ export type Database = {
         | "completed"
         | "failed"
       bulk_recipient_status: "pending" | "sent" | "failed"
-      cash_movement_type:
-        | "order_cash"
-        | "change_out"
-        | "withdrawal"
-        | "supply"
-        | "adjustment"
-        | "opening"
-      cash_session_status: "open" | "closed"
       order_status:
         | "pending"
         | "accepted"
@@ -2701,15 +2441,6 @@ export const Constants = {
         "failed",
       ],
       bulk_recipient_status: ["pending", "sent", "failed"],
-      cash_movement_type: [
-        "order_cash",
-        "change_out",
-        "withdrawal",
-        "supply",
-        "adjustment",
-        "opening",
-      ],
-      cash_session_status: ["open", "closed"],
       order_status: [
         "pending",
         "accepted",

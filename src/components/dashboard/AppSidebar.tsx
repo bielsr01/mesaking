@@ -1,5 +1,4 @@
-import { ChefHat, LayoutDashboard, ShoppingBag, UtensilsCrossed, Settings, Store, Printer, Plug, ChevronDown, ChevronRight, Users, Megaphone, Ticket, Award, Send, ClipboardList, Package, Receipt, Boxes, LineChart, ShieldCheck, Wallet } from "lucide-react";
-import { Link } from "react-router-dom";
+import { ChefHat, LayoutDashboard, ShoppingBag, UtensilsCrossed, Settings, Store, Printer, Plug, ChevronDown, ChevronRight, Users, Megaphone, Ticket, Award, Send, ClipboardList, Package, Receipt, Boxes, LineChart, ShieldCheck } from "lucide-react";
 import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
 import { cn } from "@/lib/utils";
 import { Permissions } from "@/lib/permissions";
@@ -105,7 +104,6 @@ export function AppSidebar({
   const showStock = !!can("stock.view");
   const showExpenses = !!can("expenses.view");
   const showFinance = !!can("finance.view");
-  const showCashFlow = !!can("cash_flow.view");
   const showSettings = !!can("settings.view") || !!can("access_management.view");
   const showMarketing = visibleMarketing.length > 0;
   const { state, isMobile, setOpenMobile } = useSidebar();
@@ -310,17 +308,6 @@ export function AppSidebar({
                   <SidebarMenuButton isActive={active === "finance"} onClick={() => handleChange("finance")} tooltip="Receitas - Despesas">
                     <LineChart className="h-4 w-4" />
                     <span>Receitas - Despesas</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
-
-              {showCashFlow && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Fluxo de Caixa">
-                    <Link to="/caixa" className="w-full flex items-center gap-2">
-                      <Wallet className="h-4 w-4" />
-                      <span>Fluxo de Caixa</span>
-                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               )}
